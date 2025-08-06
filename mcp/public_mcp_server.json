@@ -7,7 +7,7 @@
           "TEST_ENV": "test_value"
         },
         "autoApprove": ["test-tool"],
-        "disabled": false
+        "disabled": true
       },
       "disabled-server": {
         "command": "uvx",
