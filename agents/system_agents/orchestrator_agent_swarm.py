@@ -130,7 +130,7 @@ def create_orchestrator_swarm() -> Swarm:
             execution_timeout=1200.0,  # 20分钟
             node_timeout=400.0,        # 6.7分钟每个Agent
             repetitive_handoff_detection_window=10,
-            repetitive_handoff_min_unique_agents=2
+            repetitive_handoff_min_unique_agents=3
         )
         
         return swarm

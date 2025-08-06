@@ -59,7 +59,6 @@ import glob
 import os
 from pathlib import Path
 import asyncio
-from mcp.client.streamable_http import streamablehttp_client
 from strands.tools.mcp.mcp_client import MCPClient
 
 # Default MCP configuration path
@@ -220,28 +219,26 @@ class MCPClientFactory:
             raise ConfigurationError(f"MCP服务器 '{config.name}' 已被禁用")
         
         try:
-            # 构建服务器URL或连接参数
-            # 对于streamablehttp_client，我们需要构建适当的URL
-            # 这里假设command和args组合形成了服务器的连接信息
-            
-            # 如果command是uvx，args通常包含包名，我们需要启动服务器
-            # 但在这个实现中，我们假设服务器已经在运行，并通过某种方式获取连接URL
-            
-            # 为了简化，我们假设有一个默认的本地服务器URL
-            # 在实际实现中，这里需要根据config.command和config.args来启动或连接到MCP服务器
-            server_url = "http://localhost:8000/mcp"  # 默认URL，实际应该根据配置动态生成
-            
-            # 创建streamablehttp客户端连接函数
-            def create_connection():
-                return streamablehttp_client(server_url)
-            
-            # 创建MCPClient实例
-            client = MCPClient(create_connection)
+            # 导入必要的模块
+            from mcp import stdio_client, StdioServerParameters
             
             # 设置环境变量（如果需要）
             if config.env:
                 for key, value in config.env.items():
                     os.environ[key] = value
+            
+            # 创建stdio客户端连接函数
+            def create_connection():
+                return stdio_client(
+                    StdioServerParameters(
+                        command=config.command,
+                        args=config.args,
+                        env=config.env
+                    )
+                )
+            
+            # 创建MCPClient实例
+            client = MCPClient(create_connection)
             
             return client
             
@@ -258,14 +255,39 @@ class MCPClientFactory:
         Returns:
             MCPClient: 创建的MCP客户端实例
         """
-        # 在同步环境中运行异步方法
-        try:
-            loop = asyncio.get_event_loop()
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
+        # 验证配置
+        MCPClientFactory._validate_config(config)
         
-        return loop.run_until_complete(MCPClientFactory.create_client(config))
+        # 检查服务器是否启用
+        if not config.is_enabled():
+            raise ConfigurationError(f"MCP服务器 '{config.name}' 已被禁用")
+        
+        try:
+            # 导入必要的模块
+            from mcp import stdio_client, StdioServerParameters
+            
+            # 设置环境变量（如果需要）
+            if config.env:
+                for key, value in config.env.items():
+                    os.environ[key] = value
+            
+            # 创建stdio客户端连接函数
+            def create_connection():
+                return stdio_client(
+                    StdioServerParameters(
+                        command=config.command,
+                        args=config.args,
+                        env=config.env
+                    )
+                )
+            
+            # 创建MCPClient实例
+            client = MCPClient(create_connection)
+            
+            return client
+            
+        except Exception as e:
+            raise ConnectionError(f"创建MCP客户端失败: {str(e)}")
 
 
 class MCPManager:
