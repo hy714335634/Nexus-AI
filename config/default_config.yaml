@@ -1,0 +1,34 @@
+default-config:
+  aws:
+    bedrock_region_name: 'us-west-2'  # Region for Amazon Bedrock API calls
+    aws_region_name: 'us-east-1'      # Default AWS region for other services
+    aws_access_key_id: ''             # AWS access key, leave empty to use AWS credentials provider chain
+    aws_secret_access_key: ''         # AWS secret key, leave empty to use AWS credentials provider chain
+    endpoint_url: ''                  # Custom endpoint URL, leave empty for AWS default endpoints
+    verify: True                      # Verify SSL certificates for AWS API calls
+  
+  strands:
+    agent_template_path: 'templates/agents' # Path to Strands agent templates
+    requirements_path: 'templates/requirements/requirements.txt' # Default requirements file
+    local_tools_path: 'templates/tools' # Path to Strands tools templates
+    mcp_server_path: 'mcp/public_mcp_servers' # Path to Strands mcp server templates
+    project_path: 'project/'     # Base path for agent project files
+    # Custom Strands tools that should be included in all agents
+    default_tools:
+      - 'calculator'
+  
+  agentcore:
+    execution_role_prefix: 'agentcore' # Prefix for IAM execution roles
+    ecr_auto_create: True              # Auto-create ECR repositories
+    runtime_timeout_minutes: 30        # Timeout for agent runtime operations
+    enable_xray: False                 # Enable AWS X-Ray tracing
+  
+  bedrock:
+    model_id: 'us.anthropic.claude-3-5-sonnet-20240620-v1:0'    # Default model
+    lite_model_id: 'us.anthropic.claude-3-5-haiku-20241022-v1:0' # Lightweight model
+    pro_model_id: 'us.anthropic.claude-3-7-sonnet-20250219-v1:0' # Advanced model
+    
+  logging:
+    level: 'INFO'                      # Logging level (DEBUG, INFO, WARNING, ERROR)
+    file_path: 'logs/nexus_ai.log'     # Path to log file
+    format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'

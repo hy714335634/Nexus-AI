@@ -1,0 +1,36 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# 需要排除的目录和文件
+Tech Design/
+tests/
+笔记.txt
+main.py
+
+# 隐藏文件和目录
+.DS_Store
+.claude/
+.git/
+
+# IDE和编辑器文件
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 日志文件
+logs/
+*.log
+
+# 临时文件
+*.tmp
+*.temp
