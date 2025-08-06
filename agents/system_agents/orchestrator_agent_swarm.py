@@ -31,7 +31,7 @@ from agents.system_agents.code_generator_agent import get_code_generator_agent
 os.environ["BYPASS_TOOL_CONSENT"] = "true"
 
 # 启用调试日志
-logging.getLogger("strands.multiagent").setLevel(logging.DEBUG)
+logging.getLogger("strands").setLevel(logging.DEBUG)
 logging.basicConfig(
     format="%(levelname)s | %(name)s | %(message)s",
     handlers=[logging.StreamHandler()]
@@ -78,6 +78,7 @@ def create_orchestrator_swarm() -> Swarm:
             tools=[file_read, file_write, calculator]
         )
         
+        requirements_agent = None
         # 使用已开发的专业化Agent
         print("正在创建requirements_analyzer...")
         try:
@@ -97,6 +98,7 @@ def create_orchestrator_swarm() -> Swarm:
                 tools=[file_read, file_write, calculator]
             )
         
+        code_generator = None
         print("正在创建code_generator...")
         try:
             code_generator = get_code_generator_agent()
@@ -118,17 +120,17 @@ def create_orchestrator_swarm() -> Swarm:
         print("开始创建Swarm...")
         
         # 创建agent列表
-        agents = [orchestrator, requirements_analyzer, code_generator]
+        # agents = [orchestrator, requirements_analyzer, code_generator]
         
         # 创建Swarm
         swarm = Swarm(
-            agents,
+            [orchestrator, requirements_analyzer, code_generator],
             max_handoffs=25,
             max_iterations=30,
             execution_timeout=1200.0,  # 20分钟
             node_timeout=400.0,        # 6.7分钟每个Agent
             repetitive_handoff_detection_window=10,
-            repetitive_handoff_min_unique_agents=3
+            repetitive_handoff_min_unique_agents=2
         )
         
         return swarm

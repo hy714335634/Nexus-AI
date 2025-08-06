@@ -1,0 +1,20 @@
+{
+    "mcpServers": {
+      "test-server": {
+        "command": "uvx",
+        "args": ["test-package@latest"],
+        "env": {
+          "TEST_ENV": "test_value"
+        },
+        "autoApprove": ["test-tool"],
+        "disabled": false
+      },
+      "disabled-server": {
+        "command": "uvx",
+        "args": ["disabled-package@latest"],
+        "env": {},
+        "autoApprove": [],
+        "disabled": true
+      }
+    }
+  }

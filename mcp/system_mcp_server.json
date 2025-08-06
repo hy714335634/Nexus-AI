@@ -1,0 +1,28 @@
+{
+    "mcpServers": {
+      "awslabs.core-mcp-server": {
+        "command": "uvx",
+        "args": [
+          "awslabs.core-mcp-server@latest"
+        ],
+        "env": {
+          "FASTMCP_LOG_LEVEL": "ERROR"
+        },
+        "autoApprove": [],
+        "disabled": false
+      },
+      "awslabs.aws-pricing-mcp-server": {
+        "command": "uvx",
+        "args": [
+           "awslabs.aws-pricing-mcp-server@latest"
+        ],
+        "env": {
+          "FASTMCP_LOG_LEVEL": "ERROR",
+          "AWS_PROFILE": "your-aws-profile",
+          "AWS_REGION": "us-east-1"
+        },
+        "disabled": false,
+        "autoApprove": []
+      }
+    }
+}

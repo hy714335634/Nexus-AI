@@ -16,6 +16,9 @@ default-config:
     # Custom Strands tools that should be included in all agents
     default_tools:
       - 'calculator'
+      - 'shell'
+      - 'file_read'
+      - 'file_write'
   
   agentcore:
     execution_role_prefix: 'agentcore' # Prefix for IAM execution roles
@@ -24,7 +27,7 @@ default-config:
     enable_xray: False                 # Enable AWS X-Ray tracing
   
   bedrock:
-    model_id: 'us.anthropic.claude-3-5-sonnet-20240620-v1:0'    # Default model
+    model_id: 'us.anthropic.claude-3-7-sonnet-20250219-v1:0'    # Default model
     lite_model_id: 'us.anthropic.claude-3-5-haiku-20241022-v1:0' # Lightweight model
     pro_model_id: 'us.anthropic.claude-3-7-sonnet-20250219-v1:0' # Advanced model
     

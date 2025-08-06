@@ -24,16 +24,7 @@ os.environ["BYPASS_TOOL_CONSENT"] = "true"
 def get_requirements_analyzer_agent():
     try:
         config = get_config()
-        strands_config = config.get_strands_config()
-        # 获取提示词管理器
-
-        # 获取环境配置
-        env_config = requirements_agent.get_environment_config(environment)
-        if not env_config:
-            # 如果指定环境不存在，使用production环境
-            env_config = requirements_agent.get_environment_config("production")
         
-
         # Create a custom boto3 session
         session = boto3.Session(
             region_name=config.get_aws_config().get("bedrock_region_name")
@@ -42,7 +33,7 @@ def get_requirements_analyzer_agent():
         # Create a Bedrock model with the custom session
         bedrock_model = BedrockModel(
             model_id=config.get_bedrock_config().get("model_id"),
-            max_tokens=env_config.max_tokens,
+            max_tokens=4096,  # 使用默认值
             boto_session=session
         )
 
