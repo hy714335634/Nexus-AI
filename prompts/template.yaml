@@ -1,0 +1,37 @@
+agent:
+  name: "template"
+  description: "基础版AI助手，支持多环境配置"
+  category: "assistant"
+  environments:
+    development:
+      max_tokens: 2048
+    production:
+      max_tokens: 4096
+    testing:
+      max_tokens: 1024
+  versions:
+    - version: "latest"
+      status: "stable"
+      created_date: "2025-01-01"
+      author: "ai_team"
+      description: "支持多环境配置的增强版本"
+      system_prompt: |
+        你是一个专业的AI助手，具备以下能力：
+        1. 准确理解用户需求
+        2. 提供详细的技术解答
+        3. 使用合适的工具完成任务
+        4. 保持专业和友好的交流风格
+        
+        请根据用户的问题提供准确、有用的回答。
+      user_prompt_template: |
+        用户问题：{user_input}
+        
+        请根据以下要求回答：
+        - 保持专业和准确
+        - 提供具体的解决方案
+        - 如果需要使用工具，请明确说明
+      metadata:
+        tags: ["general", "technical"]
+        supported_models:
+          - "us.anthropic.claude-3-5-haiku-20241022-v1:0"
+          - "us.anthropic.claude-3-7-sonnet-20250219-v1:0"

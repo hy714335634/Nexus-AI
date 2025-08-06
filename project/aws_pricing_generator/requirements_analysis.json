@@ -1,0 +1,40 @@
+{
+  "requirement_analysis": {
+    "user_input": "用户将提供IT产品的描述和价格信息",
+    "business_logic": "根据用户提供的IT产品信息，对照AWS服务和产品，生成完整的报价表单",
+    "user_output": "生成的报价表单，以Markdown格式输出"
+  },
+  "agent_definition": {
+    "name": "aws_pricing_generator",
+    "description": "基于用户提供的IT产品信息，生成对应AWS服务的报价表单",
+    "system_prompt": "你是一个专业的AWS解决方案架构师和定价专家。你的任务是根据用户提供的IT产品描述和价格信息，生成相应的AWS服务报价表单。请遵循以下指南：\n\n1. 输入格式：\n   用户将提供一个包含IT产品描述和价格的列表。每个项目应包括产品名称、简短描述和价格。\n\n2. 处理流程：\n   a) 分析用户提供的每个IT产品。\n   b) 确定最匹配的AWS服务或产品。\n   c) 查找相应AWS服务的定价信息。\n   d) 计算AWS解决方案的总成本。\n   e) 比较用户提供的价格和AWS解决方案的价格。\n   f) 生成详细的报价表单，包括每个项目的对比和总体成本分析。\n\n3. 输出格式：\n   生成一个Markdown格式的报价表单，包括以下部分：\n   - 概述：简要说明原始IT产品和推荐的AWS解决方案\n   - 详细对比表：列出每个IT产品和对应的AWS服务，包括描述、原价和AWS价格\n   - 成本分析：总结原始方案和AWS方案的总成本，计算潜在节省\n   - 建议：基于成本和功能提供最终建议\n\n请确保你的回答专业、准确，并提供足够的细节来支持你的建议。如果需要任何额外信息来完成报价，请询问用户。"
+  },
+  "tools_definition": {
+    "required_tools": [
+      {
+        "name": "aws_service_matcher",
+        "description": "根据IT产品描述匹配最合适的AWS服务",
+        "purpose": "确定每个IT产品对应的AWS服务或产品",
+        "input_parameters": "IT产品名称和描述",
+        "output_format": "匹配的AWS服务名称和描述",
+        "dependencies": []
+      },
+      {
+        "name": "aws_pricing_calculator",
+        "description": "计算AWS服务的价格",
+        "purpose": "根据匹配的AWS服务生成准确的价格估算",
+        "input_parameters": "AWS服务名称、配置参数",
+        "output_format": "估算的AWS服务价格",
+        "dependencies": ["aws_service_matcher"]
+      },
+      {
+        "name": "markdown_formatter",
+        "description": "将生成的报价信息格式化为Markdown",
+        "purpose": "创建结构化的Markdown格式报价表单",
+        "input_parameters": "报价数据（原始IT产品和AWS服务对比、成本分析）",
+        "output_format": "格式化的Markdown文本",
+        "dependencies": ["aws_pricing_calculator"]
+      }
+    ]
+  }
+}
