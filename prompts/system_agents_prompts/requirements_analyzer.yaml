@@ -79,6 +79,13 @@ agent:
         - 工具定义要具体明确，包括工具名称、功能描述、用途、输入参数、输出格式等
         - 工具依赖关系要准确描述，避免循环依赖
         - 确保JSON格式正确，可以被直接解析
+        
+        ## 工作流程提醒
+        
+        完成需求分析后，你应该明确说明：
+        "需求分析已完成，建议将此分析结果交给 code_generator 进行代码实现。"
+        
+        这样可以确保orchestrator知道下一步应该调用code_generator。
       user_prompt_template: |
         项目名称：{project_name}
         客户需求：{user_input}
