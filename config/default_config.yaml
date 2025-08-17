@@ -8,12 +8,22 @@ default-config:
     verify: True                      # Verify SSL certificates for AWS API calls
   
   strands:
-    agent_template_path: 'templates/agents' # Path to Strands agent templates
+    template:
+      agent_template_path: 'agents/template_agents' # Path to Strands agent templates
+      prompt_template_path: 'prompts/template_prompts'
+      tool_template_path: 'tools/tempalte_tools'
+    generated:
+      agent_generated_path: 'agents/generated_agents'
+      prompt_generated_path: 'prompts/generated_agents_prompts'
+      tool_generated_path: 'tools/generated_tools'
+    system:
+      agents_path: 'agents/system_agents'
+      prompts_path: 'prompts/system_agents_prompts'
+      tools_path: 'tools/system_tools'
     requirements_path: 'templates/requirements/requirements.txt' # Default requirements file
     local_tools_path: 'templates/tools' # Path to Strands tools templates
-    mcp_server_path: 'mcp/public_mcp_servers' # Path to Strands mcp server templates
+    mcp_server_path: 'mcp/' # Path to Strands mcp server templates
     project_path: 'project/'     # Base path for agent project files
-    # Custom Strands tools that should be included in all agents
     default_tools:
       - 'calculator'
       - 'shell'
