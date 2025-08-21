@@ -23,6 +23,25 @@
         },
         "disabled": false,
         "autoApprove": []
+      },
+      "awslabs.aws-api-mcp-server": {
+        "command": "uvx",
+        "args": [
+          "awslabs.aws-api-mcp-server@latest"
+        ],
+        "env": {
+          "FASTMCP_LOG_LEVEL": "ERROR",
+          "AWS_PROFILE": "default",
+          "AWS_REGION": "us-west-2"
+        },
+        "disabled": false,
+        "autoApprove": []
+      },
+      "mcpServers": {
+        "strands": {
+          "command": "uvx",
+          "args": ["strands-agents-mcp-server"]
+        }
       }
     }
 }

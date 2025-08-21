@@ -11,6 +11,7 @@ wheels/
 
 # 需要排除的目录和文件
 Tech Design/
+solution_review/
 tests/
 笔记.txt
 main.py
