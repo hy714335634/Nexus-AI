@@ -1,0 +1,1236 @@
+#!/usr/bin/env python3
+# project_manager/project_init - 根据项目名称在 projects/ 下创建完整的项目目录结构，自动生成 config.yaml, README.md, status.yaml 文件，创建 agents/, tools/, prompts/ 子目录
+# project_manager/update_project_config - 根据项目名称创建或更新项目配置文件，支持自定义描述和版本号，保留现有配置
+# project_manager/get_project_config - 获取指定项目的配置信息，返回JSON格式的完整配置数据和文件元信息
+# project_manager/update_project_readme - 根据项目配置和状态自动生成 README.md，包含项目描述、目录结构、各Agent阶段进度，支持添加额外内容
+# project_manager/get_project_readme - 获取指定项目的README.md内容，返回完整内容和文件统计信息
+# project_manager/update_project_status - 更新 status.yaml 中的阶段状态，支持6个标准阶段，自动创建Agent条目和所有阶段结构
+# project_manager/get_project_status - 查询项目状态信息，支持查询所有Agent、指定Agent或指定阶段，返回详细的状态信息
+# project_manager/update_project_stage_content - 将内容写入 projects/<project_name>/<agent_name>/<stage_name>.json，自动创建必要的目录结构
+# project_manager/get_project_stage_content - 读取指定阶段文件的内容，返回文件内容和元数据信息
+# project_manager/list_project_agents - 列出指定项目中的所有Agent目录，包含文件统计和阶段文件信息
+# project_manager/list_all_projects - 列出所有项目，包含项目配置信息和Agent数量统计
+# project_manager/generate_content - 根据类型生成内容文件，支持agent、prompt、tool三种类型，分别输出到对应的generated目录
+"""
+项目管理工具
+
+提供项目初始化、配置管理、状态跟踪等功能，支持多Agent项目的完整生命周期管理
+"""
+
+import os
+import json
+import yaml
+from datetime import datetime, timezone
+from typing import Dict, Any, Optional, List, Literal
+from pathlib import Path
+
+from strands import tool
+
+
+@tool
+def project_init(project_name: str) -> str:
+    """
+    根据项目名称初始化项目目录结构
+    
+    Args:
+        project_name (str): 项目名称，将作为目录名使用
+        
+    Returns:
+        str: 操作结果信息，包含创建的目录结构
+    """
+    try:
+        # 验证项目名称
+        if not project_name or not project_name.strip():
+            return "错误：项目名称不能为空"
+        
+        # 清理项目名称，移除不安全字符
+        project_name = project_name.strip()
+        if "/" in project_name or "\\" in project_name or ".." in project_name:
+            return "错误：项目名称不能包含路径分隔符或相对路径"
+        
+        # 创建项目根目录
+        project_root = os.path.join("projects", project_name)
+        
+        # 检查项目是否已存在
+        if os.path.exists(project_root):
+            return f"错误：项目 '{project_name}' 已存在"
+        
+        # 创建目录结构
+        directories = [
+            project_root,
+            os.path.join(project_root, "agents")
+        ]
+        
+        for directory in directories:
+            os.makedirs(directory, exist_ok=True)
+        
+        # 创建基础文件
+        files_created = []
+        
+        # 创建 config.yaml
+        config_path = os.path.join(project_root, "config.yaml")
+        config_content = {
+            "project": {
+                "name": project_name,
+                "description": f"AI智能体项目：{project_name}",
+                "version": "1.0.0",
+                "created_date": datetime.now(timezone.utc).isoformat()
+            }
+        }
+        
+        with open(config_path, 'w', encoding='utf-8') as f:
+            yaml.dump(config_content, f, default_flow_style=False, allow_unicode=True, indent=2)
+        files_created.append("config.yaml")
+        
+        # 创建 README.md
+        readme_path = os.path.join(project_root, "README.md")
+        readme_content = f"""# {project_name}
+
+## 项目描述
+AI智能体项目：{project_name}
+
+## 平台目录结构
+```
+nexus-ai/
+├── agents/                    # 智能体实现
+│   ├── system_agents/         # 核心平台智能体
+│   ├── template_agents/       # 可复用智能体模板 —— 后续Agent代码开发需要参考模版文件
+│   └── generated_agents/      # 动态创建的智能体 —— 后续开发的Agent代码应存储在此目录
+├── prompts/                   # YAML提示词模板
+│   ├── system_agents_prompts/ # 系统智能体提示词
+│   ├── template_prompts/      # 模板提示词 —— 后续Agent提示词开发需要参考模版文件
+│   └── generated_agents_prompts/ # 生成的提示词 —— 后续开发的Agent提示词应存储在此目录
+├── tools/                     # 工具实现
+│   ├── system_tools/          # 核心平台工具
+│   ├── template_tools/        # 工具模板  —— 后续Agent工具开发需要参考模版文件
+│   └── generated_tools/       # 生成的工具 —— 后续开发的Agent工具应存储在此目录
+├── projects/                  # 用户项目目录  —— Agent开发过程文件及项目管理文件存储在对应项目目录中
+│   └── <project_name>/
+│       ├── agents/
+│       │   └── <agent_name>/
+│       │       ├── requirements_analyzer.md       #需求分析师输出文档
+│       │       ├── system_architect.md            #Agent系统架构师输出文档
+│       │       ├── agent_designer.md              #agent设计师输出文档
+│       │       ├── prompt_engineer.md             #提示词工程师输出文档
+│       │       ├── tools_developer.md             #工具开发者输出文档
+│       │       └── agent_code_developer.md        #agent代码开发工程师输出文档
+│       ├── config.yaml          # 项目基本配置
+│       ├── README.md            # 项目说明
+│       └── status.yaml          # 项目需求文档和进度追踪
+└── utils/                     # 共享工具
+
+## Agent开发阶段
+
+### 阶段说明
+1. **requirements_analyzer**: 需求分析阶段
+2. **system_architect**: 系统架构设计阶段
+3. **agent_designer**: Agent设计阶段
+4. **prompt_engineer**: 提示词工程阶段
+5. **tools_developer**: 工具开发阶段
+6. **agent_code_developer**: Agent代码开发阶段
+
+### 各Agent阶段结果
+项目状态和各阶段结果将在开发过程中更新到此文档。
+
+## 使用说明
+请参考项目配置文件和状态文件了解当前开发进度。
+"""
+        
+        with open(readme_path, 'w', encoding='utf-8') as f:
+            f.write(readme_content)
+        files_created.append("README.md")
+        
+        # 创建 status.yaml
+        status_path = os.path.join(project_root, "status.yaml")
+        status_content = {
+            "project": []
+        }
+        
+        with open(status_path, 'w', encoding='utf-8') as f:
+            yaml.dump(status_content, f, default_flow_style=False, allow_unicode=True, indent=2)
+        files_created.append("status.yaml")
+        
+        # 返回成功信息
+        result = {
+            "status": "success",
+            "message": f"项目 '{project_name}' 初始化成功",
+            "project_path": project_root,
+            "directories_created": [
+                "agents/"
+            ],
+            "files_created": files_created,
+            "created_date": datetime.now(timezone.utc).isoformat()
+        }
+        
+        return json.dumps(result, ensure_ascii=False, indent=2)
+        
+    except PermissionError:
+        return f"错误：没有权限创建项目目录 {project_root}"
+    except OSError as e:
+        return f"错误：文件系统操作失败: {str(e)}"
+    except Exception as e:
+        return f"项目初始化时出现错误: {str(e)}"
+
+
+@tool
+def update_project_config(project_name: str, description: str = None, version: str = None) -> str:
+    """
+    根据项目名称创建或更新项目配置文件
+    
+    Args:
+        project_name (str): 项目名称
+        description (str, optional): 项目描述，如果不提供则使用默认描述
+        version (str, optional): 项目版本，如果不提供则使用默认版本
+        
+    Returns:
+        str: 操作结果信息
+    """
+    try:
+        # 验证项目名称
+        if not project_name or not project_name.strip():
+            return "错误：项目名称不能为空"
+        
+        project_name = project_name.strip()
+        project_root = os.path.join("projects", project_name)
+        
+        # 检查项目目录是否存在
+        if not os.path.exists(project_root):
+            return f"错误：项目 '{project_name}' 不存在，请先使用 project_init 初始化项目"
+        
+        config_path = os.path.join(project_root, "config.yaml")
+        
+        # 读取现有配置（如果存在）
+        existing_config = {}
+        if os.path.exists(config_path):
+            try:
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    existing_config = yaml.safe_load(f) or {}
+            except yaml.YAMLError as e:
+                return f"错误：无法解析现有配置文件: {str(e)}"
+        
+        # 准备新配置
+        config_content = {
+            "project": {
+                "name": project_name,
+                "description": description or existing_config.get("project", {}).get("description", f"AI智能体项目：{project_name}"),
+                "version": version or existing_config.get("project", {}).get("version", "1.0.0"),
+                "created_date": existing_config.get("project", {}).get("created_date", datetime.now(timezone.utc).isoformat()),
+                "updated_date": datetime.now(timezone.utc).isoformat()
+            }
+        }
+        
+        # 保留其他现有配置
+        for key, value in existing_config.items():
+            if key != "project":
+                config_content[key] = value
+        
+        # 写入配置文件
+        with open(config_path, 'w', encoding='utf-8') as f:
+            yaml.dump(config_content, f, default_flow_style=False, allow_unicode=True, indent=2)
+        
+        result = {
+            "status": "success",
+            "message": f"项目 '{project_name}' 配置更新成功",
+            "config_path": config_path,
+            "config": config_content["project"],
+            "updated_date": config_content["project"]["updated_date"]
+        }
+        
+        return json.dumps(result, ensure_ascii=False, indent=2)
+        
+    except PermissionError:
+        return f"错误：没有权限写入配置文件"
+    except Exception as e:
+        return f"更新项目配置时出现错误: {str(e)}"
+
+
+@tool
+def update_project_readme(project_name: str, additional_content: str = None) -> str:
+    """
+    根据项目名称创建或更新项目README.md文件
+    
+    Args:
+        project_name (str): 项目名称
+        additional_content (str, optional): 额外要添加的内容
+        
+    Returns:
+        str: 操作结果信息
+    """
+    try:
+        # 验证项目名称
+        if not project_name or not project_name.strip():
+            return "错误：项目名称不能为空"
+        
+        project_name = project_name.strip()
+        project_root = os.path.join("projects", project_name)
+        
+        # 检查项目目录是否存在
+        if not os.path.exists(project_root):
+            return f"错误：项目 '{project_name}' 不存在，请先使用 project_init 初始化项目"
+        
+        # 读取项目配置以获取描述
+        config_path = os.path.join(project_root, "config.yaml")
+        project_description = f"AI智能体项目：{project_name}"
+        
+        if os.path.exists(config_path):
+            try:
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    config = yaml.safe_load(f) or {}
+                    project_description = config.get("project", {}).get("description", project_description)
+            except yaml.YAMLError:
+                pass  # 使用默认描述
+        
+        # 读取项目状态以生成阶段结果
+        status_path = os.path.join(project_root, "status.yaml")
+        agents_status = []
+        
+        if os.path.exists(status_path):
+            try:
+                with open(status_path, 'r', encoding='utf-8') as f:
+                    status = yaml.safe_load(f) or {}
+                    agents_status = status.get("project", [])
+            except yaml.YAMLError:
+                pass  # 使用空列表
+        
+        # 生成README内容
+        readme_content = f"""# {project_name}
+
+## 项目描述
+{project_description}
+
+## 项目结构
+```
+{project_name}/
+├── agents/          # Agent实现文件
+├── config.yaml      # 项目配置文件
+├── README.md        # 项目说明文档
+└── status.yaml      # 项目状态跟踪文件
+```
+
+## Agent开发阶段
+
+### 阶段说明
+1. **requirements_analyzer**: 需求分析阶段
+2. **system_architect**: 系统架构设计阶段
+3. **agent_designer**: Agent设计阶段
+4. **prompt_engineer**: 提示词工程阶段
+5. **tools_developer**: 工具开发阶段
+6. **agent_code_developer**: Agent代码开发阶段
+
+### 各Agent阶段结果
+"""
+        
+        # 添加各Agent的状态信息
+        if agents_status:
+            for agent in agents_status:
+                agent_name = agent.get("name", "未知Agent")
+                readme_content += f"\n#### {agent_name}\n"
+                
+                pipeline = agent.get("pipeline", [])
+                for stage in pipeline:
+                    for stage_name, stage_info in stage.items():
+                        if isinstance(stage_info, dict):
+                            status = "✅ 已完成" if stage_info.get("status", False) else "⏳ 待完成"
+                            doc_path = stage_info.get("doc_path", "")
+                            readme_content += f"- **{stage_name}**: {status}"
+                            if doc_path:
+                                readme_content += f" - [文档]({doc_path})"
+                            readme_content += "\n"
+                        else:
+                            # 兼容旧格式
+                            status = "✅ 已完成" if stage_info else "⏳ 待完成"
+                            readme_content += f"- **{stage_name}**: {status}\n"
+        else:
+            readme_content += "\n项目状态和各阶段结果将在开发过程中更新到此文档。\n"
+        
+        # 添加额外内容
+        if additional_content:
+            readme_content += f"\n## 附加信息\n{additional_content}\n"
+        
+        readme_content += f"""
+## 使用说明
+请参考项目配置文件和状态文件了解当前开发进度。
+
+---
+*最后更新时间: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}*
+"""
+        
+        # 写入README文件
+        readme_path = os.path.join(project_root, "README.md")
+        with open(readme_path, 'w', encoding='utf-8') as f:
+            f.write(readme_content)
+        
+        result = {
+            "status": "success",
+            "message": f"项目 '{project_name}' README.md 更新成功",
+            "readme_path": readme_path,
+            "content_length": len(readme_content),
+            "agents_count": len(agents_status),
+            "updated_date": datetime.now(timezone.utc).isoformat()
+        }
+        
+        return json.dumps(result, ensure_ascii=False, indent=2)
+        
+    except PermissionError:
+        return f"错误：没有权限写入README文件"
+    except Exception as e:
+        return f"更新项目README时出现错误: {str(e)}"
+
+
+@tool
+def update_project_status(project_name: str, agent_name: str, stage: str, status: bool, doc_path: str = "") -> str:
+    """
+    更新项目状态文件中指定Agent的指定阶段状态
+    
+    Args:
+        project_name (str): 项目名称
+        agent_name (str): Agent名称
+        stage (str): 阶段名称 (requirements_analyzer, system_architect, agent_designer, prompt_engineer, tools_developer, agent_code_developer)
+        status (bool): 阶段状态 (True表示完成，False表示未完成)
+        doc_path (str, optional): 文档路径
+        
+    Returns:
+        str: 操作结果信息
+    """
+    try:
+        # 验证参数
+        if not project_name or not project_name.strip():
+            return "错误：项目名称不能为空"
+        
+        if not agent_name or not agent_name.strip():
+            return "错误：Agent名称不能为空"
+        
+        if not stage or not stage.strip():
+            return "错误：阶段名称不能为空"
+        
+        # 验证阶段名称
+        valid_stages = [
+            "requirements_analyzer", "system_architect", "agent_designer",
+            "prompt_engineer", "tools_developer", "agent_code_developer","agent_developer_manager"
+        ]
+        
+        if stage not in valid_stages:
+            return f"错误：无效的阶段名称 '{stage}'，有效阶段包括: {', '.join(valid_stages)}"
+        
+        project_name = project_name.strip()
+        agent_name = agent_name.strip()
+        stage = stage.strip()
+        
+        project_root = os.path.join("projects", project_name)
+        
+        # 检查项目目录是否存在
+        if not os.path.exists(project_root):
+            return f"错误：项目 '{project_name}' 不存在，请先使用 project_init 初始化项目"
+        
+        status_path = os.path.join(project_root, "status.yaml")
+        
+        # 读取现有状态
+        status_data = {"project": []}
+        if os.path.exists(status_path):
+            try:
+                with open(status_path, 'r', encoding='utf-8') as f:
+                    status_data = yaml.safe_load(f) or {"project": []}
+            except yaml.YAMLError as e:
+                return f"错误：无法解析状态文件: {str(e)}"
+        
+        # 确保project字段存在
+        if "project" not in status_data:
+            status_data["project"] = []
+        
+        # 查找或创建Agent条目
+        agent_entry = None
+        for agent in status_data["project"]:
+            if agent.get("name") == agent_name:
+                agent_entry = agent
+                break
+        
+        if agent_entry is None:
+            # 创建新的Agent条目，包含所有阶段
+            agent_entry = {
+                "name": agent_name,
+                "pipeline": []
+            }
+            
+            # 初始化所有阶段
+            for stage_name in valid_stages:
+                stage_entry = {
+                    stage_name: {
+                        "status": False,
+                        "doc_path": ""
+                    }
+                }
+                agent_entry["pipeline"].append(stage_entry)
+            
+            status_data["project"].append(agent_entry)
+        
+        # 更新指定阶段的状态
+        pipeline = agent_entry.get("pipeline", [])
+        stage_found = False
+        
+        for stage_entry in pipeline:
+            if stage in stage_entry:
+                if isinstance(stage_entry[stage], dict):
+                    stage_entry[stage]["status"] = status
+                    stage_entry[stage]["doc_path"] = doc_path
+                else:
+                    # 兼容旧格式，转换为新格式
+                    stage_entry[stage] = {
+                        "status": status,
+                        "doc_path": doc_path
+                    }
+                stage_found = True
+                break
+        
+        # 如果阶段不存在，添加它
+        if not stage_found:
+            new_stage_entry = {
+                stage: {
+                    "status": status,
+                    "doc_path": doc_path
+                }
+            }
+            agent_entry["pipeline"].append(new_stage_entry)
+        
+        # 写入状态文件
+        with open(status_path, 'w', encoding='utf-8') as f:
+            yaml.dump(status_data, f, default_flow_style=False, allow_unicode=True, indent=2)
+        
+        result = {
+            "status": "success",
+            "message": f"项目 '{project_name}' 中 Agent '{agent_name}' 的阶段 '{stage}' 状态更新成功",
+            "project_name": project_name,
+            "agent_name": agent_name,
+            "stage": stage,
+            "new_status": status,
+            "doc_path": doc_path,
+            "updated_date": datetime.now(timezone.utc).isoformat()
+        }
+        
+        return json.dumps(result, ensure_ascii=False, indent=2)
+        
+    except PermissionError:
+        return f"错误：没有权限写入状态文件"
+    except Exception as e:
+        return f"更新项目状态时出现错误: {str(e)}"
+
+
+@tool
+def get_project_status(project_name: str, agent_name: str = None, stage: str = None) -> str:
+    """
+    查询项目状态文件中的阶段状态
+    
+    Args:
+        project_name (str): 项目名称
+        agent_name (str, optional): Agent名称，如果不提供则返回所有Agent状态
+        stage (str, optional): 阶段名称，如果不提供则返回指定Agent的所有阶段状态
+        
+    Returns:
+        str: 查询结果信息
+    """
+    try:
+        # 验证项目名称
+        if not project_name or not project_name.strip():
+            return "错误：项目名称不能为空"
+        
+        project_name = project_name.strip()
+        project_root = os.path.join("projects", project_name)
+        
+        # 检查项目目录是否存在
+        if not os.path.exists(project_root):
+            return f"错误：项目 '{project_name}' 不存在"
+        
+        status_path = os.path.join(project_root, "status.yaml")
+        
+        # 检查状态文件是否存在
+        if not os.path.exists(status_path):
+            return f"错误：项目 '{project_name}' 的状态文件不存在"
+        
+        # 读取状态文件
+        try:
+            with open(status_path, 'r', encoding='utf-8') as f:
+                status_data = yaml.safe_load(f) or {"project": []}
+        except yaml.YAMLError as e:
+            return f"错误：无法解析状态文件: {str(e)}"
+        
+        agents_data = status_data.get("project", [])
+        
+        # 如果没有指定Agent，返回所有Agent状态
+        if not agent_name:
+            result = {
+                "status": "success",
+                "project_name": project_name,
+                "total_agents": len(agents_data),
+                "agents": agents_data,
+                "query_date": datetime.now(timezone.utc).isoformat()
+            }
+            return json.dumps(result, ensure_ascii=False, indent=2)
+        
+        # 查找指定Agent
+        agent_name = agent_name.strip()
+        target_agent = None
+        
+        for agent in agents_data:
+            if agent.get("name") == agent_name:
+                target_agent = agent
+                break
+        
+        if target_agent is None:
+            return f"错误：在项目 '{project_name}' 中未找到 Agent '{agent_name}'"
+        
+        # 如果没有指定阶段，返回Agent的所有阶段状态
+        if not stage:
+            result = {
+                "status": "success",
+                "project_name": project_name,
+                "agent_name": agent_name,
+                "agent_data": target_agent,
+                "query_date": datetime.now(timezone.utc).isoformat()
+            }
+            return json.dumps(result, ensure_ascii=False, indent=2)
+        
+        # 查找指定阶段
+        stage = stage.strip()
+        pipeline = target_agent.get("pipeline", [])
+        stage_data = None
+        
+        for stage_entry in pipeline:
+            if stage in stage_entry:
+                stage_data = stage_entry[stage]
+                break
+        
+        if stage_data is None:
+            return f"错误：在 Agent '{agent_name}' 中未找到阶段 '{stage}'"
+        
+        result = {
+            "status": "success",
+            "project_name": project_name,
+            "agent_name": agent_name,
+            "stage": stage,
+            "stage_data": stage_data,
+            "query_date": datetime.now(timezone.utc).isoformat()
+        }
+        
+        return json.dumps(result, ensure_ascii=False, indent=2)
+        
+    except Exception as e:
+        return f"查询项目状态时出现错误: {str(e)}"
+
+
+@tool
+def update_project_stage_content(project_name: str, agent_name: str, stage_name: str, content: str) -> str:
+    """
+    将内容写入指定的项目阶段文件
+    
+    Args:
+        project_name (str): 项目名称
+        agent_name (str): Agent名称
+        stage_name (str): 阶段名称
+        content (str): 要写入的内容
+        
+    Returns:
+        str: 操作结果信息
+    """
+    try:
+        # 验证参数
+        if not project_name or not project_name.strip():
+            return "错误：项目名称不能为空"
+        
+        if not agent_name or not agent_name.strip():
+            return "错误：Agent名称不能为空"
+        
+        if not stage_name or not stage_name.strip():
+            return "错误：阶段名称不能为空"
+        
+        if content is None:
+            return "错误：内容不能为None"
+        
+        project_name = project_name.strip()
+        agent_name = agent_name.strip()
+        stage_name = stage_name.strip()
+        
+        # 验证路径安全性
+        if "/" in agent_name or "\\" in agent_name or ".." in agent_name:
+            return "错误：Agent名称不能包含路径分隔符或相对路径"
+        
+        if "/" in stage_name or "\\" in stage_name or ".." in stage_name:
+            return "错误：阶段名称不能包含路径分隔符或相对路径"
+        
+        project_root = os.path.join("projects", project_name)
+        
+        # 检查项目目录是否存在
+        if not os.path.exists(project_root):
+            return f"错误：项目 '{project_name}' 不存在，请先使用 project_init 初始化项目"
+        
+        # 创建Agent目录
+        agent_dir = os.path.join(project_root,"agents", agent_name)
+        os.makedirs(agent_dir, exist_ok=True)
+        
+        # 创建阶段文件路径
+        stage_file_path = os.path.join(agent_dir, f"{stage_name}.json")
+        
+        # 写入内容
+        with open(stage_file_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+        
+        result = {
+            "status": "success",
+            "message": f"成功写入阶段内容到 '{stage_file_path}'",
+            "project_name": project_name,
+            "agent_name": agent_name,
+            "stage_name": stage_name,
+            "file_path": stage_file_path,
+            "content_length": len(content),
+            "updated_date": datetime.now(timezone.utc).isoformat()
+        }
+        
+        return json.dumps(result, ensure_ascii=False, indent=2)
+        
+    except PermissionError:
+        return f"错误：没有权限写入文件"
+    except Exception as e:
+        return f"写入项目阶段内容时出现错误: {str(e)}"
+
+
+@tool
+def get_project_stage_content(project_name: str, agent_name: str, stage_name: str) -> str:
+    """
+    读取指定项目阶段文件的内容
+    
+    Args:
+        project_name (str): 项目名称
+        agent_name (str): Agent名称
+        stage_name (str): 阶段名称
+        
+    Returns:
+        str: 文件内容或错误信息
+    """
+    try:
+        # 验证参数
+        if not project_name or not project_name.strip():
+            return "错误：项目名称不能为空"
+        
+        if not agent_name or not agent_name.strip():
+            return "错误：Agent名称不能为空"
+        
+        if not stage_name or not stage_name.strip():
+            return "错误：阶段名称不能为空"
+        
+        project_name = project_name.strip()
+        agent_name = agent_name.strip()
+        stage_name = stage_name.strip()
+        
+        # 验证路径安全性
+        if "/" in agent_name or "\\" in agent_name or ".." in agent_name:
+            return "错误：Agent名称不能包含路径分隔符或相对路径"
+        
+        if "/" in stage_name or "\\" in stage_name or ".." in stage_name:
+            return "错误：阶段名称不能包含路径分隔符或相对路径"
+        
+        project_root = os.path.join("projects", project_name)
+        
+        # 检查项目目录是否存在
+        if not os.path.exists(project_root):
+            return f"错误：项目 '{project_name}' 不存在"
+        
+        # 构建文件路径
+        stage_file_path = os.path.join(project_root, agent_name, f"{stage_name}.json")
+        
+        # 检查文件是否存在
+        if not os.path.exists(stage_file_path):
+            return f"错误：阶段文件 '{stage_file_path}' 不存在"
+        
+        # 读取文件内容
+        with open(stage_file_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        # 获取文件信息
+        file_stat = os.stat(stage_file_path)
+        import time
+        
+        result = {
+            "status": "success",
+            "project_name": project_name,
+            "agent_name": agent_name,
+            "stage_name": stage_name,
+            "file_path": stage_file_path,
+            "content": content,
+            "content_length": len(content),
+            "file_size": file_stat.st_size,
+            "modified_time": time.ctime(file_stat.st_mtime),
+            "query_date": datetime.now(timezone.utc).isoformat()
+        }
+        
+        return json.dumps(result, ensure_ascii=False, indent=2)
+        
+    except PermissionError:
+        return f"错误：没有权限读取文件"
+    except Exception as e:
+        return f"读取项目阶段内容时出现错误: {str(e)}"
+
+
+@tool
+def list_project_agents(project_name: str) -> str:
+    """
+    列出指定项目中的所有Agent目录
+    
+    Args:
+        project_name (str): 项目名称
+        
+    Returns:
+        str: Agent列表信息
+    """
+    try:
+        # 验证项目名称
+        if not project_name or not project_name.strip():
+            return "错误：项目名称不能为空"
+        
+        project_name = project_name.strip()
+        project_root = os.path.join("projects", project_name)
+        
+        # 检查项目目录是否存在
+        if not os.path.exists(project_root):
+            return f"错误：项目 '{project_name}' 不存在"
+        
+        # 获取所有Agent目录
+        agent_dirs = []
+        for item in os.listdir(project_root):
+            item_path = os.path.join(project_root, item)
+            if os.path.isdir(item_path) and item not in ["agents", "tools", "prompts"]:
+                # 统计目录中的文件数量
+                file_count = 0
+                stage_files = []
+                try:
+                    for file_item in os.listdir(item_path):
+                        file_path = os.path.join(item_path, file_item)
+                        if os.path.isfile(file_path):
+                            file_count += 1
+                            if file_item.endswith('.json'):
+                                stage_name = file_item[:-5]  # 移除.json扩展名
+                                stage_files.append(stage_name)
+                except PermissionError:
+                    file_count = -1  # 表示无法访问
+                
+                dir_stat = os.stat(item_path)
+                import time
+                agent_dirs.append({
+                    "agent_name": item,
+                    "directory_path": item_path,
+                    "file_count": file_count,
+                    "stage_files": stage_files,
+                    "modified_time": time.ctime(dir_stat.st_mtime)
+                })
+        
+        # 按名称排序
+        agent_dirs.sort(key=lambda x: x["agent_name"])
+        
+        result = {
+            "status": "success",
+            "project_name": project_name,
+            "project_directory": project_root,
+            "agent_count": len(agent_dirs),
+            "agents": agent_dirs,
+            "query_date": datetime.now(timezone.utc).isoformat()
+        }
+        
+        return json.dumps(result, ensure_ascii=False, indent=2)
+        
+    except Exception as e:
+        return f"列出项目Agent时出现错误: {str(e)}"
+
+
+@tool
+def list_all_projects() -> str:
+    """
+    列出所有项目
+    
+    Returns:
+        str: 项目列表信息
+    """
+    try:
+        projects_dir = "projects"
+        
+        # 检查projects目录是否存在
+        if not os.path.exists(projects_dir):
+            return f"项目目录 {projects_dir} 不存在"
+        
+        # 获取所有项目目录
+        project_dirs = []
+        for item in os.listdir(projects_dir):
+            item_path = os.path.join(projects_dir, item)
+            if os.path.isdir(item_path):
+                # 读取项目配置
+                config_path = os.path.join(item_path, "config.yaml")
+                project_info = {
+                    "project_name": item,
+                    "directory_path": item_path,
+                    "description": f"AI智能体项目：{item}",
+                    "version": "未知",
+                    "created_date": "未知"
+                }
+                
+                if os.path.exists(config_path):
+                    try:
+                        with open(config_path, 'r', encoding='utf-8') as f:
+                            config = yaml.safe_load(f) or {}
+                            project_config = config.get("project", {})
+                            project_info.update({
+                                "description": project_config.get("description", project_info["description"]),
+                                "version": project_config.get("version", project_info["version"]),
+                                "created_date": project_config.get("created_date", project_info["created_date"])
+                            })
+                    except (yaml.YAMLError, PermissionError):
+                        pass  # 使用默认信息
+                
+                # 统计Agent数量
+                agent_count = 0
+                try:
+                    for sub_item in os.listdir(item_path):
+                        sub_item_path = os.path.join(item_path, sub_item)
+                        if os.path.isdir(sub_item_path) and sub_item not in ["agents", "tools", "prompts"]:
+                            agent_count += 1
+                except PermissionError:
+                    agent_count = -1  # 表示无法访问
+                
+                project_info["agent_count"] = agent_count
+                
+                dir_stat = os.stat(item_path)
+                import time
+                project_info["modified_time"] = time.ctime(dir_stat.st_mtime)
+                
+                project_dirs.append(project_info)
+        
+        # 按名称排序
+        project_dirs.sort(key=lambda x: x["project_name"])
+        
+        result = {
+            "status": "success",
+            "projects_directory": projects_dir,
+            "project_count": len(project_dirs),
+            "projects": project_dirs,
+            "query_date": datetime.now(timezone.utc).isoformat()
+        }
+        
+        return json.dumps(result, ensure_ascii=False, indent=2)
+        
+    except Exception as e:
+        return f"列出所有项目时出现错误: {str(e)}"
+
+
+@tool
+def get_project_config(project_name: str) -> str:
+    """
+    获取指定项目的配置信息
+    
+    Args:
+        project_name (str): 项目名称
+        
+    Returns:
+        str: JSON格式的项目配置信息
+    """
+    try:
+        # 验证项目名称
+        if not project_name or not project_name.strip():
+            return "错误：项目名称不能为空"
+        
+        project_name = project_name.strip()
+        project_root = os.path.join("projects", project_name)
+        
+        # 检查项目目录是否存在
+        if not os.path.exists(project_root):
+            return f"错误：项目 '{project_name}' 不存在"
+        
+        config_path = os.path.join(project_root, "config.yaml")
+        
+        # 检查配置文件是否存在
+        if not os.path.exists(config_path):
+            return f"错误：项目 '{project_name}' 的配置文件不存在"
+        
+        # 读取配置文件
+        try:
+            with open(config_path, 'r', encoding='utf-8') as f:
+                config_data = yaml.safe_load(f) or {}
+        except yaml.YAMLError as e:
+            return f"错误：无法解析配置文件: {str(e)}"
+        
+        # 获取文件信息
+        file_stat = os.stat(config_path)
+        import time
+        
+        result = {
+            "status": "success",
+            "project_name": project_name,
+            "config_file_path": config_path,
+            "config_data": config_data,
+            "file_size": file_stat.st_size,
+            "modified_time": time.ctime(file_stat.st_mtime),
+            "query_date": datetime.now(timezone.utc).isoformat()
+        }
+        
+        return json.dumps(result, ensure_ascii=False, indent=2)
+        
+    except Exception as e:
+        return f"获取项目配置时出现错误: {str(e)}"
+
+
+@tool
+def get_project_readme(project_name: str) -> str:
+    """
+    获取指定项目的README.md内容
+    
+    Args:
+        project_name (str): 项目名称
+        
+    Returns:
+        str: JSON格式的README内容和信息
+    """
+    try:
+        # 验证项目名称
+        if not project_name or not project_name.strip():
+            return "错误：项目名称不能为空"
+        
+        project_name = project_name.strip()
+        project_root = os.path.join("projects", project_name)
+        
+        # 检查项目目录是否存在
+        if not os.path.exists(project_root):
+            return f"错误：项目 '{project_name}' 不存在"
+        
+        readme_path = os.path.join(project_root, "README.md")
+        
+        # 检查README文件是否存在
+        if not os.path.exists(readme_path):
+            return f"错误：项目 '{project_name}' 的README.md文件不存在"
+        
+        # 读取README文件
+        with open(readme_path, 'r', encoding='utf-8') as f:
+            readme_content = f.read()
+        
+        # 获取文件信息
+        file_stat = os.stat(readme_path)
+        import time
+        
+        # 统计基本信息
+        lines = readme_content.split('\n')
+        line_count = len(lines)
+        word_count = len(readme_content.split())
+        char_count = len(readme_content)
+        
+        result = {
+            "status": "success",
+            "project_name": project_name,
+            "readme_file_path": readme_path,
+            "content": readme_content,
+            "file_info": {
+                "file_size": file_stat.st_size,
+                "line_count": line_count,
+                "word_count": word_count,
+                "char_count": char_count,
+                "modified_time": time.ctime(file_stat.st_mtime)
+            },
+            "query_date": datetime.now(timezone.utc).isoformat()
+        }
+        
+        return json.dumps(result, ensure_ascii=False, indent=2)
+        
+    except Exception as e:
+        return f"获取项目README时出现错误: {str(e)}"
+
+
+@tool
+def generate_content(type: Literal["agent", "prompt", "tool"], content: str, name: str, agent_name: str = None) -> str:
+    """
+    根据类型生成内容文件到指定目录
+    
+    Args:
+        type (Literal["agent", "prompt", "tool"]): 内容类型，可以是 "agent"、"prompt" 或 "tool"
+        content (str): 要写入的文件内容
+        name (str): 文件名（不包含扩展名）
+        agent_name (str, optional): 保留参数，当前版本未使用
+        
+    Returns:
+        str: 操作结果信息
+    """
+    try:
+        # 验证参数
+        if type not in ["agent", "prompt", "tool"]:
+            return "错误：type参数必须是 'agent'、'prompt' 或 'tool'"
+        
+        if not content:
+            return "错误：content参数不能为空"
+        
+        if not name:
+            return "错误：name参数不能为空"
+        
+        # 验证文件名格式（避免路径遍历攻击）
+        if "/" in name or "\\" in name or ".." in name:
+            return "错误：文件名不能包含路径分隔符或相对路径"
+        
+        # 根据类型确定目标目录和文件扩展名
+        if type == "agent":
+            target_dir = os.path.join("agents", "generated_agents")
+            file_extension = ".py"
+        elif type == "prompt":
+            target_dir = os.path.join("prompts", "generated_agents_prompts")
+            file_extension = ".yaml"
+        elif type == "tool":
+            target_dir = os.path.join("tools", "generated_tools")
+            file_extension = ".py"
+        
+        # 确保目标目录存在
+        if not os.path.exists(target_dir):
+            os.makedirs(target_dir, exist_ok=True)
+        
+        # 构建完整文件路径
+        filename = f"{name}{file_extension}"
+        file_path = os.path.join(target_dir, filename)
+        
+        # 检查文件是否已存在
+        if os.path.exists(file_path):
+            return f"错误：文件 '{filename}' 已存在于 {target_dir} 目录中，请使用不同的名称"
+        
+        # 写入文件
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+        
+        # 返回成功信息
+        result = {
+            "status": "success",
+            "message": f"成功创建{type}文件",
+            "type": type,
+            "file_path": file_path,
+            "file_name": filename,
+            "target_directory": target_dir,
+            "content_length": len(content),
+            "created_date": datetime.now(timezone.utc).isoformat()
+        }
+        
+        return json.dumps(result, ensure_ascii=False, indent=2)
+        
+    except PermissionError:
+        return f"错误：没有权限写入文件到 {target_dir}"
+    except OSError as e:
+        return f"错误：文件系统操作失败: {str(e)}"
+    except Exception as e:
+        return f"生成内容文件时出现错误: {str(e)}"
+
+
+# 主函数，用于直接调用测试
+def main():
+    """主函数，用于测试项目管理工具"""
+    print("=== 项目管理工具测试 ===")
+    
+    # 测试项目初始化
+    print("\n1. 测试项目初始化:")
+    result = project_init("test_project")
+    print(result)
+    
+    # 测试更新项目配置
+    print("\n2. 测试更新项目配置:")
+    result = update_project_config("test_project", "这是一个测试项目", "1.1.0")
+    print(result)
+    
+    # 测试更新项目状态
+    print("\n3. 测试更新项目状态:")
+    result = update_project_status("test_project", "test_agent", "requirements_analyzer", True, "docs/requirements.md")
+    print(result)
+    
+    # 测试查询项目状态
+    print("\n4. 测试查询项目状态:")
+    result = get_project_status("test_project", "test_agent", "requirements_analyzer")
+    print(result)
+    
+    # 测试写入阶段内容
+    print("\n5. 测试写入阶段内容:")
+    test_content = '{"requirements": "这是需求分析的结果", "timestamp": "2025-08-25"}'
+    result = update_project_stage_content("test_project", "test_agent", "requirements_analyzer", test_content)
+    print(result)
+    
+    # 测试读取阶段内容
+    print("\n6. 测试读取阶段内容:")
+    result = get_project_stage_content("test_project", "test_agent", "requirements_analyzer")
+    print(result)
+    
+    # 测试更新README
+    print("\n7. 测试更新README:")
+    result = update_project_readme("test_project", "这是额外的项目信息")
+    print(result)
+    
+    # 测试列出项目Agent
+    print("\n8. 测试列出项目Agent:")
+    result = list_project_agents("test_project")
+    print(result)
+    
+    # 测试列出所有项目
+    print("\n9. 测试列出所有项目:")
+    result = list_all_projects()
+    print(result)
+    
+    # 测试获取项目配置
+    print("\n10. 测试获取项目配置:")
+    result = get_project_config("test_project")
+    print(result)
+    
+    # 测试获取项目README
+    print("\n11. 测试获取项目README:")
+    result = get_project_readme("test_project")
+    print(result)
+    
+    # 测试生成内容
+    print("\n12. 测试生成Agent内容:")
+    test_agent_content = '''#!/usr/bin/env python3
+"""
+测试生成的Agent
+"""
+
+from strands import tool
+
+@tool
+def test_function():
+    """测试函数"""
+    return "这是一个测试Agent"
+
+if __name__ == "__main__":
+    print("测试Agent运行")
+'''
+    result = generate_content("agent", test_agent_content, "test_generated_agent")
+    print(result)
+    
+    print("\n13. 测试生成Prompt内容:")
+    test_prompt_content = '''agent:
+  name: "test_generated_prompt"
+  description: "测试生成的提示词"
+  category: "test"
+  versions:
+    - version: "1.0.0"
+      prompt: "这是一个测试提示词"
+'''
+    result = generate_content("prompt", test_prompt_content, "test_generated_prompt")
+    print(result)
+    
+    print("\n14. 测试生成Tool内容:")
+    test_tool_content = '''#!/usr/bin/env python3
+"""
+测试生成的工具
+"""
+
+from strands import tool
+
+@tool
+def test_tool(input_text: str) -> str:
+    """
+    测试工具函数
+    
+    Args:
+        input_text (str): 输入文本
+        
+    Returns:
+        str: 处理后的文本
+    """
+    return f"处理结果: {input_text}"
+'''
+    result = generate_content("tool", test_tool_content, "test_generated_tool")
+    print(result)
+
+
+if __name__ == "__main__":
+    main()

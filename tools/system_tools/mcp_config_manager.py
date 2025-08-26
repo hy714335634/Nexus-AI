@@ -1,4 +1,14 @@
 #!/usr/bin/env python3
+# mcp_config_manager/get_all_mcp_servers - 获取所有MCP服务器配置信息，包含命令、参数、环境变量和启用状态
+# mcp_config_manager/get_enabled_mcp_servers - 获取所有启用的MCP服务器配置信息
+# mcp_config_manager/get_mcp_server_by_name - 根据服务器名称获取特定MCP服务器配置信息
+# mcp_config_manager/search_mcp_servers_by_command - 根据命令搜索MCP服务器，支持模糊匹配
+# mcp_config_manager/search_mcp_servers_by_args - 根据参数关键词搜索MCP服务器
+# mcp_config_manager/get_mcp_servers_with_auto_approve - 获取配置了自动批准工具的MCP服务器
+# mcp_config_manager/get_mcp_servers_with_env_vars - 获取配置了环境变量的MCP服务器
+# mcp_config_manager/get_mcp_server_statistics - 获取MCP服务器配置统计信息，包含总数、启用数、命令分布等
+# mcp_config_manager/reload_mcp_configs - 重新加载MCP配置文件
+# mcp_config_manager/validate_mcp_server_config - 验证指定MCP服务器的配置是否有效
 """
 MCP配置管理工具
 

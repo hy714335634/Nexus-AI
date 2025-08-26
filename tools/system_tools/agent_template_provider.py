@@ -1,4 +1,10 @@
 #!/usr/bin/env python3
+# agent_template_provider/get_all_templates - 获取所有可用的Agent模板信息，包含名称、描述、依赖、路径和标签
+# agent_template_provider/search_templates_by_tags - 根据标签搜索模板，支持多标签匹配查询
+# agent_template_provider/search_templates_by_description - 根据描述关键词搜索模板，支持名称和描述内容匹配
+# agent_template_provider/get_template_by_id - 根据模板ID获取特定模板信息，返回完整的模板配置
+# agent_template_provider/get_template_content - 获取模板文件的完整内容，用于Agent代码生成
+# agent_template_provider/get_available_tags - 获取所有可用的标签列表，用于模板分类和筛选
 """
 Agent模板管理工具
 
@@ -9,11 +15,6 @@ import sys
 import os
 import yaml
 from typing import Dict, List, Any, Optional
-
-# 添加项目根目录到Python路径
-project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.append(project_root)
-
 from strands import tool
 
 
@@ -26,7 +27,7 @@ def get_all_templates() -> str:
         str: JSON格式的所有模板信息
     """
     try:
-        config_path = os.path.join(project_root, "config", "agent_templates_config.yaml")
+        config_path = os.path.join("config", "agent_templates_config.yaml")
         
         if not os.path.exists(config_path):
             return "错误：模板配置文件不存在"
@@ -67,7 +68,7 @@ def search_templates_by_tags(tags: List[str]) -> str:
         str: JSON格式的匹配模板信息
     """
     try:
-        config_path = os.path.join(project_root, "config", "agent_templates_config.yaml")
+        config_path = os.path.join("config", "agent_templates_config.yaml")
         
         if not os.path.exists(config_path):
             return "错误：模板配置文件不存在"
@@ -112,7 +113,7 @@ def search_templates_by_description(keywords: List[str]) -> str:
         str: JSON格式的匹配模板信息
     """
     try:
-        config_path = os.path.join(project_root, "config", "agent_templates_config.yaml")
+        config_path = os.path.join("config", "agent_templates_config.yaml")
         
         if not os.path.exists(config_path):
             return "错误：模板配置文件不存在"
@@ -158,7 +159,7 @@ def get_template_by_id(template_id: str) -> str:
         str: JSON格式的模板信息
     """
     try:
-        config_path = os.path.join(project_root, "config", "agent_templates_config.yaml")
+        config_path = os.path.join("config", "agent_templates_config.yaml")
         
         if not os.path.exists(config_path):
             return "错误：模板配置文件不存在"
@@ -200,7 +201,7 @@ def get_template_content(template_id: str) -> str:
         str: 模板文件的内容
     """
     try:
-        config_path = os.path.join(project_root, "config", "agent_templates_config.yaml")
+        config_path = os.path.join("config", "agent_templates_config.yaml")
         
         if not os.path.exists(config_path):
             return "错误：模板配置文件不存在"
@@ -214,7 +215,7 @@ def get_template_content(template_id: str) -> str:
             return f"错误：未找到ID为 '{template_id}' 的模板"
         
         template_path = templates[template_id].get("path", "")
-        full_path = os.path.join(project_root, template_path)
+        full_path = os.path.join(template_path)
         
         if not os.path.exists(full_path):
             return f"错误：模板文件不存在: {full_path}"
@@ -237,7 +238,7 @@ def get_available_tags() -> str:
         str: JSON格式的标签列表
     """
     try:
-        config_path = os.path.join(project_root, "config", "agent_templates_config.yaml")
+        config_path = os.path.join("config", "agent_templates_config.yaml")
         
         if not os.path.exists(config_path):
             return "错误：模板配置文件不存在"
