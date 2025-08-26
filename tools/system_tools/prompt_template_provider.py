@@ -1,39 +1,123 @@
 #!/usr/bin/env python3
+# prompt_template_provider/list_prompt_templates - 列出所有可用的提示词模板，包含基本信息、版本数和环境配置
+# prompt_template_provider/get_prompt_template - 获取指定提示词模板的完整内容，默认返回template.yaml
+# prompt_template_provider/get_template_metadata - 获取指定模板的元数据信息，包含文件信息和YAML结构
+# prompt_template_provider/get_prompt_template_info - 获取提示词模板的基本信息，包含路径、大小、行数等
+# prompt_template_provider/validate_prompt_template - 验证提示词模板文件的格式是否正确，检查YAML结构和必要字段
+# prompt_template_provider/validate_all_templates - 验证所有提示词模板文件的格式，返回验证摘要
+# prompt_template_provider/get_template_structure - 获取提示词模板的结构概览，显示YAML层次结构
+# prompt_template_provider/search_templates_by_category - 根据分类搜索模板，支持分类名称匹配
 """
 提示词模板提供工具
 
-为Agent提供标准的提示词模板内容
+为Agent提供标准的提示词模板内容，支持管理template_prompts目录下的所有模板
 """
 
 import sys
 import os
-from typing import Optional
-
-# 添加项目根目录到Python路径
-project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.append(project_root)
-
+import yaml
+import json
+from typing import Optional, List, Dict
+from pathlib import Path
 from strands import tool
 from utils.config_loader import get_config
 
 
+def _get_template_directory() -> str:
+    """获取模板目录路径"""
+    config = get_config()
+    strands_config = config.get_strands_config()
+    prompt_template_path = strands_config.get('prompt_template_path', 'prompts/template_prompts')
+    return os.path.join(prompt_template_path)
+
+
 @tool
-def get_prompt_template() -> str:
+def list_prompt_templates() -> str:
     """
-    获取标准提示词模板内容
+    列出所有可用的提示词模板
     
     Returns:
-        str: prompts/template_prompts/template.yaml 文件的完整内容
+        str: JSON格式的模板列表，包含每个模板的基本信息
     """
     try:
-        # 从配置文件获取路径
-        config = get_config()
-        strands_config = config.get_strands_config()
-        prompt_template_path = strands_config.get('prompt_template_path', 'prompts/template_prompts')
-        template_path = os.path.join(project_root, prompt_template_path, "template.yaml")
+        template_dir = _get_template_directory()
+        
+        if not os.path.exists(template_dir):
+            return json.dumps({"error": "模板目录不存在", "templates": []}, ensure_ascii=False, indent=2)
+        
+        templates = []
+        
+        # 遍历目录中的所有YAML文件
+        for file_path in Path(template_dir).glob("*.yaml"):
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = yaml.safe_load(f)
+                
+                if content and "agent" in content:
+                    agent_info = content["agent"]
+                    template_info = {
+                        "filename": file_path.name,
+                        "name": agent_info.get("name", file_path.stem),
+                        "description": agent_info.get("description", "无描述"),
+                        "category": agent_info.get("category", "未分类"),
+                        "versions": len(agent_info.get("versions", [])),
+                        "environments": list(agent_info.get("environments", {}).keys()),
+                        "file_size": file_path.stat().st_size,
+                        "modified_time": file_path.stat().st_mtime
+                    }
+                    templates.append(template_info)
+                    
+            except Exception as e:
+                # 如果单个文件解析失败，记录错误但继续处理其他文件
+                templates.append({
+                    "filename": file_path.name,
+                    "name": file_path.stem,
+                    "description": f"解析错误: {str(e)}",
+                    "category": "错误",
+                    "versions": 0,
+                    "environments": [],
+                    "file_size": file_path.stat().st_size,
+                    "modified_time": file_path.stat().st_mtime
+                })
+        
+        result = {
+            "total_templates": len(templates),
+            "template_directory": template_dir,
+            "templates": templates
+        }
+        
+        return json.dumps(result, ensure_ascii=False, indent=2)
+        
+    except Exception as e:
+        return json.dumps({"error": f"列出模板时出现错误: {str(e)}", "templates": []}, ensure_ascii=False, indent=2)
+
+
+@tool
+def get_prompt_template(template_name: Optional[str] = None) -> str:
+    """
+    获取指定提示词模板的完整内容
+    
+    Args:
+        template_name: 模板名称（不含.yaml扩展名），如果为空则返回template.yaml
+    
+    Returns:
+        str: 指定模板文件的完整内容
+    """
+    try:
+        template_dir = _get_template_directory()
+        
+        # 如果没有指定模板名称，默认使用template.yaml
+        if not template_name:
+            template_name = "template"
+        
+        # 确保文件名以.yaml结尾
+        if not template_name.endswith('.yaml'):
+            template_name += '.yaml'
+        
+        template_path = os.path.join(template_dir, template_name)
         
         if not os.path.exists(template_path):
-            return "错误：提示词模板文件不存在"
+            return f"错误：提示词模板文件 '{template_name}' 不存在"
         
         with open(template_path, 'r', encoding='utf-8') as f:
             content = f.read()
@@ -45,22 +129,90 @@ def get_prompt_template() -> str:
 
 
 @tool
-def get_prompt_template_info() -> str:
+def get_template_metadata(template_name: str) -> str:
+    """
+    获取指定模板的元数据信息（不包含完整内容）
+    
+    Args:
+        template_name: 模板名称（不含.yaml扩展名）
+    
+    Returns:
+        str: JSON格式的模板元数据
+    """
+    try:
+        template_dir = _get_template_directory()
+        
+        # 确保文件名以.yaml结尾
+        if not template_name.endswith('.yaml'):
+            template_name += '.yaml'
+        
+        template_path = os.path.join(template_dir, template_name)
+        
+        if not os.path.exists(template_path):
+            return json.dumps({"error": f"模板文件 '{template_name}' 不存在"}, ensure_ascii=False, indent=2)
+        
+        # 获取文件信息
+        file_stat = os.stat(template_path)
+        file_size = file_stat.st_size
+        
+        # 解析YAML内容获取元数据
+        with open(template_path, 'r', encoding='utf-8') as f:
+            content = yaml.safe_load(f)
+            lines = f.readlines()
+        
+        metadata = {
+            "filename": template_name,
+            "file_path": template_path,
+            "file_size": file_size,
+            "line_count": len(lines),
+            "modified_time": file_stat.st_mtime,
+            "encoding": "UTF-8",
+            "format": "YAML"
+        }
+        
+        if content and "agent" in content:
+            agent_info = content["agent"]
+            metadata.update({
+                "name": agent_info.get("name", "未命名"),
+                "description": agent_info.get("description", "无描述"),
+                "category": agent_info.get("category", "未分类"),
+                "environments": list(agent_info.get("environments", {}).keys()),
+                "versions": [v.get("version", "unknown") for v in agent_info.get("versions", [])],
+                "latest_version": agent_info.get("versions", [{}])[-1] if agent_info.get("versions") else {}
+            })
+        
+        return json.dumps(metadata, ensure_ascii=False, indent=2)
+        
+    except Exception as e:
+        return json.dumps({"error": f"获取模板元数据时出现错误: {str(e)}"}, ensure_ascii=False, indent=2)
+
+
+@tool
+def get_prompt_template_info(template_name: Optional[str] = None) -> str:
     """
     获取提示词模板的基本信息（不包含完整内容）
+    
+    Args:
+        template_name: 模板名称（不含.yaml扩展名），如果为空则返回template.yaml的信息
     
     Returns:
         str: 模板的基本信息，包括路径、大小等
     """
     try:
-        # 从配置文件获取路径
-        config = get_config()
-        strands_config = config.get_strands_config()
-        prompt_template_path = strands_config.get('prompt_template_path', 'prompts/template_prompts')
-        template_path = os.path.join(project_root, prompt_template_path, "template.yaml")
+        template_dir = _get_template_directory()
+        
+        # 如果没有指定模板名称，默认使用template.yaml
+        if not template_name:
+            template_name = "template"
+        
+        # 确保文件名以.yaml结尾
+        if not template_name.endswith('.yaml'):
+            template_name += '.yaml'
+        
+        template_path = os.path.join(template_dir, template_name)
         
         if not os.path.exists(template_path):
-            return "错误：提示词模板文件不存在"
+            return f"错误：提示词模板文件 '{template_name}' 不存在"
         
         # 获取文件信息
         file_size = os.path.getsize(template_path)
@@ -75,6 +227,7 @@ def get_prompt_template_info() -> str:
             line_count = len(lines)
         
         info = f"""提示词模板文件信息：
+文件名: {template_name}
 文件路径: {template_path}
 文件大小: {file_size} 字节
 行数: {line_count}
@@ -89,39 +242,53 @@ def get_prompt_template_info() -> str:
 
 
 @tool
-def validate_prompt_template() -> str:
+def validate_prompt_template(template_name: Optional[str] = None) -> str:
     """
     验证提示词模板文件的格式是否正确
     
+    Args:
+        template_name: 模板名称（不含.yaml扩展名），如果为空则验证template.yaml
+    
     Returns:
-        str: 验证结果信息
+        str: JSON格式的验证结果信息
     """
     try:
-        # 从配置文件获取路径
-        config = get_config()
-        strands_config = config.get_strands_config()
-        prompt_template_path = strands_config.get('prompt_template_path', 'prompts/template_prompts')
-        template_path = os.path.join(project_root, prompt_template_path, "template.yaml")
+        template_dir = _get_template_directory()
+        
+        # 如果没有指定模板名称，默认使用template.yaml
+        if not template_name:
+            template_name = "template"
+        
+        # 确保文件名以.yaml结尾
+        if not template_name.endswith('.yaml'):
+            template_name += '.yaml'
+        
+        template_path = os.path.join(template_dir, template_name)
         
         if not os.path.exists(template_path):
-            return "错误：提示词模板文件不存在"
+            return json.dumps({
+                "valid": False,
+                "template_name": template_name,
+                "error": "模板文件不存在",
+                "checks": {}
+            }, ensure_ascii=False, indent=2)
         
         # 尝试解析YAML文件
-        import yaml
-        
         with open(template_path, 'r', encoding='utf-8') as f:
             content = yaml.safe_load(f)
         
         # 基本结构验证
         validation_results = {
             "valid": True,
+            "template_name": template_name,
             "checks": {
                 "file_exists": True,
                 "yaml_parseable": True,
                 "has_agent_section": "agent" in content if content else False,
                 "has_name": False,
                 "has_description": False,
-                "has_versions": False
+                "has_versions": False,
+                "has_environments": False
             }
         }
         
@@ -130,45 +297,114 @@ def validate_prompt_template() -> str:
             validation_results["checks"]["has_name"] = "name" in agent_section
             validation_results["checks"]["has_description"] = "description" in agent_section
             validation_results["checks"]["has_versions"] = "versions" in agent_section
+            validation_results["checks"]["has_environments"] = "environments" in agent_section
         
         # 检查是否所有基本检查都通过
         all_checks_passed = all(validation_results["checks"].values())
         validation_results["valid"] = all_checks_passed
         
-        import json
         return json.dumps(validation_results, ensure_ascii=False, indent=2)
         
     except yaml.YAMLError as e:
-        return f"YAML格式错误: {str(e)}"
+        return json.dumps({
+            "valid": False,
+            "template_name": template_name,
+            "error": f"YAML格式错误: {str(e)}",
+            "checks": {"yaml_parseable": False}
+        }, ensure_ascii=False, indent=2)
     except Exception as e:
-        return f"验证提示词模板时出现错误: {str(e)}"
+        return json.dumps({
+            "valid": False,
+            "template_name": template_name,
+            "error": f"验证模板时出现错误: {str(e)}",
+            "checks": {}
+        }, ensure_ascii=False, indent=2)
 
 
 @tool
-def get_template_structure() -> str:
+def validate_all_templates() -> str:
+    """
+    验证所有提示词模板文件的格式
+    
+    Returns:
+        str: JSON格式的所有模板验证结果
+    """
+    try:
+        template_dir = _get_template_directory()
+        
+        if not os.path.exists(template_dir):
+            return json.dumps({
+                "error": "模板目录不存在",
+                "results": []
+            }, ensure_ascii=False, indent=2)
+        
+        results = []
+        
+        # 遍历目录中的所有YAML文件
+        for file_path in Path(template_dir).glob("*.yaml"):
+            template_name = file_path.stem
+            validation_result = validate_prompt_template(template_name)
+            
+            # 解析验证结果并添加到结果列表
+            try:
+                result_data = json.loads(validation_result)
+                results.append(result_data)
+            except json.JSONDecodeError:
+                results.append({
+                    "valid": False,
+                    "template_name": template_name,
+                    "error": "验证结果解析失败",
+                    "checks": {}
+                })
+        
+        summary = {
+            "total_templates": len(results),
+            "valid_templates": len([r for r in results if r.get("valid", False)]),
+            "invalid_templates": len([r for r in results if not r.get("valid", False)]),
+            "results": results
+        }
+        
+        return json.dumps(summary, ensure_ascii=False, indent=2)
+        
+    except Exception as e:
+        return json.dumps({
+            "error": f"验证所有模板时出现错误: {str(e)}",
+            "results": []
+        }, ensure_ascii=False, indent=2)
+
+
+@tool
+def get_template_structure(template_name: Optional[str] = None) -> str:
     """
     获取提示词模板的结构概览
+    
+    Args:
+        template_name: 模板名称（不含.yaml扩展名），如果为空则获取template.yaml的结构
     
     Returns:
         str: 模板结构的简要说明
     """
     try:
-        # 从配置文件获取路径
-        config = get_config()
-        strands_config = config.get_strands_config()
-        prompt_template_path = strands_config.get('prompt_template_path', 'prompts/template_prompts')
-        template_path = os.path.join(project_root, prompt_template_path, "template.yaml")
+        template_dir = _get_template_directory()
+        
+        # 如果没有指定模板名称，默认使用template.yaml
+        if not template_name:
+            template_name = "template"
+        
+        # 确保文件名以.yaml结尾
+        if not template_name.endswith('.yaml'):
+            template_name += '.yaml'
+        
+        template_path = os.path.join(template_dir, template_name)
         
         if not os.path.exists(template_path):
-            return "错误：提示词模板文件不存在"
-        
-        import yaml
+            return f"错误：提示词模板文件 '{template_name}' 不存在"
         
         with open(template_path, 'r', encoding='utf-8') as f:
             content = yaml.safe_load(f)
         
         if not content:
-            return "错误：模板文件内容为空"
+            return f"错误：模板文件 '{template_name}' 内容为空"
         
         def get_structure(obj, indent=0):
             """递归获取结构"""
@@ -193,11 +429,66 @@ def get_template_structure() -> str:
             
             return result
         
-        structure_lines = get_structure(content)
+        structure_lines = [f"模板文件: {template_name}"] + get_structure(content)
         return "\n".join(structure_lines)
         
     except Exception as e:
         return f"获取模板结构时出现错误: {str(e)}"
+
+
+@tool
+def search_templates_by_category(category: str) -> str:
+    """
+    根据分类搜索模板
+    
+    Args:
+        category: 模板分类（如：assistant, analysis, generator等）
+    
+    Returns:
+        str: JSON格式的匹配模板列表
+    """
+    try:
+        template_dir = _get_template_directory()
+        
+        if not os.path.exists(template_dir):
+            return json.dumps({"error": "模板目录不存在", "templates": []}, ensure_ascii=False, indent=2)
+        
+        matching_templates = []
+        
+        # 遍历目录中的所有YAML文件
+        for file_path in Path(template_dir).glob("*.yaml"):
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = yaml.safe_load(f)
+                
+                if content and "agent" in content:
+                    agent_info = content["agent"]
+                    template_category = agent_info.get("category", "").lower()
+                    
+                    if category.lower() in template_category or template_category in category.lower():
+                        template_info = {
+                            "filename": file_path.name,
+                            "name": agent_info.get("name", file_path.stem),
+                            "description": agent_info.get("description", "无描述"),
+                            "category": agent_info.get("category", "未分类"),
+                            "versions": len(agent_info.get("versions", [])),
+                            "environments": list(agent_info.get("environments", {}).keys())
+                        }
+                        matching_templates.append(template_info)
+                        
+            except Exception as e:
+                continue  # 跳过解析失败的文件
+        
+        result = {
+            "search_category": category,
+            "total_matches": len(matching_templates),
+            "templates": matching_templates
+        }
+        
+        return json.dumps(result, ensure_ascii=False, indent=2)
+        
+    except Exception as e:
+        return json.dumps({"error": f"搜索模板时出现错误: {str(e)}", "templates": []}, ensure_ascii=False, indent=2)
 
 
 # 主函数，用于直接调用测试
@@ -205,17 +496,26 @@ def main():
     """主函数，用于测试提示词模板提供工具"""
     print("=== 提示词模板提供工具测试 ===")
     
-    print("\n1. 获取模板信息:")
+    print("\n1. 列出所有模板:")
+    print(list_prompt_templates())
+    
+    print("\n2. 获取默认模板信息:")
     print(get_prompt_template_info())
     
-    print("\n2. 验证模板格式:")
-    print(validate_prompt_template())
+    print("\n3. 获取requirements_analyzer模板信息:")
+    print(get_prompt_template_info("requirements_analyzer"))
     
-    print("\n3. 获取模板结构:")
-    print(get_template_structure())
+    print("\n4. 验证所有模板:")
+    print(validate_all_templates())
     
-    print("\n4. 获取完整模板内容:")
-    content = get_prompt_template()
+    print("\n5. 获取模板结构:")
+    print(get_template_structure("requirements_analyzer"))
+    
+    print("\n6. 按分类搜索模板:")
+    print(search_templates_by_category("analysis"))
+    
+    print("\n7. 获取完整模板内容:")
+    content = get_prompt_template("requirements_analyzer")
     print(f"内容长度: {len(content)} 字符")
     print("前200个字符:")
     print(content[:200] + "..." if len(content) > 200 else content)

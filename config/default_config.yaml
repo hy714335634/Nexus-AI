@@ -11,7 +11,7 @@ default-config:
     template:
       agent_template_path: 'agents/template_agents' # Path to Strands agent templates
       prompt_template_path: 'prompts/template_prompts'
-      tool_template_path: 'tools/tempalte_tools'
+      tool_template_path: 'tools/template_tools'
     generated:
       agent_generated_path: 'agents/generated_agents'
       prompt_generated_path: 'prompts/generated_agents_prompts'
@@ -39,7 +39,7 @@ default-config:
   bedrock:
     model_id: 'us.anthropic.claude-3-7-sonnet-20250219-v1:0'    # Default model
     lite_model_id: 'us.anthropic.claude-3-5-haiku-20241022-v1:0' # Lightweight model
-    pro_model_id: 'us.anthropic.claude-3-7-sonnet-20250219-v1:0' # Advanced model
+    pro_model_id: 'us.anthropic.claude-opus-4-20250514-v1:0' # Advanced model
     
   logging:
     level: 'INFO'                      # Logging level (DEBUG, INFO, WARNING, ERROR)

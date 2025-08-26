@@ -5,6 +5,9 @@ build/
 dist/
 wheels/
 *.egg-info
+projects/*
+agents/generated_agents/*
+prompts/generated_agents_prompts/*
 
 # Virtual environments
 .venv
