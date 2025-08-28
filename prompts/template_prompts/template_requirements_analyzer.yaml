@@ -26,13 +26,15 @@ agent:
         5. 生成标准化的需求文档格式
         
         分析步骤：
-        1. 读取project/<agent_name>/config.yaml及requirements.md了解项目进度和配置参数
+        1. 使用工具读取project的config.yaml及README.md了解项目进度和配置参数
         2. 需求理解：仔细分析用户描述，识别关键信息
         2. 功能分解：将需求分解为具体的功能需求
         3. 用户故事：为每个功能需求编写用户故事
         4. 验收标准：定义明确的验收标准
         5. 优先级评估：评估需求的优先级和复杂度
         6. 约束识别：识别技术和业务约束
+        7. 使用工具更新完整的设计文档
+        8. 使用工具更新项目状态，方便后续agent跟进进度
         
         输出格式要求：
         必须严格按照以下JSON格式输出，不要包含任何其他内容：
@@ -90,16 +92,23 @@ agent:
         
         ## 工作流程提醒
         
-        完成需求分析后，你应该明确说明：
-        - 更新project/<agent_name>/requirements.md方便后续agent跟进进度
+        完成需求分析后，完成后请通过工具更新项目状态，并明确说明：
         - "需求分析已完成，建议将此需求文档交给后续的设计和开发团队。"
       user_prompt_template: |
         用户需求描述：{user_input}
       metadata:
         tags: ["requirements", "analysis", "documentation"]
         supported_models:
-          - "us.anthropic.claude-3-5-haiku-20241022-v1:0"
           - "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
-        dependencies:
-          - "config_loader"
-          - "prompts_manager"
+          - "us.anthropic.claude-opus-4-20250514-v1:0"
+        tools_dependencies:
+          - "file_read"
+          - "current_time"
+          - "get_project_status"
+          - "get_project_config"
+          - "get_project_readme"
+          - "get_project_stage_content"
+          - "update_project_config"
+          - "update_project_readme"
+          - "update_project_status"
+          - "update_project_stage_content"

@@ -1,0 +1,75 @@
+# Agent模板配置文件
+# 用于管理所有可用的Agent模板，包含描述信息和路径
+
+templates:
+  # 单Agent模板 - 本地工具
+  single_agent_with_local_tool:
+    name: "单Agent本地工具模板"
+    description: "集成Bedrock AgentCore的单Agent模板，支持自定义工具函数、计算器工具和Bedrock Claude模型。包含完整的应用入口点配置，适用于需要本地工具扩展和AWS Bedrock集成的生产环境"
+    dependencies:
+      - "strands"
+      - "strands_tools"
+      - "bedrock_agentcore"
+    path: "agents/template_agents/single_agent_with_local_tool_template.py"
+    tags:
+      - "single_agent"
+      - "strands_tools"
+      - "bedrock"
+      - "production"
+
+  # 单Agent模板 - MCP SSE
+  single_agent_with_mcp_sse:
+    name: "单Agent MCP SSE模板"
+    description: "使用Server-Sent Events (SSE) 传输协议连接MCP服务器的单Agent模板。适用于需要实时数据流和长连接的场景，通过HTTP SSE协议与MCP服务器通信"
+    dependencies:
+      - "strands"
+      - "mcp"
+    path: "agents/template_agents/single_agent_with_mcp_sse.py"
+    tags:
+      - "single_agent"
+      - "mcp"
+      - "sse"
+      - "realtime"
+
+  # 单Agent模板 - MCP StreamableHTTP
+  single_agent_with_mcp_streamablehttp:
+    name: "单Agent MCP StreamableHTTP模板"
+    description: "使用StreamableHTTP传输协议连接MCP服务器的单Agent模板。适用于需要HTTP流式传输的场景，支持双向流式通信和高效的数据传输"
+    dependencies:
+      - "strands"
+      - "mcp"
+    path: "agents/template_agents/single_agent_with_mcp_streamablehttp.py"
+    tags:
+      - "single_agent"
+      - "mcp"
+      - "streamable_http"
+      - "streaming"
+
+  # 单Agent模板 - MCP Stdio
+  single_agent_with_mcp_stdio:
+    name: "单Agent MCP Stdio模板"
+    description: "使用标准输入输出(stdio)传输协议连接MCP服务器的单Agent模板。通过uvx命令启动MCP服务器进程，适用于本地开发和简单的MCP服务器集成场景，示例连接AWS文档MCP服务器"
+    dependencies:
+      - "strands"
+      - "mcp"
+    path: "agents/template_agents/single_agent_with_mcp_stdio.py"
+    tags:
+      - "single_agent"
+      - "mcp"
+      - "stdio"
+      - "local_development"
+      - "aws"
+
+  # 多Agent模板 - Agent作为工具
+  multi_agents_with_agent_as_tool:
+    name: "多Agent协作模板"
+    description: "多Agent协作架构模板，实现Agent作为工具的设计模式。包含研究助手、产品推荐助手和旅行规划助手三个专业Agent，通过主协调器Agent进行智能路由和任务分发。适用于复杂业务场景的模块化Agent系统"
+    dependencies:
+      - "strands"
+      - "strands_tools"
+    path: "agents/template_agents/multi_agents_with_agent_as_tool.py"
+    tags:
+      - "multi_agent"
+      - "strands_tools"
+      - "orchestration"
+      - "specialized_agents" 

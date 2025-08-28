@@ -7,6 +7,8 @@ import sys
 from pathlib import Path
 
 default_prompt_path = './prompts/system_agents_prompts/*.yaml'
+template_prompt_path = './prompts/template_prompts/*.yaml'
+generated_prompt_path = './prompts/generated_agents_prompts/*.yaml'
 
 @dataclass
 class EnvironmentConfig:
@@ -115,15 +117,18 @@ class PromptManager:
     _instance = None
     _initialized = False
     
-    def __new__(cls, prompt_path: str = default_prompt_path):
+    def __new__(cls, prompt_paths: List[str] = None):
         if cls._instance is None:
             cls._instance = super(PromptManager, cls).__new__(cls)
         return cls._instance
     
-    def __init__(self, prompt_path: str = default_prompt_path):
+    def __init__(self, prompt_paths: List[str] = None):
         if not self._initialized:
-            self.prompt_path = prompt_path
+            if prompt_paths is None:
+                prompt_paths = [default_prompt_path, template_prompt_path, generated_prompt_path]
+            self.prompt_paths = prompt_paths
             self.agents: Dict[str, PromptAgent] = {}
+            self.agent_path_mapping: Dict[str, str] = {}  # 存储agent名称到相对路径的映射
             self.load_prompts()
             PromptManager._initialized = True
 
@@ -189,77 +194,108 @@ class PromptManager:
         return examples
 
     def load_prompts(self) -> None:
-        """加载所有提示词文件"""
-        for prompt_file in glob.glob(self.prompt_path):
-            try:
-                print(f"加载提示词文件: {prompt_file}")
-                with open(prompt_file, 'r', encoding='utf-8') as f:
-                    prompt_data = yaml.safe_load(f)
-                    
-                if not prompt_data or 'agent' not in prompt_data:
-                    continue
+        """加载所有提示词文件，支持多级目录结构"""
+        # 扫描所有prompts目录
+        prompts_base_dir = './prompts'
+        
+        # 递归扫描所有yaml文件
+        for root, dirs, files in os.walk(prompts_base_dir):
+            for file in files:
+                if file.endswith('.yaml'):
+                    prompt_file = os.path.join(root, file)
+                    try:
+                        print(f"加载提示词文件: {prompt_file}")
+                        with open(prompt_file, 'r', encoding='utf-8') as f:
+                            prompt_data = yaml.safe_load(f)
+                            
+                        if not prompt_data or 'agent' not in prompt_data:
+                            continue
 
-                agent_config = prompt_data['agent']
-                agent_name = agent_config.get('name', 'template')
-                description = agent_config.get('description', '')
-                category = agent_config.get('category', 'assistant')
-                
-                # 解析环境配置
-                environments = {}
-                for env_name, env_data in agent_config.get('environments', {}).items():
-                    environments[env_name] = self._parse_environment_config(env_data)
-                
-                # 为每个agent创建版本字典
-                versions = {}
-                for version_config in agent_config.get('versions', []):
-                    version = version_config.get('version', 'latest')
-                    
-                    # 解析工具配置
-                    tools = None
-                    if 'tools' in version_config:
-                        tools = [self._parse_tool_config(tool) for tool in version_config['tools']]
-                    
-                    # 解析示例
-                    examples = None
-                    if 'examples' in version_config:
-                        examples = self._parse_examples(version_config['examples'])
-                    
-                    # 解析元数据
-                    metadata = None
-                    if 'metadata' in version_config:
-                        metadata = self._parse_metadata(version_config['metadata'])
-                    
-                    versions[version] = PromptVersion(
-                        agent_name=agent_name,
-                        version=version,
-                        status=version_config.get('status', 'stable'),
-                        created_date=version_config.get('created_date', ''),
-                        author=version_config.get('author', ''),
-                        description=version_config.get('description', ''),
-                        system_prompt=version_config.get('system_prompt', ''),
-                        user_prompt_template=version_config.get('user_prompt_template'),
-                        context_window=version_config.get('context_window'),
-                        tools=tools,
-                        constraints=version_config.get('constraints'),
-                        examples=examples,
-                        metadata=metadata
-                    )
-                
-                # 创建或更新agent
-                self.agents[agent_name] = PromptAgent(
-                    agent_name=agent_name,
-                    description=description,
-                    category=category,
-                    environments=environments,
-                    versions=versions
-                )
-                
-            except Exception as e:
-                print(f"加载提示词文件 {prompt_file} 时出错: {str(e)}")
+                        agent_config = prompt_data['agent']
+                        agent_name = agent_config.get('name', 'template')
+                        description = agent_config.get('description', '')
+                        category = agent_config.get('category', 'assistant')
+                        
+                        # 计算相对路径（去掉./prompts/前缀和.yaml后缀）
+                        relative_path = os.path.relpath(prompt_file, prompts_base_dir)
+                        relative_path = relative_path.replace('.yaml', '')
+                        
+                        # 存储agent名称到相对路径的映射
+                        self.agent_path_mapping[agent_name] = relative_path
+                        # 同时支持相对路径作为key
+                        self.agent_path_mapping[relative_path] = relative_path
+                        
+                        # 解析环境配置
+                        environments = {}
+                        for env_name, env_data in agent_config.get('environments', {}).items():
+                            environments[env_name] = self._parse_environment_config(env_data)
+                        
+                        # 为每个agent创建版本字典
+                        versions = {}
+                        for version_config in agent_config.get('versions', []):
+                            version = version_config.get('version', 'latest')
+                            
+                            # 解析工具配置
+                            tools = None
+                            if 'tools' in version_config:
+                                tools = [self._parse_tool_config(tool) for tool in version_config['tools']]
+                            
+                            # 解析示例
+                            examples = None
+                            if 'examples' in version_config:
+                                examples = self._parse_examples(version_config['examples'])
+                            
+                            # 解析元数据
+                            metadata = None
+                            if 'metadata' in version_config:
+                                metadata = self._parse_metadata(version_config['metadata'])
+                            
+                            versions[version] = PromptVersion(
+                                agent_name=agent_name,
+                                version=version,
+                                status=version_config.get('status', 'stable'),
+                                created_date=version_config.get('created_date', ''),
+                                author=version_config.get('author', ''),
+                                description=version_config.get('description', ''),
+                                system_prompt=version_config.get('system_prompt', ''),
+                                user_prompt_template=version_config.get('user_prompt_template'),
+                                context_window=version_config.get('context_window'),
+                                tools=tools,
+                                constraints=version_config.get('constraints'),
+                                examples=examples,
+                                metadata=metadata
+                            )
+                        
+                        # 创建或更新agent，使用agent_name作为key
+                        self.agents[agent_name] = PromptAgent(
+                            agent_name=agent_name,
+                            description=description,
+                            category=category,
+                            environments=environments,
+                            versions=versions
+                        )
+                        
+                        # 同时支持相对路径作为key
+                        self.agents[relative_path] = self.agents[agent_name]
+                        
+                    except Exception as e:
+                        print(f"加载提示词文件 {prompt_file} 时出错: {str(e)}")
 
     def get_agent(self, agent_name: str) -> Optional[PromptAgent]:
-        """获取指定agent的提示词管理器"""
+        """获取指定agent的提示词管理器，支持agent名称或相对路径"""
         return self.agents.get(agent_name)
+    
+    def get_agent_by_path(self, relative_path: str) -> Optional[PromptAgent]:
+        """通过相对路径获取agent"""
+        return self.agents.get(relative_path)
+    
+    def get_agent_path(self, agent_name: str) -> Optional[str]:
+        """获取agent的相对路径"""
+        return self.agent_path_mapping.get(agent_name)
+    
+    def list_all_agent_paths(self) -> Dict[str, str]:
+        """列出所有agent的路径映射"""
+        return self.agent_path_mapping.copy()
     
     def get_agent_version(self, agent_name: str, version: str = "latest") -> Optional[PromptVersion]:
         """获取指定agent的指定版本提示词"""
@@ -330,16 +366,21 @@ class PromptManagerRegistry:
     _instances: Dict[str, PromptManager] = {}
     
     @classmethod
-    def get_instance(cls, prompt_path: str = default_prompt_path) -> PromptManager:
+    def get_instance(cls, prompt_paths: List[str] = None) -> PromptManager:
         """获取指定路径的 PromptManager 实例"""
-        if prompt_path not in cls._instances:
-            cls._instances[prompt_path] = PromptManager(prompt_path)
-        return cls._instances[prompt_path]
+        if prompt_paths is None:
+            prompt_paths = [default_prompt_path, template_prompt_path, generated_prompt_path]
+        
+        # 使用路径列表的字符串表示作为key
+        key = str(prompt_paths)
+        if key not in cls._instances:
+            cls._instances[key] = PromptManager(prompt_paths)
+        return cls._instances[key]
     
     @classmethod
     def get_default_instance(cls) -> PromptManager:
         """获取默认的 PromptManager 实例"""
-        return cls.get_instance(default_prompt_path)
+        return cls.get_instance()
     
     @classmethod
     def clear_instances(cls) -> None:
@@ -349,9 +390,9 @@ class PromptManagerRegistry:
         PromptManager._initialized = False
 
 # 便捷函数
-def get_prompt_manager(prompt_path: str = default_prompt_path) -> PromptManager:
+def get_prompt_manager(prompt_paths: List[str] = None) -> PromptManager:
     """获取 PromptManager 实例的便捷函数"""
-    return PromptManagerRegistry.get_instance(prompt_path)
+    return PromptManagerRegistry.get_instance(prompt_paths)
 
 def get_default_prompt_manager() -> PromptManager:
     """获取默认 PromptManager 实例的便捷函数"""

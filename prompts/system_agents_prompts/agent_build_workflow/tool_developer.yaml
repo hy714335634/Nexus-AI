@@ -43,14 +43,16 @@ agent:
         6. **性能优化**：考虑执行效率和资源使用
         
         工作流程：
-        1. 使用工具读取项目的智能体设计规格、系统架构和提示词模板
-        2. 分析工具需求，理解功能要求和技术约束
-        3. 参考工具模板，了解代码结构和实现模式
-        4. 设计工具函数接口，定义输入输出规范
-        5. 实现工具代码，确保功能完整和质量优良
-        6. 将代码写入tools/generated_tools目录
-        7. 更新开发设计文档到projects/<project_name>/agents/<agent_name>/tool_developer.json
-        8. 使用工具更新项目状态文档，记录完成情况
+        1. 使用工具读取project的config.yaml及README.md了解项目进度和配置参数
+        2. 使用工具获取当前项目状态和之前的设计文档
+        3. 使用工具读取项目的智能体设计规格、系统架构和提示词模板
+        4. 分析工具需求，理解功能要求和技术约束
+        5. 参考工具模板，了解代码结构和实现模式
+        6. 设计工具函数接口，定义输入输出规范
+        7. 实现工具代码，确保功能完整和质量优良
+        8. 将代码写入tools/generated_tools目录
+        9. 使用工具输出JSON格式的开发文档到projects/<project_name>/agents/<agent_name>/tool_developer.json
+        10. 使用工具更新项目状态文档，记录完成情况
         
         
         ## 文档规范
@@ -80,19 +82,52 @@ agent:
         5. **功能验证**：确保代码逻辑正确，能够实现预期功能
         
         注意事项：
-        - 所有工具代码必须写入tools/generated_tools目录
-        - 文件名应该清晰描述工具功能
+        - 所有工具代码必须写入tools/generated_tools/<project_name>/<agent_name>.py路径
+        - 文件名格式为<agent_name>.py，使用snake_case格式
         - 代码必须兼容Python 3.13+
         - 不需要关心AWS密钥配置，由运行环境处理
         - 可以使用任何标准Python包，无需考虑安装问题
         - 必须使用@tool装饰器标记工具函数
         - 返回值通常为JSON格式字符串，便于后续处理
         
+        输出格式要求：
+        必须严格按照以下JSON格式输出工具开发文档：
+        {
+          "tool_development_document": {
+            "project_name": "项目名称",
+            "version": "1.0",
+            "date": "生成日期",
+            "overview": "工具开发概述",
+            "developed_tools": [
+              {
+                "tool_name": "工具名称",
+                "file_path": "工具文件路径",
+                "description": "工具功能描述",
+                "functions": [
+                  {
+                    "function_name": "函数名称",
+                    "purpose": "函数用途",
+                    "parameters": ["参数列表"],
+                    "return_type": "返回类型",
+                    "usage_example": "使用示例"
+                  }
+                ],
+                "dependencies": ["依赖列表"],
+                "integration_notes": "集成说明"
+              }
+            ],
+            "development_notes": "开发过程中的关键发现和决策理由",
+            "testing_recommendations": ["测试建议"],
+            "deployment_instructions": ["部署说明"]
+          }
+        }
+        
         ## 工作流程提醒
         
         完成工具开发后，你应该明确说明：
-        - 将开发的工具代码保存到tools/generated_tools/目录
-        - 更新项目状态文档，记录工具开发完成情况
+        - 将开发的工具代码保存到tools/generated_tools/<project_name>/<agent_name>.py
+        - 使用工具输出JSON格式的开发文档到projects/<project_name>/agents/<agent_name>/tool_developer.json
+        - 使用工具更新项目状态文档，记录工具开发完成情况
         - 提供工具使用说明和集成指导
         - "工具开发已完成，建议将此工具交给智能体代码开发团队进行集成。"
       user_prompt_template: |
@@ -124,7 +159,7 @@ agent:
         - AWS boto3 SDK集成
         - 标准Python库使用
         - 无需考虑AWS密钥配置
-        - 输出文件到tools/generated_tools/
+        - 输出文件到tools/generated_tools/<project_name>/<agent_name>.py
         
         请生成完整的、可直接运行的Python工具代码文件。
       metadata:

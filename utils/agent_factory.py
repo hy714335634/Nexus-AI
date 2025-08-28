@@ -294,15 +294,21 @@ def create_agent_from_config(agent_config: Dict[str, Any]) -> Optional[Agent]:
     return get_bedrock_agent(model_id, agent_name, env, version)
 
 
-def create_agent_from_prompt_template(agent_name: str, env="production", version="latest", model_id="default") -> Optional[Agent]:
+def create_agent_from_prompt_template(agent_name: str, env="production", version="latest", model_id="default", **agent_params) -> Optional[Agent]:
     """
-    直接从提示词模板创建 agent，无需手动编写 agent 文件
+    直接从提示词模板创建 agent，支持多级相对路径
     
     Args:
-        agent_name: agent 名称，对应 prompts/system_agents_prompts/{agent_name}.yaml
+        agent_name: agent 名称或相对路径，支持以下格式：
+                   - "requirements_analyzer" (agent名称)
+                   - "system_agents_prompts/requirements_analyzer" (相对路径)
+                   - "system_agents_prompts/agent_build_workflow/requirements_analyzer" (多级路径)
+                   - "template_prompts/template" (模板路径)
+                   - "generated_agents_prompts/price_agent/price_matcher" (生成的agent路径)
         env: 环境配置 (development/production/testing)
         version: 版本号
         model_id: 模型ID
+        **agent_params: 额外的agent参数
     
     Returns:
         Agent 实例或 None
@@ -310,13 +316,24 @@ def create_agent_from_prompt_template(agent_name: str, env="production", version
     try:
         print(f"Creating agent '{agent_name}' from prompt template...")
         
-        # 获取提示词模板
-        agent_template = prompts_manager.get_agent(agent_name)
+        # 获取默认的prompt manager实例
+        from utils.prompts_manager import get_default_prompt_manager
+        manager = get_default_prompt_manager()
+        
+        # 尝试通过agent名称或相对路径获取agent模板
+        agent_template = manager.get_agent(agent_name)
+        
+        if not agent_template:
+            print(f"Agent template '{agent_name}' not found")
+            return None
+            
         latest_version = agent_template.get_version(version)
         
-        print(f"Loaded prompt template for '{agent_name}', version: {version}")
+        if not latest_version:
+            print(f"Version '{version}' not found for agent '{agent_name}'")
+            return None
         
-        # 不再处理 lib_dependencies
+        print(f"Loaded prompt template for '{agent_name}', version: {version}")
         
         # 动态导入工具依赖
         tools_dependencies = []
@@ -335,7 +352,7 @@ def create_agent_from_prompt_template(agent_name: str, env="production", version
                 # 创建模型时使用支持的模型ID
                 model = BedrockModel(
                     model_id=supported_model,
-                    max_tokens=prompts_manager.get_agent(agent_name).get_environment_config(env).max_tokens,
+                    max_tokens=agent_template.get_environment_config(env).max_tokens,
                     boto_session=session,
                     boto_client_config=boto_config
                 )
@@ -345,21 +362,32 @@ def create_agent_from_prompt_template(agent_name: str, env="production", version
                 print(f"No supported models found, using default config model: {default_model_id}")
                 model = BedrockModel(
                     model_id=default_model_id,
-                    max_tokens=prompts_manager.get_agent(agent_name).get_environment_config(env).max_tokens,
+                    max_tokens=agent_template.get_environment_config(env).max_tokens,
                     boto_session=session,
                     boto_client_config=boto_config
                 )
         else:
             # 使用指定的模型ID
-            model = get_bedrock_model(model_id=model_id, agent_name=agent_name, env=env)
+            model_config_key = model_id if model_id in config.get_bedrock_config() else "model_id"
+            model = BedrockModel(
+                model_id=config.get_bedrock_config().get(model_config_key),
+                max_tokens=agent_template.get_environment_config(env).max_tokens,
+                boto_session=session,
+                boto_client_config=boto_config
+            )
         
-        # 创建 Agent
-        agent = Agent(
-            name=agent_name,
-            model=model,
-            system_prompt=latest_version.system_prompt,
-            tools=tools_dependencies
-        )
+        # 创建 Agent，合并额外参数
+        agent_kwargs = {
+            'name': latest_version.agent_name,
+            'model': model,
+            'system_prompt': latest_version.system_prompt,
+            'tools': tools_dependencies
+        }
+        
+        # 合并用户提供的额外参数
+        agent_kwargs.update(agent_params)
+        
+        agent = Agent(**agent_kwargs)
         
         print(f"Successfully created agent '{agent_name}' from prompt template")
         print(f"Agent has {len(tools_dependencies)} tools available")
@@ -373,60 +401,63 @@ def create_agent_from_prompt_template(agent_name: str, env="production", version
         return None
 
 
-def get_bedrock_agent(model_id="default",agent_name="template",env="production",version="latest"):
-    """保持向后兼容的原有方法"""
-    return create_agent_from_prompt_template(agent_name, env, version, model_id)
-
-
-def create_system_agent(agent_name: str, **kwargs) -> Optional[Agent]:
-    """
-    创建系统 agent 的便捷方法
-    
-    Args:
-        agent_name: 系统 agent 名称 (如 'system_architect', 'orchestrator', 等)
-        **kwargs: 其他参数 (env, version, model_id)
-    
-    Returns:
-        Agent 实例或 None
-    """
-    return create_agent_from_prompt_template(agent_name, **kwargs)
-
-
 def list_available_agents() -> Dict[str, list]:
     """
-    列出所有可用的 agent 模板
+    列出所有可用的 agent 模板，支持多级目录结构
     
     Returns:
-        按类型分组的 agent 列表
+        按类型分组的 agent 列表，包含相对路径
     """
-    import os
-    import glob
-    
     agents = {
         "system_agents": [],
         "template_agents": [],
         "generated_agents": []
     }
     
-    # 扫描系统 agent 提示词
-    system_prompts_dir = "prompts/system_agents_prompts"
-    if os.path.exists(system_prompts_dir):
-        for yaml_file in glob.glob(f"{system_prompts_dir}/*.yaml"):
-            agent_name = os.path.basename(yaml_file).replace('.yaml', '')
-            agents["system_agents"].append(agent_name)
+    # 获取prompt manager实例
+    from utils.prompts_manager import get_default_prompt_manager
+    manager = get_default_prompt_manager()
     
-    # 扫描模板 agent 提示词
-    template_prompts_dir = "prompts/template_prompts"
-    if os.path.exists(template_prompts_dir):
-        for yaml_file in glob.glob(f"{template_prompts_dir}/*.yaml"):
-            agent_name = os.path.basename(yaml_file).replace('.yaml', '')
-            agents["template_agents"].append(agent_name)
+    # 获取所有agent路径映射
+    path_mapping = manager.list_all_agent_paths()
     
-    # 扫描生成的 agent 提示词
-    generated_prompts_dir = "prompts/generated_agents_prompts"
-    if os.path.exists(generated_prompts_dir):
-        for yaml_file in glob.glob(f"{generated_prompts_dir}/*.yaml"):
-            agent_name = os.path.basename(yaml_file).replace('.yaml', '')
-            agents["generated_agents"].append(agent_name)
+    for agent_name, relative_path in path_mapping.items():
+        # 跳过相对路径作为key的重复项
+        if agent_name == relative_path:
+            continue
+            
+        if relative_path.startswith("system_agents_prompts/"):
+            agents["system_agents"].append({
+                "name": agent_name,
+                "path": relative_path
+            })
+        elif relative_path.startswith("template_prompts/"):
+            agents["template_agents"].append({
+                "name": agent_name,
+                "path": relative_path
+            })
+        elif relative_path.startswith("generated_agents_prompts/"):
+            agents["generated_agents"].append({
+                "name": agent_name,
+                "path": relative_path
+            })
     
     return agents
+
+def list_available_agent_paths() -> List[str]:
+    """
+    列出所有可用的 agent 相对路径
+    
+    Returns:
+        所有agent的相对路径列表
+    """
+    from utils.prompts_manager import get_default_prompt_manager
+    manager = get_default_prompt_manager()
+    path_mapping = manager.list_all_agent_paths()
+    
+    # 返回所有相对路径（去重）
+    paths = set()
+    for agent_name, relative_path in path_mapping.items():
+        paths.add(relative_path)
+    
+    return sorted(list(paths))

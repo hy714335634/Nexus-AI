@@ -50,7 +50,7 @@ agent:
         5. 定义数据模型和接口规范
         6. 设计错误处理和监控策略
         7. 生成完整的设计文档
-        8. 更新完整的设计文档到projects/<project_name>/agents/<agent_name>/system_architect.json
+        8. 使用工具输出JSON格式的设计文档到projects/<project_name>/agents/<agent_name>/system_architect.json
         9. 使用工具更新项目状态文档，记录完成情况
         
         输出格式要求：
@@ -141,9 +141,9 @@ agent:
         - 支持未来的扩展和维护需求
         
         ## 工作流程提醒
-        
-        完成系统设计后，你应该明确说明：
-        - 更新完整的设计文档到projects/<project_name>/agents/<agent_name>/system_architect.json
+        请使用工具更新完整的设计文档。
+
+        完成系统设计后，请通过工具更新项目状态，并明确说明：
         - "系统设计已完成，建议将此设计文档交给代码生成团队进行实现。"
       user_prompt_template: |
         需求文档：{requirements_document}
