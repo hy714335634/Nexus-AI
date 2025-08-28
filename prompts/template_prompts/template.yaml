@@ -31,7 +31,8 @@ agent:
         - 提供具体的解决方案
         - 如果需要使用工具，请明确说明
       metadata:
-        tags: ["general", "technical"]
+        tags: ["requirements", "analysis", "documentation"]
         supported_models:
-          - "us.anthropic.claude-3-5-haiku-20241022-v1:0"
           - "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
+        tools_dependencies:
+          - "current_time"

@@ -295,13 +295,16 @@ def list_all_tools() -> str:
         # 扫描各个目录
         for tool_type, tool_dir in tool_dirs.items():
             if os.path.exists(tool_dir):
-                for file_path in Path(tool_dir).glob("*.py"):
+                for file_path in Path(tool_dir).rglob("*.py"):
                     if file_path.name.startswith('__'):
                         continue
                     
                     tools_in_file = _parse_tool_file(file_path)
                     for tool_info in tools_in_file:
                         tool_info['type'] = tool_type
+                        # 添加相对路径信息
+                        relative_path = file_path.relative_to(Path(tool_dir))
+                        tool_info['relative_path'] = str(relative_path)
                         result[tool_type].append(tool_info)
         
         # 生成摘要
@@ -376,11 +379,15 @@ def get_template_tools() -> str:
         
         tools = []
         
-        for file_path in Path(template_dir).glob("*.py"):
+        for file_path in Path(template_dir).rglob("*.py"):
             if file_path.name.startswith('__'):
                 continue
             
             tools_in_file = _parse_tool_file(file_path)
+            # 为每个工具添加相对路径信息
+            for tool_info in tools_in_file:
+                relative_path = file_path.relative_to(Path(template_dir))
+                tool_info['relative_path'] = str(relative_path)
             tools.extend(tools_in_file)
         
         result = {
@@ -412,11 +419,15 @@ def get_generated_tools() -> str:
         
         tools = []
         
-        for file_path in Path(generated_dir).glob("*.py"):
+        for file_path in Path(generated_dir).rglob("*.py"):
             if file_path.name.startswith('__'):
                 continue
             
             tools_in_file = _parse_tool_file(file_path)
+            # 为每个工具添加相对路径信息
+            for tool_info in tools_in_file:
+                relative_path = file_path.relative_to(Path(generated_dir))
+                tool_info['relative_path'] = str(relative_path)
             tools.extend(tools_in_file)
         
         result = {
@@ -582,7 +593,7 @@ def get_tool_content(tool_name: str, file_path: Optional[str] = None) -> str:
             
             for tool_type, tool_dir in tool_dirs.items():
                 if os.path.exists(tool_dir):
-                    for file_path in Path(tool_dir).glob("*.py"):
+                    for file_path in Path(tool_dir).rglob("*.py"):
                         if file_path.name.startswith('__'):
                             continue
                         

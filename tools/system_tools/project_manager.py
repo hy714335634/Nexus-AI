@@ -27,6 +27,39 @@ from pathlib import Path
 from strands import tool
 
 
+def _enhance_content_with_context(content: str, project_name: str, agent_name: str, stage_name: str) -> str:
+    """
+    为内容添加项目和Agent上下文信息
+    
+    Args:
+        content (str): 原始内容
+        project_name (str): 项目名称
+        agent_name (str): Agent名称
+        stage_name (str): 阶段名称
+        
+    Returns:
+        str: 增强后的内容
+    """
+    # 创建上下文头部信息
+    context_header = f"""# 项目上下文信息
+
+**项目名称**: {project_name}
+**Agent名称**: {agent_name}  
+**开发阶段**: {stage_name}
+**生成时间**: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}
+
+---
+
+"""
+    
+    # 如果内容已经包含上下文信息，则不重复添加
+    if f"**项目名称**: {project_name}" in content:
+        return content
+    
+    # 添加上下文头部到内容前面
+    return context_header + content
+
+
 @tool
 def project_init(project_name: str) -> str:
     """
@@ -143,7 +176,21 @@ nexus-ai/
         # 创建 status.yaml
         status_path = os.path.join(project_root, "status.yaml")
         status_content = {
-            "project": []
+            "project_info": [
+                {
+                    "name": project_name,
+                    "description": f"AI智能体项目：{project_name}",
+                    "version": "1.0.0",
+                    "last_updated": datetime.now(timezone.utc).isoformat(),
+                    "progress": [
+                        {
+                            "total": 0,
+                            "completed": 0
+                        }
+                    ],
+                    "agents": []
+                }
+            ]
         }
         
         with open(status_path, 'w', encoding='utf-8') as f:
@@ -288,7 +335,15 @@ def update_project_readme(project_name: str, additional_content: str = None) -> 
             try:
                 with open(status_path, 'r', encoding='utf-8') as f:
                     status = yaml.safe_load(f) or {}
-                    agents_status = status.get("project", [])
+                    # 兼容新格式
+                    if "project_info" in status and isinstance(status["project_info"], list):
+                        for project in status["project_info"]:
+                            if project.get("name") == project_name:
+                                agents_status = project.get("agents", [])
+                                break
+                    else:
+                        # 兼容旧格式
+                        agents_status = status.get("project", [])
             except yaml.YAMLError:
                 pass  # 使用空列表
         
@@ -327,19 +382,29 @@ def update_project_readme(project_name: str, additional_content: str = None) -> 
                 readme_content += f"\n#### {agent_name}\n"
                 
                 pipeline = agent.get("pipeline", [])
-                for stage in pipeline:
-                    for stage_name, stage_info in stage.items():
-                        if isinstance(stage_info, dict):
-                            status = "✅ 已完成" if stage_info.get("status", False) else "⏳ 待完成"
-                            doc_path = stage_info.get("doc_path", "")
-                            readme_content += f"- **{stage_name}**: {status}"
-                            if doc_path:
-                                readme_content += f" - [文档]({doc_path})"
-                            readme_content += "\n"
-                        else:
-                            # 兼容旧格式
-                            status = "✅ 已完成" if stage_info else "⏳ 待完成"
-                            readme_content += f"- **{stage_name}**: {status}\n"
+                for stage_entry in pipeline:
+                    if isinstance(stage_entry, dict) and "stage" in stage_entry:
+                        # 新格式
+                        stage_name = stage_entry.get("stage", "")
+                        stage_status = "✅ 已完成" if stage_entry.get("status", False) else "⏳ 待完成"
+                        doc_path = stage_entry.get("doc_path", "")
+                        readme_content += f"- **{stage_name}**: {stage_status}"
+                        if doc_path:
+                            readme_content += f" - [文档]({doc_path})"
+                        readme_content += "\n"
+                    else:
+                        # 兼容旧格式
+                        for stage_name, stage_info in stage_entry.items():
+                            if isinstance(stage_info, dict):
+                                status = "✅ 已完成" if stage_info.get("status", False) else "⏳ 待完成"
+                                doc_path = stage_info.get("doc_path", "")
+                                readme_content += f"- **{stage_name}**: {status}"
+                                if doc_path:
+                                    readme_content += f" - [文档]({doc_path})"
+                                readme_content += "\n"
+                            else:
+                                status = "✅ 已完成" if stage_info else "⏳ 待完成"
+                                readme_content += f"- **{stage_name}**: {status}\n"
         else:
             readme_content += "\n项目状态和各阶段结果将在开发过程中更新到此文档。\n"
         
@@ -383,25 +448,28 @@ def update_project_status(project_name: str, agent_name: str, stage: str, status
     更新项目状态文件中指定Agent的指定阶段状态
     
     Args:
-        project_name (str): 项目名称
-        agent_name (str): Agent名称
-        stage (str): 阶段名称 (requirements_analyzer, system_architect, agent_designer, prompt_engineer, tools_developer, agent_code_developer)
-        status (bool): 阶段状态 (True表示完成，False表示未完成)
+        project_name (str): 项目名称（必须）
+        agent_name (str): Agent名称（必须）
+        stage (str): 阶段名称（必须） - requirements_analyzer, system_architect, agent_designer, prompt_engineer, tools_developer, agent_code_developer, agent_developer_manager
+        status (bool): 阶段状态（必须） - True表示完成，False表示未完成
         doc_path (str, optional): 文档路径
         
     Returns:
         str: 操作结果信息
     """
     try:
-        # 验证参数
+        # 验证必须参数
         if not project_name or not project_name.strip():
-            return "错误：项目名称不能为空"
+            return "错误：项目名称（project_name）是必须参数，不能为空"
         
         if not agent_name or not agent_name.strip():
-            return "错误：Agent名称不能为空"
+            return "错误：Agent名称（agent_name）是必须参数，不能为空"
         
         if not stage or not stage.strip():
-            return "错误：阶段名称不能为空"
+            return "错误：阶段名称（stage）是必须参数，不能为空"
+        
+        if status is None:
+            return "错误：阶段状态（status）是必须参数，不能为None"
         
         # 验证阶段名称
         valid_stages = [
@@ -424,22 +492,71 @@ def update_project_status(project_name: str, agent_name: str, stage: str, status
         
         status_path = os.path.join(project_root, "status.yaml")
         
+        # 读取项目配置获取项目描述
+        config_path = os.path.join(project_root, "config.yaml")
+        project_description = f"AI智能体项目：{project_name}"
+        project_version = "1.0.0"
+        
+        if os.path.exists(config_path):
+            try:
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    config = yaml.safe_load(f) or {}
+                    project_config = config.get("project", {})
+                    project_description = project_config.get("description", project_description)
+                    project_version = project_config.get("version", project_version)
+            except yaml.YAMLError:
+                pass  # 使用默认值
+        
         # 读取现有状态
-        status_data = {"project": []}
+        status_data = {}
         if os.path.exists(status_path):
             try:
                 with open(status_path, 'r', encoding='utf-8') as f:
-                    status_data = yaml.safe_load(f) or {"project": []}
+                    status_data = yaml.safe_load(f) or {}
             except yaml.YAMLError as e:
                 return f"错误：无法解析状态文件: {str(e)}"
         
-        # 确保project字段存在
-        if "project" not in status_data:
-            status_data["project"] = []
+        # 初始化或更新项目信息
+        if "project_info" not in status_data:
+            status_data["project_info"] = []
+        
+        # 查找或创建项目条目
+        project_entry = None
+        for project in status_data["project_info"]:
+            if project.get("name") == project_name:
+                project_entry = project
+                break
+        
+        if project_entry is None:
+            # 创建新的项目条目
+            project_entry = {
+                "name": project_name,
+                "description": project_description,
+                "version": project_version,
+                "last_updated": datetime.now(timezone.utc).isoformat(),
+                "progress": [
+                    {
+                        "total": 0,
+                        "completed": 0
+                    }
+                ],
+                "agents": []
+            }
+            status_data["project_info"].append(project_entry)
+        else:
+            # 更新项目基本信息
+            project_entry["name"] = project_name
+            project_entry["description"] = project_description
+            project_entry["version"] = project_version
+            project_entry["last_updated"] = datetime.now(timezone.utc).isoformat()
+        
+        # 确保agents字段存在
+        if "agents" not in project_entry:
+            project_entry["agents"] = []
         
         # 查找或创建Agent条目
         agent_entry = None
-        for agent in status_data["project"]:
+        for agent in project_entry["agents"]:
             if agent.get("name") == agent_name:
                 agent_entry = agent
                 break
@@ -448,48 +565,76 @@ def update_project_status(project_name: str, agent_name: str, stage: str, status
             # 创建新的Agent条目，包含所有阶段
             agent_entry = {
                 "name": agent_name,
+                "description": f"智能体：{agent_name}",
+                "created_date": datetime.now(timezone.utc).isoformat(),
                 "pipeline": []
             }
             
             # 初始化所有阶段
             for stage_name in valid_stages:
                 stage_entry = {
-                    stage_name: {
-                        "status": False,
-                        "doc_path": ""
-                    }
+                    "description": _get_stage_description(stage_name),
+                    "doc_path": "",
+                    "stage": stage_name,
+                    "status": False,
+                    "updated_date": None
                 }
                 agent_entry["pipeline"].append(stage_entry)
             
-            status_data["project"].append(agent_entry)
+            project_entry["agents"].append(agent_entry)
+        
+        # 更新Agent的最后更新时间
+        agent_entry["last_updated"] = datetime.now(timezone.utc).isoformat()
         
         # 更新指定阶段的状态
         pipeline = agent_entry.get("pipeline", [])
         stage_found = False
         
         for stage_entry in pipeline:
-            if stage in stage_entry:
-                if isinstance(stage_entry[stage], dict):
-                    stage_entry[stage]["status"] = status
-                    stage_entry[stage]["doc_path"] = doc_path
-                else:
-                    # 兼容旧格式，转换为新格式
-                    stage_entry[stage] = {
-                        "status": status,
-                        "doc_path": doc_path
-                    }
+            if stage_entry.get("stage") == stage:
+                stage_entry["status"] = status
+                stage_entry["doc_path"] = doc_path
+                stage_entry["updated_date"] = datetime.now(timezone.utc).isoformat()
                 stage_found = True
                 break
         
         # 如果阶段不存在，添加它
         if not stage_found:
             new_stage_entry = {
-                stage: {
-                    "status": status,
-                    "doc_path": doc_path
-                }
+                "description": _get_stage_description(stage),
+                "doc_path": doc_path,
+                "stage": stage,
+                "status": status,
+                "updated_date": datetime.now(timezone.utc).isoformat()
             }
             agent_entry["pipeline"].append(new_stage_entry)
+        
+        # 计算项目整体进度
+        all_agents = project_entry["agents"]
+        total_project_stages = 0
+        completed_project_stages = 0
+        
+        for agent in all_agents:
+            agent_pipeline = agent.get("pipeline", [])
+            for stage_entry in agent_pipeline:
+                total_project_stages += 1
+                if stage_entry.get("status", False):
+                    completed_project_stages += 1
+        
+        # 更新项目进度
+        if "progress" not in project_entry:
+            project_entry["progress"] = []
+        
+        if len(project_entry["progress"]) == 0:
+            project_entry["progress"].append({
+                "total": total_project_stages,
+                "completed": completed_project_stages
+            })
+        else:
+            project_entry["progress"][0] = {
+                "total": total_project_stages,
+                "completed": completed_project_stages
+            }
         
         # 写入状态文件
         with open(status_path, 'w', encoding='utf-8') as f:
@@ -498,11 +643,15 @@ def update_project_status(project_name: str, agent_name: str, stage: str, status
         result = {
             "status": "success",
             "message": f"项目 '{project_name}' 中 Agent '{agent_name}' 的阶段 '{stage}' 状态更新成功",
-            "project_name": project_name,
-            "agent_name": agent_name,
-            "stage": stage,
-            "new_status": status,
-            "doc_path": doc_path,
+            "project_info": {
+                "project_name": project_name,
+                "project_description": project_description,
+                "agent_name": agent_name,
+                "stage": stage,
+                "new_status": status,
+                "doc_path": doc_path,
+                "project_progress": project_entry["progress"][0] if project_entry["progress"] else {"total": 0, "completed": 0}
+            },
             "updated_date": datetime.now(timezone.utc).isoformat()
         }
         
@@ -514,18 +663,31 @@ def update_project_status(project_name: str, agent_name: str, stage: str, status
         return f"更新项目状态时出现错误: {str(e)}"
 
 
+def _get_stage_description(stage_name: str) -> str:
+    """获取阶段描述"""
+    stage_descriptions = {
+        "requirements_analyzer": "需求分析阶段 - 分析用户需求，定义功能规格",
+        "system_architect": "系统架构设计阶段 - 设计系统架构和技术方案",
+        "agent_designer": "Agent设计阶段 - 设计智能体结构和交互模式",
+        "prompt_engineer": "提示词工程阶段 - 设计和优化提示词模板",
+        "tools_developer": "工具开发阶段 - 开发必要的工具和函数",
+        "agent_code_developer": "Agent代码开发阶段 - 实现智能体代码",
+        "agent_developer_manager": "Agent开发管理阶段 - 管理和协调开发流程"
+    }
+    return stage_descriptions.get(stage_name, f"阶段：{stage_name}")
+
+
 @tool
-def get_project_status(project_name: str, agent_name: str = None, stage: str = None) -> str:
+def get_project_status(project_name: str, agent_name: str = None) -> str:
     """
-    查询项目状态文件中的阶段状态
+    查询项目状态信息
     
     Args:
-        project_name (str): 项目名称
-        agent_name (str, optional): Agent名称，如果不提供则返回所有Agent状态
-        stage (str, optional): 阶段名称，如果不提供则返回指定Agent的所有阶段状态
+        project_name (str): 项目名称（必须）
+        agent_name (str, optional): Agent名称，如果不提供则返回指定项目完整status.yaml内容
         
     Returns:
-        str: 查询结果信息
+        str: 查询结果信息，如果未指定agent_name则返回完整status.yaml内容，否则返回指定Agent的详细信息
     """
     try:
         # 验证项目名称
@@ -548,22 +710,69 @@ def get_project_status(project_name: str, agent_name: str = None, stage: str = N
         # 读取状态文件
         try:
             with open(status_path, 'r', encoding='utf-8') as f:
-                status_data = yaml.safe_load(f) or {"project": []}
+                status_data = yaml.safe_load(f) or {}
         except yaml.YAMLError as e:
             return f"错误：无法解析状态文件: {str(e)}"
         
-        agents_data = status_data.get("project", [])
+        # 获取项目信息，兼容新旧格式
+        project_info = None
+        agents_data = []
         
-        # 如果没有指定Agent，返回所有Agent状态
-        if not agent_name:
-            result = {
-                "status": "success",
-                "project_name": project_name,
-                "total_agents": len(agents_data),
-                "agents": agents_data,
-                "query_date": datetime.now(timezone.utc).isoformat()
+        if "project_info" in status_data and isinstance(status_data["project_info"], list):
+            # 新格式 - project_info 是列表
+            for project in status_data["project_info"]:
+                if project.get("name") == project_name:
+                    project_info = project
+                    agents_data = project.get("agents", [])
+                    break
+        elif "project_info" in status_data and isinstance(status_data["project_info"], dict):
+            # 兼容格式 - project_info 是字典
+            project_info = status_data["project_info"]
+            agents_data = project_info.get("agents", [])
+        else:
+            # 旧格式兼容
+            agents_data = status_data.get("project", [])
+        
+        if project_info is None:
+            project_info = {
+                "name": project_name,
+                "description": f"AI智能体项目：{project_name}",
+                "version": "1.0.0"
             }
-            return json.dumps(result, ensure_ascii=False, indent=2)
+        
+        # 计算项目整体进度
+        total_agents = len(agents_data)
+        total_completed_stages = 0
+        total_stages = 0
+        
+        for agent in agents_data:
+            pipeline = agent.get("pipeline", [])
+            if pipeline and isinstance(pipeline[0], dict) and "stage" in pipeline[0]:
+                # 新格式
+                for stage_entry in pipeline:
+                    total_stages += 1
+                    if stage_entry.get("status", False):
+                        total_completed_stages += 1
+            else:
+                # 旧格式兼容
+                for stage_entry in pipeline:
+                    for stage_name, stage_info in stage_entry.items():
+                        total_stages += 1
+                        if isinstance(stage_info, dict) and stage_info.get("status", False):
+                            total_completed_stages += 1
+                        elif stage_info:
+                            total_completed_stages += 1
+        
+        project_progress = {
+            "total_agents": total_agents,
+            "total_stages": total_stages,
+            "completed_stages": total_completed_stages,
+            "completion_percentage": round((total_completed_stages / total_stages) * 100, 1) if total_stages > 0 else 0
+        }
+        
+        # 如果没有指定Agent，返回完整的status.yaml内容
+        if not agent_name:
+            return json.dumps(status_data, ensure_ascii=False, indent=2)
         
         # 查找指定Agent
         agent_name = agent_name.strip()
@@ -577,37 +786,24 @@ def get_project_status(project_name: str, agent_name: str = None, stage: str = N
         if target_agent is None:
             return f"错误：在项目 '{project_name}' 中未找到 Agent '{agent_name}'"
         
-        # 如果没有指定阶段，返回Agent的所有阶段状态
-        if not stage:
-            result = {
-                "status": "success",
-                "project_name": project_name,
-                "agent_name": agent_name,
-                "agent_data": target_agent,
-                "query_date": datetime.now(timezone.utc).isoformat()
-            }
-            return json.dumps(result, ensure_ascii=False, indent=2)
-        
-        # 查找指定阶段
-        stage = stage.strip()
-        pipeline = target_agent.get("pipeline", [])
-        stage_data = None
-        
-        for stage_entry in pipeline:
-            if stage in stage_entry:
-                stage_data = stage_entry[stage]
-                break
-        
-        if stage_data is None:
-            return f"错误：在 Agent '{agent_name}' 中未找到阶段 '{stage}'"
-        
+        # 返回指定Agent的详细信息
         result = {
             "status": "success",
-            "project_name": project_name,
-            "agent_name": agent_name,
-            "stage": stage,
-            "stage_data": stage_data,
-            "query_date": datetime.now(timezone.utc).isoformat()
+            "project_info": project_info,
+            "agent_info": {
+                "name": target_agent.get("name", agent_name),
+                "description": target_agent.get("description", f"智能体：{agent_name}"),
+                "created_date": target_agent.get("created_date", ""),
+                "last_updated": target_agent.get("last_updated", "")
+            },
+            "agent_data": target_agent,
+            "query_date": datetime.now(timezone.utc).isoformat(),
+            "summary": {
+                "project_name": project_info.get("name", project_name),
+                "agent_name": agent_name,
+                "total_stages": len(target_agent.get("pipeline", [])),
+                "completed_stages": sum(1 for stage in target_agent.get("pipeline", []) if stage.get("status", False))
+            }
         }
         
         return json.dumps(result, ensure_ascii=False, indent=2)
@@ -619,7 +815,7 @@ def get_project_status(project_name: str, agent_name: str = None, stage: str = N
 @tool
 def update_project_stage_content(project_name: str, agent_name: str, stage_name: str, content: str) -> str:
     """
-    将内容写入指定的项目阶段文件
+    将内容写入指定的项目阶段文件，自动添加项目和Agent上下文信息
     
     Args:
         project_name (str): 项目名称
@@ -668,9 +864,12 @@ def update_project_stage_content(project_name: str, agent_name: str, stage_name:
         # 创建阶段文件路径
         stage_file_path = os.path.join(agent_dir, f"{stage_name}.json")
         
+        # 增强内容，添加项目和Agent上下文信息
+        enhanced_content = _enhance_content_with_context(content, project_name, agent_name, stage_name)
+        
         # 写入内容
         with open(stage_file_path, 'w', encoding='utf-8') as f:
-            f.write(content)
+            f.write(enhanced_content)
         
         result = {
             "status": "success",
@@ -917,6 +1116,78 @@ def list_all_projects() -> str:
 
 
 @tool
+def get_project_context(project_name: str, agent_name: str = None) -> str:
+    """
+    获取项目上下文信息，用于Agent输出时包含项目和Agent名称
+    
+    Args:
+        project_name (str): 项目名称
+        agent_name (str, optional): Agent名称
+        
+    Returns:
+        str: 项目上下文信息
+    """
+    try:
+        # 验证项目名称
+        if not project_name or not project_name.strip():
+            return "错误：项目名称不能为空"
+        
+        project_name = project_name.strip()
+        project_root = os.path.join("projects", project_name)
+        
+        # 检查项目目录是否存在
+        if not os.path.exists(project_root):
+            return f"错误：项目 '{project_name}' 不存在"
+        
+        # 读取项目配置
+        config_path = os.path.join(project_root, "config.yaml")
+        project_description = f"AI智能体项目：{project_name}"
+        project_version = "1.0.0"
+        
+        if os.path.exists(config_path):
+            try:
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    config = yaml.safe_load(f) or {}
+                    project_config = config.get("project", {})
+                    project_description = project_config.get("description", project_description)
+                    project_version = project_config.get("version", project_version)
+            except yaml.YAMLError:
+                pass  # 使用默认值
+        
+        # 构建上下文信息
+        context_info = {
+            "project_name": project_name,
+            "project_description": project_description,
+            "project_version": project_version,
+            "current_time": datetime.now(timezone.utc).isoformat(),
+            "context_header": f"""# 项目上下文信息
+
+**项目名称**: {project_name}
+**项目描述**: {project_description}
+**项目版本**: {project_version}"""
+        }
+        
+        # 如果提供了Agent名称，添加Agent信息
+        if agent_name and agent_name.strip():
+            agent_name = agent_name.strip()
+            context_info["agent_name"] = agent_name
+            context_info["context_header"] += f"""
+**Agent名称**: {agent_name}"""
+        
+        context_info["context_header"] += f"""
+**生成时间**: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}
+
+---
+
+"""
+        
+        return json.dumps(context_info, ensure_ascii=False, indent=2)
+        
+    except Exception as e:
+        return f"获取项目上下文时出现错误: {str(e)}"
+
+
+@tool
 def get_project_config(project_name: str) -> str:
     """
     获取指定项目的配置信息
@@ -1037,56 +1308,65 @@ def get_project_readme(project_name: str) -> str:
 
 
 @tool
-def generate_content(type: Literal["agent", "prompt", "tool"], content: str, name: str, agent_name: str = None) -> str:
+def generate_content(type: Literal["agent", "prompt", "tool"], content: str, project_name: str, agent_name: str) -> str:
     """
     根据类型生成内容文件到指定目录
     
     Args:
-        type (Literal["agent", "prompt", "tool"]): 内容类型，可以是 "agent"、"prompt" 或 "tool"
-        content (str): 要写入的文件内容
-        name (str): 文件名（不包含扩展名）
-        agent_name (str, optional): 保留参数，当前版本未使用
+        type (Literal["agent", "prompt", "tool"]): 内容类型（必须），可以是 "agent"、"prompt" 或 "tool"
+        content (str): 要写入的文件内容（必须）
+        project_name (str): 项目名称（必须）
+        agent_name (str): Agent名称（必须）
         
     Returns:
         str: 操作结果信息
     """
     try:
-        # 验证参数
+        # 验证必须参数
         if type not in ["agent", "prompt", "tool"]:
             return "错误：type参数必须是 'agent'、'prompt' 或 'tool'"
         
-        if not content:
-            return "错误：content参数不能为空"
+        if not content or not content.strip():
+            return "错误：content参数（内容）是必须参数，不能为空"
         
-        if not name:
-            return "错误：name参数不能为空"
+        if not project_name or not project_name.strip():
+            return "错误：project_name参数（项目名称）是必须参数，不能为空"
         
-        # 验证文件名格式（避免路径遍历攻击）
-        if "/" in name or "\\" in name or ".." in name:
-            return "错误：文件名不能包含路径分隔符或相对路径"
+        if not agent_name or not agent_name.strip():
+            return "错误：agent_name参数（Agent名称）是必须参数，不能为空"
+        
+        # 清理参数
+        project_name = project_name.strip()
+        agent_name = agent_name.strip()
+        
+        # 验证名称格式（避免路径遍历攻击）
+        if "/" in project_name or "\\" in project_name or ".." in project_name:
+            return "错误：项目名称不能包含路径分隔符或相对路径"
+        
+        if "/" in agent_name or "\\" in agent_name or ".." in agent_name:
+            return "错误：Agent名称不能包含路径分隔符或相对路径"
         
         # 根据类型确定目标目录和文件扩展名
         if type == "agent":
-            target_dir = os.path.join("agents", "generated_agents")
-            file_extension = ".py"
+            target_dir = os.path.join("agents", "generated_agents", project_name)
+            filename = f"{agent_name}.py"
         elif type == "prompt":
-            target_dir = os.path.join("prompts", "generated_agents_prompts")
-            file_extension = ".yaml"
+            target_dir = os.path.join("prompts", "generated_agents_prompts", project_name)
+            filename = f"{agent_name}.yaml"
         elif type == "tool":
-            target_dir = os.path.join("tools", "generated_tools")
-            file_extension = ".py"
+            target_dir = os.path.join("tools", "generated_tools", project_name)
+            filename = f"{agent_name}.py"
         
         # 确保目标目录存在
         if not os.path.exists(target_dir):
             os.makedirs(target_dir, exist_ok=True)
         
         # 构建完整文件路径
-        filename = f"{name}{file_extension}"
         file_path = os.path.join(target_dir, filename)
         
         # 检查文件是否已存在
         if os.path.exists(file_path):
-            return f"错误：文件 '{filename}' 已存在于 {target_dir} 目录中，请使用不同的名称"
+            return f"错误：文件 '{filename}' 已存在于 {target_dir} 目录中，请使用不同的名称或删除现有文件"
         
         # 写入文件
         with open(file_path, 'w', encoding='utf-8') as f:
@@ -1097,6 +1377,8 @@ def generate_content(type: Literal["agent", "prompt", "tool"], content: str, nam
             "status": "success",
             "message": f"成功创建{type}文件",
             "type": type,
+            "project_name": project_name,
+            "agent_name": agent_name,
             "file_path": file_path,
             "file_name": filename,
             "target_directory": target_dir,

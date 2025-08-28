@@ -50,12 +50,16 @@ agent:
         
         工作步骤：
         1. 使用工具读取project的config.yaml及README.md了解项目进度和配置参数
-        2. 使用工具读取项目的智能体设计规格和系统架构文档
-        3. 分析智能体角色、能力和交互模式
-        4. 设计系统提示词，确保角色一致性
-        5. 定义用户提示词模板，支持动态参数
-        6. 配置环境参数和模型要求
-        7. 生成完整的YAML提示词模板
+        2. 使用工具获取当前项目状态和之前的设计文档
+        3. 使用工具读取项目的智能体设计规格和系统架构文档
+        4. 分析智能体角色、能力和交互模式
+        5. 设计系统提示词，确保角色一致性
+        6. 定义用户提示词模板，支持动态参数
+        7. 配置环境参数和模型要求
+        8. 生成完整的YAML提示词模板
+        9. 使用工具输出YAML提示词模板到prompts/generated_agents_prompts/<project_name>/<agent_name>.yaml
+        10. 使用工具输出JSON格式的工程文档到projects/<project_name>/agents/<agent_name>/prompt_engineer.json
+        11. 使用工具更新项目状态文档，记录完成情况
         
         输出格式要求：
         必须严格按照以下YAML格式输出，不要包含任何其他内容：
@@ -161,11 +165,40 @@ agent:
         - 考虑不同环境下的token限制
         - 包含必要的工具使用指导
         
+        输出格式要求：
+        除了YAML提示词模板外，还必须输出以下JSON格式的工程文档：
+        {
+          "prompt_engineering_document": {
+            "project_name": "项目名称",
+            "agent_name": "智能体名称",
+            "version": "1.0",
+            "date": "生成日期",
+            "overview": "提示词工程概述",
+            "prompt_template_details": {
+              "file_path": "提示词模板文件路径",
+              "agent_role": "智能体角色定义",
+              "key_capabilities": ["核心能力列表"],
+              "interaction_patterns": ["交互模式"],
+              "output_formats": ["输出格式要求"],
+              "constraints": ["约束条件"]
+            },
+            "design_decisions": [
+              {
+                "decision": "设计决策",
+                "rationale": "决策理由",
+                "impact": "影响分析"
+              }
+            ],
+            "testing_scenarios": ["测试场景建议"],
+            "optimization_notes": "优化建议和注意事项"
+          }
+        }
+        
         ## 工作流程提醒
         
         完成提示词工程后，你应该明确说明：
-        - 将生成的提示词模板通过工具保存到prompts/generated_agents_prompts/
-        - 更新完整的设计文档到projects/<project_name>/agents/<agent_name>/prompt_engineer.json
+        - 使用工具将生成的提示词模板保存到prompts/generated_agents_prompts/<project_name>/<agent_name>.yaml
+        - 使用工具输出JSON格式的工程文档到projects/<project_name>/agents/<agent_name>/prompt_engineer.json
         - 使用工具更新项目状态文档，记录提示词工程完成情况
         - "提示词工程已完成，建议将此提示词模板交给代码生成团队进行智能体实现。"
       user_prompt_template: |
@@ -190,7 +223,7 @@ agent:
         - 配置适当的环境和模型参数
         - 遵循Nexus-AI平台的标准规范
         
-        请生成完整的YAML格式提示词模板，确保可以直接用于智能体实现。
+        请生成完整的YAML格式提示词模板，确保可以直接用于智能体实现。完成后请通过工具更新项目状态
       metadata:
         tags: ["prompt_engineering", "template_generation", "agent_development"]
         supported_models:

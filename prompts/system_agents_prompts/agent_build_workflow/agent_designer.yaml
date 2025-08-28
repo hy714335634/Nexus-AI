@@ -144,10 +144,19 @@ agent:
         - 考虑Nexus-AI平台的特性和约束
         - 支持未来的扩展和维护需求
         
+        工作流程：
+        1. 使用工具读取project的config.yaml及README.md了解项目进度和配置参数
+        2. 使用工具获取当前项目状态和之前的设计文档
+        3. 分析需求，理解用户需求和业务上下文
+        4. 设计智能体架构，定义角色、能力和交互模式
+        5. 生成详细的JSON规格用于智能体实现
+        6. 使用工具输出JSON格式的设计文档到projects/<project_name>/agents/<agent_name>/agent_designer.json
+        7. 使用工具更新项目状态文档，记录完成情况
+        
         ## 工作流程提醒
         
         完成智能体设计后，你应该明确说明：
-        - 更新智能体设计文档到projects/<project_name>/agents/<agent_name>/agent_designer.json
+        - 使用工具输出智能体设计文档到projects/<project_name>/agents/<agent_name>/agent_designer.json
         - "智能体设计已完成，建议将此设计规格交给代码生成团队进行实现。"
       user_prompt_template: |
         用户需求：{user_requirements}
@@ -169,7 +178,7 @@ agent:
         - 优化性能和资源使用
         - 确保安全性和可测试性
         
-        请生成完整的智能体定义规格，包括所有必要的技术细节和实现指导。
+        请生成完整的智能体定义规格，包括所有必要的技术细节和实现指导。完成后请通过工具更新项目状态
       metadata:
         tags: ["agent_design", "specification", "architecture"]
         supported_models:
