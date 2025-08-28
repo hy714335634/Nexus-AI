@@ -858,7 +858,7 @@ def update_project_stage_content(project_name: str, agent_name: str, stage_name:
             return f"错误：项目 '{project_name}' 不存在，请先使用 project_init 初始化项目"
         
         # 创建Agent目录
-        agent_dir = os.path.join(project_root,"agents", agent_name)
+        agent_dir = os.path.join(project_root, "agents", agent_name)
         os.makedirs(agent_dir, exist_ok=True)
         
         # 创建阶段文件路径
@@ -932,7 +932,7 @@ def get_project_stage_content(project_name: str, agent_name: str, stage_name: st
             return f"错误：项目 '{project_name}' 不存在"
         
         # 构建文件路径
-        stage_file_path = os.path.join(project_root, agent_name, f"{stage_name}.json")
+        stage_file_path = os.path.join(project_root, "agents", agent_name, f"{stage_name}.json")
         
         # 检查文件是否存在
         if not os.path.exists(stage_file_path):
@@ -991,10 +991,16 @@ def list_project_agents(project_name: str) -> str:
             return f"错误：项目 '{project_name}' 不存在"
         
         # 获取所有Agent目录
+        agents_root = os.path.join(project_root, "agents")
         agent_dirs = []
-        for item in os.listdir(project_root):
-            item_path = os.path.join(project_root, item)
-            if os.path.isdir(item_path) and item not in ["agents", "tools", "prompts"]:
+        
+        # 检查agents目录是否存在
+        if not os.path.exists(agents_root):
+            return f"错误：项目 '{project_name}' 中不存在agents目录"
+        
+        for item in os.listdir(agents_root):
+            item_path = os.path.join(agents_root, item)
+            if os.path.isdir(item_path):
                 # 统计目录中的文件数量
                 file_count = 0
                 stage_files = []
@@ -1083,10 +1089,12 @@ def list_all_projects() -> str:
                 # 统计Agent数量
                 agent_count = 0
                 try:
-                    for sub_item in os.listdir(item_path):
-                        sub_item_path = os.path.join(item_path, sub_item)
-                        if os.path.isdir(sub_item_path) and sub_item not in ["agents", "tools", "prompts"]:
-                            agent_count += 1
+                    agents_dir = os.path.join(item_path, "agents")
+                    if os.path.exists(agents_dir):
+                        for sub_item in os.listdir(agents_dir):
+                            sub_item_path = os.path.join(agents_dir, sub_item)
+                            if os.path.isdir(sub_item_path):
+                                agent_count += 1
                 except PermissionError:
                     agent_count = -1  # 表示无法访问
                 
@@ -1474,7 +1482,7 @@ def test_function():
 if __name__ == "__main__":
     print("测试Agent运行")
 '''
-    result = generate_content("agent", test_agent_content, "test_generated_agent")
+    result = generate_content("agent", test_agent_content, "test_project", "test_generated_agent")
     print(result)
     
     print("\n13. 测试生成Prompt内容:")
@@ -1486,7 +1494,7 @@ if __name__ == "__main__":
     - version: "1.0.0"
       prompt: "这是一个测试提示词"
 '''
-    result = generate_content("prompt", test_prompt_content, "test_generated_prompt")
+    result = generate_content("prompt", test_prompt_content, "test_project", "test_generated_prompt")
     print(result)
     
     print("\n14. 测试生成Tool内容:")
@@ -1510,7 +1518,7 @@ def test_tool(input_text: str) -> str:
     """
     return f"处理结果: {input_text}"
 '''
-    result = generate_content("tool", test_tool_content, "test_generated_tool")
+    result = generate_content("tool", test_tool_content, "test_project", "test_generated_tool")
     print(result)
 
 

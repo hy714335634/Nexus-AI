@@ -1,7 +1,7 @@
 from strands import tool
 
 @tool
-def weather_forecast_mock(city: str, days: int = 3) -> str:
+def weather_forecast(city: str, days: int = 3) -> str:
     """Get weather forecast for a city.
 
     Args:
