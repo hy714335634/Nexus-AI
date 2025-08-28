@@ -11,7 +11,7 @@ from utils import prompts_manager
 from tools.system_tools.mcp_config_manager import get_all_mcp_servers
 from tools.system_tools.agent_template_provider import get_all_templates,get_template_content
 from tools.system_tools.tool_template_provider import list_all_tools, get_builtin_tools, get_template_tools, search_tools_by_name 
-from tools.system_tools.project_manager import generate_content,get_project_config,get_project_readme,get_project_status,update_project_config,update_project_readme,update_project_status,update_project_stage_content
+from tools.system_tools.project_manager import generate_content,get_project_config,get_project_readme,get_project_status,update_project_config,update_project_readme,update_project_status,update_project_stage_content,get_project_stage_content
 import boto3
 from strands.models import BedrockModel
 from botocore.config import Config as BotocoreConfig
@@ -48,10 +48,10 @@ prompt_engineer = Agent(
         current_time,
         get_all_templates,
         get_template_content,
-        generate_content,
         get_project_status,
         get_project_config,
         get_project_readme,
+        get_project_stage_content,
         update_project_config,
         update_project_readme,
         update_project_status,

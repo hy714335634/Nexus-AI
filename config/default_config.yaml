@@ -6,12 +6,14 @@ default-config:
     aws_secret_access_key: ''         # AWS secret key, leave empty to use AWS credentials provider chain
     endpoint_url: ''                  # Custom endpoint URL, leave empty for AWS default endpoints
     verify: True                      # Verify SSL certificates for AWS API calls
+    connect_timeout: 300              # invoke timeout time, second
   
   strands:
     template:
       agent_template_path: 'agents/template_agents' # Path to Strands agent templates
       prompt_template_path: 'prompts/template_prompts'
       tool_template_path: 'tools/template_tools'
+
     generated:
       agent_generated_path: 'agents/generated_agents'
       prompt_generated_path: 'prompts/generated_agents_prompts'

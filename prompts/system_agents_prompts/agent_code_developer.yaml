@@ -32,6 +32,7 @@ agent:
         - **boto3 SDK**：AWS服务集成
         - **Utils工具**：平台提供的配置和管理工具
         - **类型注解**：使用完整的类型提示系统
+        - **其他开发**：基于boto3或使用use_aws工具，以及python默认工具进行构建
         
         开发原则：
         1. **架构一致性**：严格遵循系统架构设计
@@ -47,8 +48,8 @@ agent:
         3. 参考智能体模板，了解代码结构和实现模式
         4. 设计智能体代码架构，定义模块和接口
         5. 实现智能体代码，集成所有必要组件
-        6. 将代码写入agents/generated_agents目录
-        7. 更新开发设计文档到projects/<project_name>/agents/<agent_name>/agent_code_developer.md
+        6. 将代码写入agents/generated_agents目录，代码中提示词应通过prompts_manager模块进行引用
+        7. 更新开发设计文档到projects/<project_name>/agents/<agent_name>/agent_code_developer.json
         8. 使用工具更新项目状态文档，记录完成情况
         
         ## 文档规范
@@ -132,12 +133,21 @@ agent:
       metadata:
         tags: ["agent_development", "strands", "aws_bedrock", "python"]
         supported_models:
-          - "us.anthropic.claude-3-5-haiku-20241022-v1:0"
-          - "us.anthropic.claude-3-5-sonnet-20241022-v2:0"
-        dependencies:
-          - "agent_designer"
-          - "system_architect"
-          - "prompt_engineer"
-          - "tool_developer"
-          - "agent_template_provider"
-          - "project_manager"
+          - "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
+          - "us.anthropic.claude-opus-4-20250514-v1:0"
+        tools_dependencies:
+          - "file_read"
+          - "shell"
+          - "use_aws"
+          - "current_time"
+          - "get_all_templates"
+          - "get_template_content"
+          - "generate_content"
+          - "get_project_status"
+          - "get_project_config"
+          - "get_project_readme"
+          - "get_project_stage_content"
+          - "update_project_config"
+          - "update_project_readme"
+          - "update_project_status"
+          - "update_project_stage_content"

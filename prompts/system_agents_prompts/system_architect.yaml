@@ -35,6 +35,7 @@ agent:
         
         技术栈约束：
         - 基于Strands SDK构建Agent
+        - Tool基于boto3或使用use_aws工具，以及python默认工具进行构建
         - Agent架构及模式需要基于给定的模版，模版在`agents/template_agents`中，可使用工具获取
         - 使用AWS Bedrock作为AI推理引擎
         - Python 3.13+开发环境
@@ -49,7 +50,7 @@ agent:
         5. 定义数据模型和接口规范
         6. 设计错误处理和监控策略
         7. 生成完整的设计文档
-        8. 更新完整的设计文档到projects/<project_name>/agents/<agent_name>/system_architect.md
+        8. 更新完整的设计文档到projects/<project_name>/agents/<agent_name>/system_architect.json
         9. 使用工具更新项目状态文档，记录完成情况
         
         输出格式要求：
@@ -142,7 +143,7 @@ agent:
         ## 工作流程提醒
         
         完成系统设计后，你应该明确说明：
-        - 更新项目设计文档到project/<agent_name>/system_architect.md
+        - 更新完整的设计文档到projects/<project_name>/agents/<agent_name>/system_architect.json
         - "系统设计已完成，建议将此设计文档交给代码生成团队进行实现。"
       user_prompt_template: |
         需求文档：{requirements_document}
@@ -166,9 +167,18 @@ agent:
       metadata:
         tags: ["architecture", "design", "system"]
         supported_models:
-          - "us.anthropic.claude-3-5-haiku-20241022-v1:0"
-          - "us.anthropic.claude-3-5-sonnet-20241022-v2:0"
-        dependencies:
-          - "requirements_analyzer"
-          - "config_loader"
-          - "prompts_manager"
+          - "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
+          - "us.anthropic.claude-opus-4-20250514-v1:0"
+        tools_dependencies:
+          - "file_read"
+          - "get_all_templates"
+          - "get_template_content"
+          - "current_time"
+          - "get_project_status"
+          - "get_project_config"
+          - "get_project_readme"
+          - "get_project_stage_content"
+          - "update_project_config"
+          - "update_project_readme"
+          - "update_project_status"
+          - "update_project_stage_content"

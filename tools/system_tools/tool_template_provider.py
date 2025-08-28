@@ -733,6 +733,7 @@ def main():
     print("\n6. 列出所有工具概览:")
     all_tools_result = list_all_tools()
     all_tools_data = json.loads(all_tools_result)
+    print(all_tools_data)
     print(f"总计: {all_tools_data.get('summary', {}).get('total_tools', 0)} 个工具")
 
 

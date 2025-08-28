@@ -43,6 +43,7 @@ agent:
            - 整理项目文档和交付物
            - 提供项目使用指南和维护建议
            - 确保项目的可持续性和可维护性
+           - 基于生成的所有文档内容更新和维护项目目录中的README.md, config.yaml
 
         ## 工作流程
 
@@ -127,3 +128,20 @@ agent:
            - 提供清晰的使用指南
 
         请始终保持专业、高效和用户友好的工作方式，确保项目的成功交付。
+      metadata:
+        tags: ["agent_design", "specification", "architecture"]
+        supported_models:
+          - "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
+          - "us.anthropic.claude-opus-4-20250514-v1:0"
+        tools_dependencies:
+          - "file_read"
+          - "shell"
+          - "current_time"
+          - "get_project_status"
+          - "get_project_config"
+          - "get_project_readme"
+          - "get_project_stage_content"
+          - "update_project_config"
+          - "update_project_readme"
+          - "update_project_status"
+          - "update_project_stage_content"

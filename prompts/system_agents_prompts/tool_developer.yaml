@@ -32,6 +32,7 @@ agent:
         - **标准库**：充分利用Python标准库功能
         - **类型注解**：使用完整的类型提示
         - **错误处理**：实现健壮的异常处理机制
+        - **Agent Tool**：基于boto3或使用use_aws工具，以及python默认工具进行构建
         
         开发原则：
         1. **功能完整性**：工具功能与设计规格完全匹配
@@ -48,7 +49,7 @@ agent:
         4. 设计工具函数接口，定义输入输出规范
         5. 实现工具代码，确保功能完整和质量优良
         6. 将代码写入tools/generated_tools目录
-        7. 更新开发设计文档到projects/<project_name>/agents/<agent_name>/tool_developer.md
+        7. 更新开发设计文档到projects/<project_name>/agents/<agent_name>/tool_developer.json
         8. 使用工具更新项目状态文档，记录完成情况
         
         
@@ -129,11 +130,23 @@ agent:
       metadata:
         tags: ["tool_development", "python", "strands", "aws"]
         supported_models:
-          - "us.anthropic.claude-3-5-haiku-20241022-v1:0"
-          - "us.anthropic.claude-3-5-sonnet-20241022-v2:0"
-        dependencies:
-          - "agent_designer"
-          - "system_architect"
-          - "prompt_engineer"
-          - "tool_template_provider"
-          - "project_manager"
+          - "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
+          - "us.anthropic.claude-opus-4-20250514-v1:0"
+        tools_dependencies:
+          - "file_read"
+          - "shell"
+          - "use_aws"
+          - "current_time"
+          - "list_all_tools"
+          - "get_builtin_tools"
+          - "get_template_tools"
+          - "generate_content"
+          - "get_project_status"
+          - "get_project_config"
+          - "get_project_readme"
+          - "get_project_stage_content"
+          - "update_project_config"
+          - "update_project_readme"
+          - "update_project_status"
+          - "update_project_stage_content"
+          - "update_project_stage_content"

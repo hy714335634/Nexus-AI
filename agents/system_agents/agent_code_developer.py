@@ -4,14 +4,14 @@ import sys
 import os
 from typing import Dict, Any, Optional
 from strands import Agent, tool
-from strands_tools import calculator,file_read,file_write,current_time,shell
+from strands_tools import calculator,file_read,file_write,current_time,shell,use_aws
 from utils.config_loader import get_config
 from utils import prompts_manager
 from tools.system_tools.agent_template_provider import get_all_templates,get_template_content
 from tools.system_tools.mcp_config_manager import get_all_mcp_servers
 from tools.system_tools.prompt_template_provider import list_prompt_templates,get_prompt_template
 from tools.system_tools.tool_template_provider import list_all_tools, get_builtin_tools, get_template_tools, search_tools_by_name 
-from tools.system_tools.project_manager import generate_content,get_project_config,get_project_readme,get_project_status,update_project_config,update_project_readme,update_project_status,update_project_stage_content
+from tools.system_tools.project_manager import generate_content,get_project_config,get_project_readme,get_project_status,update_project_config,update_project_readme,update_project_status,update_project_stage_content,get_project_stage_content
 import boto3
 from strands.models import BedrockModel
 from botocore.config import Config as BotocoreConfig
@@ -45,6 +45,7 @@ agent_code_developer = Agent(
     tools=[
         file_read,
         shell,
+        use_aws,
         current_time,
         get_all_templates,
         get_template_content,
@@ -52,6 +53,7 @@ agent_code_developer = Agent(
         get_project_status,
         get_project_config,
         get_project_readme,
+        get_project_stage_content,
         update_project_config,
         update_project_readme,
         update_project_status,
