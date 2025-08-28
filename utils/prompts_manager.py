@@ -39,6 +39,9 @@ class Compatibility:
 class Metadata:
     """元数据类"""
     tags: List[str]
+    supported_models: Optional[List[str]] = None
+    lib_dependencies: Optional[List[str]] = None
+    tools_dependencies: Optional[List[str]] = None
     performance_metrics: Optional[PerformanceMetrics] = None
     dependencies: Optional[List[str]] = None
     compatibility: Optional[Compatibility] = None
@@ -167,6 +170,9 @@ class PromptManager:
         
         return Metadata(
             tags=metadata_data.get('tags', []),
+            supported_models=metadata_data.get('supported_models'),
+            lib_dependencies=metadata_data.get('lib_dependencies'),
+            tools_dependencies=metadata_data.get('tools_dependencies'),
             performance_metrics=performance_metrics,
             dependencies=metadata_data.get('dependencies'),
             compatibility=compatibility
@@ -296,6 +302,27 @@ class PromptManager:
             if latest_version and latest_version.metadata and tag in latest_version.metadata.tags:
                 matching_agents.append(name)
         return matching_agents
+    
+    def get_agent_supported_models(self, agent_name: str, version: str = "latest") -> Optional[List[str]]:
+        """获取指定agent支持的模型列表"""
+        agent_version = self.get_agent_version(agent_name, version)
+        if agent_version and agent_version.metadata:
+            return agent_version.metadata.supported_models
+        return None
+    
+    def get_agent_lib_dependencies(self, agent_name: str, version: str = "latest") -> Optional[List[str]]:
+        """获取指定agent的库依赖列表"""
+        agent_version = self.get_agent_version(agent_name, version)
+        if agent_version and agent_version.metadata:
+            return agent_version.metadata.lib_dependencies
+        return None
+    
+    def get_agent_tools_dependencies(self, agent_name: str, version: str = "latest") -> Optional[List[str]]:
+        """获取指定agent的工具依赖列表"""
+        agent_version = self.get_agent_version(agent_name, version)
+        if agent_version and agent_version.metadata:
+            return agent_version.metadata.tools_dependencies
+        return None
 
 # 全局实例管理器
 class PromptManagerRegistry:
@@ -362,5 +389,11 @@ if __name__ == "__main__":
                 print(f"系统提示词: {latest_version.system_prompt[:100]}...")
                 if latest_version.metadata:
                     print(f"标签: {latest_version.metadata.tags}")
+                    if latest_version.metadata.supported_models:
+                        print(f"支持的模型: {latest_version.metadata.supported_models}")
+                    if latest_version.metadata.lib_dependencies:
+                        print(f"库依赖: {latest_version.metadata.lib_dependencies}")
+                    if latest_version.metadata.tools_dependencies:
+                        print(f"工具依赖: {latest_version.metadata.tools_dependencies}")
                 
             print("-" * 50)

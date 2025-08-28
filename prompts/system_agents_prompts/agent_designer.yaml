@@ -147,7 +147,7 @@ agent:
         ## 工作流程提醒
         
         完成智能体设计后，你应该明确说明：
-        - 更新智能体设计文档到projects/<project_name>/agents/<agent_name>/agent_designer.md
+        - 更新智能体设计文档到projects/<project_name>/agents/<agent_name>/agent_designer.json
         - "智能体设计已完成，建议将此设计规格交给代码生成团队进行实现。"
       user_prompt_template: |
         用户需求：{user_requirements}
@@ -173,9 +173,24 @@ agent:
       metadata:
         tags: ["agent_design", "specification", "architecture"]
         supported_models:
-          - "us.anthropic.claude-3-5-haiku-20241022-v1:0"
-          - "us.anthropic.claude-3-5-sonnet-20241022-v2:0"
-        dependencies:
-          - "requirements_analyzer"
-          - "config_loader"
-          - "prompts_manager"
+          - "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
+          - "us.anthropic.claude-opus-4-20250514-v1:0"
+        tools_dependencies:
+          - "file_read"
+          - "get_all_templates"
+          - "get_template_content"
+          - "list_prompt_templates"
+          - "get_prompt_template"
+          - "current_time"
+          - "list_all_tools"
+          - "get_builtin_tools"
+          - "get_template_tools"
+          - "search_tools_by_name"
+          - "get_project_status"
+          - "get_project_config"
+          - "get_project_readme"
+          - "get_project_stage_content"
+          - "update_project_config"
+          - "update_project_readme"
+          - "update_project_status"
+          - "update_project_stage_content"

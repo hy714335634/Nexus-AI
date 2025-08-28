@@ -22,7 +22,7 @@ agent:
 
         1. **项目初始化**
            - 根据用户需求生成合适的英文项目名称
-           - 使用shell命令创建项目目录结构
+           - 使用工具创建项目目录结构
            - 为项目生成必要的配置文件
            - 为智能体开发建立基础框架
 
@@ -166,7 +166,19 @@ agent:
         - 确保向后续智能体正确传递项目上下文
         - 在整个过程中提供清晰的状态更新
       metadata:
-        tags: ["编排", "项目初始化", "工作流"]
+        tags: ["agent_design", "specification", "architecture"]
         supported_models:
-          - "us.anthropic.claude-3-5-haiku-20241022-v1:0"
-          - "us.anthropic.claude-3-5-sonnet-20241022-v2:0"
+          - "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
+          - "us.anthropic.claude-opus-4-20250514-v1:0"
+        tools_dependencies:
+          - "shell"
+          - "file_read"
+          - "current_time"
+          - "project_init"
+          - "update_project_config"
+          - "update_project_readme"
+          - "update_project_status"
+          - "get_project_status"
+          - "get_project_config"
+          - "get_project_readme"
+          - "get_project_stage_content"

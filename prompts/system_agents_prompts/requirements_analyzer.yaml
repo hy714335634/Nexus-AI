@@ -33,7 +33,7 @@ agent:
         4. 验收标准：定义明确的验收标准
         5. 优先级评估：评估需求的优先级和复杂度
         6. 约束识别：识别技术和业务约束
-        7. 更新完整的设计文档到projects/<project_name>/agents/<agent_name>/requirements_analyzer.md
+        7. 更新完整的设计文档到projects/<project_name>/agents/<agent_name>/requirements_analyzer.json
         8. 使用工具更新projects/<project_name>/status.yaml方便后续agent跟进进度
         
         输出格式要求：
@@ -99,8 +99,16 @@ agent:
       metadata:
         tags: ["requirements", "analysis", "documentation"]
         supported_models:
-          - "us.anthropic.claude-3-5-haiku-20241022-v1:0"
           - "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
-        dependencies:
-          - "config_loader"
-          - "prompts_manager"
+          - "us.anthropic.claude-opus-4-20250514-v1:0"
+        tools_dependencies:
+          - "file_read"
+          - "current_time"
+          - "get_project_status"
+          - "get_project_config"
+          - "get_project_readme"
+          - "get_project_stage_content"
+          - "update_project_config"
+          - "update_project_readme"
+          - "update_project_status"
+          - "update_project_stage_content"

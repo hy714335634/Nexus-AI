@@ -14,7 +14,7 @@ from utils.config_loader import get_config
 from strands import Agent
 from strands.multiagent import GraphBuilder, Swarm
 from strands.models import BedrockModel
-from tools.system_tools.project_manager import project_init,generate_content,get_project_config,get_project_readme,get_project_status,update_project_config,update_project_readme,update_project_status,update_project_stage_content
+from tools.system_tools.project_manager import project_init,generate_content,get_project_config,get_project_readme,get_project_status,update_project_config,update_project_readme,update_project_status,update_project_stage_content,get_project_stage_content
 from strands.telemetry import StrandsTelemetry
 from botocore.config import Config as BotocoreConfig
 import boto3
@@ -62,7 +62,8 @@ orchestrator = Agent(
             update_project_status,
             get_project_status,
             get_project_config,
-            get_project_readme
+            get_project_readme,
+            get_project_stage_content
         ]
     )
 
@@ -88,7 +89,7 @@ builder.add_edge("agent_code_developer", "agent_developer_manager")
 
 graph = builder.build()
 
-result = graph("我需要一个agent，我会提供关于IT产品的描述和价格，它需要帮我根据aws服务和产品对照，生成完整的报价表单，并输出markdown格式")
+result = graph("我会提供客户在其他云平台的账单或者本地IDC的配置清单，请给我按照AWS产品进行报价")
 
 # Access the results
 print(f"\n{result}")

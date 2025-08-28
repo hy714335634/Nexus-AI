@@ -6,7 +6,7 @@ from strands import Agent, tool
 from strands_tools import calculator,file_read,file_write,current_time,shell
 from utils.config_loader import get_config
 from utils import prompts_manager
-from tools.system_tools.project_manager import get_project_config,get_project_readme,get_project_status,update_project_config,update_project_readme,update_project_status,update_project_stage_content
+from tools.system_tools.project_manager import get_project_config,get_project_readme,get_project_status,update_project_config,update_project_readme,update_project_status,update_project_stage_content,get_project_stage_content
 import boto3
 from strands.models import BedrockModel
 from botocore.config import Config as BotocoreConfig
@@ -43,6 +43,7 @@ requirements_analyzer = Agent(
         get_project_status,
         get_project_config,
         get_project_readme,
+        get_project_stage_content,
         update_project_config,
         update_project_readme,
         update_project_status,

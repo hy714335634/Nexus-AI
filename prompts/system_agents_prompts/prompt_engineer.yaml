@@ -109,8 +109,8 @@ agent:
               metadata:
                 tags: ["标签1", "标签2"]
                 supported_models:
-                  - "us.anthropic.claude-3-5-haiku-20241022-v1:0"
-                  - "us.anthropic.claude-3-5-sonnet-20241022-v2:0"
+                  - "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
+                  - "us.anthropic.claude-opus-4-20250514-v1:0"
                 dependencies:
                   - "依赖1"
                   - "依赖2"
@@ -165,7 +165,7 @@ agent:
         
         完成提示词工程后，你应该明确说明：
         - 将生成的提示词模板通过工具保存到prompts/generated_agents_prompts/
-        - 更新完整的设计文档到projects/<project_name>/agents/<agent_name>/prompt_engineer.md
+        - 更新完整的设计文档到projects/<project_name>/agents/<agent_name>/prompt_engineer.json
         - 使用工具更新项目状态文档，记录提示词工程完成情况
         - "提示词工程已完成，建议将此提示词模板交给代码生成团队进行智能体实现。"
       user_prompt_template: |
@@ -194,10 +194,19 @@ agent:
       metadata:
         tags: ["prompt_engineering", "template_generation", "agent_development"]
         supported_models:
-          - "us.anthropic.claude-3-5-haiku-20241022-v1:0"
-          - "us.anthropic.claude-3-5-sonnet-20241022-v2:0"
-        dependencies:
-          - "agent_designer"
-          - "system_architect"
-          - "config_loader"
-          - "prompts_manager"
+          - "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
+          - "us.anthropic.claude-opus-4-20250514-v1:0"
+        tools_dependencies:
+          - "file_read"
+          - "generate_content"
+          - "current_time"
+          - "get_all_templates"
+          - "get_template_content"
+          - "get_project_status"
+          - "get_project_config"
+          - "get_project_readme"
+          - "get_project_stage_content"
+          - "update_project_config"
+          - "update_project_readme"
+          - "update_project_status"
+          - "update_project_stage_content"

@@ -27,7 +27,7 @@ def get_all_templates() -> str:
         str: JSON格式的所有模板信息
     """
     try:
-        config_path = os.path.join("config", "agent_templates_config.yaml")
+        config_path = os.path.join("agents/template_agents", "agent_templates_config.yaml")
         
         if not os.path.exists(config_path):
             return "错误：模板配置文件不存在"
@@ -113,7 +113,7 @@ def search_templates_by_description(keywords: List[str]) -> str:
         str: JSON格式的匹配模板信息
     """
     try:
-        config_path = os.path.join("config", "agent_templates_config.yaml")
+        config_path = os.path.join("agents/template_agents", "agent_templates_config.yaml")
         
         if not os.path.exists(config_path):
             return "错误：模板配置文件不存在"
@@ -159,7 +159,7 @@ def get_template_by_id(template_id: str) -> str:
         str: JSON格式的模板信息
     """
     try:
-        config_path = os.path.join("config", "agent_templates_config.yaml")
+        config_path = os.path.join("agents/template_agents", "agent_templates_config.yaml")
         
         if not os.path.exists(config_path):
             return "错误：模板配置文件不存在"
@@ -201,7 +201,7 @@ def get_template_content(template_id: str) -> str:
         str: 模板文件的内容
     """
     try:
-        config_path = os.path.join("config", "agent_templates_config.yaml")
+        config_path = os.path.join("agents/template_agents", "agent_templates_config.yaml")
         
         if not os.path.exists(config_path):
             return "错误：模板配置文件不存在"
@@ -238,7 +238,7 @@ def get_available_tags() -> str:
         str: JSON格式的标签列表
     """
     try:
-        config_path = os.path.join("config", "agent_templates_config.yaml")
+        config_path = os.path.join("agents/template_agents", "agent_templates_config.yaml")
         
         if not os.path.exists(config_path):
             return "错误：模板配置文件不存在"
