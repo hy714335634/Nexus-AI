@@ -4,31 +4,45 @@
 """
 
 import os
-from strands.multiagent import GraphBuilder
 from utils.agent_factory import create_agent_from_prompt_template
-import boto3
 from strands.telemetry import StrandsTelemetry
 
 os.environ["BYPASS_TOOL_CONSENT"] = "true"
 os.environ["OTEL_EXPORTER_OTLP_ENDPOINT"] = "http://localhost:4318"
 strands_telemetry = StrandsTelemetry()
-strands_telemetry.setup_otlp_exporter()      # Send traces to OTLP endpoint
-
+strands_telemetry.setup_otlp_exporter()
 
 # 设置环境变量
 os.environ["BYPASS_TOOL_CONSENT"] = "true"
 
 
+# 定义 agent 创建的通用参数
+agent_params = {
+    "env": "production",
+    "version": "latest", 
+    "model_id": "default"
+}
+
+# 使用agent_factory创建agent
+requirements_analyzer = create_agent_from_prompt_template(
+    agent_name="template_prompts/template_requirements_analyzer", **agent_params
+)
+
+
 if __name__ == "__main__":
-    # 定义 agent 创建的通用参数
-    agent_params = {
-        "env": "production",
-        "version": "latest", 
-        "model_id": "default"
-    }
+    import argparse
     
-    # 使用agent_factory创建agent
-    requirements_analyzer = create_agent_from_prompt_template(
-        agent_name="template_prompts/test/template_requirements_analyzer", **agent_params
-    )
-    requirements_analyzer("我想要构建一个文档协作助手，帮我完成文档格式转换和内容生成工作，我应该如何实现")
+    # 解析命令行参数
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-i', '--input', type=str, 
+                       default="你是谁，你有什么能力，你具备哪些工具",
+                       help='测试输入内容')
+    args = parser.parse_args()
+    
+    print(f"✅ Agent 创建成功: {requirements_analyzer.name}")
+    
+    # 运行完整工作流
+    test_input = args.input
+    print(f"🎯 测试输入: {test_input}")
+    
+    requirements_analyzer(test_input)

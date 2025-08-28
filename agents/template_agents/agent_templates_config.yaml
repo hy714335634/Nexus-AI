@@ -9,10 +9,64 @@ templates:
     dependencies:
       - "strands"
       - "strands_tools"
-      - "bedrock_agentcore"
     path: "agents/template_agents/single_agent/template_requirements_analyzer.py"
     tags:
       - "single_agent"
       - "strands_tools"
       - "bedrock"
+      - "production"
+
+  # AWS资源查询Agent模板
+  aws_resource_query_agent:
+    name: "AWS资源查询Agent"
+    description: "专业的AWS资源查询专家，基于AWS工具与AWS服务进行对接，专门用于回答用户关于AWS资源查询、价格、配置、成本分析等问题。支持EC2实例管理、价格查询、成本计算、区域管理等功能，适用于AWS云资源管理和成本优化场景。具备完整的AWS服务集成能力，能够提供实时的资源信息和价格数据，帮助用户做出最优的云资源配置决策。"
+    dependencies:
+      - "strands"
+      - "boto3"
+      - "aws_tools"
+    path: "agents/template_agents/single_agent/aws_resource_query_agent.py"
+    tags:
+      - "single_agent"
+      - "aws"
+      - "ec2"
+      - "pricing"
+      - "resource_query"
+      - "cost_analysis"
+      - "production"
+
+  # 深度研究Agent模板
+  deep_research_agent:
+    name: "深度研究Agent"
+    description: "专业的深度研究专家，基于boto3和request实现深度研究，专门用于技术研究、市场分析、趋势调研、数据收集等深度研究任务。具备多源数据收集能力，支持HTTP工具、API调用等方式获取信息，能够进行深入的数据分析和综合，识别技术趋势和市场变化。适用于技术调研、竞品分析、市场研究、趋势预测等需要深度洞察的场景。能够生成高质量的研究报告和具体的行动建议，并建立持续跟踪的研究框架。"
+    dependencies:
+      - "strands"
+      - "boto3"
+      - "requests"
+      - "research_tools"
+    path: "agents/template_agents/single_agent/deep_research_agent.py"
+    tags:
+      - "single_agent"
+      - "research"
+      - "analysis"
+      - "data_collection"
+      - "trend_analysis"
+      - "market_research"
+      - "production"
+
+  # 内容生成与格式转换Agent模板
+  content_generation_agent:
+    name: "内容生成与格式转换Agent"
+    description: "专业的内容生成与格式转换专家，基于特定场景和要求，帮助客户进行内容生成、格式转换、文档优化、模板应用等任务。支持多种文档格式的生成和转换，包括技术文档、商业文档、报告等，能够在JSON、XML、CSV、Markdown等格式之间进行转换。具备模板应用能力，能够应用预定义的格式规范，优化内容的可读性、结构和表达。适用于文档生成、报告编写、格式标准化、内容优化等需要专业内容处理的场景。能够提供格式验证、错误检查和优化建议，确保输出内容的质量和准确性。"
+    dependencies:
+      - "strands"
+      - "content_tools"
+      - "format_tools"
+    path: "agents/template_agents/single_agent/content_generation_agent.py"
+    tags:
+      - "single_agent"
+      - "content_generation"
+      - "format_conversion"
+      - "documentation"
+      - "templates"
+      - "content_optimization"
       - "production"

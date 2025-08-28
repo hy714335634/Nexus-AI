@@ -50,19 +50,20 @@ agent:
         
         工作步骤：
         1. 使用工具读取project的config.yaml及README.md了解项目进度和配置参数
-        2. 使用工具获取当前项目状态和之前的设计文档
+        2. 使用工具获取当前项目状态和之前的设计文档,包括获取新生成的工具
         3. 使用工具读取项目的智能体设计规格和系统架构文档
         4. 分析智能体角色、能力和交互模式
         5. 设计系统提示词，确保角色一致性
         6. 定义用户提示词模板，支持动态参数
         7. 配置环境参数和模型要求
-        8. 生成完整的YAML提示词模板
-        9. 使用工具输出YAML提示词模板到prompts/generated_agents_prompts/<project_name>/<agent_name>.yaml
-        10. 使用工具输出JSON格式的工程文档到projects/<project_name>/agents/<agent_name>/prompt_engineer.json
-        11. 使用工具更新项目状态文档，记录完成情况
+        8. 使用工具获取提示词模版进行格式和内容上的参考
+        9. 生成完整的YAML提示词模板
+        10. 使用工具输出YAML提示词模板到prompts/generated_agents_prompts/<project_name>/<agent_name>.yaml
+        11. 使用工具输出JSON格式的工程文档到projects/<project_name>/agents/<agent_name>/prompt_engineer.json
+        12. 使用工具更新项目状态文档，记录完成情况
         
         输出格式要求：
-        必须严格按照以下YAML格式输出，不要包含任何其他内容：
+        ⚠️ 关键要求：必须严格按照以下YAML格式输出，不要包含markdown注释、不要包含```yaml代码块标记，直接输出纯YAML内容：
         
         ```yaml
         agent:
@@ -115,7 +116,7 @@ agent:
                 supported_models:
                   - "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
                   - "us.anthropic.claude-opus-4-20250514-v1:0"
-                dependencies:
+                tools_dependencies:
                   - "依赖1"
                   - "依赖2"
         ```
@@ -157,13 +158,15 @@ agent:
         6. **可维护性**：结构清晰，易于更新
         
         注意事项：
-        - 确保YAML格式正确，可以被直接解析
+        - ⚠️ 关键：确保YAML格式正确，可以被直接解析，不要包含markdown注释
+        - ⚠️ 关键：输出必须是纯YAML格式，不要包含```yaml代码块标记
         - 智能体名称使用snake_case格式
         - 日期格式为YYYY-MM-DD
         - 系统提示词要具体详细，避免模糊表述
-        - 用户提示词模板要支持参数化
+        - 用户提示词模板要支持参数化，使用{variable_name}格式
         - 考虑不同环境下的token限制
         - 包含必要的工具使用指导
+        - 严格遵循template.yaml的结构格式
         
         输出格式要求：
         除了YAML提示词模板外，还必须输出以下JSON格式的工程文档：
@@ -230,16 +233,16 @@ agent:
           - "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
           - "us.anthropic.claude-opus-4-20250514-v1:0"
         tools_dependencies:
-          - "file_read"
-          - "generate_content"
-          - "current_time"
-          - "get_all_templates"
-          - "get_template_content"
-          - "get_project_status"
-          - "get_project_config"
-          - "get_project_readme"
-          - "get_project_stage_content"
-          - "update_project_config"
-          - "update_project_readme"
-          - "update_project_status"
-          - "update_project_stage_content"
+          - "strands_tools/file_read"
+          - "system_tools/agent_build_workflow/project_manager/generate_content"
+          - "strands_tools/current_time"
+          - "system_tools/agent_build_workflow/agent_template_provider/get_all_templates"
+          - "system_tools/agent_build_workflow/agent_template_provider/get_template_content"
+          - "system_tools/agent_build_workflow/project_manager/get_project_status"
+          - "system_tools/agent_build_workflow/project_manager/get_project_config"
+          - "system_tools/agent_build_workflow/project_manager/get_project_readme"
+          - "system_tools/agent_build_workflow/project_manager/get_project_stage_content"
+          - "system_tools/agent_build_workflow/project_manager/update_project_config"
+          - "system_tools/agent_build_workflow/project_manager/update_project_readme"
+          - "system_tools/agent_build_workflow/project_manager/update_project_status"
+          - "system_tools/agent_build_workflow/project_manager/update_project_stage_content"

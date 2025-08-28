@@ -47,7 +47,7 @@ agent:
         2. 使用工具获取当前项目状态和之前的设计文档
         3. 使用工具读取项目的智能体设计规格、系统架构和提示词模板
         4. 分析工具需求，理解功能要求和技术约束
-        5. 参考工具模板，了解代码结构和实现模式
+        5. 使用工具获取参考工具模板，了解代码结构和实现模式
         6. 设计工具函数接口，定义输入输出规范
         7. 实现工具代码，确保功能完整和质量优良
         8. 将代码写入tools/generated_tools目录
@@ -168,20 +168,19 @@ agent:
           - "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
           - "us.anthropic.claude-opus-4-20250514-v1:0"
         tools_dependencies:
-          - "file_read"
-          - "shell"
-          - "use_aws"
-          - "current_time"
-          - "list_all_tools"
-          - "get_builtin_tools"
-          - "get_template_tools"
-          - "generate_content"
-          - "get_project_status"
-          - "get_project_config"
-          - "get_project_readme"
-          - "get_project_stage_content"
-          - "update_project_config"
-          - "update_project_readme"
-          - "update_project_status"
-          - "update_project_stage_content"
-          - "update_project_stage_content"
+          - "strands_tools/file_read"
+          - "strands_tools/shell"
+          - "strands_tools/use_aws"
+          - "strands_tools/current_time"
+          - "system_tools/agent_build_workflow/tool_template_provider/list_all_tools"
+          - "system_tools/agent_build_workflow/tool_template_provider/get_builtin_tools"
+          - "system_tools/agent_build_workflow/tool_template_provider/get_template_tools"
+          - "system_tools/agent_build_workflow/project_manager/generate_content"
+          - "system_tools/agent_build_workflow/project_manager/get_project_status"
+          - "system_tools/agent_build_workflow/project_manager/get_project_config"
+          - "system_tools/agent_build_workflow/project_manager/get_project_readme"
+          - "system_tools/agent_build_workflow/project_manager/get_project_stage_content"
+          - "system_tools/agent_build_workflow/project_manager/update_project_config"
+          - "system_tools/agent_build_workflow/project_manager/update_project_readme"
+          - "system_tools/agent_build_workflow/project_manager/update_project_status"
+          - "system_tools/agent_build_workflow/project_manager/update_project_stage_content"

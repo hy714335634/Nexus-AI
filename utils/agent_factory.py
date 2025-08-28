@@ -137,6 +137,96 @@ def get_system_tools_mapping():
         return {}
 
 
+def get_tool_by_path(tool_path: str):
+    """
+    通过路径导入工具，支持以下格式：
+    - template_tools/common/demo/weather_forecast
+    - system_tools/project_manager/project_init
+    - strands_tools/calculator
+    """
+    try:
+        # 处理 strands_tools 路径
+        if tool_path.startswith('strands_tools/'):
+            tool_name = tool_path.split('/')[-1]
+            try:
+                tool_module = importlib.import_module(f'strands_tools.{tool_name}')
+                # 对于strands_tools，直接返回模块本身
+                # 因为strands_tools中的工具通常是以模块形式提供的
+                return tool_module
+            except ImportError as e:
+                print(f"Failed to import strands_tools tool {tool_path}: {e}")
+                return None
+        
+        # 处理 system_tools 路径
+        if tool_path.startswith('system_tools/'):
+            try:
+                # 分离模块路径和函数名
+                parts = tool_path.split('/')
+                if len(parts) >= 3:
+                    # 例如: system_tools/agent_build_workflow/project_manager/get_project_status
+                    # 模块路径: tools.system_tools.agent_build_workflow.project_manager
+                    # 函数名: get_project_status
+                    module_path = f"tools.{'.'.join(parts[:-1])}"
+                    function_name = parts[-1]
+                    
+                    print(f"尝试导入system_tools模块: {module_path}, 函数: {function_name}")
+                    
+                    # 导入模块
+                    module = importlib.import_module(module_path)
+                    
+                    # 获取函数
+                    if hasattr(module, function_name):
+                        return getattr(module, function_name)
+                    else:
+                        print(f"模块 {module_path} 中没有找到函数 {function_name}")
+                        return None
+                else:
+                    print(f"system_tools路径格式不正确: {tool_path}")
+                    return None
+                    
+            except Exception as e:
+                print(f"Failed to import system_tools tool {tool_path}: {e}")
+                return None
+        
+        # 处理 template_tools 路径
+        if tool_path.startswith('template_tools/'):
+            try:
+                # 分离模块路径和函数名
+                parts = tool_path.split('/')
+                if len(parts) >= 3:
+                    # 例如: template_tools/common/demo/weather_forecast
+                    # 模块路径: tools.template_tools.common.demo
+                    # 函数名: weather_forecast
+                    module_path = f"tools.{'.'.join(parts[:-1])}"
+                    function_name = parts[-1]
+                    
+                    print(f"尝试导入template_tools模块: {module_path}, 函数: {function_name}")
+                    
+                    # 导入模块
+                    module = importlib.import_module(module_path)
+                    
+                    # 获取函数
+                    if hasattr(module, function_name):
+                        return getattr(module, function_name)
+                    else:
+                        print(f"模块 {module_path} 中没有找到函数 {function_name}")
+                        return None
+                else:
+                    print(f"template_tools路径格式不正确: {tool_path}")
+                    return None
+                    
+            except Exception as e:
+                print(f"Failed to import template_tools tool {tool_path}: {e}")
+                return None
+        
+        # 如果不是路径格式，返回None，让get_tool_by_name处理
+        return None
+        
+    except Exception as e:
+        print(f"Error getting tool by path '{tool_path}': {e}")
+        return None
+
+
 def get_tool_by_name(tool_name: str):
     """通过工具模板提供器动态获取工具"""
     try:
@@ -232,18 +322,22 @@ def import_tools_by_strings(tool_paths: list) -> list:
     
     for tool_path in tool_paths:
         if isinstance(tool_path, str):
-            # 尝试通过工具模板提供器获取工具
+            # 首先尝试通过路径导入工具
+            tool_obj = get_tool_by_path(tool_path)
+            
+            if tool_obj:
+                tools.append(tool_obj)
+                print(f"✅ 成功通过路径导入工具: {tool_path}")
+                continue
+            
+            # 如果路径导入失败，尝试通过工具名称导入
             tool_obj = get_tool_by_name(tool_path)
             
             if tool_obj:
                 tools.append(tool_obj)
+                print(f"✅ 成功通过名称导入工具: {tool_path}")
             else:
-                # 如果通过工具提供器找不到，尝试直接导入
-                tool_obj = import_from_path(tool_path)
-                if tool_obj:
-                    tools.append(tool_obj)
-                else:
-                    print(f"Warning: Failed to import tool {tool_path}")
+                print(f"❌ 无法导入工具: {tool_path}")
         else:
             # 如果已经是对象，直接添加
             tools.append(tool_path)

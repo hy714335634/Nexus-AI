@@ -7,3 +7,4 @@ bedrock-agentcore-starter-toolkit
 typing
 dataclasses
 PyYAML
+duckduckgo-search

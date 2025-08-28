@@ -11,6 +11,7 @@ prompts/generated_agents_prompts/*
 
 # Virtual environments
 .venv
+.sessions
 
 # 需要排除的目录和文件
 Tech Design/
