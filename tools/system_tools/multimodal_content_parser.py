@@ -15,6 +15,7 @@ Tool Functions:
 
 import json
 import logging
+import os
 from typing import List, Dict, Any, Optional, Union
 from datetime import datetime
 
@@ -49,9 +50,8 @@ class MultimodalContentParserTool:
             load_dotenv()
             
             # Load configuration
-            config_loader = ConfigLoader()
-            self.config = config_loader.config
-            self.multimodal_config = self.config.get('multimodal_parser', {})
+            self.config_loader = ConfigLoader()
+            self.multimodal_config = self.config_loader.get_multimodal_parser_config()
             
             # Initialize services
             self._init_services()
@@ -68,7 +68,7 @@ class MultimodalContentParserTool:
     def _init_services(self):
         """Initialize all required services for the multimodal parser."""
         # Initialize file upload manager
-        self.upload_manager = FileUploadManager(self.config)
+        self.upload_manager = FileUploadManager(self.config_loader.config)
         
         # Initialize S3 storage service
         aws_config = self.multimodal_config.get('aws', {})
@@ -79,12 +79,12 @@ class MultimodalContentParserTool:
             os.getenv('AWS_DEFAULT_REGION') or 
             os.getenv('AWS_REGION') or
             aws_config.get('bedrock_region') or 
-            self.config.get('aws', {}).get('bedrock_region_name') or
+            self.config_loader.get_aws_config().get('aws_region_name') or
             'us-west-2'
         )
         
         self.storage_service = S3StorageService(
-            bucket_name=aws_config.get('s3_bucket', 'nexus-ai-file-storage'),
+            bucket_name=aws_config.get('s3_bucket', 'awesome-nexus-ai-file-storage'),
             aws_region=aws_region,
             s3_prefix=aws_config.get('s3_prefix', 'multimodal-content/')
         )
@@ -445,7 +445,7 @@ def get_processing_status() -> str:
             os.getenv('AWS_DEFAULT_REGION') or 
             os.getenv('AWS_REGION') or
             aws_config.get('bedrock_region') or 
-            tool.config.get('aws', {}).get('bedrock_region_name') or
+            tool.config_loader.get_aws_config().get('bedrock_region_name') or
             'us-west-2'
         )
         
@@ -514,3 +514,213 @@ def _create_error_response(message: str, error_code: str, context: Optional[Dict
     }
     
     return json.dumps(response, ensure_ascii=False, indent=2)
+
+
+@tool
+def parse_multimodal_content_from_path(
+    file_paths: List[str],
+    context_description: str = "",
+    include_metadata: bool = True,
+    processing_options: Optional[Dict[str, Any]] = None
+) -> str:
+    """
+    Parse multiple files from file paths and generate structured Markdown output.
+    
+    This function is a convenience wrapper around parse_multimodal_content that accepts
+    file paths instead of file content bytes. It automatically reads the files and
+    converts them to the format expected by parse_multimodal_content.
+    
+    Args:
+        file_paths: List of file paths to process
+        context_description: Optional context or description for the processing task
+        include_metadata: Whether to include detailed metadata in the output
+        processing_options: Optional processing configuration overrides
+    
+    Returns:
+        JSON string containing processing results with the same structure as parse_multimodal_content
+    """
+    start_time = datetime.utcnow()
+    
+    try:
+        # Input validation
+        if not file_paths or not isinstance(file_paths, list):
+            return _create_error_response(
+                "No file paths provided or invalid format",
+                "INVALID_INPUT",
+                {"provided_type": type(file_paths).__name__}
+            )
+        
+        logger.info(f"Starting multimodal content parsing for {len(file_paths)} file paths")
+        
+        # Convert file paths to file data format
+        files = []
+        file_errors = []
+        
+        for i, file_path in enumerate(file_paths):
+            try:
+                # Check if file exists
+                if not os.path.exists(file_path):
+                    error_msg = f"File not found: {file_path}"
+                    file_errors.append(error_msg)
+                    logger.error(error_msg)
+                    continue
+                
+                # Check if file is readable
+                if not os.access(file_path, os.R_OK):
+                    error_msg = f"File not readable: {file_path}"
+                    file_errors.append(error_msg)
+                    logger.error(error_msg)
+                    continue
+                
+                # Get file size
+                file_size = os.path.getsize(file_path)
+                
+                # Check file size limit (50MB default)
+                max_file_size = 50 * 1024 * 1024  # 50MB in bytes
+                if file_size > max_file_size:
+                    error_msg = f"File too large: {file_path} ({file_size} bytes, max {max_file_size} bytes)"
+                    file_errors.append(error_msg)
+                    logger.error(error_msg)
+                    continue
+                
+                # Read file content
+                with open(file_path, 'rb') as f:
+                    file_content = f.read()
+                
+                # Get file extension and determine MIME type
+                file_ext = os.path.splitext(file_path)[1].lower()
+                mime_type = _get_mime_type_from_extension(file_ext)
+                
+                # Create file data structure
+                file_data = {
+                    'filename': os.path.basename(file_path),
+                    'content': file_content,
+                    'size': file_size,
+                    'mime_type': mime_type,
+                    'file_path': file_path
+                }
+                
+                files.append(file_data)
+                logger.info(f"Successfully loaded file: {file_path} ({file_size} bytes, {mime_type})")
+                
+            except Exception as e:
+                error_msg = f"Failed to read file {file_path}: {str(e)}"
+                file_errors.append(error_msg)
+                logger.error(error_msg)
+        
+        if not files:
+            return _create_error_response(
+                f"All files failed to load: {'; '.join(file_errors)}",
+                "FILE_LOAD_FAILED",
+                {"file_errors": file_errors}
+            )
+        
+        # Add file loading warnings if any
+        warnings = []
+        if file_errors:
+            warnings.append({
+                "file_loading_errors": file_errors,
+                "message": f"Some files failed to load but processing continued with {len(files)} available files"
+            })
+        
+        # Call the original parse_multimodal_content function
+        try:
+            result = parse_multimodal_content(
+                files=files,
+                context_description=context_description,
+                include_metadata=include_metadata,
+                processing_options=processing_options
+            )
+            
+            # Parse the result to add warnings if needed
+            if warnings:
+                try:
+                    result_data = json.loads(result)
+                    result_data["warnings"] = warnings
+                    result = json.dumps(result_data, ensure_ascii=False, indent=2)
+                except json.JSONDecodeError:
+                    # If result is not valid JSON, create a new response with warnings
+                    logger.warning("Failed to parse result JSON, creating new response with warnings")
+                    result = _create_error_response(
+                        "Failed to parse processing result",
+                        "RESULT_PARSE_ERROR",
+                        {"warnings": warnings}
+                    )
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Failed to call parse_multimodal_content: {str(e)}")
+            return _create_error_response(
+                f"Content parsing failed: {str(e)}",
+                "PARSING_ERROR",
+                {"loaded_files": len(files), "warnings": warnings}
+            )
+        
+    except Exception as e:
+        logger.error(f"Unexpected error in parse_multimodal_content_from_path: {str(e)}")
+        return _create_error_response(
+            f"Unexpected error during file path processing: {str(e)}",
+            "UNEXPECTED_ERROR",
+            {"error_type": type(e).__name__}
+        )
+
+
+def _get_mime_type_from_extension(file_ext: str) -> str:
+    """
+    Get MIME type from file extension.
+    
+    Args:
+        file_ext: File extension (e.g., '.jpg', '.pdf')
+    
+    Returns:
+        MIME type string
+    """
+    mime_types = {
+        # Image formats
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.png': 'image/png',
+        '.gif': 'image/gif',
+        '.bmp': 'image/bmp',
+        '.webp': 'image/webp',
+        '.tiff': 'image/tiff',
+        '.tif': 'image/tiff',
+        
+        # Document formats
+        '.pdf': 'application/pdf',
+        '.doc': 'application/msword',
+        '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        '.xls': 'application/vnd.ms-excel',
+        '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        '.csv': 'text/csv',
+        '.txt': 'text/plain',
+        '.md': 'text/markdown',
+        '.json': 'application/json',
+        '.yaml': 'text/yaml',
+        '.yml': 'text/yaml',
+        '.xml': 'application/xml',
+        '.html': 'text/html',
+        '.htm': 'text/html',
+        
+        # Archive formats
+        '.zip': 'application/zip',
+        '.rar': 'application/vnd.rar',
+        '.7z': 'application/x-7z-compressed',
+        '.tar': 'application/x-tar',
+        '.gz': 'application/gzip',
+        
+        # Audio formats
+        '.mp3': 'audio/mpeg',
+        '.wav': 'audio/wav',
+        '.flac': 'audio/flac',
+        '.aac': 'audio/aac',
+        
+        # Video formats
+        '.mp4': 'video/mp4',
+        '.avi': 'video/x-msvideo',
+        '.mov': 'video/quicktime',
+        '.mkv': 'video/x-matroska'
+    }
+    
+    return mime_types.get(file_ext.lower(), 'application/octet-stream')

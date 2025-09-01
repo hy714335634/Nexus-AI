@@ -178,3 +178,27 @@ templates:
       - "academic_research"
       - "real_data"
       - "web_search"
+
+  # 多模态内容分析Agent模板 - 多模态分析专家
+  multimodal_analyzer_agent:
+    name: "多模态内容分析专家"
+    description: "单Agent模板，专业的多模态内容分析专家，能够处理各种类型的文件（图片、文档、文本等）并进行智能分析和问答。集成multimodal_content_parser工具、文件读取、时间获取等系统工具，支持多格式文件解析、智能内容识别、多轮对话交互、问题导向分析等功能。适用于文档分析、图片识别、内容理解、智能问答等场景"
+    agent_dependencies: []
+    tools_dependencies:
+      - "system_tools/multimodal_content_parser/parse_multimodal_content_from_path"
+      - "system_tools/multimodal_content_parser/get_supported_formats"
+      - "strands_tools/file_read"
+      - "strands_tools/current_time"
+    path: "agents/template_agents/single_agent/multimodal_analyzer_agent.py"
+    prompt_template: "template_prompts/multimodal_analyzer_agent"
+    tags:
+      - "single_agent"
+      - "multimodal_analysis"
+      - "content_analysis"
+      - "file_processing"
+      - "conversation"
+      - "question_answering"
+      - "image_analysis"
+      - "document_analysis"
+      - "intelligent_qa"
+      - "multimodal_processing"
