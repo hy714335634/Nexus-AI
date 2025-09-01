@@ -11,14 +11,14 @@ from typing import List, Dict, Any, Optional, Type
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 
-from models.interfaces import FileProcessor
-from models.data_models import FileMetadata, ProcessedContent, ParsedContent
-from models.exceptions import FileProcessingError, MultimodalParserError
-from utils.text_processor import TextProcessor
-from utils.image_processor import ImageProcessor
-from utils.document_processor import DocumentProcessor
-from utils.markdown_generator import MarkdownGenerator
-from utils.multimodal_model_service import MultimodalModelService
+from .models.interfaces import FileProcessor
+from .models.data_models import FileMetadata, ProcessedContent, ParsedContent
+from .models.exceptions import FileProcessingError, MultimodalParserError
+from .text_processor import TextProcessor
+from .image_processor import ImageProcessor
+from .document_processor import DocumentProcessor
+from .markdown_generator import MarkdownGenerator
+from .multimodal_model_service import MultimodalModelService
 
 
 class ContentParsingEngine:
