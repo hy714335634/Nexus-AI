@@ -40,25 +40,23 @@ class MultimodalModelService:
         
         # Load configuration
         try:
-            config_loader = ConfigLoader()
-            self.config = config_loader.config.get('default-config', {})
+            self.config_loader = ConfigLoader()
+            self.model_config = model_config or self.config_loader.get_multimodal_parser_config().get('model', {})
+            self.aws_config = self.config_loader.get_aws_config()
         except Exception as e:
             self.logger.warning(f"Failed to load config: {e}, using defaults")
-            self.config = {}
+            self.model_config = {}
+            self.aws_config = {}
             
-        # Extract model configuration
-        self.model_config = model_config or self.config.get('multimodal_parser', {}).get('model', {})
-        self.aws_config = self.config.get('aws', {})
-        
         # Model settings
         self.primary_model = self.model_config.get('primary_model', 'us.anthropic.claude-3-7-sonnet-20250219-v1:0')
         self.fallback_model = self.model_config.get('fallback_model', 'us.anthropic.claude-3-5-haiku-20241022-v1:0')
         self.max_tokens = self.model_config.get('max_tokens', 4000)
         
         # Processing settings
-        self.processing_config = self.config.get('multimodal_parser', {}).get('processing', {})
-        self.timeout_seconds = self.processing_config.get('timeout_seconds', 300)
-        self.retry_attempts = self.processing_config.get('retry_attempts', 3)
+        processing_config = self.config_loader.get_multimodal_parser_config().get('processing', {})
+        self.timeout_seconds = processing_config.get('timeout_seconds', 300)
+        self.retry_attempts = processing_config.get('retry_attempts', 3)
         
         # AWS region
         self.aws_region = aws_region
@@ -69,12 +67,38 @@ class MultimodalModelService:
     def _init_bedrock_client(self):
         """Initialize the AWS Bedrock client with proper configuration."""
         try:
-            # Initialize the actual AWS Bedrock Runtime client
-            self.bedrock_client = boto3.client(
-                'bedrock-runtime',
-                region_name=self.aws_region
-            )
-            self.logger.info(f"Bedrock client initialized for region: {self.aws_region}")
+            # Get AWS credentials from config or environment
+            aws_access_key_id = None
+            aws_secret_access_key = None
+            
+            # Try to get credentials from config first
+            if self.aws_config:
+                aws_access_key_id = self.aws_config.get('aws_access_key_id')
+                aws_secret_access_key = self.aws_config.get('aws_secret_access_key')
+            
+            # If no config credentials, try environment variables
+            if not aws_access_key_id or not aws_secret_access_key:
+                import os
+                aws_access_key_id = os.getenv('AWS_ACCESS_KEY_ID')
+                aws_secret_access_key = os.getenv('AWS_SECRET_ACCESS_KEY')
+            
+            # Initialize Bedrock client with or without explicit credentials
+            if aws_access_key_id and aws_secret_access_key:
+                # Use explicit credentials
+                session = boto3.Session(
+                    aws_access_key_id=aws_access_key_id,
+                    aws_secret_access_key=aws_secret_access_key,
+                    region_name=self.aws_region
+                )
+                self.bedrock_client = session.client('bedrock-runtime')
+                self.logger.info(f"Bedrock client initialized with explicit credentials for region: {self.aws_region}")
+            else:
+                # Use AWS credentials provider chain
+                self.bedrock_client = boto3.client(
+                    'bedrock-runtime',
+                    region_name=self.aws_region
+                )
+                self.logger.info(f"Bedrock client initialized using credentials provider chain for region: {self.aws_region}")
             
         except Exception as e:
             self.logger.error(f"Failed to initialize Bedrock client: {str(e)}")

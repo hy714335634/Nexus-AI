@@ -42,11 +42,12 @@ class FileUploadManager:
         """
         if config is None:
             config_loader = ConfigLoader()
-            self.config = config_loader.config.get('default-config', {})
+            self.config_loader = config_loader
+            self.multimodal_config = config_loader.get_multimodal_parser_config()
         else:
-            self.config = config
+            self.config_loader = None
+            self.multimodal_config = config.get('multimodal_parser', {})
             
-        self.multimodal_config = self.config.get('multimodal_parser', {})
         self.file_limits = self.multimodal_config.get('file_limits', {})
         
         # Parse configuration values

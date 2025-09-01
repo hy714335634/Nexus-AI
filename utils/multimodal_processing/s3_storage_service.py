@@ -46,6 +46,9 @@ class S3StorageService:
             retry_delay: Initial delay between retries in seconds
             presigned_url_expiration: Expiration time for presigned URLs in seconds
         """
+        # Initialize logger first
+        self.logger = logging.getLogger(__name__)
+        
         self.bucket_name = bucket_name
         self.aws_region = aws_region
         self.s3_prefix = s3_prefix.rstrip('/') + '/'
@@ -69,27 +72,35 @@ class S3StorageService:
             from dotenv import load_dotenv
             load_dotenv()
             
-            # Get AWS credentials from environment variables
+            # Get AWS credentials from environment variables first, then config
             aws_access_key_id = os.getenv('AWS_ACCESS_KEY_ID')
             aws_secret_access_key = os.getenv('AWS_SECRET_ACCESS_KEY')
             
+            # If no environment variables, try to load from config
             if not aws_access_key_id or not aws_secret_access_key:
-                raise StorageError(
-                    "AWS credentials not found in environment variables. Please set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY in .env file.",
-                    error_code="CREDENTIALS_MISSING",
-                    context={"bucket": bucket_name, "region": aws_region}
-                )
+                try:
+                    from ..config_loader import ConfigLoader
+                    config_loader = ConfigLoader()
+                    aws_config = config_loader.get_aws_config()
+                    aws_access_key_id = aws_config.get('aws_access_key_id')
+                    aws_secret_access_key = aws_config.get('aws_secret_access_key')
+                except Exception as e:
+                    self.logger.warning(f"Failed to load AWS credentials from config: {e}")
             
-            # Create session with explicit credentials
-            session = boto3.Session(
-                aws_access_key_id=aws_access_key_id,
-                aws_secret_access_key=aws_secret_access_key,
-                region_name=aws_region
-            )
+            # If still no credentials, use AWS credentials provider chain
+            if not aws_access_key_id or not aws_secret_access_key:
+                self.logger.info("Using AWS credentials provider chain")
+                session = boto3.Session(region_name=aws_region)
+            else:
+                # Create session with explicit credentials
+                session = boto3.Session(
+                    aws_access_key_id=aws_access_key_id,
+                    aws_secret_access_key=aws_secret_access_key,
+                    region_name=aws_region
+                )
             
             self.s3_client = session.client('s3', config=config)
             
-            self.logger = logging.getLogger(__name__)
             self.logger.info(f"S3StorageService initialized for bucket: {bucket_name} in region: {aws_region}")
             
             # Test credentials by listing buckets
@@ -178,6 +189,7 @@ class S3StorageService:
                 )
                 
                 s3_url = f"s3://{self.bucket_name}/{s3_key}"
+                # s3_url = f"https://{self.bucket_name}.s3.amazonaws.com/{s3_key}"
                 self.logger.info(f"Successfully stored file {file_id} at {s3_url}")
                 return s3_url
                 
@@ -357,6 +369,73 @@ class S3StorageService:
                             "file_name": file_name,
                             "bucket": self.bucket_name,
                             "key": s3_key,
+                            "attempt": attempt + 1
+                        }
+                    ) from e
+    
+    def download_file_by_key(self, s3_key: str) -> bytes:
+        """
+        Download file content from S3 using the S3 key directly.
+        
+        Args:
+            s3_key: S3 object key
+            
+        Returns:
+            Binary file content
+            
+        Raises:
+            StorageError: If file download fails
+        """
+        for attempt in range(self.max_retries + 1):
+            try:
+                response = self.s3_client.get_object(
+                    Bucket=self.bucket_name,
+                    Key=s3_key
+                )
+                
+                file_content = response['Body'].read()
+                self.logger.debug(f"Successfully downloaded file with key: {s3_key}")
+                return file_content
+                
+            except ClientError as e:
+                error_code = e.response.get('Error', {}).get('Code', 'Unknown')
+                
+                if error_code == 'NoSuchKey':
+                    raise StorageError(
+                        f"File not found with key: {s3_key}",
+                        error_code="FILE_NOT_FOUND",
+                        context={"s3_key": s3_key, "bucket": self.bucket_name}
+                    ) from e
+                
+                if attempt < self.max_retries and error_code in ['ServiceUnavailable', 'SlowDown', 'RequestTimeout']:
+                    wait_time = self.retry_delay * (2 ** attempt)
+                    self.logger.warning(f"S3 download attempt {attempt + 1} failed, retrying in {wait_time}s: {str(e)}")
+                    time.sleep(wait_time)
+                    continue
+                else:
+                    raise StorageError(
+                        f"Failed to download file from S3: {str(e)}",
+                        error_code=f"S3_{error_code}",
+                        context={
+                            "s3_key": s3_key,
+                            "bucket": self.bucket_name,
+                            "attempt": attempt + 1
+                        }
+                    ) from e
+            
+            except Exception as e:
+                if attempt < self.max_retries:
+                    wait_time = self.retry_delay * (2 ** attempt)
+                    self.logger.warning(f"S3 download attempt {attempt + 1} failed, retrying in {wait_time}s: {str(e)}")
+                    time.sleep(wait_time)
+                    continue
+                else:
+                    raise StorageError(
+                        f"Unexpected error downloading file from S3: {str(e)}",
+                        error_code="DOWNLOAD_ERROR",
+                        context={
+                            "s3_key": s3_key,
+                            "bucket": self.bucket_name,
                             "attempt": attempt + 1
                         }
                     ) from e

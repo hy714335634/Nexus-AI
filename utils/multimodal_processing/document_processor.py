@@ -162,20 +162,88 @@ class DocumentProcessor(FileProcessor):
         """
         Get local file path for processing.
         
-        In a real implementation, this would download the file from S3.
-        For now, we'll assume files are in a local temp directory.
+        Downloads the file from S3 to local temp directory for processing.
         
         Args:
             file_metadata: File metadata containing S3 URL
             
         Returns:
             Local file path
+            
+        Raises:
+            FileProcessingError: If file download fails
         """
-        # This is a placeholder implementation
-        # In reality, you'd download from S3 using the s3_url
-        temp_dir = "/tmp/multimodal_parser"
-        os.makedirs(temp_dir, exist_ok=True)
-        return os.path.join(temp_dir, f"{file_metadata.file_id}_{file_metadata.original_name}")
+        try:
+            temp_dir = "/tmp/multimodal_parser"
+            os.makedirs(temp_dir, exist_ok=True)
+            
+            local_file_path = os.path.join(temp_dir, f"{file_metadata.file_id}_{file_metadata.original_name}")
+            
+            # Check if file already exists locally
+            if os.path.exists(local_file_path):
+                self.logger.debug(f"File already exists locally: {local_file_path}")
+                return local_file_path
+            
+            # Download file from S3 if it has an S3 URL
+            if file_metadata.s3_url:
+                self.logger.info(f"Downloading file from S3: {file_metadata.s3_url}")
+                
+                # Import here to avoid circular imports
+                from .s3_storage_service import S3StorageService
+                
+                # Extract bucket and key from S3 URL
+                # S3 URL format: s3://bucket-name/key
+                if file_metadata.s3_url.startswith('s3://'):
+                    # Remove 's3://' prefix and split
+                    url_parts = file_metadata.s3_url[5:].split('/', 1)
+                    if len(url_parts) == 2:
+                        bucket_name = url_parts[0]
+                        key = url_parts[1]
+                        
+                        # Initialize S3 service and download file
+                        s3_service = S3StorageService(bucket_name=bucket_name)
+                        file_content = s3_service.download_file_by_key(key)
+                        
+                        # Write to local file
+                        with open(local_file_path, 'wb') as f:
+                            f.write(file_content)
+                        
+                        self.logger.info(f"File downloaded successfully to: {local_file_path}")
+                        return local_file_path
+                    else:
+                        raise FileProcessingError(
+                            f"Invalid S3 URL format: {file_metadata.s3_url}",
+                            error_code="INVALID_S3_URL",
+                            context={"s3_url": file_metadata.s3_url}
+                        )
+                else:
+                    raise FileProcessingError(
+                        f"Invalid S3 URL format: {file_metadata.s3_url}",
+                        error_code="INVALID_S3_URL",
+                        context={"s3_url": file_metadata.s3_url}
+                    )
+            else:
+                # If no S3 URL, check if we have file content in memory
+                if hasattr(file_metadata, 'file_content') and file_metadata.file_content:
+                    self.logger.info(f"Writing file content to local path: {local_file_path}")
+                    with open(local_file_path, 'wb') as f:
+                        f.write(file_metadata.file_content)
+                    return local_file_path
+                else:
+                    raise FileProcessingError(
+                        "No S3 URL or file content available for processing",
+                        error_code="NO_FILE_SOURCE",
+                        context={"file_id": file_metadata.file_id}
+                    )
+                    
+        except Exception as e:
+            error_msg = f"Failed to get local file path: {str(e)}"
+            self.logger.error(error_msg)
+            raise FileProcessingError(
+                error_msg,
+                error_code="LOCAL_FILE_ACCESS_ERROR",
+                context={"file_id": file_metadata.file_id, "error": str(e)}
+            )
     
     def _extract_document_content(self, file_path: str, file_type: str) -> str:
         """

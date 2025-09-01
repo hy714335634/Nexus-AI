@@ -1,7 +1,8 @@
 default-config:
   aws:
     bedrock_region_name: 'us-west-2'  # Region for Amazon Bedrock API calls
-    aws_region_name: 'us-east-1'      # Default AWS region for other services
+    aws_region_name: 'us-west-2'      # Default AWS region for other services
+    aws_profile_name: 'default'       # AWS profile name, leave empty to use AWS credentials provider chain
     aws_access_key_id: ''             # AWS access key, leave empty to use AWS credentials provider chain
     aws_secret_access_key: ''         # AWS secret key, leave empty to use AWS credentials provider chain
     endpoint_url: ''                  # Custom endpoint URL, leave empty for AWS default endpoints
@@ -13,7 +14,6 @@ default-config:
       agent_template_path: 'agents/template_agents' # Path to Strands agent templates
       prompt_template_path: 'prompts/template_prompts'
       tool_template_path: 'tools/template_tools'
-
     generated:
       agent_generated_path: 'agents/generated_agents'
       prompt_generated_path: 'prompts/generated_agents_prompts'
@@ -23,7 +23,6 @@ default-config:
       prompts_path: 'prompts/system_agents_prompts'
       tools_path: 'tools/system_tools'
     requirements_path: 'templates/requirements/requirements.txt' # Default requirements file
-    local_tools_path: 'templates/tools' # Path to Strands tools templates
     mcp_server_path: 'mcp/' # Path to Strands mcp server templates
     project_path: 'project/'     # Base path for agent project files
     default_tools:
@@ -50,7 +49,7 @@ default-config:
   
   multimodal_parser:
     aws:
-      s3_bucket: "nexus-ai-file-storage"
+      s3_bucket: "awesome-nexus-ai-file-storage"
       s3_prefix: "multimodal-content/"
       bedrock_region: "us-west-2"
     
@@ -71,6 +70,6 @@ default-config:
       retry_delay: 1.0
     
     model:
-      primary_model: "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
-      fallback_model: "us.anthropic.claude-3-5-haiku-20241022-v1:0"
-      max_tokens: 4000
+      primary_model: "us.anthropic.claude-opus-4-20250514-v1:0"
+      fallback_model: "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
+      max_tokens: 40000
