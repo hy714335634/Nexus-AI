@@ -13,10 +13,10 @@ import logging
 from typing import List, Dict, Any
 from pathlib import Path
 
-from models.interfaces import FileProcessor
-from models.data_models import FileMetadata, ProcessedContent
-from models.exceptions import FileProcessingError
-from utils.multimodal_model_service import MultimodalModelService
+from .models.interfaces import FileProcessor
+from .models.data_models import FileMetadata, ProcessedContent
+from .models.exceptions import FileProcessingError
+from .multimodal_model_service import MultimodalModelService
 
 
 class TextProcessor(FileProcessor):

@@ -13,7 +13,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 from dataclasses import dataclass
 from functools import wraps
 
-from models.exceptions import (
+from .models.exceptions import (
     MultimodalParserError,
     FileUploadError,
     FileProcessingError,

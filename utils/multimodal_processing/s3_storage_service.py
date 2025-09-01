@@ -15,7 +15,7 @@ import hashlib
 import os
 from datetime import datetime, timedelta
 
-from models.exceptions import StorageError
+from .models.exceptions import StorageError
 
 
 class S3StorageService:

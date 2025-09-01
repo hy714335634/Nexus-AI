@@ -17,10 +17,10 @@ from openpyxl import load_workbook
 # from docx import Document
 from io import StringIO
 
-from models.interfaces import FileProcessor
-from models.data_models import FileMetadata, ProcessedContent
-from models.exceptions import FileProcessingError
-from utils.multimodal_model_service import MultimodalModelService
+from .models.interfaces import FileProcessor
+from .models.data_models import FileMetadata, ProcessedContent
+from .models.exceptions import FileProcessingError
+from .multimodal_model_service import MultimodalModelService
 
 
 class DocumentProcessor(FileProcessor):

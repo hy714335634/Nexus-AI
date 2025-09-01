@@ -9,7 +9,7 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime
 import json
 import re
-from models.data_models import ProcessedContent, FileMetadata, ParsedContent
+from .models.data_models import ProcessedContent, FileMetadata, ParsedContent
 
 
 class MarkdownGenerator:

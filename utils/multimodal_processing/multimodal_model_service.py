@@ -15,9 +15,9 @@ import boto3
 from botocore.exceptions import ClientError, BotoCoreError
 import logging
 
-from models.exceptions import ModelServiceError
-from models.data_models import ProcessedContent
-from utils.config_loader import ConfigLoader
+from .models.exceptions import ModelServiceError
+from .models.data_models import ProcessedContent
+from ..config_loader import ConfigLoader
 
 
 class MultimodalModelService:

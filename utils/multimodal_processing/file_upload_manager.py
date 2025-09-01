@@ -12,9 +12,9 @@ from typing import List, Optional, Dict, Any, Union
 from pathlib import Path
 import logging
 
-from models.data_models import FileMetadata
-from models.exceptions import FileUploadError
-from utils.config_loader import ConfigLoader
+from .models.data_models import FileMetadata
+from .models.exceptions import FileUploadError
+from ..config_loader import ConfigLoader
 
 
 logger = logging.getLogger(__name__)

@@ -7,3 +7,10 @@ bedrock-agentcore-starter-toolkit
 typing
 dataclasses
 PyYAML
+duckduckgo-search
+feedparser
+pandas
+Pillow
+python-docx
+PyPDF2
+openpyxl
