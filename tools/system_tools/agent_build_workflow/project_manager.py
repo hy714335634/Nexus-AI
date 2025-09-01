@@ -4,8 +4,10 @@
 # project_manager/get_project_config - 获取指定项目的配置信息，返回JSON格式的完整配置数据和文件元信息
 # project_manager/update_project_readme - 根据项目配置和状态自动生成 README.md，包含项目描述、目录结构、各Agent阶段进度，支持添加额外内容
 # project_manager/get_project_readme - 获取指定项目的README.md内容，返回完整内容和文件统计信息
-# project_manager/update_project_status - 更新 status.yaml 中的阶段状态，支持6个标准阶段，自动创建Agent条目和所有阶段结构
-# project_manager/get_project_status - 查询项目状态信息，支持查询所有Agent、指定Agent或指定阶段，返回详细的状态信息
+# project_manager/update_project_status - 更新 status.yaml 中的阶段状态，支持6个标准阶段，自动创建Agent条目和所有阶段结构，支持agent_artifact_path数组字段
+# project_manager/get_project_status - 查询项目状态信息，支持查询所有Agent、指定Agent或指定阶段，返回详细的状态信息和制品路径摘要
+# project_manager/update_agent_artifact_path - 专门更新指定阶段的agent_artifact_path字段，支持prompt_engineer、tools_developer、agent_code_developer阶段
+# project_manager/get_agent_artifact_paths - 获取指定Agent的制品路径信息，支持查询所有阶段或特定阶段的制品路径
 # project_manager/update_project_stage_content - 将内容写入 projects/<project_name>/<agent_name>/<stage_name>.json，自动创建必要的目录结构
 # project_manager/get_project_stage_content - 读取指定阶段文件的内容，返回文件内容和元数据信息
 # project_manager/list_project_agents - 列出指定项目中的所有Agent目录，包含文件统计和阶段文件信息
@@ -443,7 +445,7 @@ def update_project_readme(project_name: str, additional_content: str = None) -> 
 
 
 @tool
-def update_project_status(project_name: str, agent_name: str, stage: str, status: bool, doc_path: str = "") -> str:
+def update_project_status(project_name: str, agent_name: str, stage: str, status: bool, doc_path: str = "", agent_artifact_path: List[str] = None) -> str:
     """
     更新项目状态文件中指定Agent的指定阶段状态
     
@@ -453,6 +455,7 @@ def update_project_status(project_name: str, agent_name: str, stage: str, status
         stage (str): 阶段名称（必须） - requirements_analyzer, system_architect, agent_designer, prompt_engineer, tools_developer, agent_code_developer, agent_developer_manager
         status (bool): 阶段状态（必须） - True表示完成，False表示未完成
         doc_path (str, optional): 文档路径
+        agent_artifact_path (List[str], optional): 制品路径数组，用于prompt_engineer、tools_developer、agent_code_developer阶段
         
     Returns:
         str: 操作结果信息
@@ -595,6 +598,12 @@ def update_project_status(project_name: str, agent_name: str, stage: str, status
                 stage_entry["status"] = status
                 stage_entry["doc_path"] = doc_path
                 stage_entry["updated_date"] = datetime.now(timezone.utc).isoformat()
+                
+                # 如果提供了agent_artifact_path，更新制品路径
+                artifact_stages = ["prompt_engineer", "tools_developer", "agent_code_developer"]
+                if stage in artifact_stages and agent_artifact_path:
+                    stage_entry["agent_artifact_path"] = agent_artifact_path
+                
                 stage_found = True
                 break
         
@@ -607,6 +616,12 @@ def update_project_status(project_name: str, agent_name: str, stage: str, status
                 "status": status,
                 "updated_date": datetime.now(timezone.utc).isoformat()
             }
+            
+            # 如果提供了agent_artifact_path，添加到新阶段
+            artifact_stages = ["prompt_engineer", "tools_developer", "agent_code_developer"]
+            if stage in artifact_stages and agent_artifact_path:
+                new_stage_entry["agent_artifact_path"] = agent_artifact_path
+            
             agent_entry["pipeline"].append(new_stage_entry)
         
         # 计算项目整体进度
@@ -675,6 +690,7 @@ def _get_stage_description(stage_name: str) -> str:
         "agent_developer_manager": "Agent开发管理阶段 - 管理和协调开发流程"
     }
     return stage_descriptions.get(stage_name, f"阶段：{stage_name}")
+
 
 
 @tool
@@ -786,6 +802,21 @@ def get_project_status(project_name: str, agent_name: str = None) -> str:
         if target_agent is None:
             return f"错误：在项目 '{project_name}' 中未找到 Agent '{agent_name}'"
         
+        # 分析制品路径信息
+        artifact_info = {}
+        artifact_stages = ["prompt_engineer", "tools_developer", "agent_code_developer"]
+        
+        for stage_entry in target_agent.get("pipeline", []):
+            stage_name = stage_entry.get("stage", "")
+            if stage_name in artifact_stages and "agent_artifact_path" in stage_entry:
+                artifact_paths = stage_entry.get("agent_artifact_path", [])
+                if artifact_paths:
+                    artifact_info[stage_name] = {
+                        "artifact_count": len(artifact_paths),
+                        "artifact_paths": artifact_paths,
+                        "stage_status": stage_entry.get("status", False)
+                    }
+        
         # 返回指定Agent的详细信息
         result = {
             "status": "success",
@@ -797,12 +828,15 @@ def get_project_status(project_name: str, agent_name: str = None) -> str:
                 "last_updated": target_agent.get("last_updated", "")
             },
             "agent_data": target_agent,
+            "artifact_summary": artifact_info,
             "query_date": datetime.now(timezone.utc).isoformat(),
             "summary": {
                 "project_name": project_info.get("name", project_name),
                 "agent_name": agent_name,
                 "total_stages": len(target_agent.get("pipeline", [])),
-                "completed_stages": sum(1 for stage in target_agent.get("pipeline", []) if stage.get("status", False))
+                "completed_stages": sum(1 for stage in target_agent.get("pipeline", []) if stage.get("status", False)),
+                "total_artifacts": sum(len(info["artifact_paths"]) for info in artifact_info.values()),
+                "artifact_stages_with_content": len(artifact_info)
             }
         }
         
@@ -813,7 +847,133 @@ def get_project_status(project_name: str, agent_name: str = None) -> str:
 
 
 @tool
-def update_project_stage_content(project_name: str, agent_name: str, stage_name: str, content: str) -> str:
+def get_agent_artifact_paths(project_name: str, agent_name: str, stage: str = None) -> str:
+    """
+    获取指定Agent的制品路径信息
+    
+    Args:
+        project_name (str): 项目名称（必须）
+        agent_name (str): Agent名称（必须）
+        stage (str, optional): 阶段名称，如果不提供则返回所有支持制品路径的阶段信息
+        
+    Returns:
+        str: 制品路径信息
+    """
+    try:
+        # 验证必须参数
+        if not project_name or not project_name.strip():
+            return "错误：项目名称（project_name）是必须参数，不能为空"
+        
+        if not agent_name or not agent_name.strip():
+            return "错误：Agent名称（agent_name）是必须参数，不能为空"
+        
+        project_name = project_name.strip()
+        agent_name = agent_name.strip()
+        
+        project_root = os.path.join("projects", project_name)
+        
+        # 检查项目目录是否存在
+        if not os.path.exists(project_root):
+            return f"错误：项目 '{project_name}' 不存在"
+        
+        status_path = os.path.join(project_root, "status.yaml")
+        
+        # 检查状态文件是否存在
+        if not os.path.exists(status_path):
+            return f"错误：项目 '{project_name}' 的状态文件不存在"
+        
+        # 读取状态文件
+        try:
+            with open(status_path, 'r', encoding='utf-8') as f:
+                status_data = yaml.safe_load(f) or {}
+        except yaml.YAMLError as e:
+            return f"错误：无法解析状态文件: {str(e)}"
+        
+        # 查找项目条目
+        project_entry = None
+        if "project_info" in status_data:
+            for project in status_data["project_info"]:
+                if project.get("name") == project_name:
+                    project_entry = project
+                    break
+        
+        if project_entry is None:
+            return f"错误：在状态文件中未找到项目 '{project_name}'"
+        
+        # 查找Agent条目
+        agent_entry = None
+        for agent in project_entry.get("agents", []):
+            if agent.get("name") == agent_name:
+                agent_entry = agent
+                break
+        
+        if agent_entry is None:
+            return f"错误：在项目 '{project_name}' 中未找到 Agent '{agent_name}'"
+        
+        # 支持制品路径的阶段
+        artifact_stages = ["prompt_engineer", "tools_developer", "agent_code_developer"]
+        
+        # 收集制品路径信息
+        artifact_info = {}
+        pipeline = agent_entry.get("pipeline", [])
+        
+        for stage_entry in pipeline:
+            stage_name = stage_entry.get("stage", "")
+            if stage_name in artifact_stages:
+                artifact_paths = stage_entry.get("agent_artifact_path", [])
+                artifact_info[stage_name] = {
+                    "stage": stage_name,
+                    "description": stage_entry.get("description", ""),
+                    "status": stage_entry.get("status", False),
+                    "doc_path": stage_entry.get("doc_path", ""),
+                    "agent_artifact_path": artifact_paths,
+                    "artifact_count": len(artifact_paths),
+                    "updated_date": stage_entry.get("updated_date", "")
+                }
+        
+        # 如果指定了特定阶段
+        if stage and stage.strip():
+            stage = stage.strip()
+            if stage not in artifact_stages:
+                return f"错误：阶段 '{stage}' 不支持制品路径，支持的阶段包括: {', '.join(artifact_stages)}"
+            
+            if stage not in artifact_info:
+                return f"错误：在 Agent '{agent_name}' 中未找到阶段 '{stage}'"
+            
+            result = {
+                "status": "success",
+                "project_name": project_name,
+                "agent_name": agent_name,
+                "stage_info": artifact_info[stage],
+                "query_date": datetime.now(timezone.utc).isoformat()
+            }
+        else:
+            # 返回所有支持制品路径的阶段信息
+            total_artifacts = sum(info["artifact_count"] for info in artifact_info.values())
+            stages_with_artifacts = sum(1 for info in artifact_info.values() if info["artifact_count"] > 0)
+            
+            result = {
+                "status": "success",
+                "project_name": project_name,
+                "agent_name": agent_name,
+                "artifact_stages": artifact_info,
+                "summary": {
+                    "total_artifact_stages": len(artifact_info),
+                    "stages_with_artifacts": stages_with_artifacts,
+                    "total_artifacts": total_artifacts,
+                    "supported_stages": artifact_stages
+                },
+                "query_date": datetime.now(timezone.utc).isoformat()
+            }
+        
+        return json.dumps(result, ensure_ascii=False, indent=2)
+        
+    except Exception as e:
+        return f"获取制品路径信息时出现错误: {str(e)}"
+
+
+@tool
+def update_project_stage_content(project_name: str, agent_name: str, stage_name: str, content: str, agent_artifact_path: List[str] = None) -> str:
     """
     将内容写入指定的项目阶段文件，自动添加项目和Agent上下文信息
     
@@ -822,9 +982,17 @@ def update_project_stage_content(project_name: str, agent_name: str, stage_name:
         agent_name (str): Agent名称
         stage_name (str): 阶段名称
         content (str): 要写入的内容
+        agent_artifact_path (List[str], optional): 生成的制品路径数组，用于代码开发、工具生成、提示词生成阶段
         
     Returns:
         str: 操作结果信息
+        
+    说明：
+    - 文件路径：projects/<project_name>/agents/<agent_name>/<stage_name>.json
+    - 自动创建必要的目录结构
+    - 自动添加项目上下文信息到文件头部
+    - 如果提供了agent_artifact_path，会同时更新status.yaml中的构件路径
+    - 支持制品路径的阶段：prompt_engineer、tools_developer、agent_code_developer
     """
     try:
         # 验证参数
@@ -871,6 +1039,37 @@ def update_project_stage_content(project_name: str, agent_name: str, stage_name:
         with open(stage_file_path, 'w', encoding='utf-8') as f:
             f.write(enhanced_content)
         
+        # 如果提供了agent_artifact_path，同时更新status.yaml中对应阶段的制品路径
+        artifact_stages = ["prompt_engineer", "tools_developer", "agent_code_developer"]
+        if stage_name in artifact_stages and agent_artifact_path:
+            status_path = os.path.join(project_root, "status.yaml")
+            if os.path.exists(status_path):
+                try:
+                    with open(status_path, 'r', encoding='utf-8') as f:
+                        status_data = yaml.safe_load(f) or {}
+                    
+                    # 查找并更新对应的阶段
+                    if "project_info" in status_data:
+                        for project in status_data["project_info"]:
+                            if project.get("name") == project_name:
+                                for agent in project.get("agents", []):
+                                    if agent.get("name") == agent_name:
+                                        for stage_entry in agent.get("pipeline", []):
+                                            if stage_entry.get("stage") == stage_name:
+                                                stage_entry["agent_artifact_path"] = agent_artifact_path
+                                                stage_entry["updated_date"] = datetime.now(timezone.utc).isoformat()
+                                                break
+                                        break
+                                break
+                    
+                    # 写回status.yaml
+                    with open(status_path, 'w', encoding='utf-8') as f:
+                        yaml.dump(status_data, f, default_flow_style=False, allow_unicode=True, indent=2)
+                        
+                except (yaml.YAMLError, PermissionError):
+                    pass  # 如果更新status.yaml失败，不影响主要功能
+        
+        # 构建返回结果
         result = {
             "status": "success",
             "message": f"成功写入阶段内容到 '{stage_file_path}'",
@@ -882,12 +1081,133 @@ def update_project_stage_content(project_name: str, agent_name: str, stage_name:
             "updated_date": datetime.now(timezone.utc).isoformat()
         }
         
+        # 如果提供了制品路径，添加到结果中
+        if agent_artifact_path:
+            result["agent_artifact_path"] = agent_artifact_path
+        
         return json.dumps(result, ensure_ascii=False, indent=2)
         
     except PermissionError:
         return f"错误：没有权限写入文件"
     except Exception as e:
         return f"写入项目阶段内容时出现错误: {str(e)}"
+
+
+@tool
+def update_agent_artifact_path(project_name: str, agent_name: str, stage: str, agent_artifact_path: List[str]) -> str:
+    """
+    专门更新指定阶段的agent_artifact_path字段
+    
+    Args:
+        project_name (str): 项目名称（必须）
+        agent_name (str): Agent名称（必须）
+        stage (str): 阶段名称（必须） - prompt_engineer, tools_developer, agent_code_developer
+        agent_artifact_path (List[str]): 制品路径数组（必须）
+        
+    Returns:
+        str: 操作结果信息
+    """
+    try:
+        # 验证必须参数
+        if not project_name or not project_name.strip():
+            return "错误：项目名称（project_name）是必须参数，不能为空"
+        
+        if not agent_name or not agent_name.strip():
+            return "错误：Agent名称（agent_name）是必须参数，不能为空"
+        
+        if not stage or not stage.strip():
+            return "错误：阶段名称（stage）是必须参数，不能为空"
+        
+        if not agent_artifact_path or not isinstance(agent_artifact_path, list):
+            return "错误：agent_artifact_path必须是有效的路径数组"
+        
+        # 验证阶段名称
+        valid_stages = ["prompt_engineer", "tools_developer", "agent_code_developer"]
+        
+        if stage not in valid_stages:
+            return f"错误：无效的阶段名称 '{stage}'，支持制品路径的阶段包括: {', '.join(valid_stages)}"
+        
+        project_name = project_name.strip()
+        agent_name = agent_name.strip()
+        stage = stage.strip()
+        
+        project_root = os.path.join("projects", project_name)
+        
+        # 检查项目目录是否存在
+        if not os.path.exists(project_root):
+            return f"错误：项目 '{project_name}' 不存在，请先使用 project_init 初始化项目"
+        
+        status_path = os.path.join(project_root, "status.yaml")
+        
+        # 检查状态文件是否存在
+        if not os.path.exists(status_path):
+            return f"错误：项目 '{project_name}' 的状态文件不存在"
+        
+        # 读取现有状态
+        status_data = {}
+        try:
+            with open(status_path, 'r', encoding='utf-8') as f:
+                status_data = yaml.safe_load(f) or {}
+        except yaml.YAMLError as e:
+            return f"错误：无法解析状态文件: {str(e)}"
+        
+        # 查找项目条目
+        project_entry = None
+        if "project_info" in status_data:
+            for project in status_data["project_info"]:
+                if project.get("name") == project_name:
+                    project_entry = project
+                    break
+        
+        if project_entry is None:
+            return f"错误：在状态文件中未找到项目 '{project_name}'"
+        
+        # 查找Agent条目
+        agent_entry = None
+        for agent in project_entry.get("agents", []):
+            if agent.get("name") == agent_name:
+                agent_entry = agent
+                break
+        
+        if agent_entry is None:
+            return f"错误：在项目 '{project_name}' 中未找到 Agent '{agent_name}'"
+        
+        # 更新指定阶段的agent_artifact_path
+        pipeline = agent_entry.get("pipeline", [])
+        stage_found = False
+        
+        for stage_entry in pipeline:
+            if stage_entry.get("stage") == stage:
+                stage_entry["agent_artifact_path"] = agent_artifact_path
+                stage_entry["updated_date"] = datetime.now(timezone.utc).isoformat()
+                stage_found = True
+                break
+        
+        if not stage_found:
+            return f"错误：在 Agent '{agent_name}' 中未找到阶段 '{stage}'"
+        
+        # 写入状态文件
+        try:
+            with open(status_path, 'w', encoding='utf-8') as f:
+                yaml.dump(status_data, f, default_flow_style=False, allow_unicode=True, indent=2)
+        except PermissionError:
+            return f"错误：没有权限写入状态文件"
+        
+        result = {
+            "status": "success",
+            "message": f"成功更新 Agent '{agent_name}' 的阶段 '{stage}' 制品路径",
+            "project_name": project_name,
+            "agent_name": agent_name,
+            "stage": stage,
+            "agent_artifact_path": agent_artifact_path,
+            "artifact_count": len(agent_artifact_path),
+            "updated_date": datetime.now(timezone.utc).isoformat()
+        }
+        
+        return json.dumps(result, ensure_ascii=False, indent=2)
+        
+    except Exception as e:
+        return f"更新制品路径时出现错误: {str(e)}"
 
 
 @tool
@@ -946,6 +1266,7 @@ def get_project_stage_content(project_name: str, agent_name: str, stage_name: st
         file_stat = os.stat(stage_file_path)
         import time
         
+        # 构建基本结果
         result = {
             "status": "success",
             "project_name": project_name,
@@ -958,6 +1279,32 @@ def get_project_stage_content(project_name: str, agent_name: str, stage_name: st
             "modified_time": time.ctime(file_stat.st_mtime),
             "query_date": datetime.now(timezone.utc).isoformat()
         }
+        
+        # 尝试从status.yaml中获取agent_artifact_path信息
+        artifact_stages = ["prompt_engineer", "tools_developer", "agent_code_developer"]
+        if stage_name in artifact_stages:
+            status_path = os.path.join(project_root, "status.yaml")
+            if os.path.exists(status_path):
+                try:
+                    with open(status_path, 'r', encoding='utf-8') as f:
+                        status_data = yaml.safe_load(f) or {}
+                    
+                    # 查找对应阶段的agent_artifact_path
+                    if "project_info" in status_data:
+                        for project in status_data["project_info"]:
+                            if project.get("name") == project_name:
+                                for agent in project.get("agents", []):
+                                    if agent.get("name") == agent_name:
+                                        for stage_entry in agent.get("pipeline", []):
+                                            if stage_entry.get("stage") == stage_name:
+                                                artifact_path = stage_entry.get("agent_artifact_path")
+                                                if artifact_path:
+                                                    result["agent_artifact_path"] = artifact_path
+                                                break
+                                        break
+                                break
+                except (yaml.YAMLError, PermissionError):
+                    pass  # 如果读取失败，不影响主要功能
         
         return json.dumps(result, ensure_ascii=False, indent=2)
         
@@ -1424,9 +1771,37 @@ def main():
     result = update_project_status("test_project", "test_agent", "requirements_analyzer", True, "docs/requirements.md")
     print(result)
     
+    # 测试更新带制品路径的项目状态
+    print("\n3.1 测试更新带制品路径的项目状态:")
+    artifact_paths = [
+        "prompts/generated_agents_prompts/test_project/test_agent.yaml",
+        "prompts/generated_agents_prompts/test_project/test_agent_v2.yaml"
+    ]
+    result = update_project_status("test_project", "test_agent", "prompt_engineer", True, "docs/prompt_design.md", artifact_paths)
+    print(result)
+    
     # 测试查询项目状态
     print("\n4. 测试查询项目状态:")
-    result = get_project_status("test_project", "test_agent", "requirements_analyzer")
+    result = get_project_status("test_project", "test_agent")
+    print(result)
+    
+    # 测试获取制品路径信息
+    print("\n4.1 测试获取制品路径信息:")
+    result = get_agent_artifact_paths("test_project", "test_agent")
+    print(result)
+    
+    # 测试获取特定阶段制品路径信息
+    print("\n4.2 测试获取特定阶段制品路径信息:")
+    result = get_agent_artifact_paths("test_project", "test_agent", "prompt_engineer")
+    print(result)
+    
+    # 测试更新制品路径
+    print("\n4.3 测试更新制品路径:")
+    tool_paths = [
+        "tools/generated_tools/test_project/test_tool.py",
+        "tools/generated_tools/test_project/helper_tool.py"
+    ]
+    result = update_agent_artifact_path("test_project", "test_agent", "tools_developer", tool_paths)
     print(result)
     
     # 测试写入阶段内容

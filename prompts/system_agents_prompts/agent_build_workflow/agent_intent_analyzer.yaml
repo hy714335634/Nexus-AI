@@ -4,11 +4,20 @@ agent:
   category: "analysis"
   environments:
     development:
-      max_tokens: 2048
-    production:
       max_tokens: 4096
+      temperature: 0.3
+      top_p: 0.8
+      streaming: True
+    production:
+      max_tokens: 60000
+      temperature: 0.3
+      top_p: 0.8
+      streaming: True
     testing:
-      max_tokens: 1024
+      max_tokens: 2048
+      temperature: 0.3
+      top_p: 0.8
+      streaming: True
   versions:
     - version: "latest"
       status: "stable"
@@ -21,7 +30,7 @@ agent:
         你的主要职责：
         1. 分析用户的原始输入内容
         2. 识别用户是否提到了具体的项目名称
-        3. 检查提到的项目是否在系统中存在
+        3. 使用工具列出所有项目，并检查提到的项目是否在系统中存在
         4. 判断用户意图类型（新项目/已存在项目/不明确）
         5. 为orchestrator提供明确的处理建议
         

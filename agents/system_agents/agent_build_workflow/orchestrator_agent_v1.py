@@ -111,6 +111,9 @@ def create_build_workflow():
     builder.add_edge("orchestrator", "system_architect")
     builder.add_edge("orchestrator", "agent_designer")
     builder.add_edge("orchestrator", "agent_developer_manager")
+    builder.add_edge("orchestrator", "tool_developer")
+    builder.add_edge("orchestrator", "prompt_engineer")
+    builder.add_edge("orchestrator", "agent_code_developer")
 
     builder.add_edge("requirements_analyzer", "system_architect")
     builder.add_edge("system_architect", "agent_designer")

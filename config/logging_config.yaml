@@ -1,0 +1,72 @@
+# 增强日志系统配置
+enhanced_logging:
+  # 是否启用彩色输出
+  enable_colors: true
+  
+  # 是否写入日志文件
+  log_to_file: true
+  
+  # 日志文件路径
+  log_file: "logs/enhanced_workflow.log"
+  
+  # 日志级别
+  log_level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  
+  # 是否显示时间戳
+  show_timestamp: true
+  
+  # 是否显示Agent名称
+  show_agent_name: true
+  
+  # 是否显示工具调用详情
+  show_tool_details: true
+  
+  # 输入输出截断长度
+  truncate_length:
+    input: 300
+    output: 300
+    tool_result: 200
+  
+  # 分隔线设置
+  separators:
+    workflow: "="
+    agent: "-"
+    tool: "."
+  
+  # 颜色主题
+  colors:
+    workflow_start: "GREEN"
+    workflow_end: "GREEN"
+    agent_start: "BLUE"
+    agent_end: "GREEN"
+    tool_call: "MAGENTA"
+    tool_result: "GREEN"
+    error: "RED"
+    warning: "YELLOW"
+    info: "BLUE"
+    timestamp: "GRAY"
+    separator: "GRAY"
+
+# Strands钩子配置
+strands_hooks:
+  # 是否启用增强日志钩子
+  enable_enhanced_logging: true
+  
+  # 是否记录所有Agent调用
+  log_all_agent_calls: true
+  
+  # 是否记录所有工具调用
+  log_all_tool_calls: true
+  
+  # 是否记录调用参数
+  log_arguments: true
+  
+  # 是否记录调用结果
+  log_results: true
+  
+  # 敏感信息过滤
+  sensitive_fields:
+    - "password"
+    - "token"
+    - "key"
+    - "secret"

@@ -8,3 +8,4 @@ typing
 dataclasses
 PyYAML
 duckduckgo-search
+feedparser

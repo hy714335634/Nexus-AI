@@ -6,6 +6,7 @@ import os
 import boto3
 import importlib
 import json
+import time
 from typing import Dict, Any, Optional, Type, Union, List
 from utils.config_loader import get_config
 from strands.models import BedrockModel
@@ -19,8 +20,8 @@ config = get_config()
 
 boto_config = BotocoreConfig(
     retries={"max_attempts": 3, "mode": "standard"},
-    connect_timeout=10,
-    read_timeout=300
+    connect_timeout=30,
+    read_timeout=600
 )
 
 # Create a custom boto3 session
@@ -33,6 +34,9 @@ def get_bedrock_model(model_id="model_id",agent_name="template",env="production"
     bedrock_model = BedrockModel(
         model_id=config.get_bedrock_config().get(model_id),
         max_tokens=prompts_manager.get_agent(agent_name).get_environment_config(env).max_tokens,
+        temperature=prompts_manager.get_agent(agent_name).get_environment_config(env).temperature,
+        top_p=prompts_manager.get_agent(agent_name).get_environment_config(env).top_p,
+        streaming=prompts_manager.get_agent(agent_name).get_environment_config(env).streaming,
         boto_session=session,
         boto_client_config=boto_config
     )
@@ -75,7 +79,7 @@ def import_from_path(full_path: str):
 def get_builtin_tools_mapping():
     """通过工具模板提供器获取内置工具映射"""
     try:
-        from tools.system_tools.tool_template_provider import get_builtin_tools
+        from tools.system_tools.agent_build_workflow.tool_template_provider import get_builtin_tools
         
         builtin_result = get_builtin_tools()
         builtin_data = json.loads(builtin_result)
@@ -96,7 +100,7 @@ def get_builtin_tools_mapping():
 def get_system_tools_mapping():
     """通过工具模板提供器获取系统工具映射"""
     try:
-        from tools.system_tools.tool_template_provider import list_all_tools
+        from tools.system_tools.agent_build_workflow.tool_template_provider import list_all_tools
         
         all_tools_result = list_all_tools()
         all_tools_data = json.loads(all_tools_result)
@@ -169,7 +173,7 @@ def get_tool_by_path(tool_path: str):
                     module_path = f"tools.{'.'.join(parts[:-1])}"
                     function_name = parts[-1]
                     
-                    print(f"尝试导入system_tools模块: {module_path}, 函数: {function_name}")
+                    # print(f"尝试导入system_tools模块: {module_path}, 函数: {function_name}")
                     
                     # 导入模块
                     module = importlib.import_module(module_path)
@@ -269,7 +273,7 @@ def get_tool_by_name(tool_name: str):
                 print(f"Failed to import system tool {tool_name}: {e}")
         
         # 最后尝试通过工具模板提供器搜索
-        from tools.system_tools.tool_template_provider import search_tools_by_name
+        from tools.system_tools.agent_build_workflow.tool_template_provider import search_tools_by_name
         
         search_result = search_tools_by_name(tool_name)
         search_data = json.loads(search_result)
@@ -327,7 +331,7 @@ def import_tools_by_strings(tool_paths: list) -> list:
             
             if tool_obj:
                 tools.append(tool_obj)
-                print(f"✅ 成功通过路径导入工具: {tool_path}")
+                # print(f"✅ 成功通过路径导入工具: {tool_path}")
                 continue
             
             # 如果路径导入失败，尝试通过工具名称导入
@@ -335,7 +339,7 @@ def import_tools_by_strings(tool_paths: list) -> list:
             
             if tool_obj:
                 tools.append(tool_obj)
-                print(f"✅ 成功通过名称导入工具: {tool_path}")
+                # print(f"✅ 成功通过名称导入工具: {tool_path}")
             else:
                 print(f"❌ 无法导入工具: {tool_path}")
         else:
@@ -368,27 +372,7 @@ def get_agent_class_by_type(agent_type: str) -> Optional[Type]:
     return None
 
 
-def create_agent_from_config(agent_config: Dict[str, Any]) -> Optional[Agent]:
-    """根据配置字典创建 agent，支持动态导入"""
-    agent_type = agent_config.get("type", "template")
-    agent_name = agent_config.get("name", "template")
-    model_id = agent_config.get("model_id", "default")
-    env = agent_config.get("environment", "production")
-    version = agent_config.get("version", "latest")
-    
-    # 如果配置中指定了自定义的 agent 类
-    custom_agent_class = agent_config.get("agent_class")
-    if custom_agent_class:
-        AgentClass = import_from_path(custom_agent_class)
-        if AgentClass:
-            # 使用自定义的 Agent 类
-            return AgentClass(**agent_config.get("init_params", {}))
-    
-    # 否则使用默认的 bedrock agent
-    return get_bedrock_agent(model_id, agent_name, env, version)
-
-
-def create_agent_from_prompt_template(agent_name: str, env="production", version="latest", model_id="default", **agent_params) -> Optional[Agent]:
+def create_agent_from_prompt_template(agent_name: str, env="production", version="latest", model_id="default", enable_logging=False, **agent_params) -> Optional[Agent]:
     """
     直接从提示词模板创建 agent，支持多级相对路径
     
@@ -399,14 +383,18 @@ def create_agent_from_prompt_template(agent_name: str, env="production", version
                    - "system_agents_prompts/agent_build_workflow/requirements_analyzer" (多级路径)
                    - "template_prompts/template" (模板路径)
                    - "generated_agents_prompts/price_agent/price_matcher" (生成的agent路径)
+                   - "generated_agents_prompts/price_agent/price_matcher.yaml" (agent路径中.yaml默认会被移除)
         env: 环境配置 (development/production/testing)
         version: 版本号
         model_id: 模型ID
+        enable_logging: 是否启用日志跟踪
         **agent_params: 额外的agent参数
     
     Returns:
         Agent 实例或 None
     """
+    if agent_name.endswith(".yaml"):
+        agent_name = agent_name.replace(".yaml", "")
     try:
         print(f"Creating agent '{agent_name}' from prompt template...")
         
@@ -447,6 +435,9 @@ def create_agent_from_prompt_template(agent_name: str, env="production", version
                 model = BedrockModel(
                     model_id=supported_model,
                     max_tokens=agent_template.get_environment_config(env).max_tokens,
+                    temperature=agent_template.get_environment_config(env).temperature,
+                    top_p=agent_template.get_environment_config(env).top_p,
+                    streaming=agent_template.get_environment_config(env).streaming,
                     boto_session=session,
                     boto_client_config=boto_config
                 )
@@ -457,6 +448,9 @@ def create_agent_from_prompt_template(agent_name: str, env="production", version
                 model = BedrockModel(
                     model_id=default_model_id,
                     max_tokens=agent_template.get_environment_config(env).max_tokens,
+                    temperature=agent_template.get_environment_config(env).temperature,
+                    top_p=agent_template.get_environment_config(env).top_p,
+                    streaming=agent_template.get_environment_config(env).streaming,
                     boto_session=session,
                     boto_client_config=boto_config
                 )
@@ -466,6 +460,9 @@ def create_agent_from_prompt_template(agent_name: str, env="production", version
             model = BedrockModel(
                 model_id=config.get_bedrock_config().get(model_config_key),
                 max_tokens=agent_template.get_environment_config(env).max_tokens,
+                temperature=agent_template.get_environment_config(env).temperature,
+                top_p=agent_template.get_environment_config(env).top_p,
+                streaming=agent_template.get_environment_config(env).streaming,
                 boto_session=session,
                 boto_client_config=boto_config
             )
@@ -481,6 +478,21 @@ def create_agent_from_prompt_template(agent_name: str, env="production", version
         # 合并用户提供的额外参数
         agent_kwargs.update(agent_params)
         
+        # 如果启用日志跟踪，为Agent添加Strands官方Hooks
+        if enable_logging:
+            # 从agent_name中提取实际的Agent名称
+            actual_agent_name = agent_name.split('/')[-1] if '/' in agent_name else agent_name
+            
+            # 创建Agent日志Hook
+            from utils.strands_agent_logging_hook import create_agent_logging_hook
+            logging_hook = create_agent_logging_hook(actual_agent_name)
+            
+            # 将Hook添加到Agent的hooks参数中
+            if 'hooks' not in agent_kwargs:
+                agent_kwargs['hooks'] = []
+            agent_kwargs['hooks'].append(logging_hook)
+        
+        # 创建Agent
         agent = Agent(**agent_kwargs)
         
         print(f"Successfully created agent '{agent_name}' from prompt template")
@@ -537,6 +549,68 @@ def list_available_agents() -> Dict[str, list]:
             })
     
     return agents
+
+def add_logging_hook_to_agent(agent: Agent, agent_name: str) -> Agent:
+    """
+    为Agent添加日志跟踪hook
+    
+    Args:
+        agent: 原始Agent实例
+        agent_name: Agent名称
+    
+    Returns:
+        带有日志hook的Agent实例
+    """
+    try:
+        from utils.enhanced_logging import get_enhanced_logger
+        logger = get_enhanced_logger()
+        
+        # 保存原始的__call__方法
+        original_call = agent.__call__
+        
+        def logged_call(*args, **kwargs):
+            """带日志的Agent调用方法"""
+            # 添加调试信息
+            print(f"🔍 DEBUG: Hook被调用 - Agent: {agent_name}")
+            
+            # 获取输入数据
+            input_data = None
+            if args:
+                input_data = str(args[0])
+            elif kwargs:
+                input_data = str(kwargs)
+            
+            # 记录Agent开始
+            print(f"🚀 开始执行Agent: {agent_name}")
+            logger.agent_start(agent_name, input_data)
+            
+            start_time = time.time()
+            try:
+                # 执行原始Agent
+                result = original_call(*args, **kwargs)
+                
+                # 记录Agent结束
+                result_str = str(result) if result else None
+                duration = time.time() - start_time
+                print(f"🎉 Agent执行完成: {agent_name}, 耗时: {duration:.2f}秒")
+                logger.agent_end(agent_name, result_str, duration)
+                
+                return result
+                
+            except Exception as e:
+                print(f"❌ Agent执行失败: {agent_name}, 错误: {e}")
+                logger.error(agent_name, f"Agent执行失败: {e}")
+                raise
+        
+        # 替换Agent的__call__方法
+        agent.__call__ = logged_call
+        
+        return agent
+        
+    except Exception as e:
+        print(f"Warning: Failed to add logging hook to agent '{agent_name}': {e}")
+        return agent
+
 
 def list_available_agent_paths() -> List[str]:
     """

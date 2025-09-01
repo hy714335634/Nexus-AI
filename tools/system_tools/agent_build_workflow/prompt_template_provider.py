@@ -30,9 +30,23 @@ def _get_template_directory() -> str:
     prompt_template_path = strands_config.get('prompt_template_path', 'prompts/template_prompts')
     return os.path.join(prompt_template_path)
 
+def _get_system_directory() -> str:
+    """获取模板目录路径"""
+    config = get_config()
+    strands_config = config.get_strands_config()
+    prompt_template_path = strands_config.get('prompt_template_path', 'prompts/system_agents_prompts')
+    return os.path.join(prompt_template_path)
+
+def _get_generated_directory() -> str:
+    """获取模板目录路径"""
+    config = get_config()
+    strands_config = config.get_strands_config()
+    prompt_template_path = strands_config.get('prompt_template_path', 'prompts/generated_agents_prompts')
+    return os.path.join(prompt_template_path)
+
 
 @tool
-def list_prompt_templates() -> str:
+def list_prompt_templates(type="template") -> str:
     """
     列出所有可用的提示词模板
     
@@ -40,7 +54,14 @@ def list_prompt_templates() -> str:
         str: JSON格式的模板列表，包含每个模板的基本信息
     """
     try:
-        template_dir = _get_template_directory()
+        if type == "template":
+            template_dir = _get_template_directory()
+        elif type == "system":
+            template_dir = _get_system_directory()
+        elif type == "generated":
+            template_dir = _get_generated_directory()
+        else:
+            return json.dumps({"error": "无效的类型", "templates": []}, ensure_ascii=False, indent=2)
         
         if not os.path.exists(template_dir):
             return json.dumps({"error": "模板目录不存在", "templates": []}, ensure_ascii=False, indent=2)
@@ -55,8 +76,9 @@ def list_prompt_templates() -> str:
                 
                 if content and "agent" in content:
                     agent_info = content["agent"]
-                    # 计算相对路径
-                    relative_path = file_path.relative_to(Path(template_dir))
+                    # 计算相对路径 - 相对于 prompts 目录
+                    prompts_dir = Path("prompts")
+                    relative_path = file_path.relative_to(prompts_dir)
                     template_info = {
                         "filename": file_path.name,
                         "relative_path": str(relative_path),
@@ -545,23 +567,23 @@ def main():
     print("\n1. 列出所有模板:")
     print(list_prompt_templates())
     
-    print("\n2. 获取默认模板信息:")
-    print(get_prompt_template_info())
+    print("\n2. 获取default模板信息:")
+    print(get_prompt_template_info("default"))
     
-    print("\n3. 获取requirements_analyzer模板信息 (使用相对路径):")
-    print(get_prompt_template_info("test/template_requirements_analyzer"))
+    print("\n3. 获取requirements_analyzer模板信息:")
+    print(get_prompt_template_info("requirements_analyzer"))
     
     print("\n4. 验证所有模板:")
     print(validate_all_templates())
     
-    print("\n5. 获取模板结构 (使用相对路径):")
-    print(get_template_structure("test/template_requirements_analyzer"))
+    print("\n5. 获取requirements_analyzer模板结构:")
+    print(get_template_structure("requirements_analyzer"))
     
     print("\n6. 按分类搜索模板:")
     print(search_templates_by_category("analysis"))
     
-    print("\n7. 获取完整模板内容 (使用相对路径):")
-    content = get_prompt_template("test/template_requirements_analyzer")
+    print("\n7. 获取deep_research_agent模板内容:")
+    content = get_prompt_template("deep_research_agent")
     print(f"内容长度: {len(content)} 字符")
     print("前200个字符:")
     print(content[:200] + "..." if len(content) > 200 else content)
