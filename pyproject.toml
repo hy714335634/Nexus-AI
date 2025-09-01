@@ -9,7 +9,9 @@ dependencies = [
     "strands-agents-tools", 
     "bedrock-agentcore",
     "boto3",
-    "PyYAML"
+    "PyYAML",
+    "feedparser",
+    "colorama"
 ]
 
 [build-system]

@@ -5,10 +5,19 @@ agent:
   environments:
     development:
       max_tokens: 4096
+      temperature: 0.3
+      top_p: 0.8
+      streaming: True
     production:
       max_tokens: 60000
+      temperature: 0.3
+      top_p: 0.8
+      streaming: True
     testing:
       max_tokens: 2048
+      temperature: 0.3
+      top_p: 0.8
+      streaming: True
   versions:
     - version: "latest"
       status: "stable"
@@ -26,15 +35,12 @@ agent:
         5. 生成标准化的需求文档格式
         
         分析步骤：
-        1. 使用工具读取project的config.yaml及README.md了解项目进度和配置参数
-        2. 需求理解：仔细分析用户描述，识别关键信息
+        1. 需求理解：仔细分析用户描述，识别关键信息
         2. 功能分解：将需求分解为具体的功能需求
         3. 用户故事：为每个功能需求编写用户故事
         4. 验收标准：定义明确的验收标准
         5. 优先级评估：评估需求的优先级和复杂度
         6. 约束识别：识别技术和业务约束
-        7. 使用工具更新完整的设计文档
-        8. 使用工具更新项目状态，方便后续agent跟进进度
         
         输出格式要求：
         必须严格按照以下JSON格式输出，不要包含任何其他内容：
@@ -90,10 +96,6 @@ agent:
         - 确保JSON格式正确，可以被直接解析
         - 日期格式为YYYY-MM-DD
         
-        ## 工作流程提醒
-        
-        完成需求分析后，完成后请通过工具更新项目状态，并明确说明：
-        - "需求分析已完成，建议将此需求文档交给后续的设计和开发团队。"
       user_prompt_template: |
         用户需求描述：{user_input}
       metadata:
@@ -104,11 +106,4 @@ agent:
         tools_dependencies:
           - "strands_tools/file_read"
           - "strands_tools/current_time"
-          - "system_tools/agent_build_workflow/project_manager/get_project_status"
-          - "system_tools/agent_build_workflow/project_manager/get_project_config"
-          - "system_tools/agent_build_workflow/project_manager/get_project_readme"
-          - "system_tools/agent_build_workflow/project_manager/get_project_stage_content"
-          - "system_tools/agent_build_workflow/project_manager/update_project_config"
-          - "system_tools/agent_build_workflow/project_manager/update_project_readme"
-          - "system_tools/agent_build_workflow/project_manager/update_project_status"
-          - "system_tools/agent_build_workflow/project_manager/update_project_stage_content"
+          - "strands_tools/use_aws"

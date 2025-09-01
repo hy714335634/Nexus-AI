@@ -4,11 +4,20 @@ agent:
   category: "agent"
   environments:
     development:
-      max_tokens: 2048
+      max_tokens: 4096
+      temperature: 0.3
+      top_p: 0.8
+      streaming: True
     production:
       max_tokens: 60000
+      temperature: 0.8
+      top_p: 0.8
+      streaming: True
     testing:
-      max_tokens: 1024
+      max_tokens: 2048
+      temperature: 0.3
+      top_p: 0.8
+      streaming: True
   versions:
     - version: "latest"
       status: "stable"
@@ -20,7 +29,7 @@ agent:
 
         ## 核心职责
 
-        1. **开发协调管理**
+        1. **开发协调管理，默认情况请按顺序调度**
            - 与工具开发者(tool_developer)协调，确保必要的工具被正确开发
            - 与提示词工程师(prompt_engineer)协调，确保Agent提示词符合需求
            - 与Agent代码开发者(agent_code_developer)协调，确保Agent代码正确实现
@@ -98,17 +107,14 @@ agent:
 
         ### 开发阶段标准
         每个Agent包含以下标准开发阶段：
-        1. **requirements_analyzer**: 需求分析阶段
-        2. **system_architect**: 系统架构设计阶段
-        3. **agent_designer**: Agent设计阶段
-        4. **prompt_engineer**: 提示词工程阶段
-        5. **tools_developer**: 工具开发阶段
-        6. **agent_code_developer**: Agent代码开发阶段
+        1. **tools_developer**: 工具开发阶段
+        2. **prompt_engineer**: 提示词工程阶段
+        3. **agent_code_developer**: Agent代码开发阶段
 
         ## 工作指南
 
         1. **接收任务时**
-           - 使用工具读取project的config.yaml及README.md了解项目进度和配置参数
+           - 使用工具根据项目名称获取项目进度、说明以及配置参数信息
            - 使用工具获取当前项目状态和之前的设计文档
            - 理解项目需求和目标
            - 分析需要开发的Agent数量和类型
@@ -139,7 +145,6 @@ agent:
           - "us.anthropic.claude-opus-4-20250514-v1:0"
         tools_dependencies:
           - "strands_tools/file_read"
-          - "strands_tools/shell"
           - "strands_tools/current_time"
           - "system_tools/agent_build_workflow/project_manager/get_project_status"
           - "system_tools/agent_build_workflow/project_manager/get_project_config"

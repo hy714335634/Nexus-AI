@@ -17,7 +17,6 @@ import yaml
 from typing import Dict, List, Any, Optional
 from strands import tool
 
-
 @tool
 def get_all_templates() -> str:
     """
@@ -44,8 +43,10 @@ def get_all_templates() -> str:
                 "id": template_id,
                 "name": template_info.get("name", ""),
                 "description": template_info.get("description", ""),
-                "dependencies": template_info.get("dependencies", []),
+                "agent_dependencies": template_info.get("agent_dependencies", []),
+                "tools_dependencies": template_info.get("tools_dependencies", []),
                 "path": template_info.get("path", ""),
+                "prompt_template": template_info.get("prompt_template", ""),
                 "tags": template_info.get("tags", [])
             })
         
@@ -68,7 +69,7 @@ def search_templates_by_tags(tags: List[str]) -> str:
         str: JSON格式的匹配模板信息
     """
     try:
-        config_path = os.path.join("config", "agent_templates_config.yaml")
+        config_path = os.path.join("agents/template_agents", "agent_templates_config.yaml")
         
         if not os.path.exists(config_path):
             return "错误：模板配置文件不存在"
@@ -89,8 +90,10 @@ def search_templates_by_tags(tags: List[str]) -> str:
                     "id": template_id,
                     "name": template_info.get("name", ""),
                     "description": template_info.get("description", ""),
-                    "dependencies": template_info.get("dependencies", []),
+                    "agent_dependencies": template_info.get("agent_dependencies", []),
+                    "tools_dependencies": template_info.get("tools_dependencies", []),
                     "path": template_info.get("path", ""),
+                    "prompt_template": template_info.get("prompt_template", ""),
                     "tags": template_info.get("tags", [])
                 })
         
@@ -135,8 +138,10 @@ def search_templates_by_description(keywords: List[str]) -> str:
                     "id": template_id,
                     "name": template_info.get("name", ""),
                     "description": template_info.get("description", ""),
-                    "dependencies": template_info.get("dependencies", []),
+                    "agent_dependencies": template_info.get("agent_dependencies", []),
+                    "tools_dependencies": template_info.get("tools_dependencies", []),
                     "path": template_info.get("path", ""),
+                    "prompt_template": template_info.get("prompt_template", ""),
                     "tags": template_info.get("tags", [])
                 })
         
@@ -177,8 +182,10 @@ def get_template_by_id(template_id: str) -> str:
             "id": template_id,
             "name": template_info.get("name", ""),
             "description": template_info.get("description", ""),
-            "dependencies": template_info.get("dependencies", []),
+            "agent_dependencies": template_info.get("agent_dependencies", []),
+            "tools_dependencies": template_info.get("tools_dependencies", []),
             "path": template_info.get("path", ""),
+            "prompt_template": template_info.get("prompt_template", ""),
             "tags": template_info.get("tags", [])
         }
         

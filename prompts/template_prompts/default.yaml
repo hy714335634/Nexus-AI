@@ -4,11 +4,20 @@ agent:
   category: "assistant"
   environments:
     development:
-      max_tokens: 2048
-    production:
       max_tokens: 4096
+      temperature: 0.3
+      top_p: 0.8
+      streaming: True
+    production:
+      max_tokens: 60000
+      temperature: 0.3
+      top_p: 0.8
+      streaming: True
     testing:
-      max_tokens: 1024
+      max_tokens: 2048
+      temperature: 0.3
+      top_p: 0.8
+      streaming: True
   versions:
     - version: "latest"
       status: "stable"
@@ -37,6 +46,7 @@ agent:
         tools_dependencies:
           - "strands_tools/shell"
           - "strands_tools/use_aws"
+          - "strands_tools/think"
           - "strands_tools/current_time"
           - "system_tools/agent_build_workflow/tool_template_provider/list_all_tools"
           - "system_tools/agent_build_workflow/tool_template_provider/get_builtin_tools"

@@ -2,71 +2,179 @@
 # 用于管理所有可用的Agent模板，包含描述信息和路径
 
 templates:
-  # 单Agent模板 - 本地工具
-  single_agent_with_local_tool:
-    name: "单Agent本地工具模板"
-    description: "集成Bedrock AgentCore的单Agent模板，支持自定义工具函数、计算器工具和Bedrock Claude模型。包含完整的应用入口点配置，适用于需要本地工具扩展和AWS Bedrock集成的生产环境"
-    dependencies:
-      - "strands"
-      - "strands_tools"
-    path: "agents/template_agents/single_agent/template_requirements_analyzer.py"
+  # 需求分析师模板 - 文档处理专家
+  requirements_analyzer:
+    name: "需求分析文档生成器"
+    description: "单Agent模板，专业的需求分析师，将自然语言需求转换为标准化JSON格式需求文档。集成文件读取、时间获取、AWS服务等系统工具，支持业务需求分析、用户故事生成、验收标准定义。输出结构化需求文档，适用于软件开发、产品设计、项目管理等场景"
+    agent_dependencies: []
+    tools_dependencies:
+      - "strands_tools/file_read"
+      - "strands_tools/current_time"
+      - "strands_tools/use_aws"
+    path: "agents/template_agents/single_agent/requirements_analyzer.py"
+    prompt_template: "template_prompts/template_requirements_analyzer"
     tags:
       - "single_agent"
-      - "strands_tools"
-      - "bedrock"
-      - "production"
+      - "system_tools"
+      - "document_processing"
+      - "requirements_analysis"
+      - "json_output"
+      - "aws_integration"
+      - "structured_output"
 
-  # AWS资源查询Agent模板
-  aws_resource_query_agent:
-    name: "AWS资源查询Agent"
-    description: "专业的AWS资源查询专家，基于AWS工具与AWS服务进行对接，专门用于回答用户关于AWS资源查询、价格、配置、成本分析等问题。支持EC2实例管理、价格查询、成本计算、区域管理等功能，适用于AWS云资源管理和成本优化场景。具备完整的AWS服务集成能力，能够提供实时的资源信息和价格数据，帮助用户做出最优的云资源配置决策。"
-    dependencies:
-      - "strands"
-      - "boto3"
-      - "aws_tools"
-    path: "agents/template_agents/single_agent/aws_resource_query_agent.py"
+  # 文档处理Agent模板 - 文本分析专家
+  document_processor_agent:
+    name: "智能文档处理器"
+    description: "单Agent模板，专业的文档处理专家，能够处理各种格式的文档并进行智能分析。集成文件读取、文本处理、格式转换等工具，支持文档解析、内容提取、格式转换、文本分析等功能。适用于文档管理、内容分析、格式转换等场景"
+    agent_dependencies: []
+    tools_dependencies:
+      - "strands_tools/file_read"
+      - "strands_tools/file_write"
+      - "strands_tools/current_time"
+      - "template_tools/common/text_processor/text_analyzer"
+      - "template_tools/common/text_processor/format_converter"
+    path: "agents/template_agents/single_agent/document_processor_agent.py"
+    prompt_template: "template_prompts/document_processor_agent"
     tags:
       - "single_agent"
-      - "aws"
-      - "ec2"
-      - "pricing"
-      - "resource_query"
-      - "cost_analysis"
-      - "production"
+      - "document_processing"
+      - "text_analysis"
+      - "format_conversion"
+      - "content_extraction"
+      - "file_operations"
 
-  # 深度研究Agent模板
-  deep_research_agent:
-    name: "深度研究Agent"
-    description: "专业的深度研究专家，基于boto3和request实现深度研究，专门用于技术研究、市场分析、趋势调研、数据收集等深度研究任务。具备多源数据收集能力，支持HTTP工具、API调用等方式获取信息，能够进行深入的数据分析和综合，识别技术趋势和市场变化。适用于技术调研、竞品分析、市场研究、趋势预测等需要深度洞察的场景。能够生成高质量的研究报告和具体的行动建议，并建立持续跟踪的研究框架。"
-    dependencies:
-      - "strands"
-      - "boto3"
-      - "requests"
-      - "research_tools"
-    path: "agents/template_agents/single_agent/deep_research_agent.py"
+  # 数据分析Agent模板 - 数据处理专家
+  data_analyzer_agent:
+    name: "智能数据分析师"
+    description: "单Agent模板，专业的数据分析专家，能够处理各种数据格式并进行统计分析。集成数据读取、清洗、分析、可视化等工具，支持数据预处理、统计分析、图表生成、报告输出等功能。适用于数据分析、报表生成、数据可视化等场景"
+    agent_dependencies: []
+    tools_dependencies:
+      - "strands_tools/file_read"
+      - "strands_tools/file_write"
+      - "strands_tools/current_time"
+      - "template_tools/data/data_processor/data_cleaner"
+      - "template_tools/data/data_processor/statistical_analyzer"
+      - "template_tools/data/visualization/chart_generator"
+    path: "agents/template_agents/single_agent/data_analyzer_agent.py"
+    prompt_template: "template_prompts/data_analyzer_agent"
     tags:
       - "single_agent"
-      - "research"
-      - "analysis"
-      - "data_collection"
-      - "trend_analysis"
-      - "market_research"
-      - "production"
+      - "data_analysis"
+      - "statistical_analysis"
+      - "data_visualization"
+      - "report_generation"
+      - "data_processing"
 
-  # 内容生成与格式转换Agent模板
-  content_generation_agent:
-    name: "内容生成与格式转换Agent"
-    description: "专业的内容生成与格式转换专家，基于特定场景和要求，帮助客户进行内容生成、格式转换、文档优化、模板应用等任务。支持多种文档格式的生成和转换，包括技术文档、商业文档、报告等，能够在JSON、XML、CSV、Markdown等格式之间进行转换。具备模板应用能力，能够应用预定义的格式规范，优化内容的可读性、结构和表达。适用于文档生成、报告编写、格式标准化、内容优化等需要专业内容处理的场景。能够提供格式验证、错误检查和优化建议，确保输出内容的质量和准确性。"
-    dependencies:
-      - "strands"
-      - "content_tools"
-      - "format_tools"
-    path: "agents/template_agents/single_agent/content_generation_agent.py"
+  # API集成Agent模板 - 接口调用专家
+  api_integration_agent:
+    name: "API集成专家"
+    description: "单Agent模板，专业的API集成专家，能够与各种外部服务进行集成。集成HTTP客户端、认证管理、数据转换等工具，支持API调用、数据同步、格式转换、错误处理等功能。适用于系统集成、数据同步、服务调用等场景"
+    agent_dependencies: []
+    tools_dependencies:
+      - "strands_tools/current_time"
+      - "template_tools/network/http_client/api_client"
+      - "template_tools/network/http_client/auth_manager"
+      - "template_tools/common/data_converter/json_converter"
+      - "template_tools/common/data_converter/xml_converter"
+    path: "agents/template_agents/single_agent/api_integration_agent.py"
+    prompt_template: "template_prompts/api_integration_agent"
+    tags:
+      - "single_agent"
+      - "api_integration"
+      - "http_client"
+      - "data_sync"
+      - "service_integration"
+      - "external_services"
+
+  # 内容生成Agent模板 - 创意生成专家
+  content_generator_agent:
+    name: "智能内容生成器"
+    description: "单Agent模板，专业的内容生成专家，能够根据需求生成各种类型的内容。集成文本生成、模板管理、内容优化等工具，支持文章写作、报告生成、创意内容、营销文案等功能。适用于内容创作、文案生成、报告编写等场景"
+    agent_dependencies: []
+    tools_dependencies:
+      - "strands_tools/file_write"
+      - "strands_tools/current_time"
+      - "template_tools/common/content_generator/text_generator"
+      - "template_tools/common/content_generator/template_manager"
+      - "template_tools/common/content_generator/content_optimizer"
+    path: "agents/template_agents/single_agent/content_generator_agent.py"
+    prompt_template: "template_prompts/content_generator_agent"
     tags:
       - "single_agent"
       - "content_generation"
-      - "format_conversion"
-      - "documentation"
-      - "templates"
-      - "content_optimization"
-      - "production"
+      - "creative_writing"
+      - "report_generation"
+      - "marketing_content"
+      - "text_creation"
+
+  # 任务调度Agent模板 - 工作流管理专家
+  task_scheduler_agent:
+    name: "智能任务调度器"
+    description: "单Agent模板，专业的任务调度专家，能够管理和执行各种任务。集成任务管理、调度算法、状态跟踪等工具，支持任务创建、调度执行、状态监控、结果收集等功能。适用于工作流管理、任务自动化、流程控制等场景"
+    agent_dependencies: []
+    tools_dependencies:
+      - "strands_tools/current_time"
+      - "strands_tools/cron"
+      - "template_tools/common/task_manager/task_scheduler"
+      - "template_tools/common/task_manager/status_tracker"
+      - "template_tools/common/task_manager/result_collector"
+    path: "agents/template_agents/single_agent/task_scheduler_agent.py"
+    prompt_template: "template_prompts/task_scheduler_agent"
+    tags:
+      - "single_agent"
+      - "task_scheduling"
+      - "workflow_management"
+      - "automation"
+      - "process_control"
+      - "task_monitoring"
+
+  # 监控告警Agent模板 - 系统监控专家
+  system_monitor_agent:
+    name: "系统监控专家"
+    description: "单Agent模板，专业的系统监控专家，能够监控系统状态并发出告警。集成监控工具、告警管理、日志分析等工具，支持性能监控、异常检测、告警通知、日志分析等功能。适用于系统运维、性能监控、故障检测等场景"
+    agent_dependencies: []
+    tools_dependencies:
+      - "strands_tools/current_time"
+      - "strands_tools/environment"
+      - "template_tools/common/monitor/system_monitor"
+      - "template_tools/common/monitor/alert_manager"
+      - "template_tools/common/monitor/log_analyzer"
+    path: "agents/template_agents/single_agent/system_monitor_agent.py"
+    prompt_template: "template_prompts/system_monitor_agent"
+    tags:
+      - "single_agent"
+      - "system_monitoring"
+      - "performance_tracking"
+      - "alert_management"
+      - "log_analysis"
+      - "fault_detection"
+
+  # 深度研究Agent模板 - 研究分析专家
+  deep_research_agent:
+    name: "深度研究专家"
+    description: "单Agent模板，专业的深度研究专家，能够进行真实的互联网查询和信息收集、分析和综合。集成真实网络搜索、数据分析、报告生成、趋势预测等工具，支持真实多源信息收集、深度分析、知识综合、报告生成、趋势预测等功能。适用于市场研究、技术分析、行业调研、学术研究等场景，所有分析都基于真实互联网数据"
+    agent_dependencies: []
+    tools_dependencies:
+      - "strands_tools/http_request"
+      - "strands_tools/rss"
+      - "strands_tools/file_read"
+      - "strands_tools/file_write"
+      - "strands_tools/current_time"
+      - "template_tools/common/research_tools/information_collector"
+      - "template_tools/common/research_tools/web_search_enhanced"
+      - "template_tools/common/research_tools/data_analyzer"
+      - "template_tools/common/research_tools/report_generator"
+      - "template_tools/common/research_tools/trend_predictor"
+    path: "agents/template_agents/single_agent/deep_research_agent.py"
+    prompt_template: "template_prompts/deep_research_agent"
+    tags:
+      - "single_agent"
+      - "research_analysis"
+      - "information_collection"
+      - "data_analysis"
+      - "report_generation"
+      - "trend_prediction"
+      - "market_research"
+      - "academic_research"
+      - "real_data"
+      - "web_search"
