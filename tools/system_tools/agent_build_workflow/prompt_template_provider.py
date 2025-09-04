@@ -77,11 +77,9 @@ def list_prompt_templates(type="template") -> str:
                 if content and "agent" in content:
                     agent_info = content["agent"]
                     # 计算相对路径 - 相对于 prompts 目录
-                    prompts_dir = Path("prompts")
-                    relative_path = file_path.relative_to(prompts_dir)
                     template_info = {
                         "filename": file_path.name,
-                        "relative_path": str(relative_path),
+                        "relative_path": str(file_path),
                         "name": agent_info.get("name", file_path.stem),
                         "description": agent_info.get("description", "无描述"),
                         "category": agent_info.get("category", "未分类"),
@@ -123,17 +121,17 @@ def get_prompt_template(template_name: Optional[str] = None) -> str:
     获取指定提示词模板的完整内容
     
     Args:
-        template_name: 模板名称或相对路径（不含.yaml扩展名），如果为空则返回template.yaml
+        template_name: 模板名称或相对路径（若无.yaml扩展名，则自动添加），如果为空则返回template.yaml
                       支持格式：
                       - "template" (直接文件名)
-                      - "test/template_requirements_analyzer" (相对路径)
+                      - "api_integration_agent" (相对文件名)
+                      - "prompts/template_prompts/api_integration_agent" (完整相对路径)
+                      - "prompts/system_agents_prompts/multimodal_analysis/multimodal_analyzer_agent.yaml" (完整相对路径)
     
     Returns:
         str: 指定模板文件的完整内容
     """
     try:
-        template_dir = _get_template_directory()
-        
         # 如果没有指定模板名称，默认使用template.yaml
         if not template_name:
             template_name = "template"
@@ -142,11 +140,17 @@ def get_prompt_template(template_name: Optional[str] = None) -> str:
         if not template_name.endswith('.yaml'):
             template_name += '.yaml'
         
-        # 支持相对路径
-        template_path = os.path.join(template_dir, template_name)
+        # 检查是否包含完整路径
+        if template_name.startswith('prompts/'):
+            # 如果是完整相对路径，直接使用（相对于项目根目录）
+            template_path = template_name
+        else:
+            # 如果是相对文件名，使用默认模板目录
+            template_dir = _get_template_directory()
+            template_path = os.path.join(template_dir, template_name)
         
         if not os.path.exists(template_path):
-            return f"错误：提示词模板文件 '{template_name}' 不存在"
+            return f"错误：提示词模板文件 '{template_name}' 不存在，尝试的路径: {template_path}"
         
         with open(template_path, 'r', encoding='utf-8') as f:
             content = f.read()
@@ -233,17 +237,17 @@ def get_prompt_template_info(template_name: Optional[str] = None) -> str:
     获取提示词模板的基本信息（不包含完整内容）
     
     Args:
-        template_name: 模板名称或相对路径（不含.yaml扩展名），如果为空则返回template.yaml的信息
+        template_name: 模板名称或相对路径（若无.yaml扩展名，则自动添加），如果为空则返回template.yaml的信息
                       支持格式：
                       - "template" (直接文件名)
-                      - "test/template_requirements_analyzer" (相对路径)
+                      - "api_integration_agent" (相对文件名)
+                      - "prompts/template_prompts/api_integration_agent" (完整相对路径)
+                      - "prompts/system_agents_prompts/multimodal_analysis/multimodal_analyzer_agent.yaml" (完整相对路径)
     
     Returns:
         str: 模板的基本信息，包括路径、大小等
     """
     try:
-        template_dir = _get_template_directory()
-        
         # 如果没有指定模板名称，默认使用template.yaml
         if not template_name:
             template_name = "template"
@@ -252,11 +256,18 @@ def get_prompt_template_info(template_name: Optional[str] = None) -> str:
         if not template_name.endswith('.yaml'):
             template_name += '.yaml'
         
-        # 支持相对路径
-        template_path = os.path.join(template_dir, template_name)
+        # 检查是否包含完整路径
+        if template_name.startswith('prompts/'):
+            # 如果是完整相对路径，直接使用（相对于项目根目录）
+            template_path = template_name
+            template_dir = _get_template_directory()  # 用于计算相对路径
+        else:
+            # 如果是相对文件名，使用默认模板目录
+            template_dir = _get_template_directory()
+            template_path = os.path.join(template_dir, template_name)
         
         if not os.path.exists(template_path):
-            return f"错误：提示词模板文件 '{template_name}' 不存在"
+            return f"错误：提示词模板文件 '{template_name}' 不存在，尝试的路径: {template_path}"
         
         # 获取文件信息
         file_size = os.path.getsize(template_path)
@@ -298,14 +309,14 @@ def validate_prompt_template(template_name: Optional[str] = None) -> str:
         template_name: 模板名称或相对路径（不含.yaml扩展名），如果为空则验证template.yaml
                       支持格式：
                       - "template" (直接文件名)
-                      - "test/template_requirements_analyzer" (相对路径)
+                      - "api_integration_agent" (相对文件名)
+                      - "prompts/template_prompts/api_integration_agent" (完整相对路径)
+                      - "prompts/system_agents_prompts/multimodal_analysis/multimodal_analyzer_agent.yaml" (完整相对路径)
     
     Returns:
         str: JSON格式的验证结果信息
     """
     try:
-        template_dir = _get_template_directory()
-        
         # 如果没有指定模板名称，默认使用template.yaml
         if not template_name:
             template_name = "template"
@@ -314,14 +325,21 @@ def validate_prompt_template(template_name: Optional[str] = None) -> str:
         if not template_name.endswith('.yaml'):
             template_name += '.yaml'
         
-        # 支持相对路径
-        template_path = os.path.join(template_dir, template_name)
+        # 检查是否包含完整路径
+        if template_name.startswith('prompts/'):
+            # 如果是完整相对路径，直接使用（相对于项目根目录）
+            template_path = template_name
+            template_dir = _get_template_directory()  # 用于计算相对路径
+        else:
+            # 如果是相对文件名，使用默认模板目录
+            template_dir = _get_template_directory()
+            template_path = os.path.join(template_dir, template_name)
         
         if not os.path.exists(template_path):
             return json.dumps({
                 "valid": False,
                 "template_name": template_name,
-                "relative_path": os.path.relpath(template_path, template_dir) if template_dir else template_name,
+                "relative_path": template_name,  # 使用原始输入作为相对路径
                 "error": "模板文件不存在",
                 "checks": {}
             }, ensure_ascii=False, indent=2)
@@ -330,14 +348,11 @@ def validate_prompt_template(template_name: Optional[str] = None) -> str:
         with open(template_path, 'r', encoding='utf-8') as f:
             content = yaml.safe_load(f)
         
-        # 计算相对路径
-        relative_path = os.path.relpath(template_path, template_dir)
-        
         # 基本结构验证
         validation_results = {
             "valid": True,
             "template_name": template_name,
-            "relative_path": relative_path,
+            "relative_path": template_name,  # 默认使用template_name
             "checks": {
                 "file_exists": True,
                 "yaml_parseable": True,
@@ -348,6 +363,19 @@ def validate_prompt_template(template_name: Optional[str] = None) -> str:
                 "has_environments": False
             }
         }
+        
+        # 如果template_name是简单文件名，计算完整的相对路径
+        if not template_name.startswith('prompts/'):
+            try:
+                # 计算相对于项目根目录的完整相对路径
+                project_root = Path.cwd()
+                # 使用绝对路径来计算相对路径
+                absolute_path = Path(template_path).resolve()
+                full_relative_path = absolute_path.relative_to(project_root)
+                validation_results["relative_path"] = str(full_relative_path)
+            except ValueError:
+                # 如果计算失败，保持原样
+                pass
         
         if content and "agent" in content:
             agent_section = content["agent"]
@@ -366,6 +394,7 @@ def validate_prompt_template(template_name: Optional[str] = None) -> str:
         return json.dumps({
             "valid": False,
             "template_name": template_name,
+            "relative_path": template_name,  # 使用原始输入作为相对路径
             "error": f"YAML格式错误: {str(e)}",
             "checks": {"yaml_parseable": False}
         }, ensure_ascii=False, indent=2)
@@ -373,6 +402,7 @@ def validate_prompt_template(template_name: Optional[str] = None) -> str:
         return json.dumps({
             "valid": False,
             "template_name": template_name,
+            "relative_path": template_name,  # 使用原始输入作为相对路径
             "error": f"验证模板时出现错误: {str(e)}",
             "checks": {}
         }, ensure_ascii=False, indent=2)
@@ -399,9 +429,19 @@ def validate_all_templates() -> str:
         
         # 递归遍历目录中的所有YAML文件（包括子目录）
         for file_path in Path(template_dir).rglob("*.yaml"):
-            # 使用相对路径作为模板名称（不含.yaml扩展名）
-            relative_path = file_path.relative_to(Path(template_dir))
-            template_name = str(relative_path).replace('.yaml', '')
+            # 计算相对于项目根目录的完整相对路径
+            project_root = Path.cwd()
+            try:
+                full_relative_path = file_path.relative_to(project_root)
+                relative_path = str(full_relative_path)
+            except ValueError:
+                # 如果文件不在项目根目录的子路径中，使用相对于模板目录的路径
+                relative_to_template = file_path.relative_to(Path(template_dir))
+                relative_path = f"prompts/template_prompts/{relative_to_template}"
+            
+            # template_name 保持为文件名
+            template_name = file_path.name
+            
             validation_result = validate_prompt_template(template_name)
             
             # 解析验证结果并添加到结果列表
@@ -412,6 +452,7 @@ def validate_all_templates() -> str:
                 results.append({
                     "valid": False,
                     "template_name": template_name,
+                    "relative_path": template_name,
                     "error": "验证结果解析失败",
                     "checks": {}
                 })
@@ -438,17 +479,17 @@ def get_template_structure(template_name: Optional[str] = None) -> str:
     获取提示词模板的结构概览
     
     Args:
-        template_name: 模板名称或相对路径（不含.yaml扩展名），如果为空则获取template.yaml的结构
+        template_name: 模板名称或相对路径（若无.yaml扩展名，则自动添加），如果为空则获取template.yaml的结构
                       支持格式：
                       - "template" (直接文件名)
-                      - "test/template_requirements_analyzer" (相对路径)
+                      - "api_integration_agent" (相对文件名)
+                      - "prompts/template_prompts/api_integration_agent" (完整相对路径)
+                      - "prompts/system_agents_prompts/multimodal_analysis/multimodal_analyzer_agent.yaml" (完整相对路径)
     
     Returns:
         str: 模板结构的简要说明
     """
     try:
-        template_dir = _get_template_directory()
-        
         # 如果没有指定模板名称，默认使用template.yaml
         if not template_name:
             template_name = "template"
@@ -457,8 +498,15 @@ def get_template_structure(template_name: Optional[str] = None) -> str:
         if not template_name.endswith('.yaml'):
             template_name += '.yaml'
         
-        # 支持相对路径
-        template_path = os.path.join(template_dir, template_name)
+        # 检查是否包含完整路径
+        if template_name.startswith('prompts/'):
+            # 如果是完整相对路径，直接使用
+            template_path = template_name
+            template_dir = _get_template_directory()  # 用于计算相对路径
+        else:
+            # 如果是相对文件名，使用默认模板目录
+            template_dir = _get_template_directory()
+            template_path = os.path.join(template_dir, template_name)
         
         if not os.path.exists(template_path):
             return f"错误：提示词模板文件 '{template_name}' 不存在"
@@ -577,13 +625,13 @@ def main():
     print(validate_all_templates())
     
     print("\n5. 获取requirements_analyzer模板结构:")
-    print(get_template_structure("requirements_analyzer"))
+    print(get_template_structure("prompts/template_prompts/requirements_analyzer.yaml"))
     
     print("\n6. 按分类搜索模板:")
     print(search_templates_by_category("analysis"))
     
     print("\n7. 获取deep_research_agent模板内容:")
-    content = get_prompt_template("deep_research_agent")
+    content = get_prompt_template("prompts/template_prompts/api_integration_agent.yaml")
     print(f"内容长度: {len(content)} 字符")
     print("前200个字符:")
     print(content[:200] + "..." if len(content) > 200 else content)

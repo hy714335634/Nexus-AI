@@ -28,7 +28,7 @@ agent_params = {
 
 # 使用 agent_factory 创建 agent
 multimodal_analyzer = create_agent_from_prompt_template(
-    agent_name="template_prompts/multimodal_analyzer_agent", 
+    agent_name="system_agents_prompts/multimodal_analysis/multimodal_analyzer_agent", 
     **agent_params
 )
 

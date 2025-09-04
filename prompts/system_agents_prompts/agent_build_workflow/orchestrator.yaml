@@ -68,6 +68,27 @@ agent:
         6. Agent代码开发者：生成所有Agent代码
         7. 开发管理器：验证和总结
 
+        ## 项目处理逻辑
+
+        ### 新项目处理流程
+        当意图识别结果为"new_project"时：
+        1. 执行项目初始化（创建目录、配置文件等）
+        2. 将项目上下文传递给需求分析器
+        3. 结束orchestrator环节，交接给下游agent
+
+        ### 已存在项目处理流程
+        当意图识别结果为"existing_project"时：
+        1. **获取项目现有状态和配置**
+        2. **根据项目当前进度确定下一个需要执行的agent**
+        3. **将项目上下文传递给下一个agent**
+        4. **结束orchestrator环节，不执行其他工作**
+
+        ### 不明确需求处理流程
+        当意图识别结果为"unclear"时：
+        1. 与用户进一步交互澄清需求
+        2. 提供现有项目列表供用户选择
+        3. 确认是否创建新项目
+
         ## 整体工作环境及目录结构
 
         ### Nexus-AI平台架构
@@ -198,17 +219,17 @@ agent:
       user_prompt_template: |
         用户请求：{user_input}
 
-        请基于此请求初始化一个新的AI智能体项目：
+        请基于意图识别结果处理用户请求：
 
-        1. **生成项目名称**：创建一个合适的snake_case格式的英文项目名称
-        2. **创建项目结构**：建立项目目录和必要文件
-        3. **协调工作流**：将任务交接给相应的智能体进行需求分析和代码生成
+        1. **检查项目状态**：根据意图识别结果判断项目是否存在
+        2. **项目处理**：
+           - 如果项目已存在：获取当前项目状态，从下一个未完成阶段继续开发
+           - 如果项目不存在：创建新项目，从需求分析开始完整流程
+        3. **工作流协调**：将任务交接给相应的智能体
 
         要求：
-        - 项目名称必须具有描述性且专业
-        - 仅使用小写字母、数字和下划线
-        - 创建所有必要的配置文件
-        - 确保向后续智能体正确传递项目上下文
+        - 根据项目存在性选择正确的处理流程
+        - 确保项目上下文正确传递给后续智能体
         - 在整个过程中提供清晰的状态更新
       metadata:
         tags: ["agent_design", "specification", "architecture"]
@@ -216,10 +237,13 @@ agent:
           - "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
           - "us.anthropic.claude-opus-4-20250514-v1:0"
         tools_dependencies:
-          - "strands_tools/shell"
           - "strands_tools/file_read"
           - "strands_tools/current_time"
           - "system_tools/agent_build_workflow/project_manager/project_init"
+          - "system_tools/agent_build_workflow/project_manager/get_project_from_stats"
+          - "system_tools/agent_build_workflow/project_manager/get_project_status"
+          - "system_tools/agent_build_workflow/project_manager/get_project_config"
+          - "system_tools/agent_build_workflow/project_manager/get_project_stage_content"
           - "system_tools/agent_build_workflow/project_manager/update_project_config"
           - "system_tools/agent_build_workflow/project_manager/update_project_readme"
           - "system_tools/agent_build_workflow/project_manager/update_project_status"
@@ -383,17 +407,17 @@ agent:
       user_prompt_template: |
         用户请求：{user_input}
 
-        请基于此请求初始化一个新的AI智能体项目：
+        请基于意图识别结果处理用户请求：
 
-        1. **生成项目名称**：创建一个合适的snake_case格式的英文项目名称
-        2. **创建项目结构**：建立项目目录和必要文件
-        3. **协调工作流**：将任务交接给相应的智能体进行需求分析和代码生成
+        1. **检查项目状态**：根据意图识别结果判断项目是否存在
+        2. **项目处理**：
+           - 如果项目已存在：获取当前项目状态，从下一个未完成阶段继续开发
+           - 如果项目不存在：创建新项目，从需求分析开始完整流程
+        3. **工作流协调**：将任务交接给相应的智能体
 
         要求：
-        - 项目名称必须具有描述性且专业
-        - 仅使用小写字母、数字和下划线
-        - 创建所有必要的配置文件
-        - 确保向后续智能体正确传递项目上下文
+        - 根据项目存在性选择正确的处理流程
+        - 确保项目上下文正确传递给后续智能体
         - 在整个过程中提供清晰的状态更新
       metadata:
         tags: ["agent_design", "specification", "architecture"]

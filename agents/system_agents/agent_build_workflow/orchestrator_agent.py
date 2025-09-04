@@ -95,20 +95,20 @@ def create_build_workflow():
     builder.add_node(requirements_analyzer, "requirements_analyzer")
     builder.add_node(system_architect, "system_architect")
     builder.add_node(agent_designer, "agent_designer")
-    builder.add_node(prompt_engineer, "prompt_engineer")
-    builder.add_node(tool_developer, "tool_developer")
-    builder.add_node(agent_code_developer, "agent_code_developer")
-    builder.add_node(agent_developer_manager, "agent_developer_manager")
+    # builder.add_node(prompt_engineer, "prompt_engineer")
+    # builder.add_node(tool_developer, "tool_developer")
+    # builder.add_node(agent_code_developer, "agent_code_developer")
+    # builder.add_node(agent_developer_manager, "agent_developer_manager")
     
     # 添加边 - 定义工作流顺序
     print("🔗 配置工作流连接...")
     builder.add_edge("orchestrator", "requirements_analyzer")
     builder.add_edge("requirements_analyzer", "system_architect")
     builder.add_edge("system_architect", "agent_designer")
-    builder.add_edge("agent_designer", "tool_developer")
-    builder.add_edge("tool_developer", "prompt_engineer")
-    builder.add_edge("prompt_engineer", "agent_code_developer")
-    builder.add_edge("agent_code_developer", "agent_developer_manager")
+    # builder.add_edge("agent_designer", "tool_developer")
+    # builder.add_edge("tool_developer", "prompt_engineer")
+    # builder.add_edge("prompt_engineer", "agent_code_developer")
+    # builder.add_edge("agent_code_developer", "agent_developer_manager")
     
     # 构建图
     graph = builder.build()
@@ -118,11 +118,6 @@ def create_build_workflow():
 
 
 def run_workflow(user_input: str):
-    """运行工作流"""
-    print(f"\n{'='*80}")
-    print(f"🚀 [WORKFLOW] 开始执行工作流")
-    print(f"{'='*80}")
-    
     # 第一步：分析用户意图
     intent_result = analyze_user_intent(user_input)
 

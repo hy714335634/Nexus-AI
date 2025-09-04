@@ -8,6 +8,7 @@ wheels/
 projects/*
 agents/generated_agents/*
 prompts/generated_agents_prompts/*
+tools/generated_tools/*
 
 # Virtual environments
 .venv

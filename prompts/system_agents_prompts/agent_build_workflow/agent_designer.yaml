@@ -216,7 +216,7 @@ agent:
         tools_dependencies:
           - "strands_tools/file_read"
           - "strands_tools/current_time"
-          - "strands_tools/think"
+          # - "strands_tools/think"
           - "system_tools/agent_build_workflow/agent_template_provider/get_all_templates"
           - "system_tools/agent_build_workflow/agent_template_provider/get_template_content"
           - "system_tools/agent_build_workflow/prompt_template_provider/list_prompt_templates"
