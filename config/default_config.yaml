@@ -41,6 +41,12 @@ default-config:
     model_id: 'us.anthropic.claude-3-7-sonnet-20250219-v1:0'    # Default model
     lite_model_id: 'us.anthropic.claude-3-5-haiku-20241022-v1:0' # Lightweight model
     pro_model_id: 'us.anthropic.claude-opus-4-20250514-v1:0' # Advanced model
+    connect_config:
+      retries:
+        max_attempts: 10
+        mode: "standard"
+      connect_timeout: 600
+      read_timeout: 3600
     
   logging:
     level: 'INFO'                      # Logging level (DEBUG, INFO, WARNING, ERROR)

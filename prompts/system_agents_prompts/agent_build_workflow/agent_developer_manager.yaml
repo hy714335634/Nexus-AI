@@ -30,9 +30,9 @@ agent:
         ## 核心职责
 
         1. **开发协调管理，默认情况请按顺序调度**
-           - 与工具开发者(tool_developer)协调，确保必要的工具被正确开发
-           - 与提示词工程师(prompt_engineer)协调，确保Agent提示词符合需求
-           - 与Agent代码开发者(agent_code_developer)协调，确保Agent代码正确实现
+           - 调用agent_tool_developer工具，确保必要的工具被正确开发
+           - 调用agent_prompt_engineer工具，确保Agent提示词符合需求
+           - 调用agent_code_developer工具，确保Agent代码正确实现
            - 管理各开发阶段的依赖关系和时序
 
         2. **项目进度管理**
@@ -146,6 +146,9 @@ agent:
         tools_dependencies:
           - "strands_tools/file_read"
           - "strands_tools/current_time"
+          - "system_tools/agent_build_workflow/agent_developer_team_members/agent_code_developer"
+          - "system_tools/agent_build_workflow/agent_developer_team_members/agent_tool_developer"
+          - "system_tools/agent_build_workflow/agent_developer_team_members/agent_prompt_engineer"
           - "system_tools/agent_build_workflow/project_manager/get_project_status"
           - "system_tools/agent_build_workflow/project_manager/get_project_config"
           - "system_tools/agent_build_workflow/project_manager/get_project_readme"
