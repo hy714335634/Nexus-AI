@@ -624,60 +624,151 @@ def get_tool_content(tool_name: str, file_path: Optional[str] = None) -> str:
 @tool
 def validate_tool_file(file_path: str) -> str:
     """
-    验证工具文件的格式和语法
+    验证工具文件的格式和语法，提供详细的错误分类和具体原因
     
     Args:
         file_path: 工具文件路径
     
     Returns:
-        str: JSON格式的验证结果
+        str: JSON格式的验证结果，包含详细的错误分类和具体原因
     """
     try:
-        if not os.path.exists(file_path):
-            return json.dumps({
-                "valid": False,
-                "file_path": file_path,
-                "error": "文件不存在",
-                "checks": {}
-            }, ensure_ascii=False, indent=2)
-        
+        # 初始化验证结果
         validation_results = {
             "valid": True,
             "file_path": file_path,
+            "error_category": None,
+            "error_details": [],
             "checks": {
-                "file_exists": True,
+                "file_exists": False,
+                "file_readable": False,
                 "python_syntax": False,
                 "has_strands_import": False,
                 "has_tool_functions": False,
                 "tool_count": 0
-            }
+            },
+            "suggestions": []
         }
         
-        # 读取文件内容
-        with open(file_path, 'r', encoding='utf-8') as f:
-            content = f.read()
+        # 1. 检查文件是否存在
+        if not os.path.exists(file_path):
+            validation_results.update({
+                "valid": False,
+                "error_category": "FILE_NOT_FOUND",
+                "error_details": [f"文件不存在: {file_path}"],
+                "suggestions": [
+                    "检查文件路径是否正确",
+                    "确认文件是否已被删除或移动",
+                    "参考示例文件: tools/template_tools/common/example_tool.py"
+                ]
+            })
+            return json.dumps(validation_results, ensure_ascii=False, indent=2)
         
-        # 检查Python语法
+        validation_results["checks"]["file_exists"] = True
+        
+        # 2. 检查文件是否可读
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            validation_results["checks"]["file_readable"] = True
+        except PermissionError:
+            validation_results.update({
+                "valid": False,
+                "error_category": "FILE_PERMISSION_ERROR",
+                "error_details": [f"文件权限不足，无法读取: {file_path}"],
+                "suggestions": ["检查文件权限，确保有读取权限"]
+            })
+            return json.dumps(validation_results, ensure_ascii=False, indent=2)
+        except UnicodeDecodeError as e:
+            validation_results.update({
+                "valid": False,
+                "error_category": "FILE_ENCODING_ERROR",
+                "error_details": [f"文件编码错误: {str(e)}"],
+                "suggestions": ["确保文件使用UTF-8编码"]
+            })
+            return json.dumps(validation_results, ensure_ascii=False, indent=2)
+        except Exception as e:
+            validation_results.update({
+                "valid": False,
+                "error_category": "FILE_READ_ERROR",
+                "error_details": [f"读取文件时发生错误: {str(e)}"],
+                "suggestions": ["检查文件是否被其他程序占用"]
+            })
+            return json.dumps(validation_results, ensure_ascii=False, indent=2)
+        
+        # 3. 检查Python语法
         try:
             tree = ast.parse(content)
             validation_results["checks"]["python_syntax"] = True
         except SyntaxError as e:
-            validation_results["valid"] = False
-            validation_results["error"] = f"Python语法错误: {str(e)}"
+            validation_results.update({
+                "valid": False,
+                "error_category": "PYTHON_SYNTAX_ERROR",
+                "error_details": [f"Python语法错误: {str(e)}"],
+                "suggestions": [
+                    "检查Python语法是否正确",
+                    "检查缩进是否正确",
+                    "检查是否有未闭合的括号或引号",
+                    "使用IDE的语法检查功能"
+                ]
+            })
             return json.dumps(validation_results, ensure_ascii=False, indent=2)
         
-        # 检查strands导入
-        validation_results["checks"]["has_strands_import"] = "from strands import tool" in content or "import strands" in content
+        # 4. 检查strands导入
+        has_strands_import = "from strands import tool" in content or "import strands" in content
+        validation_results["checks"]["has_strands_import"] = has_strands_import
         
-        # 检查工具函数
-        tools_in_file = _parse_tool_file(Path(file_path))
-        validation_results["checks"]["has_tool_functions"] = len(tools_in_file) > 0
-        validation_results["checks"]["tool_count"] = len(tools_in_file)
+        if not has_strands_import:
+            validation_results.update({
+                "valid": False,
+                "error_category": "MISSING_STRANDS_IMPORT",
+                "error_details": ["缺少strands导入"],
+                "suggestions": [
+                    "添加 'from strands import tool' 导入语句",
+                    "确保使用 @tool 装饰器定义工具函数"
+                ]
+            })
+            return json.dumps(validation_results, ensure_ascii=False, indent=2)
         
-        # 检查是否所有检查都通过
-        required_checks = ["python_syntax", "has_strands_import", "has_tool_functions"]
-        all_checks_passed = all(validation_results["checks"][check] for check in required_checks)
-        validation_results["valid"] = all_checks_passed
+        # 5. 检查工具函数
+        try:
+            tools_in_file = _parse_tool_file(Path(file_path))
+            validation_results["checks"]["has_tool_functions"] = len(tools_in_file) > 0
+            validation_results["checks"]["tool_count"] = len(tools_in_file)
+            
+            if len(tools_in_file) == 0:
+                validation_results.update({
+                    "valid": False,
+                    "error_category": "NO_TOOL_FUNCTIONS",
+                    "error_details": ["文件中没有找到工具函数"],
+                    "suggestions": [
+                        "使用 @tool 装饰器定义至少一个工具函数",
+                        "确保函数有正确的类型注解",
+                        "参考示例文件了解工具函数格式"
+                    ]
+                })
+                return json.dumps(validation_results, ensure_ascii=False, indent=2)
+                
+        except Exception as e:
+            validation_results.update({
+                "valid": False,
+                "error_category": "TOOL_PARSING_ERROR",
+                "error_details": [f"解析工具函数时发生错误: {str(e)}"],
+                "suggestions": [
+                    "检查工具函数的定义格式",
+                    "确保使用正确的 @tool 装饰器",
+                    "检查函数参数的类型注解"
+                ]
+            })
+            return json.dumps(validation_results, ensure_ascii=False, indent=2)
+        
+        # 6. 添加建议
+        validation_results["suggestions"] = [
+            "工具文件验证通过",
+            f"找到 {len(tools_in_file)} 个工具函数",
+            "建议定期检查工具函数的有效性",
+            "建议使用类型注解提高代码质量"
+        ]
         
         return json.dumps(validation_results, ensure_ascii=False, indent=2)
         
@@ -685,8 +776,14 @@ def validate_tool_file(file_path: str) -> str:
         return json.dumps({
             "valid": False,
             "file_path": file_path,
-            "error": f"验证工具文件时出现错误: {str(e)}",
-            "checks": {}
+            "error_category": "UNEXPECTED_ERROR",
+            "error_details": [f"验证过程中发生意外错误: {str(e)}"],
+            "checks": {},
+            "suggestions": [
+                "检查文件是否损坏",
+                "尝试重新创建文件",
+                "联系技术支持"
+            ]
         }, ensure_ascii=False, indent=2)
 
 

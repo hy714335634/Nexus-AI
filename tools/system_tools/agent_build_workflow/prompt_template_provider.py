@@ -610,85 +610,283 @@ def search_templates_by_category(category: str) -> str:
 
 def validate_prompt_file(file_path: str) -> str:
     """
-    验证提示词文件的格式和语法
+    验证提示词文件的格式和语法，提供详细的错误分类和具体原因
     
     Args:
         file_path: 提示词文件路径
     
     Returns:
-        str: JSON格式的验证结果
+        str: JSON格式的验证结果，包含详细的错误分类和具体原因
     """
     try:
-        if not os.path.exists(file_path):
-            return json.dumps({
-                "valid": False,
-                "file_path": file_path,
-                "error": "文件不存在",
-                "checks": {}
-            }, ensure_ascii=False, indent=2)
-        
+        # 初始化验证结果
         validation_results = {
             "valid": True,
             "file_path": file_path,
+            "error_category": None,
+            "error_details": [],
             "checks": {
-                "file_exists": True,
+                "file_exists": False,
+                "file_readable": False,
                 "yaml_syntax": False,
                 "has_agent_section": False,
                 "has_required_fields": False,
-                "tools_dependencies_format": False
-            }
+                "required_fields_details": {},
+                "environments_format": False,
+                "versions_format": False,
+                "tools_dependencies_format": False,
+                "tools_dependencies_details": []
+            },
+            "suggestions": []
         }
         
-        # 读取文件内容
-        with open(file_path, 'r', encoding='utf-8') as f:
-            content = f.read()
+        # 1. 检查文件是否存在
+        if not os.path.exists(file_path):
+            validation_results.update({
+                "valid": False,
+                "error_category": "FILE_NOT_FOUND",
+                "error_details": [f"文件不存在: {file_path}"],
+                "suggestions": [
+                    "检查文件路径是否正确",
+                    "确认文件是否已被删除或移动",
+                    "参考示例文件: prompts/template_prompts/default.yaml"
+                ]
+            })
+            return json.dumps(validation_results, ensure_ascii=False, indent=2)
         
-        # 检查YAML语法
+        validation_results["checks"]["file_exists"] = True
+        
+        # 2. 检查文件是否可读
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            validation_results["checks"]["file_readable"] = True
+        except PermissionError:
+            validation_results.update({
+                "valid": False,
+                "error_category": "FILE_PERMISSION_ERROR",
+                "error_details": [f"文件权限不足，无法读取: {file_path}"],
+                "suggestions": ["检查文件权限，确保有读取权限"]
+            })
+            return json.dumps(validation_results, ensure_ascii=False, indent=2)
+        except UnicodeDecodeError as e:
+            validation_results.update({
+                "valid": False,
+                "error_category": "FILE_ENCODING_ERROR",
+                "error_details": [f"文件编码错误: {str(e)}"],
+                "suggestions": ["确保文件使用UTF-8编码"]
+            })
+            return json.dumps(validation_results, ensure_ascii=False, indent=2)
+        except Exception as e:
+            validation_results.update({
+                "valid": False,
+                "error_category": "FILE_READ_ERROR",
+                "error_details": [f"读取文件时发生错误: {str(e)}"],
+                "suggestions": ["检查文件是否被其他程序占用"]
+            })
+            return json.dumps(validation_results, ensure_ascii=False, indent=2)
+        
+        # 3. 检查YAML语法
         try:
             yaml_data = yaml.safe_load(content)
             validation_results["checks"]["yaml_syntax"] = True
         except yaml.YAMLError as e:
-            validation_results["valid"] = False
-            validation_results["error"] = f"YAML语法错误: {str(e)}"
+            validation_results.update({
+                "valid": False,
+                "error_category": "YAML_SYNTAX_ERROR",
+                "error_details": [f"YAML语法错误: {str(e)}"],
+                "suggestions": [
+                    "检查YAML缩进是否正确（使用空格，不要使用Tab）",
+                    "检查是否有未闭合的引号或括号",
+                    "检查是否有特殊字符需要转义",
+                    "使用在线YAML验证工具检查语法"
+                ]
+            })
             return json.dumps(validation_results, ensure_ascii=False, indent=2)
         
-        # 检查是否有agent部分
-        if yaml_data and "agent" in yaml_data:
-            validation_results["checks"]["has_agent_section"] = True
-            
-            agent_data = yaml_data["agent"]
-            
-            # 检查必要字段
-            required_fields = ["name", "description", "category", "environments", "versions"]
-            has_required_fields = all(field in agent_data for field in required_fields)
-            validation_results["checks"]["has_required_fields"] = has_required_fields
-            
-            # 检查tools_dependencies格式
-            if "versions" in agent_data and agent_data["versions"]:
-                for version in agent_data["versions"]:
-                    if "metadata" in version and "tools_dependencies" in version["metadata"]:
-                        tools_deps = version["metadata"]["tools_dependencies"]
-                        if isinstance(tools_deps, list):
-                            # 检查generated_tools格式
-                            generated_tools_format_valid = True
-                            for tool_dep in tools_deps:
-                                if tool_dep.startswith("generated_tools/"):
-                                    # 检查格式: generated_tools/<project_name>/<script_name>/<tool_name>
-                                    pattern = r'^generated_tools/[^/]+/[^/]+/[^/]+$'
-                                    if not re.match(pattern, tool_dep):
-                                        generated_tools_format_valid = False
-                                        break
-                            
-                            validation_results["checks"]["tools_dependencies_format"] = generated_tools_format_valid
-                            break
+        # 4. 检查是否有agent部分
+        if not yaml_data:
+            validation_results.update({
+                "valid": False,
+                "error_category": "EMPTY_YAML",
+                "error_details": ["YAML文件为空或只包含注释"],
+                "suggestions": ["添加agent配置部分"]
+            })
+            return json.dumps(validation_results, ensure_ascii=False, indent=2)
         
-        # 检查是否所有检查都通过
-        required_checks = ["yaml_syntax", "has_agent_section", "has_required_fields", "tools_dependencies_format"]
-        all_checks_passed = all(validation_results["checks"][check] for check in required_checks)
-        validation_results["valid"] = all_checks_passed
+        if "agent" not in yaml_data:
+            validation_results.update({
+                "valid": False,
+                "error_category": "MISSING_AGENT_SECTION",
+                "error_details": ["缺少agent配置部分"],
+                "suggestions": [
+                    "在YAML文件根级别添加agent配置",
+                    "参考示例文件: prompts/template_prompts/default.yaml"
+                ]
+            })
+            return json.dumps(validation_results, ensure_ascii=False, indent=2)
         
-        if not all_checks_passed:
-            validation_results["error"] = "提示词文件格式不符合要求"
+        validation_results["checks"]["has_agent_section"] = True
+        agent_data = yaml_data["agent"]
+        
+        # 5. 检查必要字段
+        required_fields = ["name", "description", "category", "environments", "versions"]
+        missing_fields = []
+        invalid_fields = []
+        
+        for field in required_fields:
+            if field not in agent_data:
+                missing_fields.append(field)
+            elif agent_data[field] is None or agent_data[field] == "":
+                invalid_fields.append(f"{field}字段为空")
+        
+        validation_results["checks"]["required_fields_details"] = {
+            "missing_fields": missing_fields,
+            "invalid_fields": invalid_fields
+        }
+        
+        if missing_fields or invalid_fields:
+            validation_results.update({
+                "valid": False,
+                "error_category": "MISSING_REQUIRED_FIELDS",
+                "error_details": [
+                    f"缺少必要字段: {', '.join(missing_fields)}" if missing_fields else "",
+                    f"字段值无效: {', '.join(invalid_fields)}" if invalid_fields else ""
+                ],
+                "suggestions": [
+                    f"添加缺少的字段: {', '.join(missing_fields)}" if missing_fields else "",
+                    f"为无效字段提供有效值: {', '.join(invalid_fields)}" if invalid_fields else "",
+                    "参考示例文件了解字段格式"
+                ]
+            })
+            return json.dumps(validation_results, ensure_ascii=False, indent=2)
+        
+        validation_results["checks"]["has_required_fields"] = True
+        
+        # 6. 检查environments格式
+        environments = agent_data.get("environments", {})
+        if not isinstance(environments, dict) or not environments:
+            validation_results.update({
+                "valid": False,
+                "error_category": "INVALID_ENVIRONMENTS_FORMAT",
+                "error_details": ["environments字段必须是包含环境配置的字典"],
+                "suggestions": [
+                    "environments应该包含development、production、testing等环境",
+                    "每个环境应包含max_tokens、temperature、top_p、streaming等配置"
+                ]
+            })
+            return json.dumps(validation_results, ensure_ascii=False, indent=2)
+        
+        validation_results["checks"]["environments_format"] = True
+        
+        # 7. 检查versions格式
+        versions = agent_data.get("versions", [])
+        if not isinstance(versions, list) or not versions:
+            validation_results.update({
+                "valid": False,
+                "error_category": "INVALID_VERSIONS_FORMAT",
+                "error_details": ["versions字段必须是包含版本信息的列表"],
+                "suggestions": [
+                    "versions应该是一个列表，包含至少一个版本配置",
+                    "每个版本应包含version、status、created_date、author、description等字段"
+                ]
+            })
+            return json.dumps(validation_results, ensure_ascii=False, indent=2)
+        
+        validation_results["checks"]["versions_format"] = True
+        
+        # 8. 检查tools_dependencies格式
+        tools_dependencies_errors = []
+        tools_dependencies_warnings = []
+        
+        for i, version in enumerate(versions):
+            if not isinstance(version, dict):
+                tools_dependencies_errors.append(f"版本{i+1}不是字典格式")
+                continue
+                
+            if "metadata" not in version:
+                tools_dependencies_warnings.append(f"版本{i+1}缺少metadata字段")
+                continue
+                
+            metadata = version["metadata"]
+            if "tools_dependencies" not in metadata:
+                tools_dependencies_warnings.append(f"版本{i+1}的metadata中缺少tools_dependencies字段")
+                continue
+            
+            tools_deps = metadata["tools_dependencies"]
+            if not isinstance(tools_deps, list):
+                tools_dependencies_errors.append(f"版本{i+1}的tools_dependencies不是列表格式")
+                continue
+            
+            for j, tool_dep in enumerate(tools_deps):
+                if not isinstance(tool_dep, str):
+                    tools_dependencies_errors.append(f"版本{i+1}的工具依赖{j+1}不是字符串格式")
+                    continue
+                
+                # 检查generated_tools格式
+                if tool_dep.startswith("generated_tools/"):
+                    pattern = r'^generated_tools/[^/]+/[^/]+/[^/]+$'
+                    if not re.match(pattern, tool_dep):
+                        tools_dependencies_errors.append(
+                            f"版本{i+1}的工具依赖{j+1}格式错误: {tool_dep}，"
+                            f"应为 generated_tools/<project_name>/<script_name>/<tool_name>"
+                        )
+                
+                # 检查system_tools格式
+                elif tool_dep.startswith("system_tools/"):
+                    pattern = r'^system_tools/[^/]+/[^/]+/[^/]+$'
+                    if not re.match(pattern, tool_dep):
+                        tools_dependencies_errors.append(
+                            f"版本{i+1}的工具依赖{j+1}格式错误: {tool_dep}，"
+                            f"应为 system_tools/<module_name>/<tool_name>"
+                        )
+                
+                # 检查strands_tools格式
+                elif tool_dep.startswith("strands_tools/"):
+                    pattern = r'^strands_tools/[^/]+$'
+                    if not re.match(pattern, tool_dep):
+                        tools_dependencies_errors.append(
+                            f"版本{i+1}的工具依赖{j+1}格式错误: {tool_dep}，"
+                            f"应为 strands_tools/<tool_name>"
+                        )
+                
+                # 检查其他格式
+                elif not any(tool_dep.startswith(prefix) for prefix in ["generated_tools/", "system_tools/", "strands_tools/"]):
+                    tools_dependencies_warnings.append(
+                        f"版本{i+1}的工具依赖{j+1}使用了未知前缀: {tool_dep}"
+                    )
+        
+        validation_results["checks"]["tools_dependencies_details"] = {
+            "errors": tools_dependencies_errors,
+            "warnings": tools_dependencies_warnings
+        }
+        
+        if tools_dependencies_errors:
+            validation_results.update({
+                "valid": False,
+                "error_category": "INVALID_TOOLS_DEPENDENCIES_FORMAT",
+                "error_details": tools_dependencies_errors,
+                "suggestions": [
+                    "检查tools_dependencies格式",
+                    "generated_tools格式: generated_tools/<project_name>/<script_name>/<tool_name>",
+                    "system_tools格式: system_tools/<module_name>/<tool_name>",
+                    "strands_tools格式: strands_tools/<tool_name>"
+                ]
+            })
+            return json.dumps(validation_results, ensure_ascii=False, indent=2)
+        
+        validation_results["checks"]["tools_dependencies_format"] = True
+        
+        # 9. 添加警告信息
+        if tools_dependencies_warnings:
+            validation_results["warnings"] = tools_dependencies_warnings
+        
+        # 10. 添加建议
+        validation_results["suggestions"] = [
+            "提示词文件验证通过",
+            "建议定期检查工具依赖的有效性",
+            "建议使用版本控制管理提示词文件"
+        ]
         
         return json.dumps(validation_results, ensure_ascii=False, indent=2)
         
@@ -696,9 +894,14 @@ def validate_prompt_file(file_path: str) -> str:
         return json.dumps({
             "valid": False,
             "file_path": file_path,
-            "error": f"验证提示词文件时出现错误: {str(e)}",
+            "error_category": "UNEXPECTED_ERROR",
+            "error_details": [f"验证过程中发生意外错误: {str(e)}"],
             "checks": {},
-            "sample_content": "prompts/template_prompts/default.yaml"
+            "suggestions": [
+                "检查文件是否损坏",
+                "尝试重新创建文件",
+                "联系技术支持"
+            ]
         }, ensure_ascii=False, indent=2)
 
 # 主函数，用于直接调用测试
@@ -729,6 +932,9 @@ def main():
     print(f"内容长度: {len(content)} 字符")
     print("前200个字符:")
     print(content[:200] + "..." if len(content) > 200 else content)
+
+    print("\n8. 验证prompt文件:")
+    print(validate_prompt_file("prompts/template_prompts/requirements_analyzer.yaml"))
 
 
 if __name__ == "__main__":

@@ -46,7 +46,7 @@ agent:
         2. 使用工具获取现有工具模板列表
         3. 分析现有工具模板内容，理解工具结构和设计模式
         4. 分析智能体设计规格，结合现有工具进行定制化开发
-        5. 使用工具将工具代码写入项目阶段文件
+        5. 使用工具将工具代码写入项目阶段文件，但请注意单个脚本文件不要过长，建议不要超过1000行代码，如工具过多可拆分多个脚本文件
         6. 使用工具更新项目状态为已完成
         7. **严格禁止输出**：不要在任何地方输出内容，所有输出都通过工具完成
         8. **禁止中间输出**：不要在分析、设计、开发过程中输出任何内容
@@ -191,10 +191,10 @@ agent:
         7. 使用 update_project_stage_content 将工具开发文档写入 tools_developer.json 文件
         8. 使用 update_project_status 将 tools_developer 阶段状态更新为已完成
         9. 使用 update_agent_artifact_paths 更新为工具路径, 请注意如果脚本中包含多个工具，需要全部列出，路径中<tool_script_name>不含".py"脚本后缀，<tool_name_1>和<tool_name_2>为工具名称，
-          路径示例：['generated_tools/<project_name>/<tool_script_name>/<tool_name_1>.py','generated_tools/<project_name>/<tool_script_name>/<tool_name_2>.py ']
+          路径示例：['generated_tools/<project_name>/<tool_script_name>/<tool_name_1>','generated_tools/<project_name>/<tool_script_name>/<tool_name_2>']
         10. 使用 get_agent_artifact_paths 检查工具路径是否更新成功
         11. 完成工作后，通过工具确认状态更新成功
-        12. **最终输出**：只输出"工具开发已完成，状态已更新"，不要输出任何其他内容
+        12. **最终输出**：只输出"工具开发已完成，状态已更新"，不要输出任何其他内容，无需介绍代码详情
         
         **代码生成要求**：
         - 每个工具函数必须使用@tool装饰器
