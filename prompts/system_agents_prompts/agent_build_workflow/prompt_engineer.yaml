@@ -103,9 +103,9 @@ agent:
         ## 工具依赖
         - **完整性**：tools_dependencies中需要包含所有需要用到的工具
         - **正确性**：tools_dependencies中工具路径需要符合要求，可能包含以下三类，示例：
-           - "strands_tools/current_time"
-           - "generated_tools/common/get_web_result/http_client"
-           - "system_tools/agent_build_workflow/agent_template_provider/get_all_templates"
+           - Strands系统工具直接指定路径，如"strands_tools/current_time"
+           - 生成工具，假设脚本名为get_web_result.py，则正确路径为"generated_tools/common/get_web_result/http_client"
+           - 系统工具，假设脚本名为agent_template_provider.py，则正确路径为"system_tools/agent_build_workflow/agent_template_provider/get_all_templates"
 
         提示词质量标准：
         1. **完整性**：覆盖智能体的所有核心功能
@@ -115,68 +115,49 @@ agent:
         5. **健壮性**：包含错误处理和边界情况
         
 
-        项目阶段设计文档输出格式要求：
-        必须严格按照以下JSON格式，不要包含任何markdown格式或其他内容，通过工具进行输出和更新：
-        {
-          "prompt_template": {
-            "template_overview": {
-              "project_name": "项目名称",
-              "version": "1.0",
-              "date": "生成日期",
-              "template_scope": "模板范围描述",
-              "design_principles": ["设计原则1", "设计原则2"],
-              "key_decisions": ["关键决策1", "关键决策2"]
-            },
-            "agent_configuration": {
-              "name": "智能体名称",
-              "description": "智能体功能描述",
-              "category": "智能体分类",
-              "environments": {
-                "development": {
-                  "max_tokens": 4096,
-                  "temperature": 0.3,
-                  "top_p": 0.8,
-                  "streaming": true
-                },
-                "production": {
-                  "max_tokens": 60000,
-                  "temperature": 0.3,
-                  "top_p": 0.8,
-                  "streaming": true
-                },
-                "testing": {
-                  "max_tokens": 2048,
-                  "temperature": 0.3,
-                  "top_p": 0.8,
-                  "streaming": true
-                }
-              },
-              "versions": [
-                {
-                  "version": "latest",
-                  "status": "stable",
-                  "created_date": "YYYY-MM-DD",
-                  "author": "ai_team",
-                  "description": "版本描述",
-                  "system_prompt": "详细的系统提示词内容",
-                  "user_prompt_template": "用户输入模板，支持变量替换",
-                  "metadata": {
-                    "tags": ["标签1", "标签2"],
-                    "supported_models": [
-                      "us.anthropic.claude-3-7-sonnet-20250219-v1:0",
-                      "us.anthropic.claude-opus-4-20250514-v1:0"
-                    ],
-                    "tools_dependencies": [
-                      "依赖1",
-                      "依赖2"
-                    ]
-                  }
-                }
-              ]
-            },
-            "prompt_engineering_notes": "提示词工程过程中的关键发现和决策理由"
-          }
-        }
+        提示词输出格式要求：
+        必须严格按照以下YAML格式，不要包含任何markdown格式或其他内容，通过工具进行输出和更新：
+        ```
+        agent:
+          name: "<agent_name>"
+          description: "<agent_description>"
+          category: "<agent_category>"
+          environments:
+            development:
+              max_tokens: 4096
+              temperature: 0.3
+              top_p: 0.8
+              streaming: True
+            production:
+              max_tokens: 60000
+              temperature: 0.3
+              top_p: 0.8
+              streaming: True
+            testing:
+              max_tokens: 2048
+              temperature: 0.3
+              top_p: 0.8
+              streaming: True
+          versions:
+            - version: "latest"
+              status: "stable"
+              created_date: "<version_created_date>"
+              author: "agent build workflow"
+              description: "<version_description>"
+              system_prompt: |
+                <system_prompt>
+              metadata:
+                tags: ["<version_tags>"]
+                supported_models:
+                  - "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
+                tools_dependencies:
+                  - "strands_tools/use_aws"
+                  - "strands_tools/current_time"
+                  - "strands_tools/calculator"
+                  - "generated_tools/common/get_web_result/http_client"
+                  - "system_tools/agent_build_workflow/tool_template_provider/list_all_tools"
+                  - "system_tools/agent_build_workflow/tool_template_provider/get_builtin_tools"
+        ```
         
 
         注意事项：

@@ -1791,7 +1791,17 @@ def generate_content(type: Literal["agent", "prompt", "tool"], content: str, pro
                 # 如果验证失败，删除文件并返回错误信息
                 if os.path.exists(file_path):
                     os.remove(file_path)
-                return f"错误：生成的文件验证失败。{validation_data.get('error', '未知错误')}"
+                
+                # 获取详细的错误信息
+                error_message = "未知错误"
+                if "error_details" in validation_data and validation_data["error_details"]:
+                    error_message = "; ".join(validation_data["error_details"])
+                elif "error" in validation_data:
+                    error_message = validation_data["error"]
+                elif "error_category" in validation_data:
+                    error_message = f"错误分类: {validation_data['error_category']}"
+                
+                return f"错误：生成的文件验证失败。{error_message}"
         except json.JSONDecodeError:
             # 如果验证结果不是JSON格式，记录警告但继续
             pass
