@@ -21,6 +21,7 @@ solution_review/
 tests/
 笔记.txt
 main.py
+docs
 
 # 隐藏文件和目录
 .DS_Store
