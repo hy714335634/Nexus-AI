@@ -23,9 +23,11 @@ agent_params = {
     "model_id": "default"
 }
 
+agent_config_path = "template_prompts/template_requirements_analyzer"
+
 # 使用agent_factory创建agent
 requirements_analyzer = create_agent_from_prompt_template(
-    agent_name="template_prompts/template_requirements_analyzer", **agent_params
+    agent_name=agent_config_path, **agent_params
 )
 
 

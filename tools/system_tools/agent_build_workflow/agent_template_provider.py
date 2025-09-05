@@ -14,6 +14,8 @@ Agent模板管理工具
 import sys
 import os
 import yaml
+import ast
+import json
 from typing import Dict, List, Any, Optional
 from strands import tool
 
@@ -267,6 +269,71 @@ def get_available_tags() -> str:
     except Exception as e:
         return f"获取标签时出现错误: {str(e)}"
 
+def validate_agent_file(file_path: str) -> str:
+    """
+    验证Agent文件的格式和语法
+    
+    Args:
+        file_path: Agent文件路径
+    
+    Returns:
+        str: JSON格式的验证结果
+    """
+    try:
+        if not os.path.exists(file_path):
+            return json.dumps({
+                "valid": False,
+                "file_path": file_path,
+                "error": "文件不存在",
+                "checks": {}
+            }, ensure_ascii=False, indent=2)
+        
+        validation_results = {
+            "valid": True,
+            "file_path": file_path,
+            "checks": {
+                "file_exists": True,
+                "python_syntax": False,
+                "has_agent_factory_import": False,
+                "has_create_agent_import": False
+            }
+        }
+        
+        # 读取文件内容
+        with open(file_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        # 检查Python语法
+        try:
+            tree = ast.parse(content)
+            validation_results["checks"]["python_syntax"] = True
+        except SyntaxError as e:
+            validation_results["valid"] = False
+            validation_results["error"] = f"Python语法错误: {str(e)}"
+            return json.dumps(validation_results, ensure_ascii=False, indent=2)
+        
+        # 检查必要的导入
+        validation_results["checks"]["has_agent_factory_import"] = "from utils.agent_factory import" in content
+        validation_results["checks"]["has_create_agent_import"] = "create_agent_from_prompt_template" in content
+        
+        # 检查是否所有检查都通过
+        required_checks = ["python_syntax", "has_agent_factory_import", "has_create_agent_import"]
+        all_checks_passed = all(validation_results["checks"][check] for check in required_checks)
+        validation_results["valid"] = all_checks_passed
+        
+        if not all_checks_passed:
+            validation_results["error"] = "Agent文件缺少必要的导入或存在语法错误"
+        
+        return json.dumps(validation_results, ensure_ascii=False, indent=2)
+        
+    except Exception as e:
+        return json.dumps({
+            "valid": False,
+            "file_path": file_path,
+            "error": f"验证Agent文件时出现错误: {str(e)}",
+            "checks": {},
+            "sample_content": "agents/template_agents/single_agent/default_agent.py"
+        }, ensure_ascii=False, indent=2)
 
 # 主函数，用于直接调用测试
 def main():

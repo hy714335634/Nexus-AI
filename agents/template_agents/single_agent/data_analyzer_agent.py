@@ -26,9 +26,10 @@ agent_params = {
     "model_id": "default"
 }
 
+agent_config_path = "template_prompts/data_analyzer_agent"
 # 使用 agent_factory 创建 agent
 data_analyzer = create_agent_from_prompt_template(
-    agent_name="template_prompts/data_analyzer_agent", 
+    agent_name=agent_config_path, 
     **agent_params
 )
 

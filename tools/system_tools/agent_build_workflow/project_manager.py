@@ -25,6 +25,9 @@ import yaml
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional, List, Literal
 from pathlib import Path
+from tools.system_tools.agent_build_workflow.tool_template_provider import validate_tool_file
+from tools.system_tools.agent_build_workflow.agent_template_provider import validate_agent_file
+from tools.system_tools.agent_build_workflow.prompt_template_provider import validate_prompt_file
 
 from strands import Agent,tool
 
@@ -1688,7 +1691,32 @@ def get_project_readme(project_name: str) -> str:
         
     except Exception as e:
         return f"获取项目README时出现错误: {str(e)}"
+    
 
+def verify_file_content(type: Literal["agent", "prompt", "tool"], file_path: str) -> str:
+    """
+    验证文件类型
+    
+    Args:
+        type: 文件类型，可以是 "agent"、"prompt" 或 "tool"
+        file_path: 文件路径
+        
+    Returns:
+        str: JSON格式的验证结果
+    """
+    if type == "agent":
+        return validate_agent_file(file_path)
+    elif type == "prompt":
+        return validate_prompt_file(file_path)
+    elif type == "tool":
+        return validate_tool_file(file_path)
+    else:
+        return json.dumps({
+            "valid": False,
+            "file_path": file_path,
+            "error": f"不支持的文件类型: {type}",
+            "checks": {}
+        }, ensure_ascii=False, indent=2)
 
 @tool
 def generate_content(type: Literal["agent", "prompt", "tool"], content: str, project_name: str, artifact_name: str) -> str:
@@ -1755,6 +1783,19 @@ def generate_content(type: Literal["agent", "prompt", "tool"], content: str, pro
         with open(file_path, 'w', encoding='utf-8') as f:
             f.write(content)
         
+        # 验证生成的文件
+        validation_result = verify_file_content(type, file_path)
+        try:
+            validation_data = json.loads(validation_result)
+            if not validation_data.get("valid", False):
+                # 如果验证失败，删除文件并返回错误信息
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+                return f"错误：生成的文件验证失败。{validation_data.get('error', '未知错误')}"
+        except json.JSONDecodeError:
+            # 如果验证结果不是JSON格式，记录警告但继续
+            pass
+        
         # 返回成功信息
         result = {
             "status": "success",
@@ -1766,7 +1807,8 @@ def generate_content(type: Literal["agent", "prompt", "tool"], content: str, pro
             "file_name": filename,
             "target_directory": target_dir,
             "content_length": len(content),
-            "created_date": datetime.now(timezone.utc).isoformat()
+            "created_date": datetime.now(timezone.utc).isoformat(),
+            "validation_result": validation_result
         }
         
         return json.dumps(result, ensure_ascii=False, indent=2)
