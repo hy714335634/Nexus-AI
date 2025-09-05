@@ -244,6 +244,7 @@ agent:
           - "strands_tools/file_read"
           - "strands_tools/use_aws"
           - "strands_tools/current_time"
+          - "strands_tools/use_aws"
           - "system_tools/agent_build_workflow/agent_template_provider/get_all_templates"
           - "system_tools/agent_build_workflow/agent_template_provider/get_template_content"
           - "system_tools/agent_build_workflow/project_manager/generate_content"

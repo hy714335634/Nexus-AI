@@ -120,7 +120,7 @@ def create_build_workflow():
     builder.add_edge("requirements_analyzer", "system_architect")
     builder.add_edge("system_architect", "agent_designer")
     builder.add_edge("agent_designer", "agent_developer_manager")
-    builder.add_edge("orchestrator", "agent_developer_manager")
+    # builder.add_edge("orchestrator", "agent_developer_manager")
     # builder.add_edge("developer_swarm", "agent_developer_manager")
     # builder.add_edge("agent_designer", "tool_developer")
     # builder.add_edge("tool_developer", "prompt_engineer")
@@ -172,7 +172,7 @@ if __name__ == "__main__":
 3、需要使用真实价格数据，通过aws接口获取真实数据
 4、能够支持多个区域，包括aws宁夏和北京区域
 5、能够按照销售的思维分析用户提供的数据，生成清晰且有逻辑的报价方案
-建议项目名称是：aws_pricing_agent_002
+6、报价文档尽量使用中文
 """,
                        help='测试输入内容')
     args = parser.parse_args()

@@ -26,9 +26,11 @@ agent_params = {
     "model_id": "default"
 }
 
+agent_config_path = "template_prompts/content_generator_agent"
+
 # 使用 agent_factory 创建 agent
 content_generator = create_agent_from_prompt_template(
-    agent_name="template_prompts/content_generator_agent", 
+    agent_name=agent_config_path, 
     **agent_params
 )
 

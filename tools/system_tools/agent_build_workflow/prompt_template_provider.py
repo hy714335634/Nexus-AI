@@ -17,6 +17,7 @@ import sys
 import os
 import yaml
 import json
+import re
 from typing import Optional, List, Dict
 from pathlib import Path
 from strands import tool
@@ -606,6 +607,99 @@ def search_templates_by_category(category: str) -> str:
     except Exception as e:
         return json.dumps({"error": f"搜索模板时出现错误: {str(e)}", "templates": []}, ensure_ascii=False, indent=2)
 
+
+def validate_prompt_file(file_path: str) -> str:
+    """
+    验证提示词文件的格式和语法
+    
+    Args:
+        file_path: 提示词文件路径
+    
+    Returns:
+        str: JSON格式的验证结果
+    """
+    try:
+        if not os.path.exists(file_path):
+            return json.dumps({
+                "valid": False,
+                "file_path": file_path,
+                "error": "文件不存在",
+                "checks": {}
+            }, ensure_ascii=False, indent=2)
+        
+        validation_results = {
+            "valid": True,
+            "file_path": file_path,
+            "checks": {
+                "file_exists": True,
+                "yaml_syntax": False,
+                "has_agent_section": False,
+                "has_required_fields": False,
+                "tools_dependencies_format": False
+            }
+        }
+        
+        # 读取文件内容
+        with open(file_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        # 检查YAML语法
+        try:
+            yaml_data = yaml.safe_load(content)
+            validation_results["checks"]["yaml_syntax"] = True
+        except yaml.YAMLError as e:
+            validation_results["valid"] = False
+            validation_results["error"] = f"YAML语法错误: {str(e)}"
+            return json.dumps(validation_results, ensure_ascii=False, indent=2)
+        
+        # 检查是否有agent部分
+        if yaml_data and "agent" in yaml_data:
+            validation_results["checks"]["has_agent_section"] = True
+            
+            agent_data = yaml_data["agent"]
+            
+            # 检查必要字段
+            required_fields = ["name", "description", "category", "environments", "versions"]
+            has_required_fields = all(field in agent_data for field in required_fields)
+            validation_results["checks"]["has_required_fields"] = has_required_fields
+            
+            # 检查tools_dependencies格式
+            if "versions" in agent_data and agent_data["versions"]:
+                for version in agent_data["versions"]:
+                    if "metadata" in version and "tools_dependencies" in version["metadata"]:
+                        tools_deps = version["metadata"]["tools_dependencies"]
+                        if isinstance(tools_deps, list):
+                            # 检查generated_tools格式
+                            generated_tools_format_valid = True
+                            for tool_dep in tools_deps:
+                                if tool_dep.startswith("generated_tools/"):
+                                    # 检查格式: generated_tools/<project_name>/<script_name>/<tool_name>
+                                    pattern = r'^generated_tools/[^/]+/[^/]+/[^/]+$'
+                                    if not re.match(pattern, tool_dep):
+                                        generated_tools_format_valid = False
+                                        break
+                            
+                            validation_results["checks"]["tools_dependencies_format"] = generated_tools_format_valid
+                            break
+        
+        # 检查是否所有检查都通过
+        required_checks = ["yaml_syntax", "has_agent_section", "has_required_fields", "tools_dependencies_format"]
+        all_checks_passed = all(validation_results["checks"][check] for check in required_checks)
+        validation_results["valid"] = all_checks_passed
+        
+        if not all_checks_passed:
+            validation_results["error"] = "提示词文件格式不符合要求"
+        
+        return json.dumps(validation_results, ensure_ascii=False, indent=2)
+        
+    except Exception as e:
+        return json.dumps({
+            "valid": False,
+            "file_path": file_path,
+            "error": f"验证提示词文件时出现错误: {str(e)}",
+            "checks": {},
+            "sample_content": "prompts/template_prompts/default.yaml"
+        }, ensure_ascii=False, indent=2)
 
 # 主函数，用于直接调用测试
 def main():
