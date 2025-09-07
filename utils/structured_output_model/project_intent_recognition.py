@@ -2,11 +2,16 @@ from typing import Optional, Literal
 from pydantic import BaseModel, Field
 
 
-class ProjectInfo(BaseModel):
+class ExistingProjectInfo(BaseModel):
     """项目基本信息"""
     project_name: str = Field(description="项目名称")
     description: str = Field(description="项目描述")
     agent_count: int = Field(description="项目中的Agent数量")
+
+class NewProjectInfo(BaseModel):
+    """新项目基本信息"""
+    suggested_project_name: str = Field(description="项目名称")
+    default_project_root_path: str = "/projects/{suggested_project_name}"
 
 
 class IntentRecognitionResult(BaseModel):
@@ -33,9 +38,14 @@ class IntentRecognitionResult(BaseModel):
         description="项目是否存在，基于list_all_projects的结果判断"
     )
     
-    existing_project_info: Optional[ProjectInfo] = Field(
+    existing_project_info: Optional[ExistingProjectInfo] = Field(
         default=None,
         description="如果项目存在，提供项目的详细信息"
+    )
+    
+    new_project_info: Optional[NewProjectInfo] = Field(
+        default=None,
+        description="如果项目不存在，提供新项目的详细信息"
     )
     
     # 给orchestrator的指导

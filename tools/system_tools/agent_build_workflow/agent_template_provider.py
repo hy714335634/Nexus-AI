@@ -14,6 +14,8 @@ Agent模板管理工具
 import sys
 import os
 import yaml
+import ast
+import json
 from typing import Dict, List, Any, Optional
 from strands import tool
 
@@ -267,6 +269,147 @@ def get_available_tags() -> str:
     except Exception as e:
         return f"获取标签时出现错误: {str(e)}"
 
+def validate_agent_file(file_path: str) -> str:
+    """
+    验证Agent文件的格式和语法，提供详细的错误分类和具体原因
+    
+    Args:
+        file_path: Agent文件路径
+    
+    Returns:
+        str: JSON格式的验证结果，包含详细的错误分类和具体原因
+    """
+    try:
+        # 初始化验证结果
+        validation_results = {
+            "valid": True,
+            "file_path": file_path,
+            "error_category": None,
+            "error_details": [],
+            "checks": {
+                "file_exists": False,
+                "file_readable": False,
+                "python_syntax": False,
+                "has_agent_factory_import": False,
+                "has_create_agent_import": False
+            },
+            "suggestions": []
+        }
+        
+        # 1. 检查文件是否存在
+        if not os.path.exists(file_path):
+            validation_results.update({
+                "valid": False,
+                "error_category": "FILE_NOT_FOUND",
+                "error_details": [f"文件不存在: {file_path}"],
+                "suggestions": [
+                    "检查文件路径是否正确",
+                    "确认文件是否已被删除或移动",
+                    "参考示例文件: agents/template_agents/single_agent/default_agent.py"
+                ]
+            })
+            return json.dumps(validation_results, ensure_ascii=False, indent=2)
+        
+        validation_results["checks"]["file_exists"] = True
+        
+        # 2. 检查文件是否可读
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            validation_results["checks"]["file_readable"] = True
+        except PermissionError:
+            validation_results.update({
+                "valid": False,
+                "error_category": "FILE_PERMISSION_ERROR",
+                "error_details": [f"文件权限不足，无法读取: {file_path}"],
+                "suggestions": ["检查文件权限，确保有读取权限"]
+            })
+            return json.dumps(validation_results, ensure_ascii=False, indent=2)
+        except UnicodeDecodeError as e:
+            validation_results.update({
+                "valid": False,
+                "error_category": "FILE_ENCODING_ERROR",
+                "error_details": [f"文件编码错误: {str(e)}"],
+                "suggestions": ["确保文件使用UTF-8编码"]
+            })
+            return json.dumps(validation_results, ensure_ascii=False, indent=2)
+        except Exception as e:
+            validation_results.update({
+                "valid": False,
+                "error_category": "FILE_READ_ERROR",
+                "error_details": [f"读取文件时发生错误: {str(e)}"],
+                "suggestions": ["检查文件是否被其他程序占用"]
+            })
+            return json.dumps(validation_results, ensure_ascii=False, indent=2)
+        
+        # 3. 检查Python语法
+        try:
+            tree = ast.parse(content)
+            validation_results["checks"]["python_syntax"] = True
+        except SyntaxError as e:
+            validation_results.update({
+                "valid": False,
+                "error_category": "PYTHON_SYNTAX_ERROR",
+                "error_details": [f"Python语法错误: {str(e)}"],
+                "suggestions": [
+                    "检查Python语法是否正确",
+                    "检查缩进是否正确",
+                    "检查是否有未闭合的括号或引号",
+                    "使用IDE的语法检查功能"
+                ]
+            })
+            return json.dumps(validation_results, ensure_ascii=False, indent=2)
+        
+        # 4. 检查必要的导入
+        has_agent_factory_import = "from utils.agent_factory import" in content
+        has_create_agent_import = "create_agent_from_prompt_template" in content
+        
+        validation_results["checks"]["has_agent_factory_import"] = has_agent_factory_import
+        validation_results["checks"]["has_create_agent_import"] = has_create_agent_import
+        
+        # 检查是否所有检查都通过
+        missing_imports = []
+        if not has_agent_factory_import:
+            missing_imports.append("utils.agent_factory")
+        if not has_create_agent_import:
+            missing_imports.append("create_agent_from_prompt_template")
+        
+        if missing_imports:
+            validation_results.update({
+                "valid": False,
+                "error_category": "MISSING_REQUIRED_IMPORTS",
+                "error_details": [f"缺少必要的导入: {', '.join(missing_imports)}"],
+                "suggestions": [
+                    "添加 'from utils.agent_factory import create_agent_from_prompt_template' 导入语句",
+                    "确保使用 create_agent_from_prompt_template 函数创建代理",
+                    "参考示例文件了解正确的导入格式"
+                ]
+            })
+            return json.dumps(validation_results, ensure_ascii=False, indent=2)
+        
+        # 5. 添加建议
+        validation_results["suggestions"] = [
+            "Agent文件验证通过",
+            "建议定期检查代理函数的有效性",
+            "建议使用类型注解提高代码质量",
+            "建议添加适当的错误处理"
+        ]
+        
+        return json.dumps(validation_results, ensure_ascii=False, indent=2)
+        
+    except Exception as e:
+        return json.dumps({
+            "valid": False,
+            "file_path": file_path,
+            "error_category": "UNEXPECTED_ERROR",
+            "error_details": [f"验证过程中发生意外错误: {str(e)}"],
+            "checks": {},
+            "suggestions": [
+                "检查文件是否损坏",
+                "尝试重新创建文件",
+                "联系技术支持"
+            ]
+        }, ensure_ascii=False, indent=2)
 
 # 主函数，用于直接调用测试
 def main():
@@ -287,6 +430,9 @@ def main():
     
     print("\n5. 获取可用标签:")
     print(get_available_tags())
+
+    print("\n6. 验证Agent文件:")
+    print(validate_agent_file("agents/template_agents/single_agent/default_agent.py"))
 
 if __name__ == "__main__":
     main() 

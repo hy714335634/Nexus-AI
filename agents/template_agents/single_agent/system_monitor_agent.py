@@ -26,9 +26,10 @@ agent_params = {
     "model_id": "default"
 }
 
+agent_config_path = "template_prompts/system_monitor_agent"
 # 使用 agent_factory 创建 agent
 system_monitor = create_agent_from_prompt_template(
-    agent_name="template_prompts/system_monitor_agent", 
+    agent_name=agent_config_path, 
     **agent_params
 )
 

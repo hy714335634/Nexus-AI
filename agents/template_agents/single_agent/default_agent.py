@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-文档处理Agent模板
+API集成Agent模板
 
-专业的文档处理专家，能够处理各种格式的文档并进行智能分析。
-支持文档解析、内容提取、格式转换、文本分析等功能。
+专业的API集成专家，能够与各种外部服务进行集成。
+支持API调用、数据同步、格式转换、错误处理等功能。
 """
 
 import os
@@ -26,10 +26,9 @@ agent_params = {
     "model_id": "default"
 }
 
-agent_config_path = "template_prompts/document_processor_agent"
-
+agent_config_path = "template_prompts/default"
 # 使用 agent_factory 创建 agent
-document_processor = create_agent_from_prompt_template(
+default_agent = create_agent_from_prompt_template(
     agent_name=agent_config_path, 
     **agent_params
 )
@@ -38,25 +37,21 @@ if __name__ == "__main__":
     import argparse
     
     # 解析命令行参数
-    parser = argparse.ArgumentParser(description='文档处理Agent测试')
+    parser = argparse.ArgumentParser(description='Agent测试')
     parser.add_argument('-i', '--input', type=str, 
-                       default="请分析这个文档的内容并提取关键信息",
+                       default="你是谁，你有什么能力，你具备哪些工具",
                        help='测试输入内容')
-    parser.add_argument('-f', '--file', type=str, 
-                       help='要处理的文件路径')
     args = parser.parse_args()
     
-    print(f"✅ Document Processor Agent 创建成功: {document_processor.name}")
+    print(f"✅ Default Agent 创建成功: {default_agent.name}")
     
-    # 测试 agent 功能
+    # 测试 agent 功能  
     test_input = args.input
-    if args.file:
-        test_input += f"\n文件路径: {args.file}"
     
     print(f"🎯 测试输入: {test_input}")
     
     try:
-        result = document_processor(test_input)
+        result = default_agent(test_input)
         print(f"📋 Agent 响应:\n{result}")
     except Exception as e:
         print(f"❌ 测试失败: {e}")

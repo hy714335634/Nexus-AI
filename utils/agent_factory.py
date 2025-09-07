@@ -19,9 +19,9 @@ os.environ["BYPASS_TOOL_CONSENT"] = "true"
 config = get_config()
 
 boto_config = BotocoreConfig(
-    retries={"max_attempts": 3, "mode": "standard"},
-    connect_timeout=30,
-    read_timeout=600
+    retries={"max_attempts": config.get_bedrock_config().get("connect_config").get("retries").get("max_attempts"), "mode": "standard"},
+    connect_timeout=config.get_bedrock_config().get("connect_config").get("connect_timeout"),
+    read_timeout=config.get_bedrock_config().get("connect_config").get("read_timeout")
 )
 
 # Create a custom boto3 session
@@ -146,6 +146,7 @@ def get_tool_by_path(tool_path: str):
     通过路径导入工具，支持以下格式：
     - template_tools/common/demo/weather_forecast
     - system_tools/project_manager/project_init
+    - generated_tools/aws/security/aws_compliance_checker/check_aws_compliance
     - strands_tools/calculator
     """
     try:
@@ -186,6 +187,35 @@ def get_tool_by_path(tool_path: str):
                         return None
                 else:
                     print(f"system_tools路径格式不正确: {tool_path}")
+                    return None
+                    
+            except Exception as e:
+                print(f"Failed to import system_tools tool {tool_path}: {e}")
+                return None
+        if tool_path.startswith('generated_tools/'):
+            try:
+                # 分离模块路径和函数名
+                parts = tool_path.split('/')
+                if len(parts) >= 3:
+                    # 例如: generated_tools/aws/security/aws_compliance_checker/check_aws_compliance
+                    # 模块路径: tools.generated_tools.aws.security.aws_compliance_checker
+                    # 函数名: get_project_status
+                    module_path = f"tools.{'.'.join(parts[:-1])}"
+                    function_name = parts[-1]
+                    
+                    # print(f"尝试导入generated_tools模块: {module_path}, 函数: {function_name}")
+                    
+                    # 导入模块
+                    module = importlib.import_module(module_path)
+                    
+                    # 获取函数
+                    if hasattr(module, function_name):
+                        return getattr(module, function_name)
+                    else:
+                        print(f"模块 {module_path} 中没有找到函数 {function_name}")
+                        return None
+                else:
+                    print(f"generated_tools路径格式不正确: {tool_path}")
                     return None
                     
             except Exception as e:
@@ -372,7 +402,7 @@ def get_agent_class_by_type(agent_type: str) -> Optional[Type]:
     return None
 
 
-def create_agent_from_prompt_template(agent_name: str, env="production", version="latest", model_id="default", enable_logging=False, **agent_params) -> Optional[Agent]:
+def create_agent_from_prompt_template(agent_name: str, env="production", version="latest", model_id="default", enable_logging=False, state=None, session_manager=None, **agent_params) -> Optional[Agent]:
     """
     直接从提示词模板创建 agent，支持多级相对路径
     
@@ -388,13 +418,17 @@ def create_agent_from_prompt_template(agent_name: str, env="production", version
         version: 版本号
         model_id: 模型ID
         enable_logging: 是否启用日志跟踪
+        state: 状态数据,json类型，默认None
         **agent_params: 额外的agent参数
     
     Returns:
         Agent 实例或 None
     """
+    import re
     if agent_name.endswith(".yaml"):
         agent_name = agent_name.replace(".yaml", "")
+    if agent_name.startswith("prompts/"):
+        agent_name = re.sub(r'^prompts/', '', agent_name)
     try:
         print(f"Creating agent '{agent_name}' from prompt template...")
         
@@ -420,7 +454,7 @@ def create_agent_from_prompt_template(agent_name: str, env="production", version
         # 动态导入工具依赖
         tools_dependencies = []
         if hasattr(latest_version.metadata, 'tools_dependencies') and latest_version.metadata.tools_dependencies:
-            print(f"Importing tools dependencies: {latest_version.metadata.tools_dependencies}")
+            # print(f"Importing tools dependencies: {latest_version.metadata.tools_dependencies}")
             tools_dependencies = import_tools_by_strings(latest_version.metadata.tools_dependencies)
         
         print(f"Successfully imported {len(tools_dependencies)} tools")
@@ -492,11 +526,18 @@ def create_agent_from_prompt_template(agent_name: str, env="production", version
                 agent_kwargs['hooks'] = []
             agent_kwargs['hooks'].append(logging_hook)
         
+        if session_manager:
+            agent_kwargs['session_manager'] = session_manager
+
         # 创建Agent
         agent = Agent(**agent_kwargs)
+        if state:
+            for key, value in state.items():
+                agent.state.set(key, value)
         
-        print(f"Successfully created agent '{agent_name}' from prompt template")
+        print(f"✅Successfully created agent '{agent_name}' from prompt template")
         print(f"Agent has {len(tools_dependencies)} tools available")
+        print("-"*100)
         
         return agent
         
