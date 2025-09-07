@@ -68,7 +68,7 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description='指定Agent进行测试')
     parser.add_argument('-a', '--agent', type=str, 
-                       default="template_prompts/default.yaml",
+                       default="prompts/template_prompts/default.yaml",
                        help='指定要使用的Agent模板路径')
     parser.add_argument('-i', '--input', type=str, 
                        default="请介绍一下你自己，告诉我你有哪些能力，以及你有哪些工具可供使用",
@@ -76,7 +76,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     args.input = get_test_case(0) if type(args.input) == int else args.input
 
-    agent_path = re.sub(r'^prompts/', '', args.agent)
+    agent_path = args.agent
     agent_template = get_agent_list().get(agent_path)
     
     if agent_template:

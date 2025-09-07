@@ -25,8 +25,11 @@ import yaml
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional, List, Literal
 from pathlib import Path
+from tools.system_tools.agent_build_workflow.tool_template_provider import validate_tool_file
+from tools.system_tools.agent_build_workflow.agent_template_provider import validate_agent_file
+from tools.system_tools.agent_build_workflow.prompt_template_provider import validate_prompt_file
 
-from strands import tool
+from strands import Agent,tool
 
 
 def _enhance_content_with_context(content: str, project_name: str, agent_name: str, stage_name: str) -> str:
@@ -60,6 +63,25 @@ def _enhance_content_with_context(content: str, project_name: str, agent_name: s
     
     # 添加上下文头部到内容前面
     return context_header + content
+
+# @tool
+# def set_current_project_stats(action: str, agent: Agent):
+#     """设置项目基本信息"""
+#     action_count = agent.state.get("action_count") or 0
+
+#     # Update state
+#     agent.state.set("action_count", action_count + 1)
+#     agent.state.set("last_action", action)
+
+#     return f"Action '{action}' recorded. Total actions: {action_count + 1}"
+
+# @tool
+# def get_current_project_stats(agent: Agent):
+#     """获取当前项目基本信息"""
+#     action_count = agent.state.get("action_count") or 0
+#     last_action = agent.state.get("last_action") or "none"
+
+#     return f"Actions performed: {action_count}, Last action: {last_action}"
 
 
 @tool
@@ -143,12 +165,13 @@ nexus-ai/
 │   └── <project_name>/
 │       ├── agents/
 │       │   └── <agent_name>/
-│       │       ├── requirements_analyzer.md       #需求分析师输出文档
-│       │       ├── system_architect.md            #Agent系统架构师输出文档
-│       │       ├── agent_designer.md              #agent设计师输出文档
-│       │       ├── prompt_engineer.md             #提示词工程师输出文档
-│       │       ├── tools_developer.md             #工具开发者输出文档
-│       │       └── agent_code_developer.md        #agent代码开发工程师输出文档
+        │       ├── requirements_analyzer.json       #需求分析师输出文档
+        │       ├── system_architect.json            #Agent系统架构师输出文档
+        │       ├── agent_designer.json              #agent设计师输出文档
+        │       ├── prompt_engineer.json             #提示词工程师输出文档
+        │       ├── tools_developer.json             #工具开发者输出文档
+        │       ├── agent_code_developer.json        #agent代码开发工程师输出文档
+        │       └── agent_developer_manager.json     #项目开发审核结果
 │       ├── config.yaml          # 项目基本配置
 │       ├── README.md            # 项目说明
 │       └── status.yaml          # 项目需求文档和进度追踪
@@ -163,6 +186,7 @@ nexus-ai/
 4. **prompt_engineer**: 提示词工程阶段
 5. **tools_developer**: 工具开发阶段
 6. **agent_code_developer**: Agent代码开发阶段
+7. **agent_developer_manager**: Agent开发管理阶段
 
 ### 各Agent阶段结果
 项目状态和各阶段结果将在开发过程中更新到此文档。
@@ -373,6 +397,7 @@ def update_project_readme(project_name: str, additional_content: str = None) -> 
 4. **prompt_engineer**: 提示词工程阶段
 5. **tools_developer**: 工具开发阶段
 6. **agent_code_developer**: Agent代码开发阶段
+7. **agent_developer_manager**: Agent开发管理阶段
 
 ### 各Agent阶段结果
 """
@@ -1094,7 +1119,7 @@ def update_project_stage_content(project_name: str, agent_name: str, stage_name:
 
 
 @tool
-def update_agent_artifact_path(project_name: str, agent_name: str, stage: str, agent_artifact_path: List[str]) -> str:
+def update_agent_artifact_paths(project_name: str, agent_name: str, stage: str, agent_artifact_path: List[str]) -> str:
     """
     专门更新指定阶段的agent_artifact_path字段
     
@@ -1541,6 +1566,12 @@ def get_project_context(project_name: str, agent_name: str = None) -> str:
     except Exception as e:
         return f"获取项目上下文时出现错误: {str(e)}"
 
+@tool
+def get_project_from_stats(agent: Agent):
+    """Get user statistics from agent state."""
+    all_state = agent.state.get()
+
+    return f"项目初始化信息: {all_state}"
 
 @tool
 def get_project_config(project_name: str) -> str:
@@ -1660,10 +1691,35 @@ def get_project_readme(project_name: str) -> str:
         
     except Exception as e:
         return f"获取项目README时出现错误: {str(e)}"
+    
 
+def verify_file_content(type: Literal["agent", "prompt", "tool"], file_path: str) -> str:
+    """
+    验证文件类型
+    
+    Args:
+        type: 文件类型，可以是 "agent"、"prompt" 或 "tool"
+        file_path: 文件路径
+        
+    Returns:
+        str: JSON格式的验证结果
+    """
+    if type == "agent":
+        return validate_agent_file(file_path)
+    elif type == "prompt":
+        return validate_prompt_file(file_path)
+    elif type == "tool":
+        return validate_tool_file(file_path)
+    else:
+        return json.dumps({
+            "valid": False,
+            "file_path": file_path,
+            "error": f"不支持的文件类型: {type}",
+            "checks": {}
+        }, ensure_ascii=False, indent=2)
 
 @tool
-def generate_content(type: Literal["agent", "prompt", "tool"], content: str, project_name: str, agent_name: str) -> str:
+def generate_content(type: Literal["agent", "prompt", "tool"], content: str, project_name: str, artifact_name: str) -> str:
     """
     根据类型生成内容文件到指定目录
     
@@ -1671,7 +1727,7 @@ def generate_content(type: Literal["agent", "prompt", "tool"], content: str, pro
         type (Literal["agent", "prompt", "tool"]): 内容类型（必须），可以是 "agent"、"prompt" 或 "tool"
         content (str): 要写入的文件内容（必须）
         project_name (str): 项目名称（必须）
-        agent_name (str): Agent名称（必须）
+        artifact_name (str): 名称（必须）,若type为agent或tool，则为脚本名称，若type为prompt，则为Prompt yaml文件名称
         
     Returns:
         str: 操作结果信息
@@ -1687,30 +1743,30 @@ def generate_content(type: Literal["agent", "prompt", "tool"], content: str, pro
         if not project_name or not project_name.strip():
             return "错误：project_name参数（项目名称）是必须参数，不能为空"
         
-        if not agent_name or not agent_name.strip():
-            return "错误：agent_name参数（Agent名称）是必须参数，不能为空"
+        if not artifact_name or not artifact_name.strip():
+            return "错误：artifact_name参数（构件名称）是必须参数，不能为空"
         
         # 清理参数
         project_name = project_name.strip()
-        agent_name = agent_name.strip()
+        artifact_name = artifact_name.strip()
         
         # 验证名称格式（避免路径遍历攻击）
         if "/" in project_name or "\\" in project_name or ".." in project_name:
             return "错误：项目名称不能包含路径分隔符或相对路径"
         
-        if "/" in agent_name or "\\" in agent_name or ".." in agent_name:
+        if "/" in artifact_name or "\\" in artifact_name or ".." in artifact_name:
             return "错误：Agent名称不能包含路径分隔符或相对路径"
         
         # 根据类型确定目标目录和文件扩展名
         if type == "agent":
             target_dir = os.path.join("agents", "generated_agents", project_name)
-            filename = f"{agent_name}.py"
+            filename = f"{artifact_name}" if artifact_name.endswith('.py') else f"{artifact_name}.py"
         elif type == "prompt":
             target_dir = os.path.join("prompts", "generated_agents_prompts", project_name)
-            filename = f"{agent_name}.yaml"
+            filename = f"{artifact_name}" if artifact_name.endswith('.yaml') else f"{artifact_name}.yaml"
         elif type == "tool":
             target_dir = os.path.join("tools", "generated_tools", project_name)
-            filename = f"{agent_name}.py"
+            filename = f"{artifact_name}" if artifact_name.endswith('.py') else f"{artifact_name}.py"
         
         # 确保目标目录存在
         if not os.path.exists(target_dir):
@@ -1727,18 +1783,42 @@ def generate_content(type: Literal["agent", "prompt", "tool"], content: str, pro
         with open(file_path, 'w', encoding='utf-8') as f:
             f.write(content)
         
+        # 验证生成的文件
+        validation_result = verify_file_content(type, file_path)
+        try:
+            validation_data = json.loads(validation_result)
+            if not validation_data.get("valid", False):
+                # 如果验证失败，删除文件并返回错误信息
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+                
+                # 获取详细的错误信息
+                error_message = "未知错误"
+                if "error_details" in validation_data and validation_data["error_details"]:
+                    error_message = "; ".join(validation_data["error_details"])
+                elif "error" in validation_data:
+                    error_message = validation_data["error"]
+                elif "error_category" in validation_data:
+                    error_message = f"错误分类: {validation_data['error_category']}"
+                
+                return f"错误：生成的文件验证失败。{error_message}"
+        except json.JSONDecodeError:
+            # 如果验证结果不是JSON格式，记录警告但继续
+            pass
+        
         # 返回成功信息
         result = {
             "status": "success",
             "message": f"成功创建{type}文件",
             "type": type,
             "project_name": project_name,
-            "agent_name": agent_name,
+            "agent_name": artifact_name,
             "file_path": file_path,
             "file_name": filename,
             "target_directory": target_dir,
             "content_length": len(content),
-            "created_date": datetime.now(timezone.utc).isoformat()
+            "created_date": datetime.now(timezone.utc).isoformat(),
+            "validation_result": validation_result
         }
         
         return json.dumps(result, ensure_ascii=False, indent=2)
@@ -1801,7 +1881,7 @@ def main():
         "tools/generated_tools/test_project/test_tool.py",
         "tools/generated_tools/test_project/helper_tool.py"
     ]
-    result = update_agent_artifact_path("test_project", "test_agent", "tools_developer", tool_paths)
+    result = update_agent_artifact_paths("test_project", "test_agent", "tools_developer", tool_paths)
     print(result)
     
     # 测试写入阶段内容

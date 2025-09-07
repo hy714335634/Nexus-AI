@@ -80,6 +80,46 @@ class ConfigLoader:
         config = self.config.get("default-config", {})
         return config.get(key, default)
     
+    def get_section(self, section_name: str, default: Any = None) -> Any:
+        """
+        获取配置部分
+        
+        Args:
+            section_name (str): 配置部分名称
+            default (Any, optional): 默认值
+            
+        Returns:
+            Any: 配置部分的值
+        """
+        config = self.config.get("default-config", {})
+        return config.get(section_name, default)
+    
+    def get_nested(self, *keys: str, default: Any = None) -> Any:
+        """
+        获取嵌套配置项
+        
+        Args:
+            *keys: 配置键路径
+            default (Any, optional): 默认值
+            
+        Returns:
+            Any: 配置值
+            
+        Example:
+            >>> config.get_nested("multimodal_parser", "aws", "s3_bucket")
+            "awesome-nexus-ai-file-storage"
+        """
+        config = self.config.get("default-config", {})
+        current = config
+        
+        for key in keys:
+            if isinstance(current, dict) and key in current:
+                current = current[key]
+            else:
+                return default
+        
+        return current
+    
     def get_aws_config(self) -> Dict[str, Any]:
         """
         获取AWS配置
@@ -124,6 +164,52 @@ class ConfigLoader:
             Dict: MCP配置字典
         """
         return self.get("mcp", {})
+    
+    def get_multimodal_parser_config(self) -> Dict[str, Any]:
+        """
+        获取多模态解析器配置
+        
+        Returns:
+            Dict: 多模态解析器配置字典
+        """
+        return self.get("multimodal_parser", {})
+    
+    def get_logging_config(self) -> Dict[str, Any]:
+        """
+        获取日志配置
+        
+        Returns:
+            Dict: 日志配置字典
+        """
+        return self.get("logging", {})
+    
+    def has_section(self, section_name: str) -> bool:
+        """
+        检查配置部分是否存在
+        
+        Args:
+            section_name (str): 配置部分名称
+            
+        Returns:
+            bool: 是否存在
+        """
+        config = self.config.get("default-config", {})
+        return section_name in config
+    
+    def list_sections(self) -> list:
+        """
+        列出所有配置部分
+        
+        Returns:
+            list: 配置部分名称列表
+        """
+        config = self.config.get("default-config", {})
+        return list(config.keys())
+    
+    def reload_config(self):
+        """重新加载配置文件"""
+        self.config = self._load_config()
+        self._configure_logging()
 
 
 # 全局配置实例
@@ -148,3 +234,14 @@ if __name__ == "__main__":
     print("Strands配置:", loader.get_strands_config())
     print("AgentCore配置:", loader.get_agentcore_config())
     print("MCP配置:", loader.get_mcp_config())
+    print("多模态解析器配置:", loader.get_multimodal_parser_config())
+    print("日志配置:", loader.get_logging_config())
+    print("所有配置部分:", loader.list_sections())
+    
+    # 测试嵌套配置获取
+    s3_bucket = loader.get_nested("multimodal_parser", "aws", "s3_bucket")
+    print(f"多模态解析器S3存储桶: {s3_bucket}")
+    
+    # 测试部分配置获取
+    multimodal_config = loader.get_section("multimodal_parser")
+    print(f"多模态解析器配置部分: {multimodal_config}")
