@@ -34,13 +34,28 @@ nexus-ai/
 │   ├── prompts_manager.py           # Prompt template management
 │   ├── mcp_manager.py               # MCP server management
 │   ├── config_loader.py             # Configuration management
-│   └── agent_logging.py             # Logging utilities
+│   ├── strands_agent_logging_hook.py # Agent logging utilities
+│   ├── multimodal_processing/       # Multimodal content processing
+│   │   ├── content_parsing_engine.py # Unified content processing
+│   │   ├── file_upload_manager.py   # File upload handling
+│   │   ├── image_processor.py       # Image processing
+│   │   ├── document_processor.py    # Document processing
+│   │   ├── s3_storage_service.py    # S3 storage management
+│   │   ├── multimodal_model_service.py # AI model integration
+│   │   └── markdown_generator.py    # Markdown output generation
+│   └── structured_output_model/     # Structured output models
 ├── mcp/                             # MCP server configurations
 ├── tests/                           # Test files and examples
 │   ├── multi-agent_base_on_graph.py # Graph-based multi-agent tests
 │   ├── multi-agent_base_on_swarm.py # Swarm-based multi-agent tests
-│   └── strands_mcp_*.py             # MCP integration tests
-└── templates/                       # Project templates
+│   ├── strands_mcp_*.py             # MCP integration tests
+│   └── test_image_processor.py      # Multimodal processing tests
+├── docs/                            # Documentation
+│   └── file_validation_implementation.md # Implementation guides
+├── models/                          # Data models and schemas
+├── projects/                        # Generated agent projects
+│   └── aws_pricing_agent/          # AWS pricing agent project
+└── logs/                           # Application logs
 ```
 
 ## Code Organization Patterns
@@ -95,6 +110,12 @@ nexus-ai/
 - `utils/prompts_manager.py`: YAML prompt template system
 - `utils/mcp_manager.py`: MCP server configuration and client management
 - `utils/config_loader.py`: Centralized configuration management
+
+### Multimodal Processing
+- `utils/multimodal_processing/content_parsing_engine.py`: Main content processing interface
+- `utils/multimodal_processing/file_upload_manager.py`: File upload and validation
+- `utils/multimodal_processing/s3_storage_service.py`: AWS S3 integration
+- `utils/multimodal_processing/multimodal_model_service.py`: AI model services
 
 ### Agent Workflow
 - `agents/system_agents/agent_build_workflow/orchestrator_agent.py`: Main workflow orchestration

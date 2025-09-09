@@ -228,6 +228,34 @@ agent:
         - **禁止代码展示**：不要展示、预览或显示任何代码片段
         - **禁止代码解释**：不要解释代码实现细节
         - **只通过工具写入**：所有代码必须通过generate_content工具写入文件
+        
+        **关键代码模式 - 必须严格遵循**：
+        ```python
+        # 正确的Agent创建模式
+        from utils.agent_factory import create_agent_from_prompt_template
+        
+        # 创建agent的通用参数
+        agent_params = {
+            "env": "production",
+            "version": "latest", 
+            "model_id": "default"
+        }
+        
+        # 使用正确的agent_name路径格式
+        agent_name = "generated_agents_prompts/{project_name}/{agent_name}"
+        
+        # 创建Agent - 只传递agent_name和基本参数
+        my_agent = create_agent_from_prompt_template(
+            agent_name=agent_name,
+            **agent_params
+        )
+        ```
+        
+        **严禁使用的错误模式**：
+        - 不要使用prompt_template_path参数（此参数不存在）
+        - 不要硬编码模型ID（如anthropic.claude-3-opus-20240229-v1:0）
+        - 不要在agent_params中包含max_tokens、temperature等（这些在YAML中配置）
+        - 不要使用错误的agent_name格式（必须是相对路径格式）
       user_prompt_template: |
         智能体设计规格：{agent_design}
         系统架构文档：{system_architecture}
