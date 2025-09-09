@@ -31,6 +31,9 @@ Nexus-AI is an open-source enterprise-grade AI agent development platform built 
 - **Configuration Management**: Hierarchical YAML configuration system with environment support
 - **Modular Architecture**: Extensible plugin-based design with dynamic component loading
 - **One-click Deployment**: Automated deployment to AWS AgentCore with container support
+- **Multimodal Content Processing**: Unified processing of images, documents, Excel, Word files with AI-powered analysis
+- **S3 Storage Integration**: Secure file storage and management with automatic cleanup and presigned URLs
+- **Structured Output Generation**: Automatic conversion of multimodal content to structured Markdown format
 
 ### Developer Experience
 - **Template-Driven Development**: Create agents from structured YAML templates
@@ -53,3 +56,6 @@ Nexus-AI is an open-source enterprise-grade AI agent development platform built 
 - **Customer Service**: Intelligent agent swarms for complex customer inquiries
 - **Data Analysis**: Collaborative agents for multi-step analytical processes
 - **Content Generation**: Coordinated agents for structured content creation workflows
+- **Document Processing**: Automated analysis and processing of multimodal business documents
+- **Cloud Migration Planning**: AWS pricing and configuration analysis for cloud migration projects
+- **Multimodal Data Integration**: Unified processing of text, images, and structured documents

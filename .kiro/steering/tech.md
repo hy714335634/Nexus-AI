@@ -2,7 +2,7 @@
 
 ## Core Technologies
 
-- **Python 3.13+**: Primary development language
+- **Python 3.12+**: Primary development language
 - **AWS Bedrock**: AI model hosting and inference with multiple model support (Claude 3.5 Haiku, Claude 3.7 Sonnet, Claude Opus 4)
 - **AWS AgentCore**: Agent runtime and deployment platform
 - **Strands Framework**: Agent orchestration and tool integration with multi-agent support
@@ -15,17 +15,31 @@
 - `bedrock-agentcore`: AWS AgentCore integration
 - `boto3`: AWS SDK for Python
 - `PyYAML`: Configuration management
+- `feedparser`: RSS/Atom feed parsing
+- `colorama`: Cross-platform colored terminal text
 - `uv`: Python package management
 
 ## Architecture Components
 
 ### Agent Factory System
+
 - **Agent Factory** (`utils/agent_factory.py`): Dynamic agent creation from prompt templates
 - **Prompt Manager** (`utils/prompts_manager.py`): YAML-based prompt template management with versioning
 - **MCP Manager** (`utils/mcp_manager.py`): MCP server configuration and client management
 - **Config Loader** (`utils/config_loader.py`): Centralized configuration management
 
+### Multimodal Processing System
+
+- **Content Parsing Engine** (`utils/multimodal_processing/content_parsing_engine.py`): Unified content processing interface
+- **File Upload Manager** (`utils/multimodal_processing/file_upload_manager.py`): File upload and validation handling
+- **Image Processor** (`utils/multimodal_processing/image_processor.py`): Image content analysis and processing
+- **Document Processor** (`utils/multimodal_processing/document_processor.py`): Excel, Word, and text document processing
+- **S3 Storage Service** (`utils/multimodal_processing/s3_storage_service.py`): AWS S3 file storage management
+- **Multimodal Model Service** (`utils/multimodal_processing/multimodal_model_service.py`): AI model integration for content analysis
+- **Markdown Generator** (`utils/multimodal_processing/markdown_generator.py`): Structured markdown output generation
+
 ### Agent Types
+
 - **System Agents**: Core platform agents with specialized workflow roles
   - Orchestrator Agent: Workflow coordination and management
   - Requirements Analyzer: Business requirement analysis
@@ -39,6 +53,7 @@
 - **Generated Agents**: Dynamically created agents from templates
 
 ### Multi-Agent Orchestration
+
 - **Graph-based Workflows**: Dependency-driven agent execution
 - **Swarm Intelligence**: Collaborative agent problem-solving
 - **Agent Build Workflow**: Automated agent development pipeline
@@ -71,7 +86,7 @@ uvx strands-agents-mcp-server          # Run Strands MCP server
 - `config/default_config.yaml`: Main system configuration with model settings
 - `prompts/`: YAML-based prompt templates with hierarchical structure
   - `system_agents_prompts/`: System agent prompts
-  - `template_prompts/`: Template agent prompts  
+  - `template_prompts/`: Template agent prompts
   - `generated_agents_prompts/`: Generated agent prompts
 - `mcp/*.json`: MCP server configurations with auto-approval settings
 - `utils/`: Core utility modules for agent management
@@ -85,3 +100,6 @@ uvx strands-agents-mcp-server          # Run Strands MCP server
 - **Configuration Management**: Hierarchical YAML configuration system
 - **MCP Integration**: Standardized protocol for external tool integration
 - **Multi-Agent Workflows**: Graph and swarm-based agent collaboration
+- **Multimodal Content Processing**: Unified processing of images, documents, and text files
+- **S3 Storage Integration**: Secure file storage and management with AWS S3
+- **Structured Output Generation**: Automatic markdown generation from processed content
