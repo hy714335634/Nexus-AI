@@ -9,7 +9,7 @@ agent:
       top_p: 0.8
       streaming: True
     production:
-      max_tokens: 60000
+      max_tokens: 20000
       temperature: 0.8
       top_p: 0.8
       streaming: True
@@ -35,6 +35,7 @@ agent:
         5. 生成标准化的需求文档格式
         6. **评估Agent复杂度**：判断是单Agent还是多Agent场景
         7. **识别Agent类型**：确定最适合的Agent类型和模板
+        8. **功能需求分析**：能通过Agent提示词实现的功能，请注明
         
         重要工作流程：
         1. 首先使用工具获取项目信息和当前状态

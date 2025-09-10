@@ -9,6 +9,7 @@ projects/*
 agents/generated_agents/*
 prompts/generated_agents_prompts/*
 tools/generated_tools/*
+case
 
 # Virtual environments
 .venv
@@ -22,6 +23,7 @@ tests/
 笔记.txt
 main.py
 docs
+backup/
 
 # 隐藏文件和目录
 .DS_Store

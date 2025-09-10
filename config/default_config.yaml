@@ -7,7 +7,7 @@ default-config:
     aws_secret_access_key: ''         # AWS secret key, leave empty to use AWS credentials provider chain
     endpoint_url: ''                  # Custom endpoint URL, leave empty for AWS default endpoints
     verify: True                      # Verify SSL certificates for AWS API calls
-    connect_timeout: 300              # invoke timeout time, second
+    connect_timeout: 3600              # invoke timeout time, second
   
   strands:
     template:
