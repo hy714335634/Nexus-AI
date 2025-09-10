@@ -17,10 +17,9 @@ os.environ["BYPASS_TOOL_CONSENT"] = "true"
 
 def get_agent_list():
     template_agents = json.loads(list_prompt_templates(type="template"))
-    system_agents = json.loads(list_prompt_templates(type="system"))
     generated_agents = json.loads(list_prompt_templates(type="generated"))
     
-    all_templates = [item for item in system_agents["templates"]] + [item for item in generated_agents["templates"]] + [item for item in template_agents["templates"]]
+    all_templates = [item for item in generated_agents["templates"]] + [item for item in template_agents["templates"]]
 
     agent_dict = {}
     for template in all_templates:
@@ -49,20 +48,6 @@ def run_magician_agent(magician_agent, input):
     except Exception as e:
         print(f"❌ 测试失败: {e}")
         return None
-    
-def get_test_case(num):
-    test_cases = [
-        """
-用户请求意图识别结果如下：
-user_input="我需要一个agent，我会提供关于IT产品的描述和价格，它需要帮我根据aws服务和产品对照，生成完整的报价表单，并输出markdown格式。请注意，务必采用真实价格数据。",
-📊 意图分析结果:
-  - 意图类型: new_project
-  - 提到的项目: None
-  - 项目存在: False
-  - 处理建议: 启动新项目创建流程。
-        """
-    ]
-    return test_cases[num]
 
 if __name__ == "__main__":
     import argparse
@@ -74,7 +59,6 @@ if __name__ == "__main__":
                        default="请介绍一下你自己，告诉我你有哪些能力，以及你有哪些工具可供使用",
                        help='指定用户输入内容')
     args = parser.parse_args()
-    args.input = get_test_case(0) if type(args.input) == int else args.input
 
     agent_path = args.agent
     agent_template = get_agent_list().get(agent_path)

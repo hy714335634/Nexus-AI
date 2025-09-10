@@ -79,3 +79,39 @@ def agent_prompt_engineer(query: str) -> str:
     except Exception as e:
         return f"Error in prompt engineer: {str(e)}"
 
+
+
+@tool
+def agent_template_searcher(query: str) -> str:
+    """
+    智能模版搜索专家，通过自然语言需求分析和智能匹配算法，为agent提供精准的tools、agent、prompt模版推荐服务。
+    
+    该工具能够：
+    1. 智能分析用户需求，提取核心功能、技术约束、业务场景等关键特征
+    2. 根据用户明确指定（如"工具模版"、"Agent模版"、"提示词模版"）或需求特点智能判断需要搜索的模版类型
+    3. 使用多种搜索策略进行模版匹配，包括语义相似度、功能匹配度、技术栈兼容性等多重指标
+    4. 为每个推荐模版提供详细的匹配理由、0-100分的匹配度评分、优缺点分析和使用建议
+    5. 提供替代方案和定制化说明，帮助用户做出最佳选择
+    
+    Args:
+        query: 用户的自然语言需求描述，可以明确指定模版类型（如"工具模版"、"Agent模版"、"提示词模版"）
+
+    Returns:
+        结构化的模版推荐结果，包含：
+        - 需求分析结果（核心功能、技术约束、业务场景等）
+        - 判断的模版类型
+        - 推荐模版列表（包含评分、匹配理由、优势、限制、使用建议、定制说明）
+        - 替代方案
+        - 搜索总结
+    """
+    try:
+        agent_template_searcher_agent = create_agent_from_prompt_template(
+            agent_name="system_agents_prompts/agent_build_workflow/agent_template_searcher", 
+            **agent_params
+        )
+
+        response = agent_template_searcher_agent(query)
+        return str(response)
+    except Exception as e:
+        return f"Error in agent template searcher: {str(e)}"
+

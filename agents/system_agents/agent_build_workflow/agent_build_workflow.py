@@ -166,15 +166,18 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='工作流编排器 Agent 测试')
     parser.add_argument('-i', '--input', type=str, 
                        default="""
-请创建一个Agent帮我完成AWS产品报价工作，我会提供tsv格式的其他云平台账单或IDC配置清单，请找到正确的AWS配置并告诉我真实价格，具体要求如下：
+请创建一个Agent帮我完成AWS产品报价工作，我会提供自然语言描述的其他云平台账单或IDC配置清单，请分析并推荐正确且合理AWS配置，并告诉我真实价格，具体要求如下：
 1、需要至少支持计算、存储、网络、数据库四个核心产品
 2、在用户提出的描述不清晰时，需要能够根据用户需求推测合理配置
-3、需要使用真实价格数据，通过aws接口获取真实数据
-4、能够支持根据客户指定区域进行报价
-5、能够按照销售的思维分析用户提供的数据，生成清晰且有逻辑的报价方案
-6、报价文档尽量使用中文
+3、在生产环境中除非用户指定t系列或说明用于测试需要，否则应避免使用t系列实例
+4、需要使用真实实例类型及价格数据，通过aws接口获取真实数据
+5、能够支持根据客户指定区域进行报价，包括中国区
+6、能够按照销售的思维分析用户提供的数据，生成清晰且有逻辑的报价方案
+7、报价文档尽量使用中文输出
 """,
                        help='测试输入内容')
+    parser.add_argument('-f', '--file', type=str, 
+                       help='从文件中读取内容并添加到测试输入中')
     args = parser.parse_args()
     
     print(f"🎯 [SYSTEM] Orchestrator Agent 创建成功")
@@ -184,6 +187,20 @@ if __name__ == "__main__":
     
     # 运行完整工作流
     test_input = args.input
+    
+    # 如果指定了文件参数，读取文件内容并添加到test_input中
+    if args.file:
+        try:
+            with open(args.file, 'r', encoding='utf-8') as f:
+                file_content = f.read()
+                test_input += f"\n\n从文件 {args.file} 读取的内容：\n{file_content}"
+                print(f"📁 [SYSTEM] 已从文件 {args.file} 读取内容")
+        except FileNotFoundError:
+            print(f"❌ [SYSTEM] 文件 {args.file} 不存在")
+            exit(1)
+        except Exception as e:
+            print(f"❌ [SYSTEM] 读取文件 {args.file} 失败: {e}")
+            exit(1)
     
     print(f"📝 [SYSTEM] 测试输入: {test_input[:100]}...")
     

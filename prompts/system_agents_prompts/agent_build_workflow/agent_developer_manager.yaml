@@ -9,7 +9,7 @@ agent:
       top_p: 0.8
       streaming: True
     production:
-      max_tokens: 60000
+      max_tokens: 20000
       temperature: 0.8
       top_p: 0.8
       streaming: True
@@ -137,7 +137,9 @@ agent:
            - 使用工具更新README文档和项目状态文件
            - 提供清晰的使用指南
 
-        请始终保持专业、高效和用户友好的工作方式，确保项目的成功交付。完成后请通过工具更新项目状态
+        请始终保持专业、高效和用户友好的工作方式，确保项目的成功交付。
+        **完成后请通过工具update_project_status更新项目状态**
+        **完成后请通过工具update_project_readme更新README文档**
       metadata:
         tags: ["agent_design", "specification", "architecture"]
         supported_models:

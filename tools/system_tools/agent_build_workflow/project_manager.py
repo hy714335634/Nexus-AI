@@ -12,6 +12,7 @@
 # project_manager/get_project_stage_content - 读取指定阶段文件的内容，返回文件内容和元数据信息
 # project_manager/list_project_agents - 列出指定项目中的所有Agent目录，包含文件统计和阶段文件信息
 # project_manager/list_all_projects - 列出所有项目，包含项目配置信息和Agent数量统计
+# project_manager/list_project_tools - 列出指定项目下的所有工具，扫描tools/generated_tools/<project_name>/目录，解析@tool装饰器，返回工具路径信息
 # project_manager/generate_content - 根据类型生成内容文件，支持agent、prompt、tool三种类型，分别输出到对应的generated目录
 """
 项目管理工具
@@ -1064,35 +1065,13 @@ def update_project_stage_content(project_name: str, agent_name: str, stage_name:
         with open(stage_file_path, 'w', encoding='utf-8') as f:
             f.write(enhanced_content)
         
-        # 如果提供了agent_artifact_path，同时更新status.yaml中对应阶段的制品路径
+        # 如果提供了agent_artifact_path，使用专门的函数更新制品路径
         artifact_stages = ["prompt_engineer", "tools_developer", "agent_code_developer"]
         if stage_name in artifact_stages and agent_artifact_path:
-            status_path = os.path.join(project_root, "status.yaml")
-            if os.path.exists(status_path):
-                try:
-                    with open(status_path, 'r', encoding='utf-8') as f:
-                        status_data = yaml.safe_load(f) or {}
-                    
-                    # 查找并更新对应的阶段
-                    if "project_info" in status_data:
-                        for project in status_data["project_info"]:
-                            if project.get("name") == project_name:
-                                for agent in project.get("agents", []):
-                                    if agent.get("name") == agent_name:
-                                        for stage_entry in agent.get("pipeline", []):
-                                            if stage_entry.get("stage") == stage_name:
-                                                stage_entry["agent_artifact_path"] = agent_artifact_path
-                                                stage_entry["updated_date"] = datetime.now(timezone.utc).isoformat()
-                                                break
-                                        break
-                                break
-                    
-                    # 写回status.yaml
-                    with open(status_path, 'w', encoding='utf-8') as f:
-                        yaml.dump(status_data, f, default_flow_style=False, allow_unicode=True, indent=2)
-                        
-                except (yaml.YAMLError, PermissionError):
-                    pass  # 如果更新status.yaml失败，不影响主要功能
+            update_result = update_agent_artifact_paths(project_name, agent_name, stage_name, agent_artifact_path, append_mode=True)
+            # 如果更新失败，记录警告但不影响主要功能
+            if "错误" in update_result:
+                print(f"警告：更新制品路径失败 - {update_result}")
         
         # 构建返回结果
         result = {
@@ -1119,7 +1098,7 @@ def update_project_stage_content(project_name: str, agent_name: str, stage_name:
 
 
 @tool
-def update_agent_artifact_paths(project_name: str, agent_name: str, stage: str, agent_artifact_path: List[str]) -> str:
+def update_agent_artifact_paths(project_name: str, agent_name: str, stage: str, agent_artifact_path: List[str], append_mode: bool = False) -> str:
     """
     专门更新指定阶段的agent_artifact_path字段
     
@@ -1128,6 +1107,7 @@ def update_agent_artifact_paths(project_name: str, agent_name: str, stage: str, 
         agent_name (str): Agent名称（必须）
         stage (str): 阶段名称（必须） - prompt_engineer, tools_developer, agent_code_developer
         agent_artifact_path (List[str]): 制品路径数组（必须）
+        append_mode (bool): 是否追加模式，默认为False（覆盖模式）
         
     Returns:
         str: 操作结果信息
@@ -1203,7 +1183,19 @@ def update_agent_artifact_paths(project_name: str, agent_name: str, stage: str, 
         
         for stage_entry in pipeline:
             if stage_entry.get("stage") == stage:
-                stage_entry["agent_artifact_path"] = agent_artifact_path
+                if append_mode:
+                    # 追加模式：合并现有路径和新路径，去重
+                    existing_paths = stage_entry.get("agent_artifact_path", [])
+                    if not isinstance(existing_paths, list):
+                        existing_paths = []
+                    
+                    # 合并并去重
+                    combined_paths = list(set(existing_paths + agent_artifact_path))
+                    stage_entry["agent_artifact_path"] = combined_paths
+                else:
+                    # 覆盖模式：直接替换
+                    stage_entry["agent_artifact_path"] = agent_artifact_path
+                
                 stage_entry["updated_date"] = datetime.now(timezone.utc).isoformat()
                 stage_found = True
                 break
@@ -1220,12 +1212,13 @@ def update_agent_artifact_paths(project_name: str, agent_name: str, stage: str, 
         
         result = {
             "status": "success",
-            "message": f"成功更新 Agent '{agent_name}' 的阶段 '{stage}' 制品路径",
+            "message": f"成功{'追加' if append_mode else '更新'} Agent '{agent_name}' 的阶段 '{stage}' 制品路径",
             "project_name": project_name,
             "agent_name": agent_name,
             "stage": stage,
-            "agent_artifact_path": agent_artifact_path,
-            "artifact_count": len(agent_artifact_path),
+            "agent_artifact_path": stage_entry["agent_artifact_path"],
+            "artifact_count": len(stage_entry["agent_artifact_path"]),
+            "operation_mode": "append" if append_mode else "replace",
             "updated_date": datetime.now(timezone.utc).isoformat()
         }
         
@@ -1233,6 +1226,47 @@ def update_agent_artifact_paths(project_name: str, agent_name: str, stage: str, 
         
     except Exception as e:
         return f"更新制品路径时出现错误: {str(e)}"
+
+
+@tool
+def append_agent_artifact_path(project_name: str, agent_name: str, stage: str, file_path: str) -> str:
+    """
+    追加单个文件路径到指定阶段的agent_artifact_path字段
+    
+    Args:
+        project_name (str): 项目名称（必须）
+        agent_name (str): Agent名称（必须）
+        stage (str): 阶段名称（必须） - prompt_engineer, tools_developer, agent_code_developer
+        file_path (str): 要追加的文件路径（必须）
+        
+    Returns:
+        str: 操作结果信息
+    """
+    try:
+        # 验证必须参数
+        if not project_name or not project_name.strip():
+            return "错误：项目名称（project_name）是必须参数，不能为空"
+        
+        if not agent_name or not agent_name.strip():
+            return "错误：Agent名称（agent_name）是必须参数，不能为空"
+        
+        if not stage or not stage.strip():
+            return "错误：阶段名称（stage）是必须参数，不能为空"
+        
+        if not file_path or not file_path.strip():
+            return "错误：文件路径（file_path）是必须参数，不能为空"
+        
+        # 验证阶段名称
+        valid_stages = ["prompt_engineer", "tools_developer", "agent_code_developer"]
+        
+        if stage not in valid_stages:
+            return f"错误：无效的阶段名称 '{stage}'，支持制品路径的阶段包括: {', '.join(valid_stages)}"
+        
+        # 调用主函数，使用追加模式
+        return update_agent_artifact_paths(project_name, agent_name, stage, [file_path], append_mode=True)
+        
+    except Exception as e:
+        return f"追加制品路径时出现错误: {str(e)}"
 
 
 @tool
@@ -1719,6 +1753,256 @@ def verify_file_content(type: Literal["agent", "prompt", "tool"], file_path: str
         }, ensure_ascii=False, indent=2)
 
 @tool
+def list_project_tools(project_name: str, detailed: bool = False) -> str:
+    """
+    列出指定项目下的所有工具
+    
+    Args:
+        project_name (str): 项目名称（必须）
+        detailed (bool): 是否返回详细信息，默认为False，只返回工具路径列表
+        
+    Returns:
+        str: JSON格式的工具列表信息
+        - 当detailed=False时：只返回工具路径列表
+        - 当detailed=True时：返回包含工具路径和详细信息的完整数据
+        
+    说明：
+    - 扫描 tools/generated_tools/<project_name>/ 目录下的所有Python文件
+    - 解析每个文件中的@tool装饰器，提取工具名称
+    - 返回格式：generated_tools/<project_name>/<script_name>/<tool_name>
+    """
+    try:
+        # 验证项目名称
+        if not project_name or not project_name.strip():
+            return "错误：项目名称不能为空"
+        
+        project_name = project_name.strip()
+        
+        # 验证路径安全性
+        if "/" in project_name or "\\" in project_name or ".." in project_name:
+            return "错误：项目名称不能包含路径分隔符或相对路径"
+        
+        # 构建工具目录路径
+        tools_dir = os.path.join("tools", "generated_tools", project_name)
+        
+        # 检查工具目录是否存在
+        if not os.path.exists(tools_dir):
+            return f"错误：项目 '{project_name}' 的工具目录不存在: {tools_dir}"
+        
+        # 扫描目录中的所有Python文件
+        tool_files = []
+        try:
+            for item in os.listdir(tools_dir):
+                if item.endswith('.py') and os.path.isfile(os.path.join(tools_dir, item)):
+                    tool_files.append(item)
+        except PermissionError:
+            return f"错误：没有权限访问工具目录 {tools_dir}"
+        
+        # 如果没有找到工具文件
+        if not tool_files:
+            if detailed:
+                result = {
+                    "status": "success",
+                    "project_name": project_name,
+                    "tools_directory": tools_dir,
+                    "tool_count": 0,
+                    "tools": [],
+                    "message": f"项目 '{project_name}' 中未找到任何工具文件",
+                    "query_date": datetime.now(timezone.utc).isoformat()
+                }
+            else:
+                result = {
+                    "status": "success",
+                    "project_name": project_name,
+                    "tool_paths": [],
+                    "message": f"项目 '{project_name}' 中未找到任何工具文件"
+                }
+            return json.dumps(result, ensure_ascii=False, indent=2)
+        
+        # 解析每个工具文件
+        project_tools = []
+        for tool_file in tool_files:
+            file_path = os.path.join(tools_dir, tool_file)
+            script_name = tool_file[:-3]  # 移除.py扩展名
+            
+            try:
+                # 读取文件内容
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                
+                # 解析工具名称和描述（查找@tool装饰器）
+                tool_info_list = []
+                lines = content.split('\n')
+                
+                for i, line in enumerate(lines):
+                    line = line.strip()
+                    # 查找@tool装饰器
+                    if line.startswith('@tool'):
+                        # 查找下一个函数定义，可能需要跳过几行
+                        func_def_line = None
+                        func_name = None
+                        for j in range(i + 1, min(i + 15, len(lines))):
+                            next_line = lines[j].strip()
+                            if next_line.startswith('def '):
+                                func_def_line = j
+                                # 提取函数名
+                                func_match = next_line.split('(')[0].replace('def ', '').strip()
+                                func_name = func_match
+                                break
+                        
+                        # 如果函数定义跨越多行，需要找到函数定义的结束位置
+                        if func_def_line is not None:
+                            # 查找函数定义的结束位置（包含参数的行）
+                            func_end_line = func_def_line
+                            for k in range(func_def_line + 1, min(func_def_line + 10, len(lines))):
+                                line_content = lines[k].strip()
+                                if line_content.endswith(') -> str:') or line_content.endswith(') -> str') or line_content.endswith('):'):
+                                    func_end_line = k
+                                    break
+                                elif line_content and not line_content.startswith('def ') and not line_content.startswith('@'):
+                                    # 如果遇到非函数定义行，可能是参数行
+                                    if '(' in lines[func_def_line] or ')' in line_content:
+                                        func_end_line = k
+                                    else:
+                                        break
+                                else:
+                                    break
+                        
+                        if func_def_line is not None and func_name:
+                            # 查找函数的文档字符串
+                            description = ""
+                            # 从函数定义结束位置开始查找文档字符串
+                            for k in range(func_end_line + 1, min(func_end_line + 20, len(lines))):
+                                doc_line = lines[k].strip()
+                                if doc_line.startswith('"""') or doc_line.startswith("'''"):
+                                    # 找到文档字符串开始
+                                    doc_start = k
+                                    quote_type = '"""' if doc_line.startswith('"""') else "'''"
+                                    
+                                    # 检查是否是单行文档字符串
+                                    if doc_line.endswith(quote_type) and len(doc_line) > 3:
+                                        description = doc_line[3:-3].strip()
+                                    else:
+                                        # 多行文档字符串
+                                        doc_lines = []
+                                        for m in range(doc_start + 1, len(lines)):
+                                            doc_content_line = lines[m]
+                                            if doc_content_line.strip().endswith(quote_type):
+                                                # 最后一行，移除结束引号
+                                                if doc_content_line.strip() != quote_type:
+                                                    doc_lines.append(doc_content_line.strip()[:-3])
+                                                break
+                                            else:
+                                                doc_lines.append(doc_content_line.rstrip())
+                                        description = '\n'.join(doc_lines).strip()
+                                    break
+                                elif doc_line and not doc_line.startswith('#') and not doc_line.startswith('from ') and not doc_line.startswith('import ') and not doc_line.startswith('try:') and not doc_line.startswith('if ') and not doc_line.startswith('return ') and not doc_line.startswith('def ') and not doc_line.startswith('class '):
+                                    # 如果遇到非空非注释行，停止查找文档字符串
+                                    break
+                            
+                            tool_info_list.append({
+                                'name': func_name,
+                                'description': description
+                            })
+                
+                # 获取文件信息
+                file_stat = os.stat(file_path)
+                import time
+                
+                # 为每个工具创建条目
+                for tool_info in tool_info_list:
+                    tool_entry = {
+                        "tool_name": tool_info['name'],
+                        "tool_path": f"generated_tools/{project_name}/{script_name}/{tool_info['name']}",
+                        "description": tool_info['description'],
+                        "script_name": script_name,
+                        "file_name": tool_file,
+                        "file_path": file_path,
+                        "file_size": file_stat.st_size,
+                        "modified_time": time.ctime(file_stat.st_mtime)
+                    }
+                    project_tools.append(tool_entry)
+                
+                # 如果没有找到工具，但文件存在，记录文件信息
+                if not tool_info_list:
+                    tool_entry = {
+                        "tool_name": None,
+                        "tool_path": f"generated_tools/{project_name}/{script_name}/",
+                        "description": None,
+                        "script_name": script_name,
+                        "file_name": tool_file,
+                        "file_path": file_path,
+                        "file_size": file_stat.st_size,
+                        "modified_time": time.ctime(file_stat.st_mtime),
+                        "note": "文件中未找到@tool装饰器"
+                    }
+                    project_tools.append(tool_entry)
+                    
+            except PermissionError:
+                # 如果无法读取文件，记录错误
+                tool_entry = {
+                    "tool_name": None,
+                    "tool_path": f"generated_tools/{project_name}/{script_name}/",
+                    "description": None,
+                    "script_name": script_name,
+                    "file_name": tool_file,
+                    "file_path": file_path,
+                    "error": "没有权限读取文件"
+                }
+                project_tools.append(tool_entry)
+            except Exception as e:
+                # 其他错误
+                tool_entry = {
+                    "tool_name": None,
+                    "tool_path": f"generated_tools/{project_name}/{script_name}/",
+                    "description": None,
+                    "script_name": script_name,
+                    "file_name": tool_file,
+                    "file_path": file_path,
+                    "error": f"解析文件时出错: {str(e)}"
+                }
+                project_tools.append(tool_entry)
+        
+        # 按脚本名称和工具名称排序
+        project_tools.sort(key=lambda x: (x.get("script_name", ""), x.get("tool_name", "")))
+        
+        # 统计信息
+        total_tools = len([t for t in project_tools if t.get("tool_name")])
+        total_files = len(tool_files)
+        files_with_tools = len(set(t.get("file_name") for t in project_tools if t.get("tool_name")))
+        
+        if detailed:
+            # 返回详细信息
+            result = {
+                "status": "success",
+                "project_name": project_name,
+                "tools_directory": tools_dir,
+                "summary": {
+                    "total_tool_files": total_files,
+                    "files_with_tools": files_with_tools,
+                    "total_tools": total_tools,
+                    "files_without_tools": total_files - files_with_tools
+                },
+                "tools": project_tools,
+                "query_date": datetime.now(timezone.utc).isoformat()
+            }
+        else:
+            # 只返回工具路径列表
+            tool_paths = [t.get("tool_path") for t in project_tools if t.get("tool_name")]
+            result = {
+                "status": "success",
+                "project_name": project_name,
+                "tool_paths": tool_paths,
+                "tool_count": total_tools
+            }
+        
+        return json.dumps(result, ensure_ascii=False, indent=2)
+        
+    except Exception as e:
+        return f"列出项目工具时出现错误: {str(e)}"
+
+
+@tool
 def generate_content(type: Literal["agent", "prompt", "tool"], content: str, project_name: str, artifact_name: str) -> str:
     """
     根据类型生成内容文件到指定目录
@@ -1732,6 +2016,7 @@ def generate_content(type: Literal["agent", "prompt", "tool"], content: str, pro
     Returns:
         str: 操作结果信息
     """
+    stage = "prompt_engineer" if type == "prompt" else "tools_developer" if type == "tool" else "agent_code_developer"
     try:
         # 验证必须参数
         if type not in ["agent", "prompt", "tool"]:
@@ -1806,7 +2091,6 @@ def generate_content(type: Literal["agent", "prompt", "tool"], content: str, pro
             # 如果验证结果不是JSON格式，记录警告但继续
             pass
         
-        # 返回成功信息
         result = {
             "status": "success",
             "message": f"成功创建{type}文件",
@@ -1882,6 +2166,11 @@ def main():
         "tools/generated_tools/test_project/helper_tool.py"
     ]
     result = update_agent_artifact_paths("test_project", "test_agent", "tools_developer", tool_paths)
+    print(result)
+    
+    # 测试追加单个文件路径
+    print("\n4.1. 测试追加单个文件路径:")
+    result = append_agent_artifact_path("test_project", "test_agent", "tools_developer", "tools/generated_tools/test_project/new_tool.py")
     print(result)
     
     # 测试写入阶段内容
@@ -1974,6 +2263,11 @@ def test_tool(input_text: str) -> str:
     return f"处理结果: {input_text}"
 '''
     result = generate_content("tool", test_tool_content, "test_project", "test_generated_tool")
+    print(result)
+    
+    # 测试列出项目工具
+    print("\n15. 测试列出项目工具:")
+    result = list_project_tools("test_project")
     print(result)
 
 
