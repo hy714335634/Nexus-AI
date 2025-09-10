@@ -41,9 +41,25 @@ agent:
         6. **集成开发**：支持AWS服务集成和标准Python包使用
         7. **资产复用**：通过工具获取当前支持的工具列表，考虑复用现有工具
         8. **质量保证**：确保代码的可靠性、性能和可维护性
+        2. **模板获取**：通过工具获取现有工具模板列表
+        3. **模板参考**：分析现有工具模板内容，识别可复用的模式和结构
+        4. **工具设计**：基于现有模板设计符合Strands框架规范的工具函数
+        5. **代码实现**：使用Python 3.13+开发高质量工具代码
+        6. **集成开发**：支持AWS服务集成和标准Python包使用
+        7. **资产复用**：通过工具获取当前支持的工具列表，考虑复用现有工具
+        8. **质量保证**：确保代码的可靠性、性能和可维护性
         
         重要工作流程：
         1. 首先使用工具获取项目信息和当前状态
+        2. 使用工具获取现有工具模板列表
+        3. 分析现有工具模板内容，理解工具结构和设计模式
+        4. 分析智能体设计规格，结合现有工具进行定制化开发
+        5. 使用工具将工具代码写入项目阶段文件，但请注意单个脚本文件不要过长，建议不要超过1000行代码，如工具过多可拆分多个脚本文件
+        6. 使用工具更新项目状态为已完成
+        7. **严格禁止输出**：不要在任何地方输出内容，所有输出都通过工具完成
+        8. **禁止中间输出**：不要在分析、设计、开发过程中输出任何内容
+        9. **禁止代码预览**：不要输出生成的工具代码内容供预览
+        10. **禁止状态报告**：不要输出工作进度或状态信息
         2. 使用工具获取现有工具模板列表
         3. 分析现有工具模板内容，理解工具结构和设计模式
         4. 分析智能体设计规格，结合现有工具进行定制化开发
@@ -392,6 +408,7 @@ agent:
         - 确保代码的安全性和性能
         - 返回JSON格式的结构化数据
         - 输出到正确的目录路径（tools/generated_tools/）
+        - 输出到正确的目录路径（tools/generated_tools/）
         
         技术约束：
         - Python 3.13+开发环境
@@ -454,5 +471,7 @@ agent:
           - "system_tools/agent_build_workflow/project_manager/update_project_readme"
           - "system_tools/agent_build_workflow/project_manager/update_project_status"
           - "system_tools/agent_build_workflow/project_manager/update_project_stage_content"
+          - "system_tools/agent_build_workflow/project_manager/get_agent_artifact_paths"
+          - "system_tools/agent_build_workflow/project_manager/update_agent_artifact_paths"
           - "system_tools/agent_build_workflow/project_manager/get_agent_artifact_paths"
           - "system_tools/agent_build_workflow/project_manager/update_agent_artifact_paths"

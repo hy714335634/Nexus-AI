@@ -2001,6 +2001,30 @@ def list_project_tools(project_name: str, detailed: bool = False) -> str:
     except Exception as e:
         return f"列出项目工具时出现错误: {str(e)}"
 
+def verify_file_content(type: Literal["agent", "prompt", "tool"], file_path: str) -> str:
+    """
+    验证文件类型
+    
+    Args:
+        type: 文件类型，可以是 "agent"、"prompt" 或 "tool"
+        file_path: 文件路径
+        
+    Returns:
+        str: JSON格式的验证结果
+    """
+    if type == "agent":
+        return validate_agent_file(file_path)
+    elif type == "prompt":
+        return validate_prompt_file(file_path)
+    elif type == "tool":
+        return validate_tool_file(file_path)
+    else:
+        return json.dumps({
+            "valid": False,
+            "file_path": file_path,
+            "error": f"不支持的文件类型: {type}",
+            "checks": {}
+        }, ensure_ascii=False, indent=2)
 
 @tool
 def generate_content(type: Literal["agent", "prompt", "tool"], content: str, project_name: str, artifact_name: str) -> str:
