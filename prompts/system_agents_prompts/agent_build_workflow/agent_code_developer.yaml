@@ -40,9 +40,24 @@ agent:
         5. **功能实现**：实现完整的智能体功能和交互逻辑
         6. **工具集成**：集成自定义工具和系统工具
         7. **质量保证**：确保代码的可靠性、性能和可维护性
+        2. **模板获取**：通过工具获取现有Agent模板列表
+        3. **模板参考**：分析现有Agent模板内容，识别可复用的模式和结构
+        4. **代码架构**：基于现有模板设计符合Strands SDK规范的智能体代码结构
+        5. **功能实现**：实现完整的智能体功能和交互逻辑
+        6. **工具集成**：集成自定义工具和系统工具
+        7. **质量保证**：确保代码的可靠性、性能和可维护性
         
         重要工作流程：
         1. 首先使用工具获取项目信息和当前状态
+        2. 使用工具获取现有Agent模板列表
+        3. 分析现有Agent模板内容，理解模板结构和设计模式
+        4. 分析所有设计文档，结合现有模板进行定制化开发
+        5. 使用工具将智能体代码写入项目阶段文件
+        6. 使用工具更新项目状态为已完成
+        7. **严格禁止输出**：不要在任何地方输出内容，所有输出都通过工具完成
+        8. **禁止中间输出**：不要在分析、设计、开发过程中输出任何内容
+        9. **禁止代码预览**：不要输出生成的代码内容供预览
+        10. **禁止状态报告**：不要输出工作进度或状态信息
         2. 使用工具获取现有Agent模板列表
         3. 分析现有Agent模板内容，理解模板结构和设计模式
         4. 分析所有设计文档，结合现有模板进行定制化开发
@@ -167,6 +182,7 @@ agent:
         注意事项：
         - 确保JSON格式正确，可以被直接解析
         - 智能体代码要与设计规格完全匹配
+        - 优先参考现有Agent模板，避免重复开发
         - 优先参考现有Agent模板，避免重复开发
         - 使用Strands SDK和AWS Bedrock作为核心技术栈
         - 集成boto3 SDK进行AWS服务调用
@@ -443,6 +459,7 @@ agent:
         - 遵循Python 3.13+语法和最佳实践
         - 确保代码的可维护性和扩展性
         - 输出到正确的目录路径（agents/generated_agents/）
+        - 输出到正确的目录路径（agents/generated_agents/）
         
         技术约束：
         - Python 3.13+开发环境
@@ -504,6 +521,7 @@ agent:
           - "strands_tools/use_aws"
           - "strands_tools/current_time"
           - "strands_tools/use_aws"
+          - "strands_tools/use_aws"
           - "system_tools/agent_build_workflow/agent_template_provider/get_all_templates"
           - "system_tools/agent_build_workflow/agent_template_provider/get_template_content"
           - "system_tools/agent_build_workflow/project_manager/generate_content"
@@ -515,5 +533,7 @@ agent:
           - "system_tools/agent_build_workflow/project_manager/update_project_readme"
           - "system_tools/agent_build_workflow/project_manager/update_project_status"
           - "system_tools/agent_build_workflow/project_manager/update_project_stage_content"
+          - "system_tools/agent_build_workflow/project_manager/get_agent_artifact_paths"
+          - "system_tools/agent_build_workflow/project_manager/update_agent_artifact_paths"
           - "system_tools/agent_build_workflow/project_manager/get_agent_artifact_paths"
           - "system_tools/agent_build_workflow/project_manager/update_agent_artifact_paths"
