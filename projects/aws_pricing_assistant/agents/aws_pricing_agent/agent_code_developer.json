@@ -1,0 +1,427 @@
+# 项目上下文信息
+
+**项目名称**: aws_pricing_assistant
+**Agent名称**: aws_pricing_agent  
+**开发阶段**: agent_code_developer
+**生成时间**: 2025-09-11 06:40:29 UTC
+
+---
+
+{
+  "agent_code_development": {
+    "development_overview": {
+      "project_name": "aws_pricing_assistant",
+      "version": "1.0",
+      "date": "2025-09-11",
+      "development_scope": "开发AWS产品报价智能体，能够分析用户需求，推荐AWS配置方案，提供准确价格信息，生成专业销售报价方案",
+      "design_principles": [
+        "模块化设计：将功能拆分为多个方法，便于维护和扩展",
+        "错误处理：实现健壮的异常处理机制，确保智能体稳定运行",
+        "日志记录：添加详细的日志记录，便于问题诊断",
+        "类型安全：使用完整的类型注解确保代码质量",
+        "用户友好：提供清晰的接口和文档"
+      ],
+      "key_decisions": [
+        "基于API集成专家模板开发，充分利用现有功能",
+        "实现AWSPricingAgent类封装核心功能，提供统一接口",
+        "提供多种创建智能体的方法，满足不同场景需求",
+        "添加详细的日志记录，便于问题诊断和性能优化",
+        "支持命令行参数，便于测试和调试"
+      ]
+    },
+    "agent_implementation": {
+      "agent_name": "aws_pricing_agent",
+      "file_path": "agents/generated_agents/aws_pricing_assistant/aws_pricing_agent.py",
+      "main_class": "AWSPricingAgent",
+      "entry_point": "__call__",
+      "dependencies": [
+        "os",
+        "sys",
+        "json",
+        "logging",
+        "typing",
+        "utils.agent_factory",
+        "strands.telemetry"
+      ],
+      "imports": [
+        "from utils.agent_factory import create_agent_from_prompt_template",
+        "from strands.telemetry import StrandsTelemetry"
+      ]
+    },
+    "core_functions": [
+      {
+        "function_name": "__init__",
+        "purpose": "初始化AWS产品报价智能体",
+        "parameters": [
+          {
+            "name": "env",
+            "type": "str",
+            "description": "运行环境，可选值为 'development', 'production', 'testing'",
+            "required": false
+          },
+          {
+            "name": "version",
+            "type": "str",
+            "description": "提示词模板版本",
+            "required": false
+          },
+          {
+            "name": "model_id",
+            "type": "str",
+            "description": "使用的模型ID",
+            "required": false
+          }
+        ],
+        "return_type": "None",
+        "return_description": "无返回值",
+        "implementation_notes": [
+          "存储初始化参数",
+          "调用_create_agent方法创建智能体实例",
+          "记录初始化日志"
+        ]
+      },
+      {
+        "function_name": "_create_agent",
+        "purpose": "创建并返回AWS产品报价智能体实例",
+        "parameters": [],
+        "return_type": "Any",
+        "return_description": "创建的智能体实例",
+        "implementation_notes": [
+          "使用agent_factory创建智能体实例",
+          "处理创建过程中的异常",
+          "返回创建的智能体实例"
+        ]
+      },
+      {
+        "function_name": "analyze_requirements",
+        "purpose": "分析用户需求，推荐AWS配置方案，提供价格信息，生成报价方案",
+        "parameters": [
+          {
+            "name": "user_input",
+            "type": "str",
+            "description": "用户输入的需求描述或其他云平台账单",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "包含AWS配置推荐和价格报价的专业方案",
+        "implementation_notes": [
+          "调用智能体处理用户输入",
+          "记录处理过程的日志",
+          "处理可能的异常并返回友好错误信息"
+        ]
+      },
+      {
+        "function_name": "generate_proposal",
+        "purpose": "生成专业的AWS销售报价方案",
+        "parameters": [
+          {
+            "name": "customer_name",
+            "type": "str",
+            "description": "客户名称",
+            "required": true
+          },
+          {
+            "name": "requirements",
+            "type": "str",
+            "description": "客户需求描述",
+            "required": true
+          },
+          {
+            "name": "region",
+            "type": "str",
+            "description": "AWS区域代码",
+            "required": false
+          },
+          {
+            "name": "is_production",
+            "type": "bool",
+            "description": "是否用于生产环境",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "专业的AWS销售报价方案",
+        "implementation_notes": [
+          "构建结构化的提示词",
+          "调用智能体处理提示词",
+          "记录处理过程的日志",
+          "处理可能的异常并返回友好错误信息"
+        ]
+      },
+      {
+        "function_name": "generate_migration_proposal",
+        "purpose": "生成AWS迁移方案",
+        "parameters": [
+          {
+            "name": "customer_name",
+            "type": "str",
+            "description": "客户名称",
+            "required": true
+          },
+          {
+            "name": "current_environment",
+            "type": "str",
+            "description": "当前环境描述",
+            "required": true
+          },
+          {
+            "name": "target_requirements",
+            "type": "str",
+            "description": "目标需求描述",
+            "required": true
+          },
+          {
+            "name": "region",
+            "type": "str",
+            "description": "AWS区域代码",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "AWS迁移方案",
+        "implementation_notes": [
+          "构建结构化的提示词",
+          "调用智能体处理提示词",
+          "记录处理过程的日志",
+          "处理可能的异常并返回友好错误信息"
+        ]
+      },
+      {
+        "function_name": "generate_comparative_proposal",
+        "purpose": "生成对比竞争对手产品的AWS销售报价方案",
+        "parameters": [
+          {
+            "name": "customer_name",
+            "type": "str",
+            "description": "客户名称",
+            "required": true
+          },
+          {
+            "name": "competitor_info",
+            "type": "str",
+            "description": "竞争对手信息",
+            "required": true
+          },
+          {
+            "name": "requirements",
+            "type": "str",
+            "description": "客户需求描述",
+            "required": true
+          },
+          {
+            "name": "region",
+            "type": "str",
+            "description": "AWS区域代码",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "对比竞争对手产品的AWS销售报价方案",
+        "implementation_notes": [
+          "构建结构化的提示词",
+          "调用智能体处理提示词",
+          "记录处理过程的日志",
+          "处理可能的异常并返回友好错误信息"
+        ]
+      },
+      {
+        "function_name": "__call__",
+        "purpose": "处理用户输入，返回AWS配置推荐和价格报价",
+        "parameters": [
+          {
+            "name": "user_input",
+            "type": "str",
+            "description": "用户输入的需求描述或其他云平台账单",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "包含AWS配置推荐和价格报价的专业方案",
+        "implementation_notes": [
+          "调用analyze_requirements方法处理用户输入",
+          "使智能体实例可直接调用"
+        ]
+      },
+      {
+        "function_name": "create_aws_pricing_agent",
+        "purpose": "创建AWS产品报价智能体实例",
+        "parameters": [
+          {
+            "name": "env",
+            "type": "str",
+            "description": "运行环境，可选值为 'development', 'production', 'testing'",
+            "required": false
+          },
+          {
+            "name": "version",
+            "type": "str",
+            "description": "提示词模板版本",
+            "required": false
+          },
+          {
+            "name": "model_id",
+            "type": "str",
+            "description": "使用的模型ID",
+            "required": false
+          }
+        ],
+        "return_type": "AWSPricingAgent",
+        "return_description": "AWS产品报价智能体实例",
+        "implementation_notes": [
+          "创建并返回AWSPricingAgent实例",
+          "提供统一的创建接口"
+        ]
+      },
+      {
+        "function_name": "create_simple_aws_pricing_agent",
+        "purpose": "创建简化版AWS产品报价智能体实例，直接使用agent_factory",
+        "parameters": [
+          {
+            "name": "env",
+            "type": "str",
+            "description": "运行环境，可选值为 'development', 'production', 'testing'",
+            "required": false
+          },
+          {
+            "name": "version",
+            "type": "str",
+            "description": "提示词模板版本",
+            "required": false
+          },
+          {
+            "name": "model_id",
+            "type": "str",
+            "description": "使用的模型ID",
+            "required": false
+          }
+        ],
+        "return_type": "Any",
+        "return_description": "AWS产品报价智能体实例",
+        "implementation_notes": [
+          "直接使用agent_factory创建智能体实例",
+          "提供简化的创建方式"
+        ]
+      }
+    ],
+    "tool_integration": {
+      "custom_tools": [
+        "aws_pricing_api.calculate_aws_cost",
+        "aws_pricing_api.get_ebs_pricing",
+        "aws_pricing_api.get_ec2_instance_types",
+        "aws_pricing_api.get_ec2_pricing",
+        "aws_pricing_api.get_elasticache_pricing",
+        "aws_pricing_api.get_loadbalancer_pricing",
+        "aws_pricing_api.get_network_pricing",
+        "aws_pricing_api.get_opensearch_pricing",
+        "aws_pricing_api.get_rds_pricing",
+        "aws_pricing_api.get_s3_pricing",
+        "aws_recommendation.generate_aws_solution",
+        "aws_recommendation.recommend_ebs_volume",
+        "aws_recommendation.recommend_ec2_instance",
+        "aws_recommendation.recommend_elasticache_node",
+        "aws_recommendation.recommend_loadbalancer",
+        "aws_recommendation.recommend_opensearch_domain",
+        "aws_recommendation.recommend_rds_instance",
+        "aws_recommendation.recommend_s3_storage",
+        "aws_sales_proposal.generate_comparative_proposal",
+        "aws_sales_proposal.generate_migration_proposal",
+        "aws_sales_proposal.generate_sales_proposal",
+        "aws_utils.get_aws_regions",
+        "aws_utils.parse_requirements",
+        "aws_utils.validate_aws_region"
+      ],
+      "system_tools": [
+        "strands_tools/current_time",
+        "strands_tools/calculator"
+      ],
+      "strands_tools": [
+        "template_tools/network/http_client/api_client",
+        "template_tools/network/http_client/auth_manager",
+        "template_tools/common/data_converter/json_converter"
+      ],
+      "integration_notes": [
+        "所有工具通过提示词模板中的tools_dependencies配置集成",
+        "使用agent_factory自动加载和初始化工具",
+        "工具调用由智能体根据上下文自动决定"
+      ]
+    },
+    "configuration": {
+      "environment_variables": [
+        "BYPASS_TOOL_CONSENT",
+        "OTEL_EXPORTER_OTLP_ENDPOINT"
+      ],
+      "model_configuration": {
+        "model_name": "us.anthropic.claude-3-7-sonnet-20250219-v1:0",
+        "max_tokens": 60000,
+        "temperature": 0.3,
+        "top_p": 0.8
+      },
+      "streaming_config": {
+        "enabled": true,
+        "chunk_size": 1024
+      }
+    },
+    "error_handling": {
+      "exception_types": [
+        "RuntimeError",
+        "Exception"
+      ],
+      "error_responses": [
+        "创建智能体失败",
+        "处理用户需求时发生错误",
+        "生成销售报价方案时发生错误",
+        "生成迁移方案时发生错误",
+        "生成对比报价方案时发生错误"
+      ],
+      "recovery_strategies": [
+        "捕获并记录异常",
+        "返回友好的错误信息",
+        "记录详细的错误日志"
+      ]
+    },
+    "testing": {
+      "test_cases": [
+        "基本EC2实例和EBS存储推荐",
+        "不同环境参数的智能体创建",
+        "异常处理和错误恢复",
+        "命令行参数解析"
+      ],
+      "test_scenarios": [
+        "完整需求分析",
+        "不完整需求处理",
+        "竞品迁移评估",
+        "复杂架构推荐",
+        "错误处理测试"
+      ],
+      "validation_criteria": [
+        "配置推荐的准确性和合理性",
+        "价格计算的准确性",
+        "报价方案的专业性和清晰度",
+        "对不完整需求的处理能力",
+        "响应速度"
+      ]
+    },
+    "deployment": {
+      "deployment_requirements": [
+        "Python 3.13+",
+        "Strands SDK",
+        "AWS Bedrock",
+        "boto3 SDK"
+      ],
+      "runtime_dependencies": [
+        "utils.agent_factory",
+        "strands.telemetry",
+        "logging",
+        "argparse"
+      ],
+      "performance_considerations": [
+        "智能体初始化时间",
+        "API调用延迟",
+        "模型推理时间",
+        "内存使用量"
+      ]
+    },
+    "development_notes": "在开发AWS产品报价智能体的过程中，我们采用了模块化设计，将功能拆分为多个方法，便于维护和扩展。我们实现了AWSPricingAgent类作为核心组件，封装了智能体的创建和调用逻辑，并提供了多种方法用于不同场景，如基本需求分析、销售报价生成、迁移方案生成和竞争对手对比分析等。同时，我们还提供了两种创建智能体的方式：一种是使用AWSPricingAgent类的完整实现，另一种是使用create_simple_aws_pricing_agent函数的简化版本，直接调用agent_factory。为了确保智能体的稳定运行，我们实现了健壮的异常处理机制，捕获并处理可能的错误，并返回友好的错误信息。此外，我们还添加了详细的日志记录，便于问题诊断和性能优化。在命令行接口方面，我们使用argparse库实现了灵活的参数解析，支持指定测试输入、运行环境、提示词模板版本和模型ID等参数，便于测试和调试。总体而言，这个智能体代码实现了设计规格中的所有功能，并遵循了最佳实践，确保了代码的可靠性、性能和可维护性。"
+  }
+}

@@ -139,7 +139,7 @@ agent:
 
         请始终保持专业、高效和用户友好的工作方式，确保项目的成功交付。
         **完成后请通过工具update_project_status更新项目状态**
-        **完成后请通过工具update_project_readme更新README文档**
+        **完成后请通过工具update_project_readme更新README文档,包括任务阶段状态、项目说明、目录结构、使用方式、注意事项、功能描述等**
       metadata:
         tags: ["agent_design", "specification", "architecture"]
         supported_models:

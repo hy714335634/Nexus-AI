@@ -1,0 +1,166 @@
+# 项目上下文信息
+
+**项目名称**: aws_pricing_assistant
+**Agent名称**: aws_pricing_agent  
+**开发阶段**: agent_designer
+**生成时间**: 2025-09-11 06:05:13 UTC
+
+---
+
+{
+  "agent_design": {
+    "design_overview": {
+      "project_name": "aws_pricing_assistant",
+      "version": "1.0",
+      "date": "2025-09-11",
+      "design_scope": "设计一个AWS产品报价智能体，能够分析用户提供的自然语言需求或其他云平台账单，推荐合理的AWS配置方案并提供准确的价格信息。",
+      "design_goals": [
+        "提供准确的AWS产品价格信息",
+        "根据不完整的需求描述智能推断合理配置",
+        "生成专业的销售报价方案",
+        "支持多种AWS产品和全球区域报价",
+        "提供清晰、结构化的中文报价输出"
+      ],
+      "key_design_decisions": [
+        {
+          "decision": "采用单Agent架构",
+          "rationale": "功能虽然复杂但围绕AWS产品报价这一核心任务，不需要多个Agent协作",
+          "alternatives": ["多Agent协作架构"],
+          "consequences": ["简化数据流和交互模型", "提高系统响应速度", "便于集中管理AWS API调用和价格计算逻辑"]
+        },
+        {
+          "decision": "基于API集成专家模板实现",
+          "rationale": "该模板专为API集成设计，具备完整的API调用、认证管理和数据处理功能，非常适合与AWS价格API集成的需求",
+          "alternatives": ["自定义Agent架构", "需求分析文档生成器模板"],
+          "consequences": ["减少开发工作量", "利用现有的API调用和认证管理功能", "需要扩展以支持AWS特定功能"]
+        },
+        {
+          "decision": "使用AWS SDK for Python (boto3)进行API调用",
+          "rationale": "boto3是AWS官方推荐的Python SDK，提供完整的AWS服务访问功能，包括价格查询API",
+          "alternatives": ["直接调用AWS REST API", "使用第三方价格查询服务"],
+          "consequences": ["简化认证和API调用", "获得更好的错误处理和重试机制", "需要添加boto3依赖"]
+        },
+        {
+          "decision": "实现配置推荐算法",
+          "rationale": "用户提供的需求描述可能不完整或模糊，需要智能推断合理配置",
+          "alternatives": ["仅处理完整明确的需求"],
+          "consequences": ["提高用户体验", "增加系统复杂性", "需要维护配置映射规则"]
+        },
+        {
+          "decision": "设计专业的销售报价方案输出格式",
+          "rationale": "系统需要生成符合销售思维的专业报价方案，便于用户向客户展示",
+          "alternatives": ["简单的价格列表输出"],
+          "consequences": ["提高报价文档的专业性和说服力", "需要设计结构化的报价模板"]
+        }
+      ]
+    },
+    "agents": [
+      {
+        "agent_id": "aws_pricing_agent",
+        "name": "aws_pricing_agent",
+        "role": "AWS产品报价专家",
+        "purpose": "分析用户需求，推荐AWS配置方案，提供准确价格信息，生成专业销售报价方案",
+        "personality": {
+          "traits": ["专业", "精确", "有条理", "服务导向", "销售思维"],
+          "communication_style": "清晰、专业、结构化",
+          "tone": "专业顾问式，提供专业建议但不过度推销"
+        },
+        "capabilities": {
+          "core_functions": [
+            "解析用户的自然语言需求描述",
+            "推荐合理的AWS配置方案",
+            "调用AWS API获取实时价格数据",
+            "计算不同付费模式下的价格（按需/预留实例）",
+            "生成专业的销售报价方案"
+          ],
+          "specialized_skills": [
+            "EC2实例类型推荐",
+            "EBS存储配置推荐",
+            "S3对象存储配置推荐",
+            "RDS数据库配置推荐",
+            "ElastiCache缓存配置推荐",
+            "Opensearch服务配置推荐",
+            "负载均衡器配置推荐",
+            "网络流量费用计算",
+            "全球区域报价支持（包括中国区）"
+          ],
+          "limitations": [
+            "不支持AWS价格API未提供的服务",
+            "不进行历史价格趋势分析",
+            "不进行竞品价格对比分析",
+            "不自动生成合同文档",
+            "不进行长期成本预测与TCO分析"
+          ],
+          "tools_required": [
+            "use_aws",
+            "api_client",
+            "auth_manager",
+            "json_converter",
+            "python_repl",
+            "calculator"
+          ]
+        },
+        "knowledge_domain": {
+          "primary_domains": [
+            "AWS产品和服务",
+            "云计算架构",
+            "AWS定价模型",
+            "销售报价流程"
+          ],
+          "expertise_level": "专家级",
+          "knowledge_sources": [
+            "AWS价格API",
+            "AWS服务文档",
+            "AWS最佳实践指南"
+          ],
+          "update_frequency": "实时（通过API获取最新价格）"
+        },
+        "interaction_patterns": {
+          "communication_style": "问答式交互，用户提供需求描述，Agent返回配置推荐和价格报价",
+          "conversation_flow": "需求接收 → 需求分析 → 配置推荐 → 价格查询 → 报价生成 → 结果输出",
+          "error_responses": [
+            "当AWS API不可用时，提供明确的错误信息",
+            "对于无法获取价格的资源，在报价中明确注明",
+            "处理无效的用户输入，提供友好的错误提示"
+          ]
+        },
+        "constraints": [
+          "系统必须通过AWS API获取实时价格数据",
+          "系统必须支持中国区和国际区的价格查询",
+          "系统必须避免在生产环境中推荐t系列实例(除非用户明确指定)",
+          "系统输出的报价必须使用中文"
+        ],
+        "evaluation_criteria": [
+          "配置推荐的准确性和合理性",
+          "价格计算的准确性",
+          "报价方案的专业性和清晰度",
+          "对不完整需求的处理能力",
+          "响应速度（10秒内完成价格查询和报价生成）"
+        ],
+        "model_requirements": {
+          "model_name": "us.anthropic.claude-3-7-sonnet-20250219-v1:0",
+          "minimum_capabilities": [
+            "理解复杂的技术需求描述",
+            "进行合理的配置推断",
+            "生成结构化的报价文档"
+          ],
+          "rationale": "选择Claude 3.7 Sonnet模型是因为它具有强大的自然语言理解能力，能够准确解析用户的复杂需求描述，同时具备生成专业、结构化文档的能力，非常适合AWS产品报价场景。"
+        },
+        "memory_configuration": {
+          "memory_type": "会话级记忆",
+          "retention_policy": "仅在当前会话中保留用户需求和生成的报价",
+          "retrieval_strategy": "直接检索当前会话的历史交互"
+        }
+      }
+    ],
+    "agent_relationships": [],
+    "system_integration": {
+      "entry_point": "用户提供自然语言需求描述或其他云平台账单",
+      "exit_points": ["生成的AWS配置推荐和价格报价方案"],
+      "external_interfaces": [
+        "AWS Pricing API",
+        "AWS SDK for Python (boto3)"
+      ]
+    }
+  }
+}

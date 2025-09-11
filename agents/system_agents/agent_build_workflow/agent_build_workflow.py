@@ -6,6 +6,8 @@
 import os
 import time
 import uuid
+import json
+from typing import Any
 from strands.multiagent import GraphBuilder,Swarm
 from utils.agent_factory import create_agent_from_prompt_template
 from utils.structured_output_model.project_intent_recognition import IntentRecognitionResult
@@ -20,6 +22,7 @@ from agents.system_agents.agent_build_workflow.tool_developer_agent import tool_
 from agents.system_agents.agent_build_workflow.agent_code_developer_agent import agent_code_developer
 from agents.system_agents.agent_build_workflow.agent_developer_manager_agent import agent_developer_manager
 from strands.telemetry import StrandsTelemetry
+from utils.workflow_report_generator import generate_workflow_summary_report
 
 os.environ["BYPASS_TOOL_CONSENT"] = "true"
 os.environ["OTEL_EXPORTER_OTLP_ENDPOINT"] = "http://localhost:4318"
@@ -88,17 +91,6 @@ def create_build_workflow():
     print(f"\n{'='*80}")
     print(f"🏗️  [WORKFLOW] 创建工作流")
     print(f"{'='*80}")
-    
-    developer_swarm = Swarm(
-        [prompt_engineer, tool_developer, agent_code_developer],
-        max_handoffs=20,
-        max_iterations=20,
-        execution_timeout=3600.0,  # 60 minutes
-        node_timeout=1200.0,       # 20 minutes per agent
-        repetitive_handoff_detection_window=8,  # There must be >= 3 unique agents in the last 8 handoffs
-        repetitive_handoff_min_unique_agents=3
-    )
-
 
     builder = GraphBuilder()
     
@@ -150,7 +142,31 @@ def run_workflow(user_input: str, session_id="default"):
     try:
         result = workflow(str(intent_result))
         print("✅ 工作流执行完成")
+        
+        # 生成工作流总结报告
+        print(f"\n{'='*80}")
+        
+        print(f"Status: {result.status}")  # COMPLETED, FAILED, etc.
+
+        # See which nodes were executed and in what order
+        for node in result.execution_order:
+            print(f"Executed: {node.node_id}")
+
+        # Get results from specific nodes
+        orchestrator_result = result.results["orchestrator"].result
+        print(f"Analysis: {orchestrator_result}")
+
+        # Get performance metrics
+        print(f"Total nodes: {result.total_nodes}")
+        print(f"Completed nodes: {result.completed_nodes}")
+        print(f"Failed nodes: {result.failed_nodes}")
+        print(f"Execution time: {result.execution_time}ms")
+        print(f"Token usage: {result.accumulated_usage}")
+        print(f"{'='*80}")
+        report_path = generate_workflow_summary_report(result, './projects')
+        
         return {
+            "report_path": report_path,
             "intent_analysis": intent_result,
             "workflow_result": result
         }
@@ -166,14 +182,15 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='工作流编排器 Agent 测试')
     parser.add_argument('-i', '--input', type=str, 
                        default="""
-请创建一个Agent帮我完成AWS产品报价工作，我会提供自然语言描述的其他云平台账单或IDC配置清单，请分析并推荐正确且合理AWS配置，并告诉我真实价格，具体要求如下：
-1、需要至少支持计算、存储、网络、数据库四个核心产品
+请创建一个用于AWS产品报价的Agent，我需要他帮我完成AWS产品报价工作，我会提供自然语言描述的其他云平台账单或IDC配置清单，请分析并推荐正确且合理AWS配置，并告诉我真实价格，具体要求如下：
+1、至少需要支持EC2、EBS、S3、网络流量、负载均衡器、RDS、ElastiCache、Opensearch这几个产品，能够获取实时的按需和RI价格
 2、在用户提出的描述不清晰时，需要能够根据用户需求推测合理配置
 3、在生产环境中除非用户指定t系列或说明用于测试需要，否则应避免使用t系列实例
 4、需要使用真实实例类型及价格数据，通过aws接口获取真实数据
 5、能够支持根据客户指定区域进行报价，包括中国区
 6、能够按照销售的思维分析用户提供的数据，生成清晰且有逻辑的报价方案
 7、报价文档尽量使用中文输出
+如果价格获取失败或无法获取，请在对应资源报价中注明。		
 """,
                        help='测试输入内容')
     parser.add_argument('-f', '--file', type=str, 
@@ -206,10 +223,12 @@ if __name__ == "__main__":
     
     try:
         result = run_workflow(test_input)
+        # 将result持久化保存到本地文件，方便后续测试
         print(f"\n{'='*80}")
         print(f"🎉 [SYSTEM] 工作流执行完成")
-        print(f"📊 意图分析: {result['intent_analysis']}")
-        print(f"📊 工作流结果: {result['workflow_result']}")
+        # print(f"📊 意图分析: {result['intent_analysis']}")
+        # print(f"📊 工作流结果: {result['workflow_result']}")
+        print(f"📊 工作流报告: {result['report_path']}")
         print(f"{'='*80}")
     except Exception as e:
         print(f"❌ [SYSTEM] 工作流执行失败: {e}")

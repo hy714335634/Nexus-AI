@@ -1,0 +1,59 @@
+project_info:
+- agents:
+  - created_date: '2025-09-11T05:56:32.106500+00:00'
+    description: 智能体：aws_pricing_agent
+    last_updated: '2025-09-11T06:41:52.306733+00:00'
+    name: aws_pricing_agent
+    pipeline:
+    - description: 需求分析阶段 - 分析用户需求，定义功能规格
+      doc_path: agents/aws_pricing_agent/requirements_analyzer.json
+      stage: requirements_analyzer
+      status: true
+      updated_date: '2025-09-11T05:58:07.468774+00:00'
+    - description: 系统架构设计阶段 - 设计系统架构和技术方案
+      doc_path: agents/aws_pricing_agent/system_architect.json
+      stage: system_architect
+      status: true
+      updated_date: '2025-09-11T06:01:48.947032+00:00'
+    - description: Agent设计阶段 - 设计智能体结构和交互模式
+      doc_path: agents/aws_pricing_agent/agent_designer.json
+      stage: agent_designer
+      status: true
+      updated_date: '2025-09-11T06:05:20.042482+00:00'
+    - agent_artifact_path:
+      - prompts/generated_agents_prompts/aws_pricing_assistant/aws_pricing_agent.yaml
+      description: 提示词工程阶段 - 设计和优化提示词模板
+      doc_path: agents/aws_pricing_agent/prompt_engineer.json
+      stage: prompt_engineer
+      status: true
+      updated_date: '2025-09-11T06:36:59.655374+00:00'
+    - agent_artifact_path:
+      - tools/generated_tools/aws_pricing_assistant/aws_pricing_api.py
+      - tools/generated_tools/aws_pricing_assistant/aws_recommendation.py
+      - tools/generated_tools/aws_pricing_assistant/aws_sales_proposal.py
+      - tools/generated_tools/aws_pricing_assistant/aws_utils.py
+      - tools/generated_tools/aws_pricing_assistant/__init__.py
+      description: 工具开发阶段 - 开发必要的工具和函数
+      doc_path: agents/aws_pricing_agent/tools_developer.json
+      stage: tools_developer
+      status: true
+      updated_date: '2025-09-11T06:30:49.505468+00:00'
+    - agent_artifact_path:
+      - agents/generated_agents/aws_pricing_assistant/aws_pricing_agent.py
+      description: Agent代码开发阶段 - 实现智能体代码
+      doc_path: agents/aws_pricing_agent/agent_code_developer.json
+      stage: agent_code_developer
+      status: true
+      updated_date: '2025-09-11T06:40:37.793818+00:00'
+    - description: Agent开发管理阶段 - 管理和协调开发流程
+      doc_path: agents/aws_pricing_agent/agent_developer_manager.json
+      stage: agent_developer_manager
+      status: true
+      updated_date: '2025-09-11T06:41:52.306735+00:00'
+  description: AWS产品报价助手，用于分析云平台账单或IDC配置清单，推荐合理的AWS配置并提供真实价格信息。支持EC2、EBS、S3、网络流量、负载均衡器、RDS、ElastiCache、Opensearch等AWS产品的实时报价。
+  last_updated: '2025-09-11T06:41:52.306721+00:00'
+  name: aws_pricing_assistant
+  progress:
+  - completed: 7
+    total: 7
+  version: 1.0.0

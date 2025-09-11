@@ -1,0 +1,6 @@
+project:
+  created_date: '2025-09-11T05:56:03.061952+00:00'
+  description: AWS产品报价助手，用于分析云平台账单或IDC配置清单，推荐合理的AWS配置并提供真实价格信息。支持EC2、EBS、S3、网络流量、负载均衡器、RDS、ElastiCache、Opensearch等AWS产品的实时报价。
+  name: aws_pricing_assistant
+  updated_date: '2025-09-11T05:56:07.992599+00:00'
+  version: 1.0.0

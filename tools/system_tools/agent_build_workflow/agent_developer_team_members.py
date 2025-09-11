@@ -66,7 +66,7 @@ def agent_prompt_engineer(query: str) -> str:
         query: A prompt template development question or design specification
 
     Returns:
-        A detailed prompt template development answer
+        str: A detailed prompt template development answer
     """
     try:
         agent_prompt_engineer = create_agent_from_prompt_template(

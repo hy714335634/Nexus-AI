@@ -5,10 +5,6 @@ build/
 dist/
 wheels/
 *.egg-info
-projects/*
-agents/generated_agents/*
-prompts/generated_agents_prompts/*
-tools/generated_tools/*
 case
 
 # Virtual environments
