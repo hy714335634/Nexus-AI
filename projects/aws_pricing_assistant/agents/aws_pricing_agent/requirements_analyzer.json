@@ -1,0 +1,238 @@
+# 项目上下文信息
+
+**项目名称**: aws_pricing_assistant
+**Agent名称**: aws_pricing_agent  
+**开发阶段**: requirements_analyzer
+**生成时间**: 2025-09-11 05:58:02 UTC
+
+---
+
+{
+  "requirements_document": {
+    "feature_name": "AWS产品报价助手",
+    "version": "1.0",
+    "date": "2025-09-11",
+    "overview": "AWS产品报价助手是一个专业的云计算配置推荐与报价系统，能够根据用户提供的自然语言描述的配置需求或其他云平台账单，分析并推荐合理的AWS配置方案，并提供准确的价格信息。该系统支持多种AWS产品的实时报价，能够根据不完整的需求描述进行智能推断，并生成专业的销售报价方案。",
+    "business_value": "该系统能够帮助销售人员和技术顾问快速生成准确的AWS产品报价，提高工作效率，减少人为错误，同时通过智能分析和推荐功能，确保配置方案的合理性和成本效益，帮助客户实现云资源的最优配置，降低迁移到AWS的决策门槛。",
+    "workflow_complexity": "single_agent",
+    "recommended_agent_type": "业务逻辑类",
+    "scope": {
+      "included": [
+        "EC2实例配置推荐与报价",
+        "EBS存储配置与报价",
+        "S3对象存储配置与报价",
+        "网络流量费用计算",
+        "负载均衡器配置与报价",
+        "RDS数据库配置与报价",
+        "ElastiCache缓存配置与报价",
+        "Opensearch服务配置与报价",
+        "按需实例价格计算",
+        "预留实例价格计算",
+        "全球区域报价支持(包括中国区)",
+        "生成中文报价文档"
+      ],
+      "excluded": [
+        "其他AWS服务的配置与报价",
+        "自动执行AWS资源部署",
+        "历史价格趋势分析",
+        "竞品价格对比分析",
+        "自动生成合同文档",
+        "长期成本预测与TCO分析"
+      ]
+    },
+    "functional_requirements": [
+      {
+        "id": "FR-001",
+        "title": "EC2实例配置推荐与报价",
+        "user_story": "作为销售人员，我希望能够根据客户提供的CPU核数、内存大小、操作系统和付费类型等信息，推荐合适的EC2实例类型并提供准确的价格，以便快速响应客户需求。",
+        "acceptance_criteria": [
+          "WHEN 用户提供CPU核数和内存大小 THEN 系统应推荐符合要求的EC2实例类型",
+          "WHEN 用户指定操作系统类型 THEN 系统应考虑操作系统许可成本",
+          "WHEN 用户指定付费类型(按需/预留实例) THEN 系统应提供相应的价格计算",
+          "IF 用户未指定实例系列 AND 用于生产环境 THEN 系统应避免推荐t系列实例",
+          "IF 用户描述不清晰 THEN 系统应基于常见配置进行合理推测"
+        ],
+        "priority": "High",
+        "complexity": "High",
+        "dependencies": ["AWS Pricing API"],
+        "assumptions": ["AWS API可以提供实时价格数据"]
+      },
+      {
+        "id": "FR-002",
+        "title": "EBS存储配置与报价",
+        "user_story": "作为技术顾问，我希望能够根据客户提供的存储容量和性能需求，推荐合适的EBS存储类型并提供价格，以便设计出符合客户需求的存储方案。",
+        "acceptance_criteria": [
+          "WHEN 用户提供存储容量 THEN 系统应计算相应的EBS存储费用",
+          "WHEN 用户提供特殊性能需求 THEN 系统应推荐合适的EBS卷类型(如gp3、io1等)",
+          "IF 用户未指定EBS类型 THEN 系统应默认推荐gp3类型并说明理由"
+        ],
+        "priority": "High",
+        "complexity": "Medium",
+        "dependencies": ["AWS Pricing API"],
+        "assumptions": ["存储容量单位为GB"]
+      },
+      {
+        "id": "FR-003",
+        "title": "S3对象存储配置与报价",
+        "user_story": "作为解决方案架构师，我希望能够根据客户的对象存储需求和数据传输量，计算S3存储费用，以便为客户提供完整的云存储成本估算。",
+        "acceptance_criteria": [
+          "WHEN 用户提供存储容量和存储类型 THEN 系统应计算相应的S3存储费用",
+          "WHEN 用户提供数据传输量 THEN 系统应计算相应的数据传输费用",
+          "IF 用户未指定存储类型 THEN 系统应默认推荐标准存储类型"
+        ],
+        "priority": "High",
+        "complexity": "Medium",
+        "dependencies": ["AWS Pricing API"],
+        "assumptions": ["数据传输主要考虑从S3传出到互联网的流量"]
+      },
+      {
+        "id": "FR-004",
+        "title": "RDS数据库配置与报价",
+        "user_story": "作为数据库架构师，我希望能够根据客户提供的数据库类型、CPU、内存和存储需求，推荐合适的RDS实例并提供价格，以便设计符合性能和成本要求的数据库方案。",
+        "acceptance_criteria": [
+          "WHEN 用户提供数据库类型、CPU和内存需求 THEN 系统应推荐合适的RDS实例类型",
+          "WHEN 用户提供存储容量 THEN 系统应计算相应的RDS存储费用",
+          "IF 用户未指定数据库引擎版本 THEN 系统应默认推荐最新的稳定版本"
+        ],
+        "priority": "High",
+        "complexity": "High",
+        "dependencies": ["AWS Pricing API"],
+        "assumptions": ["支持MySQL、PostgreSQL、Oracle、SQL Server等主流数据库引擎"]
+      },
+      {
+        "id": "FR-005",
+        "title": "ElastiCache缓存配置与报价",
+        "user_story": "作为应用架构师，我希望能够根据客户提供的缓存需求，推荐合适的ElastiCache节点配置并提供价格，以便优化应用性能和成本。",
+        "acceptance_criteria": [
+          "WHEN 用户提供CPU和内存需求 THEN 系统应推荐合适的ElastiCache节点类型",
+          "WHEN 用户指定Redis或Memcached THEN 系统应提供相应引擎的价格",
+          "IF 用户未指定缓存引擎 THEN 系统应默认推荐Redis并说明理由"
+        ],
+        "priority": "Medium",
+        "complexity": "Medium",
+        "dependencies": ["AWS Pricing API"],
+        "assumptions": ["主要支持Redis和Memcached两种缓存引擎"]
+      },
+      {
+        "id": "FR-006",
+        "title": "Opensearch服务配置与报价",
+        "user_story": "作为数据分析架构师，我希望能够根据客户的搜索和分析需求，推荐合适的Opensearch服务配置并提供价格，以便设计高效的搜索和日志分析方案。",
+        "acceptance_criteria": [
+          "WHEN 用户提供节点数量、类型和存储需求 THEN 系统应计算相应的Opensearch服务费用",
+          "IF 用户未指定具体配置 THEN 系统应根据常见使用场景推荐配置方案"
+        ],
+        "priority": "Medium",
+        "complexity": "Medium",
+        "dependencies": ["AWS Pricing API"],
+        "assumptions": ["用户了解Opensearch的基本概念和用途"]
+      },
+      {
+        "id": "FR-007",
+        "title": "负载均衡器配置与报价",
+        "user_story": "作为网络架构师，我希望能够根据客户的负载均衡需求，推荐合适的AWS负载均衡器类型并提供价格，以便设计可靠的应用访问架构。",
+        "acceptance_criteria": [
+          "WHEN 用户提及负载均衡需求 THEN 系统应推荐合适的负载均衡器类型(ALB/NLB/CLB)",
+          "WHEN 用户指定负载均衡器类型 THEN 系统应计算相应的费用",
+          "IF 用户未指定负载均衡器类型 THEN 系统应默认推荐ALB并说明理由"
+        ],
+        "priority": "Medium",
+        "complexity": "Low",
+        "dependencies": ["AWS Pricing API"],
+        "assumptions": ["主要考虑ALB、NLB和CLB三种负载均衡器"]
+      },
+      {
+        "id": "FR-008",
+        "title": "网络流量费用计算",
+        "user_story": "作为成本分析师，我希望能够根据客户提供的数据传输需求，计算AWS网络流量费用，以便提供完整的云服务成本估算。",
+        "acceptance_criteria": [
+          "WHEN 用户提供数据传输量和方向 THEN 系统应计算相应的网络流量费用",
+          "WHEN 用户指定不同区域间的数据传输 THEN 系统应考虑跨区域传输费用",
+          "IF 用户未指定传输方向 THEN 系统应假设为从AWS传出到互联网的流量"
+        ],
+        "priority": "Medium",
+        "complexity": "Medium",
+        "dependencies": ["AWS Pricing API"],
+        "assumptions": ["数据传输量单位为GB"]
+      },
+      {
+        "id": "FR-009",
+        "title": "区域特定报价支持",
+        "user_story": "作为全球业务顾问，我希望能够根据客户指定的AWS区域提供报价，包括中国区，以便支持客户的全球业务部署。",
+        "acceptance_criteria": [
+          "WHEN 用户指定AWS区域 THEN 系统应提供该区域的特定价格",
+          "WHEN 用户指定中国区 THEN 系统应提供中国区的特定价格和注意事项",
+          "IF 用户未指定区域 THEN 系统应默认使用us-east-1并说明理由"
+        ],
+        "priority": "High",
+        "complexity": "Medium",
+        "dependencies": ["AWS Pricing API", "中国区价格数据"],
+        "assumptions": ["可以访问中国区AWS价格数据"]
+      },
+      {
+        "id": "FR-010",
+        "title": "销售报价方案生成",
+        "user_story": "作为销售经理，我希望系统能够生成清晰、有逻辑的销售报价方案，以便向客户展示AWS解决方案的价值和成本。",
+        "acceptance_criteria": [
+          "WHEN 完成所有资源的配置和价格计算 THEN 系统应生成结构化的报价方案",
+          "WHEN 生成报价方案 THEN 应包含资源配置详情、单价、数量、小计和总计",
+          "WHEN 生成报价方案 THEN 应使用中文输出",
+          "IF 某些价格无法获取 THEN 应在报价中明确注明"
+        ],
+        "priority": "High",
+        "complexity": "Medium",
+        "dependencies": ["所有资源的价格计算功能"],
+        "assumptions": ["用户偏好中文报价文档"]
+      }
+    ],
+    "non_functional_requirements": {
+      "performance": [
+        "系统应在10秒内完成价格查询和报价生成",
+        "系统应能够处理复杂的多资源配置需求"
+      ],
+      "security": [
+        "系统不应存储用户敏感信息",
+        "系统应使用安全的API调用方式访问AWS价格数据"
+      ],
+      "usability": [
+        "系统应能理解不完整或模糊的用户需求描述",
+        "系统应提供清晰、结构化的报价输出",
+        "系统应使用中文与用户交互并输出报价"
+      ],
+      "reliability": [
+        "当AWS API不可用时，系统应提供明确的错误信息",
+        "系统应能处理各种格式的输入数据"
+      ]
+    },
+    "constraints": [
+      "系统必须通过AWS API获取实时价格数据",
+      "系统必须支持中国区和国际区的价格查询",
+      "系统必须避免在生产环境中推荐t系列实例(除非用户明确指定)",
+      "系统输出的报价必须使用中文"
+    ],
+    "assumptions": [
+      "用户具备基本的云计算概念理解",
+      "AWS Pricing API可以提供所需的所有价格数据",
+      "系统可以访问所有AWS区域的价格信息",
+      "用户提供的配置描述包含足够的信息进行推荐"
+    ],
+    "success_criteria": [
+      "系统能够正确解析90%以上的用户自然语言输入",
+      "系统推荐的配置满足用户需求并符合AWS最佳实践",
+      "系统提供的价格与AWS官方价格保持一致",
+      "系统生成的报价方案清晰、专业，符合销售需求"
+    ],
+    "glossary": {
+      "EC2": "Amazon Elastic Compute Cloud，提供可伸缩的计算容量",
+      "EBS": "Amazon Elastic Block Store，提供块存储卷",
+      "S3": "Amazon Simple Storage Service，提供对象存储服务",
+      "RDS": "Amazon Relational Database Service，提供关系型数据库服务",
+      "ElastiCache": "Amazon ElastiCache，提供内存缓存服务",
+      "Opensearch": "Amazon Opensearch Service，提供搜索和分析服务",
+      "ALB": "Application Load Balancer，应用层负载均衡器",
+      "NLB": "Network Load Balancer，网络层负载均衡器",
+      "CLB": "Classic Load Balancer，经典负载均衡器",
+      "RI": "Reserved Instance，预留实例，提供折扣价格"
+    }
+  },
+  "analysis_notes": "通过分析用户需求，确定这是一个单Agent场景，因为功能虽然复杂但围绕AWS产品报价这一核心任务，不需要多个Agent协作。推荐使用业务逻辑类Agent类型，因为系统主要执行规则引擎和决策支持功能，需要根据用户输入进行智能分析和推荐。系统的核心价值在于通过调用AWS API获取实时价格数据，并基于销售思维分析用户需求，生成专业的报价方案。系统需要支持多种AWS产品的配置推荐和价格计算，包括EC2、EBS、S3、网络流量、负载均衡器、RDS、ElastiCache和Opensearch。系统还需要支持按需和预留实例价格计算，以及全球各区域(包括中国区)的报价支持。用户体验方面，系统需要能够理解不完整的需求描述，并生成清晰、结构化的中文报价方案。"
+}

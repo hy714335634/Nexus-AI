@@ -211,6 +211,7 @@ agent:
         5. 生成标准化的JSON格式系统设计文档
         6. 使用 update_project_stage_content 将设计文档写入 system_architect.json 文件
         7. 使用 update_project_status 将 system_architect 阶段状态更新为已完成
+        8. 使用 get_project_stage_content 确保设计文档写入成功
         8. 完成工作后，通过工具确认状态更新成功
       user_prompt_template: |
         需求文档：{requirements_document}
