@@ -1,0 +1,30 @@
+{
+  "user_info": {
+    "name": "李明",
+    "department": "技术部门",
+    "role": "developer"
+  },
+  "user_preferences": {
+    "auto_refresh": true,
+    "refresh_interval": 5,
+    "theme": "light",
+    "language": "zh-CN"
+  },
+  "selected_agent": "aws_pricing_agent",
+  "selected_project_id": "project_123",
+  "selected_template": null,
+  "session_created_at": "2025-09-13T18:37:47.526506",
+  "chat_history_aws_pricing_agent": [
+    {
+      "role": "user",
+      "content": "你好，请帮我查询AWS EC2的价格",
+      "timestamp": "2025-09-13T18:37:47.527037"
+    },
+    {
+      "role": "assistant",
+      "content": "好的，我来帮您查询AWS EC2的价格信息...",
+      "timestamp": "2025-09-13T18:37:47.527168"
+    }
+  ],
+  "last_saved": "2025-09-13T18:37:47.527173"
+}
