@@ -35,7 +35,7 @@ from strands import Agent,tool
 
 def _enhance_content_with_context(content: str, project_name: str, agent_name: str, stage_name: str) -> str:
     """
-    为内容添加项目和Agent上下文信息
+    为内容添加项目和Agent上下文信息，并将上下文信息保存到track.md文件
     
     Args:
         content (str): 原始内容
@@ -44,10 +44,10 @@ def _enhance_content_with_context(content: str, project_name: str, agent_name: s
         stage_name (str): 阶段名称
         
     Returns:
-        str: 增强后的内容
+        str: 原始内容（不添加上下文头部）
     """
-    # 创建上下文头部信息
-    context_header = f"""# 项目上下文信息
+    # 创建上下文信息
+    context_info = f"""# 项目跟踪信息
 
 **项目名称**: {project_name}
 **Agent名称**: {agent_name}  
@@ -58,12 +58,28 @@ def _enhance_content_with_context(content: str, project_name: str, agent_name: s
 
 """
     
-    # 如果内容已经包含上下文信息，则不重复添加
-    if f"**项目名称**: {project_name}" in content:
-        return content
+    # 将上下文信息保存到track.md文件
+    try:
+        track_file_path = os.path.join("projects", project_name, "track.md")
+        
+        # 确保项目目录存在
+        os.makedirs(os.path.dirname(track_file_path), exist_ok=True)
+        
+        # 如果track.md文件已存在，追加新的跟踪信息
+        if os.path.exists(track_file_path):
+            with open(track_file_path, 'a', encoding='utf-8') as f:
+                f.write(f"\n## {stage_name} - {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}\n")
+                f.write(f"**Agent名称**: {agent_name}\n")
+                f.write(f"**开发阶段**: {stage_name}\n\n")
+        else:
+            # 创建新的track.md文件
+            with open(track_file_path, 'w', encoding='utf-8') as f:
+                f.write(context_info)
+    except Exception as e:
+        print(f"警告: 无法保存跟踪信息到track.md: {e}")
     
-    # 添加上下文头部到内容前面
-    return context_header + content
+    # 返回原始内容，不添加上下文头部
+    return content
 
 # @tool
 # def set_current_project_stats(action: str, agent: Agent):
@@ -1573,27 +1589,47 @@ def get_project_context(project_name: str, agent_name: str = None) -> str:
             "project_name": project_name,
             "project_description": project_description,
             "project_version": project_version,
-            "current_time": datetime.now(timezone.utc).isoformat(),
-            "context_header": f"""# 项目上下文信息
+            "current_time": datetime.now(timezone.utc).isoformat()
+        }
+        
+        # 创建跟踪信息内容
+        track_content = f"""# 项目上下文信息
 
 **项目名称**: {project_name}
 **项目描述**: {project_description}
 **项目版本**: {project_version}"""
-        }
         
         # 如果提供了Agent名称，添加Agent信息
         if agent_name and agent_name.strip():
             agent_name = agent_name.strip()
             context_info["agent_name"] = agent_name
-            context_info["context_header"] += f"""
+            track_content += f"""
 **Agent名称**: {agent_name}"""
         
-        context_info["context_header"] += f"""
+        track_content += f"""
 **生成时间**: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}
 
 ---
 
 """
+        
+        # 将上下文信息保存到track.md文件
+        try:
+            track_file_path = os.path.join(project_root, "track.md")
+            
+            # 如果track.md文件已存在，追加新的跟踪信息
+            if os.path.exists(track_file_path):
+                with open(track_file_path, 'a', encoding='utf-8') as f:
+                    f.write(f"\n## 上下文查询 - {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}\n")
+                    if agent_name:
+                        f.write(f"**Agent名称**: {agent_name}\n")
+                    f.write(f"**查询时间**: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}\n\n")
+            else:
+                # 创建新的track.md文件
+                with open(track_file_path, 'w', encoding='utf-8') as f:
+                    f.write(track_content)
+        except Exception as e:
+            print(f"警告: 无法保存跟踪信息到track.md: {e}")
         
         return json.dumps(context_info, ensure_ascii=False, indent=2)
         
@@ -2034,11 +2070,15 @@ def generate_content(type: Literal["agent", "prompt", "tool"], content: str, pro
     Args:
         type (Literal["agent", "prompt", "tool"]): 内容类型（必须），可以是 "agent"、"prompt" 或 "tool"
         content (str): 要写入的文件内容（必须）
-        project_name (str): 项目名称（必须）
-        artifact_name (str): 名称（必须）,若type为agent或tool，则为脚本名称，若type为prompt，则为Prompt yaml文件名称
+        project_name (str): 项目名称（必须），同时用作目录名和文件名的基础
+        artifact_name (str): 构件名称（必须），用于内部标识，但文件名将使用project_name确保一致性
         
     Returns:
         str: 操作结果信息
+        
+    Note:
+        为确保目录名和文件名一致，代理文件将命名为 {project_name}.py，
+        提示词文件将命名为 {project_name}.yaml，工具文件保持使用artifact_name
     """
     stage = "prompt_engineer" if type == "prompt" else "tools_developer" if type == "tool" else "agent_code_developer"
     try:
@@ -2065,7 +2105,8 @@ def generate_content(type: Literal["agent", "prompt", "tool"], content: str, pro
         
         if "/" in artifact_name or "\\" in artifact_name or ".." in artifact_name:
             return "错误：Agent名称不能包含路径分隔符或相对路径"
-        
+        target_dir = ""
+        filename = ""
         # 根据类型确定目标目录和文件扩展名
         if type == "agent":
             target_dir = os.path.join("agents", "generated_agents", project_name)
@@ -2076,7 +2117,7 @@ def generate_content(type: Literal["agent", "prompt", "tool"], content: str, pro
         elif type == "tool":
             target_dir = os.path.join("tools", "generated_tools", project_name)
             filename = f"{artifact_name}" if artifact_name.endswith('.py') else f"{artifact_name}.py"
-        
+
         # 确保目标目录存在
         if not os.path.exists(target_dir):
             os.makedirs(target_dir, exist_ok=True)
