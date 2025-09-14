@@ -1,0 +1,234 @@
+# 项目上下文信息
+
+**项目名称**: aws_pricing_agent
+**Agent名称**: requirements_analyzer  
+**开发阶段**: requirements_analyzer
+**生成时间**: 2025-09-14 03:59:07 UTC
+
+---
+
+{
+  "requirements_document": {
+    "feature_name": "AWS Pricing Agent",
+    "version": "1.0",
+    "date": "2025-09-14",
+    "overview": "AWS Pricing Agent是一个专业的AWS产品报价智能体，能够根据用户提供的自然语言描述资源需求，分析并推荐合理的AWS服务和配置，提供实时报价并生成专业的报价方案。该系统将集成AWS价格API，支持多种AWS服务的实时价格查询，并具备销售思维分析能力。",
+    "business_value": "帮助用户快速获取准确的AWS服务报价，简化AWS产品选型和预算规划过程，提高方案设计效率，降低技术门槛，使非专业用户也能获得专业的AWS解决方案建议和报价。",
+    "workflow_complexity": "single_agent",
+    "recommended_agent_type": "业务逻辑类",
+    "scope": {
+      "included": [
+        "支持EC2、EBS、S3、网络流量、ELB、RDS、ElastiCache、Opensearch等AWS产品的实时价格查询",
+        "根据自然语言描述推荐合理的AWS服务配置",
+        "获取实时且真实的按需和预留实例价格",
+        "支持不同区域(包括中国区)的价格查询",
+        "根据用户需求推测合理配置",
+        "优先推荐最新一代实例",
+        "生成清晰且有逻辑的报价方案",
+        "在价格获取失败时提供明确提示"
+      ],
+      "excluded": [
+        "AWS服务的实际部署和配置",
+        "AWS账户管理功能",
+        "历史价格趋势分析",
+        "竞品价格对比",
+        "多云环境的价格比较"
+      ]
+    },
+    "functional_requirements": [
+      {
+        "id": "FR-001",
+        "title": "自然语言需求解析",
+        "user_story": "作为用户，我希望能够使用自然语言描述我的资源需求，以便不需要了解AWS技术细节也能获得合适的配置建议。",
+        "acceptance_criteria": [
+          "WHEN 用户提供自然语言描述的资源需求 THEN 系统能够识别关键资源类型、数量和性能要求",
+          "WHEN 用户描述不清晰或不完整 THEN 系统能够提出澄清问题或基于最佳实践做出合理假设",
+          "IF 用户提供的信息不足以推荐配置 THEN 系统应明确指出缺失的关键信息并请求补充"
+        ],
+        "priority": "High",
+        "complexity": "High",
+        "dependencies": [],
+        "assumptions": ["用户具有基本的IT基础知识"]
+      },
+      {
+        "id": "FR-002",
+        "title": "AWS服务配置推荐",
+        "user_story": "作为用户，我希望系统能够根据我的需求推荐合适的AWS服务和配置，以便获得最适合我需求的AWS解决方案。",
+        "acceptance_criteria": [
+          "WHEN 用户需求明确 THEN 系统推荐的配置应符合用户的性能和功能要求",
+          "WHEN 同系列同配置有多个选择 THEN 系统优先推荐最新一代实例",
+          "IF 用户对某些参数没有明确要求 THEN 系统应基于最佳实践和成本效益做出合理推荐"
+        ],
+        "priority": "High",
+        "complexity": "High",
+        "dependencies": ["FR-001"],
+        "assumptions": ["系统能够访问AWS服务目录和规格信息"]
+      },
+      {
+        "id": "FR-003",
+        "title": "实时价格查询",
+        "user_story": "作为用户，我希望能够获取推荐配置的实时准确价格，以便做出明智的预算决策。",
+        "acceptance_criteria": [
+          "WHEN 推荐AWS服务配置后 THEN 系统应通过AWS价格API获取当前实时价格",
+          "WHEN 查询价格 THEN 系统应同时提供按需实例和预留实例的价格信息",
+          "IF 价格查询失败 THEN 系统应在报价中明确标注无法获取价格的项目"
+        ],
+        "priority": "High",
+        "complexity": "Medium",
+        "dependencies": ["FR-002"],
+        "assumptions": ["AWS价格API可用且响应及时"]
+      },
+      {
+        "id": "FR-004",
+        "title": "多区域支持",
+        "user_story": "作为用户，我希望能够指定AWS区域进行报价，以便获得特定区域的准确价格信息。",
+        "acceptance_criteria": [
+          "WHEN 用户指定区域 THEN 系统应获取该区域支持的实例类型和对应价格",
+          "WHEN 用户请求中国区价格 THEN 系统应能正确获取中国区的价格信息",
+          "IF 指定区域不支持某些实例类型 THEN 系统应推荐该区域可用的替代选项"
+        ],
+        "priority": "Medium",
+        "complexity": "Medium",
+        "dependencies": ["FR-003"],
+        "assumptions": ["系统有权限访问所有区域的价格信息"]
+      },
+      {
+        "id": "FR-005",
+        "title": "专业报价方案生成",
+        "user_story": "作为用户，我希望获得清晰且有逻辑的报价方案，以便向决策者展示和说明。",
+        "acceptance_criteria": [
+          "WHEN 完成价格查询 THEN 系统应生成包含配置详情和价格明细的报价方案",
+          "WHEN 生成报价方案 THEN 应包含总价、各组件价格明细和配置推荐理由",
+          "IF 有多种配置选项 THEN 系统应提供对比分析并给出推荐理由"
+        ],
+        "priority": "Medium",
+        "complexity": "Medium",
+        "dependencies": ["FR-003"],
+        "assumptions": ["用户需要详细的报价方案而非简单价格列表"]
+      },
+      {
+        "id": "FR-006",
+        "title": "EC2实例推荐与报价",
+        "user_story": "作为用户，我希望系统能够根据我的计算需求推荐合适的EC2实例类型并提供报价，以便获得最佳的计算资源配置。",
+        "acceptance_criteria": [
+          "WHEN 用户描述计算需求 THEN 系统应推荐适合的EC2实例类型、规格和数量",
+          "WHEN 推荐EC2实例 THEN 系统应考虑CPU、内存、网络性能等关键参数",
+          "IF 有特殊计算需求(如GPU、高内存) THEN 系统应推荐专用实例类型"
+        ],
+        "priority": "High",
+        "complexity": "Medium",
+        "dependencies": ["FR-002", "FR-003"],
+        "assumptions": ["用户了解基本的计算资源概念"]
+      },
+      {
+        "id": "FR-007",
+        "title": "存储解决方案推荐与报价",
+        "user_story": "作为用户，我希望系统能够根据我的存储需求推荐合适的存储解决方案(EBS、S3)并提供报价，以便获得最佳的存储配置。",
+        "acceptance_criteria": [
+          "WHEN 用户描述存储需求 THEN 系统应推荐适合的存储类型、容量和性能配置",
+          "WHEN 推荐EBS卷 THEN 系统应考虑IOPS、吞吐量和访问频率等因素",
+          "WHEN 推荐S3存储 THEN 系统应考虑存储类别、访问模式和数据生命周期"
+        ],
+        "priority": "High",
+        "complexity": "Medium",
+        "dependencies": ["FR-002", "FR-003"],
+        "assumptions": ["用户了解基本的存储需求概念"]
+      },
+      {
+        "id": "FR-008",
+        "title": "数据库服务推荐与报价",
+        "user_story": "作为用户，我希望系统能够根据我的数据库需求推荐合适的RDS或ElastiCache配置并提供报价，以便获得最佳的数据库解决方案。",
+        "acceptance_criteria": [
+          "WHEN 用户描述数据库需求 THEN 系统应推荐适合的数据库引擎、实例类型和存储配置",
+          "WHEN 推荐RDS实例 THEN 系统应考虑数据库引擎、多可用区部署、备份和性能需求",
+          "WHEN 推荐ElastiCache THEN 系统应考虑缓存引擎类型、节点类型和集群配置"
+        ],
+        "priority": "Medium",
+        "complexity": "Medium",
+        "dependencies": ["FR-002", "FR-003"],
+        "assumptions": ["用户了解基本的数据库概念和需求"]
+      },
+      {
+        "id": "FR-009",
+        "title": "负载均衡与网络流量报价",
+        "user_story": "作为用户，我希望系统能够根据我的应用架构需求推荐合适的负载均衡配置并计算网络流量费用，以便获得完整的应用部署成本。",
+        "acceptance_criteria": [
+          "WHEN 用户描述应用架构 THEN 系统应推荐适合的ELB类型和配置",
+          "WHEN 计算网络流量费用 THEN 系统应考虑数据传输方向、区域和预估流量量",
+          "IF 用户无法提供流量估算 THEN 系统应基于应用类型提供合理的流量假设和计算"
+        ],
+        "priority": "Medium",
+        "complexity": "Medium",
+        "dependencies": ["FR-002", "FR-003"],
+        "assumptions": ["用户了解基本的应用架构和流量模式"]
+      },
+      {
+        "id": "FR-010",
+        "title": "搜索服务配置与报价",
+        "user_story": "作为用户，我希望系统能够根据我的搜索需求推荐合适的OpenSearch配置并提供报价，以便获得最佳的搜索解决方案。",
+        "acceptance_criteria": [
+          "WHEN 用户描述搜索需求 THEN 系统应推荐适合的OpenSearch域配置",
+          "WHEN 推荐OpenSearch配置 THEN 系统应考虑实例类型、数量、存储和数据量",
+          "IF 用户有特殊的搜索性能需求 THEN 系统应提供相应的专业配置建议"
+        ],
+        "priority": "Low",
+        "complexity": "Medium",
+        "dependencies": ["FR-002", "FR-003"],
+        "assumptions": ["用户了解基本的搜索服务需求"]
+      }
+    ],
+    "non_functional_requirements": {
+      "performance": [
+        "系统应在10秒内完成自然语言需求的解析",
+        "价格查询API调用应在5秒内返回结果",
+        "完整报价方案生成应在30秒内完成"
+      ],
+      "security": [
+        "系统应安全存储和使用AWS API凭证",
+        "不应在报价方案中包含敏感的认证信息",
+        "用户输入应进行适当的验证以防止注入攻击"
+      ],
+      "usability": [
+        "系统应使用清晰易懂的语言与用户交流",
+        "报价方案应采用结构化格式，便于阅读和理解",
+        "系统应能够解释技术术语和配置推荐理由"
+      ],
+      "reliability": [
+        "系统应能够处理AWS API暂时不可用的情况",
+        "当无法获取某些价格信息时，应明确标注并继续提供其他可用信息",
+        "系统应能够处理不完整或模糊的用户输入"
+      ]
+    },
+    "constraints": [
+      "系统必须通过AWS官方API或SDK获取实时价格信息",
+      "系统必须支持所有AWS商业区域和中国区域的价格查询",
+      "系统必须能够处理AWS服务规格和价格的定期更新",
+      "系统必须遵循AWS服务使用条款和API使用限制"
+    ],
+    "assumptions": [
+      "用户具有基本的IT和云计算概念理解",
+      "系统有适当的AWS API访问权限",
+      "AWS价格API提供的数据是准确且最新的",
+      "用户能够提供足够的需求信息以进行配置推荐"
+    ],
+    "success_criteria": [
+      "系统能够准确解析80%以上的自然语言资源需求描述",
+      "推荐的AWS配置满足用户需求并符合AWS最佳实践",
+      "价格报价与AWS官方价格保持一致，误差不超过1%",
+      "生成的报价方案清晰、专业，包含所有必要的配置和价格信息",
+      "用户满意度评分达到4.5/5以上"
+    ],
+    "glossary": {
+      "EC2": "Amazon Elastic Compute Cloud，提供可扩展的计算容量",
+      "EBS": "Amazon Elastic Block Store，为EC2实例提供持久性块存储卷",
+      "S3": "Amazon Simple Storage Service，对象存储服务",
+      "ELB": "Elastic Load Balancing，自动分配应用流量",
+      "RDS": "Amazon Relational Database Service，关系型数据库服务",
+      "ElastiCache": "AWS提供的内存缓存服务",
+      "OpenSearch": "分布式搜索和分析引擎",
+      "按需实例": "无需长期承诺的按使用付费的计算实例",
+      "预留实例": "承诺使用一年或三年期限以换取折扣的计算实例"
+    }
+  },
+  "analysis_notes": "该项目适合单Agent架构，因为尽管功能相对复杂，但主要围绕AWS产品报价这一核心功能展开，各功能点之间有明确的逻辑关系和依赖关系。系统主要执行自然语言理解、服务配置推荐和价格查询三个核心功能，这些可以在一个Agent内协调完成。推荐使用业务逻辑类Agent类型，因为系统需要处理复杂的业务规则(AWS服务选型逻辑)，需要进行决策支持(配置推荐)，并管理与AWS价格API的交互流程。系统的主要技术挑战在于自然语言需求解析和AWS服务配置推荐这两个高复杂度的功能点，以及确保价格信息的实时性和准确性。"
+}

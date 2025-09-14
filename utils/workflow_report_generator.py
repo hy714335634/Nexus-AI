@@ -64,6 +64,25 @@ class WorkflowReportGenerator:
     def parse_workflow_result(self, graph_result: Any) -> WorkflowSummary:
         """解析GraphResult对象"""
         try:
+            print(f"🔍 开始解析工作流结果，类型: {type(graph_result)}")
+            print(f"🔍 可用属性: {[attr for attr in dir(graph_result) if not attr.startswith('_')]}")
+            
+            # 检查accumulated_usage
+            if hasattr(graph_result, 'accumulated_usage'):
+                usage = graph_result.accumulated_usage
+                print(f"🔍 accumulated_usage类型: {type(usage)}")
+                print(f"🔍 accumulated_usage内容: {usage}")
+            else:
+                print(f"⚠️ 未找到accumulated_usage属性")
+            
+            # 检查results
+            if hasattr(graph_result, 'results'):
+                results = graph_result.results
+                print(f"🔍 results类型: {type(results)}")
+                print(f"🔍 results键: {list(results.keys()) if results else 'None'}")
+            else:
+                print(f"⚠️ 未找到results属性")
+            
             # 提取项目名称
             project_name = self._extract_project_name_from_orchestrator(graph_result)
             
@@ -90,11 +109,21 @@ class WorkflowReportGenerator:
                         usage = attr_value
                         break
             
-            if usage and hasattr(usage, 'inputTokens') and hasattr(usage, 'outputTokens'):
-                total_input_tokens = usage.inputTokens
-                total_output_tokens = usage.outputTokens
-                print(f"🔍 使用系统级别Token统计: input={total_input_tokens}, output={total_output_tokens}")
-            else:
+            if usage:
+                # 支持字典和对象两种格式的usage
+                if isinstance(usage, dict):
+                    total_input_tokens = usage.get('inputTokens', 0)
+                    total_output_tokens = usage.get('outputTokens', 0)
+                    print(f"🔍 使用系统级别Token统计(字典格式): input={total_input_tokens}, output={total_output_tokens}")
+                elif hasattr(usage, 'inputTokens') and hasattr(usage, 'outputTokens'):
+                    total_input_tokens = usage.inputTokens
+                    total_output_tokens = usage.outputTokens
+                    print(f"🔍 使用系统级别Token统计(对象格式): input={total_input_tokens}, output={total_output_tokens}")
+                else:
+                    print(f"⚠️ usage格式不支持: {type(usage)}")
+                    usage = None
+            
+            if not usage:
                 # 如果没有系统级别统计，使用各阶段累加
                 total_input_tokens = sum(stage.input_tokens for stage in stages)
                 total_output_tokens = sum(stage.output_tokens for stage in stages)
@@ -106,8 +135,14 @@ class WorkflowReportGenerator:
             successful_stages = sum(1 for stage in stages if stage.success)
             failed_stages = len(stages) - successful_stages
             
-            # 计算总执行时间
-            total_duration = sum(stage.duration or 0 for stage in stages)
+            # 优先使用系统级别的执行时间
+            if hasattr(graph_result, 'execution_time'):
+                total_duration = graph_result.execution_time / 1000.0  # 转换为秒
+                print(f"🔍 使用系统级别执行时间: {total_duration:.2f}秒")
+            else:
+                # 如果没有系统级别时间，使用各阶段累加
+                total_duration = sum(stage.duration or 0 for stage in stages)
+                print(f"🔍 使用各阶段累加执行时间: {total_duration:.2f}秒")
             
             # 生成工具使用总结
             tool_usage_summary = self._generate_tool_usage_summary(stages)
@@ -136,7 +171,35 @@ class WorkflowReportGenerator:
             return self._create_empty_summary()
     
     def _extract_project_name_from_orchestrator(self, graph_result: Any) -> str:
-        """从orchestrator阶段的project_init工具调用中提取项目名称"""
+        """从多个来源提取项目名称"""
+        try:
+            # 方法1: 从orchestrator阶段的project_init工具调用中提取
+            project_name = self._extract_from_orchestrator_tools(graph_result)
+            if project_name != "unknown_project":
+                print(f"🔍 从orchestrator工具调用中提取项目名称: {project_name}")
+                return project_name
+            
+            # 方法2: 从result对象的字符串表示中提取
+            project_name = self._extract_from_result_string(graph_result)
+            if project_name != "unknown_project":
+                print(f"🔍 从result字符串中提取项目名称: {project_name}")
+                return project_name
+            
+            # 方法3: 从accumulated_usage中提取（如果有项目信息）
+            project_name = self._extract_from_usage_info(graph_result)
+            if project_name != "unknown_project":
+                print(f"🔍 从usage信息中提取项目名称: {project_name}")
+                return project_name
+            
+            print(f"⚠️ 无法从任何来源提取项目名称")
+            return "unknown_project"
+            
+        except Exception as e:
+            print(f"⚠️ 提取项目名称失败: {e}")
+            return "unknown_project"
+    
+    def _extract_from_orchestrator_tools(self, graph_result: Any) -> str:
+        """从orchestrator阶段的工具调用中提取项目名称"""
         try:
             # 检查是否有results属性
             if not hasattr(graph_result, 'results') or not graph_result.results:
@@ -177,28 +240,52 @@ class WorkflowReportGenerator:
                     if project_name:
                         return project_name
             
-            # 如果没找到project_init，尝试从字符串中提取项目名称
-            if hasattr(graph_result, 'obj_str'):
-                import re
-                # 查找项目名称模式
-                project_patterns = [
-                    r"'([^']+_generator)'",
-                    r"'([^']+_agent)'",
-                    r"'([^']+_tool)'",
-                    r"'([^']+_cloner)'"
-                ]
-                
-                for pattern in project_patterns:
-                    match = re.search(pattern, graph_result.obj_str)
-                    if match:
-                        project_name = match.group(1)
-                        if len(project_name) > 3 and not project_name.startswith('_'):
-                            return project_name
+            return "unknown_project"
+            
+        except Exception as e:
+            print(f"⚠️ 从orchestrator工具调用提取项目名称失败: {e}")
+            return "unknown_project"
+    
+    def _extract_from_result_string(self, graph_result: Any) -> str:
+        """从result对象的字符串表示中提取项目名称"""
+        try:
+            # 将整个result对象转换为字符串进行搜索
+            result_str = str(graph_result)
+            
+            import re
+            # 查找项目名称模式
+            project_patterns = [
+                r"'([^']+_agent)'",
+                r"'([^']+_generator)'", 
+                r"'([^']+_tool)'",
+                r"'([^']+_cloner)'",
+                r'"([^"]+_agent)"',
+                r'"([^"]+_generator)"',
+                r'"([^"]+_tool)"',
+                r'"([^"]+_cloner)"'
+            ]
+            
+            for pattern in project_patterns:
+                matches = re.findall(pattern, result_str)
+                for match in matches:
+                    if len(match) > 3 and not match.startswith('_') and not match.startswith('unknown'):
+                        return match
             
             return "unknown_project"
             
         except Exception as e:
-            print(f"⚠️ 从orchestrator提取项目名称失败: {e}")
+            print(f"⚠️ 从result字符串提取项目名称失败: {e}")
+            return "unknown_project"
+    
+    def _extract_from_usage_info(self, graph_result: Any) -> str:
+        """从usage信息中提取项目名称"""
+        try:
+            # 这个方法可以扩展，比如从特定的usage字段中提取项目信息
+            # 目前返回unknown_project，但为将来扩展预留
+            return "unknown_project"
+            
+        except Exception as e:
+            print(f"⚠️ 从usage信息提取项目名称失败: {e}")
             return "unknown_project"
     
     def _parse_stages_metrics(self, graph_result: Any) -> List[StageMetrics]:
@@ -250,23 +337,38 @@ class WorkflowReportGenerator:
             
             node_result = results[stage_name]
             
+            # 检查是否是空的NodeResult
+            if not hasattr(node_result, 'result') or not node_result.result:
+                stage_metrics.success = False
+                stage_metrics.error_message = "阶段结果为空"
+                print(f"⚠️ 阶段 {stage_name} 结果为空")
+                return stage_metrics
+            
             # 提取execution_time
             if hasattr(node_result, 'execution_time'):
                 stage_metrics.duration = node_result.execution_time / 1000.0  # 转换为秒
+                print(f"🔍 阶段 {stage_name} 执行时间: {stage_metrics.duration:.2f}秒")
             
             # 提取status
             if hasattr(node_result, 'status'):
                 status_str = str(node_result.status)
                 stage_metrics.success = 'COMPLETED' in status_str or 'completed' in status_str
+                print(f"🔍 阶段 {stage_name} 状态: {status_str} -> 成功: {stage_metrics.success}")
             
             # 提取该阶段自己的accumulated_usage中的token信息
             if hasattr(node_result, 'accumulated_usage'):
                 usage = node_result.accumulated_usage
-                if hasattr(usage, 'inputTokens'):
+                # 支持字典和对象两种格式
+                if isinstance(usage, dict):
+                    stage_metrics.input_tokens = usage.get('inputTokens', 0)
+                    stage_metrics.output_tokens = usage.get('outputTokens', 0)
+                    print(f"🔍 阶段 {stage_name} Token统计(字典格式): input={stage_metrics.input_tokens}, output={stage_metrics.output_tokens}")
+                elif hasattr(usage, 'inputTokens') and hasattr(usage, 'outputTokens'):
                     stage_metrics.input_tokens = usage.inputTokens
-                if hasattr(usage, 'outputTokens'):
                     stage_metrics.output_tokens = usage.outputTokens
-                print(f"🔍 阶段 {stage_name} Token统计: input={stage_metrics.input_tokens}, output={stage_metrics.output_tokens}")
+                    print(f"🔍 阶段 {stage_name} Token统计(对象格式): input={stage_metrics.input_tokens}, output={stage_metrics.output_tokens}")
+                else:
+                    print(f"🔍 阶段 {stage_name} accumulated_usage格式不支持: {type(usage)}")
             else:
                 print(f"🔍 阶段 {stage_name} 无accumulated_usage信息")
             
@@ -309,15 +411,12 @@ class WorkflowReportGenerator:
             if stage_metrics.duration is None or stage_metrics.duration == 0:
                 stage_metrics.duration = 2.0  # 默认2秒
             
-            # 如果没有找到token信息，使用基于工具调用次数的合理估算
+            # 如果没有找到token信息，标记为0而不是估算
+            # 这样可以区分真实数据和缺失数据
             if stage_metrics.input_tokens == 0:
-                # 基于工具调用次数估算：每个工具调用约200-500 tokens
-                estimated_input = max(200, stage_metrics.tool_calls * 300)
-                stage_metrics.input_tokens = estimated_input
+                print(f"🔍 阶段 {stage_name} 无输入Token数据")
             if stage_metrics.output_tokens == 0:
-                # 输出tokens通常是输入的30-50%
-                estimated_output = max(100, int(stage_metrics.input_tokens * 0.4))
-                stage_metrics.output_tokens = estimated_output
+                print(f"🔍 阶段 {stage_name} 无输出Token数据")
             
             return stage_metrics
             
@@ -340,12 +439,147 @@ class WorkflowReportGenerator:
         
         return tool_summary
     
+    def _calculate_tool_statistics(self, stages: List[StageMetrics]) -> Dict[str, Dict[str, Any]]:
+        """计算工具详细统计信息"""
+        tool_stats = {}
+        
+        for stage in stages:
+            for tool_detail in stage.tool_call_details:
+                tool_name = tool_detail['tool_name']
+                
+                if tool_name not in tool_stats:
+                    tool_stats[tool_name] = {
+                        'call_count': 0,
+                        'success_count': 0,
+                        'error_count': 0,
+                        'total_time': 0.0,
+                        'avg_time': 0.0,
+                        'success_rate': 0.0
+                    }
+                
+                stats = tool_stats[tool_name]
+                stats['call_count'] += tool_detail['call_count']
+                stats['success_count'] += tool_detail['success_count']
+                stats['error_count'] += tool_detail['error_count']
+                stats['total_time'] += tool_detail['total_time']
+        
+        # 计算平均值和成功率
+        for tool_name, stats in tool_stats.items():
+            if stats['call_count'] > 0:
+                stats['avg_time'] = stats['total_time'] / stats['call_count']
+                stats['success_rate'] = (stats['success_count'] / stats['call_count']) * 100
+        
+        return tool_stats
+    
+    def _generate_key_findings(self, summary: WorkflowSummary) -> List[str]:
+        """生成关键发现"""
+        findings = []
+        
+        # 分析执行时间
+        if summary.total_duration > 300:  # 超过5分钟
+            findings.append(f"⚠️ 执行时间较长 ({self._format_duration(summary.total_duration)})，可能存在性能瓶颈")
+        elif summary.total_duration < 30:  # 少于30秒
+            findings.append(f"✅ 执行时间较短 ({self._format_duration(summary.total_duration)})，性能表现良好")
+        
+        # 分析Token使用
+        token_efficiency = summary.total_output_tokens / max(summary.total_input_tokens, 1)
+        if token_efficiency < 0.1:
+            findings.append(f"⚠️ Token效率较低 ({token_efficiency:.2f})，输出相对输入较少")
+        elif token_efficiency > 0.5:
+            findings.append(f"✅ Token效率较高 ({token_efficiency:.2f})，输出相对输入较多")
+        
+        # 分析失败阶段
+        if summary.failed_stages > 0:
+            findings.append(f"❌ 有 {summary.failed_stages} 个阶段执行失败，需要检查错误原因")
+        
+        # 分析工具使用
+        if summary.total_tool_calls == 0:
+            findings.append("⚠️ 没有工具调用记录，可能影响功能完整性")
+        elif summary.total_tool_calls > 50:
+            findings.append(f"📊 工具调用次数较多 ({summary.total_tool_calls})，说明工作流复杂度较高")
+        
+        # 分析成本
+        cost_per_tool = summary.cost_estimation.get('total_cost_usd', 0) / max(summary.total_tool_calls, 1)
+        if cost_per_tool > 0.01:  # 每个工具调用成本超过1美分
+            findings.append(f"💰 工具调用成本较高 (${cost_per_tool:.4f}/次)，建议优化工具使用")
+        
+        return findings
+    
+    def _generate_optimization_suggestions(self, summary: WorkflowSummary) -> List[str]:
+        """生成优化建议"""
+        suggestions = []
+        
+        # 基于执行时间的建议
+        if summary.total_duration > 300:
+            suggestions.append("考虑并行化处理或优化算法以减少执行时间")
+        
+        # 基于Token使用的建议
+        token_efficiency = summary.total_output_tokens / max(summary.total_input_tokens, 1)
+        if token_efficiency < 0.1:
+            suggestions.append("优化提示词设计，提高输出质量")
+        
+        # 基于失败阶段的建议
+        if summary.failed_stages > 0:
+            suggestions.append("检查失败阶段的错误日志，修复相关问题")
+        
+        # 基于工具使用的建议
+        if summary.total_tool_calls > 0:
+            tool_stats = self._calculate_tool_statistics(summary.stages)
+            slow_tools = [name for name, stats in tool_stats.items() if stats['avg_time'] > 1.0]
+            if slow_tools:
+                suggestions.append(f"优化慢速工具: {', '.join(slow_tools)}")
+        
+        # 基于成本的建议
+        if summary.cost_estimation.get('total_cost_usd', 0) > 1.0:
+            suggestions.append("考虑使用更经济的模型或优化Token使用")
+        
+        # 通用建议
+        suggestions.extend([
+            "定期监控工作流性能指标",
+            "建立性能基准和告警机制",
+            "考虑缓存重复计算的结果"
+        ])
+        
+        return suggestions
+    
     def _format_tokens(self, tokens: int) -> str:
         """格式化Token数量，按K为单位显示"""
         if tokens >= 1000:
             return f"{tokens/1000:.1f}K"
         else:
             return str(tokens)
+    
+    def _format_duration(self, duration: float) -> str:
+        """格式化执行时间，显示为更易读的格式"""
+        if duration < 60:
+            return f"{duration:.1f}秒"
+        elif duration < 3600:
+            minutes = int(duration // 60)
+            seconds = duration % 60
+            return f"{minutes}分{seconds:.1f}秒"
+        else:
+            hours = int(duration // 3600)
+            minutes = int((duration % 3600) // 60)
+            return f"{hours}小时{minutes}分钟"
+    
+    def _calculate_stage_efficiency(self, stage: StageMetrics) -> str:
+        """计算阶段效率评分"""
+        if not stage.success:
+            return "❌ 失败"
+        
+        if stage.duration and stage.duration > 0:
+            # 基于执行时间和工具调用次数计算效率
+            tool_efficiency = stage.tool_calls / stage.duration if stage.duration > 0 else 0
+            if tool_efficiency > 2:
+                return "🚀 优秀"
+            elif tool_efficiency > 1:
+                return "✅ 良好"
+            elif tool_efficiency > 0.5:
+                return "⚠️ 一般"
+            else:
+                return "🐌 较慢"
+        else:
+            return "❓ 未知"
     
     def _estimate_costs(self, input_tokens: int, output_tokens: int) -> Dict[str, Any]:
         """估算成本（基于Claude 3.7 Sonnet定价）"""
@@ -422,7 +656,7 @@ class WorkflowReportGenerator:
             "## 📊 总体概览",
             "",
             f"- **工作流状态**: {'✅ 成功完成' if summary.failed_stages == 0 else f'⚠️ 部分失败 ({summary.failed_stages}个阶段失败)'}",
-            f"- **总执行时间**: {summary.total_duration:.2f} 秒",
+            f"- **总执行时间**: {summary.total_duration:.2f} 秒 ({self._format_duration(summary.total_duration)})",
             f"- **成功阶段数**: {summary.successful_stages}/{len(summary.stages)}",
             f"- **总输入Token**: {self._format_tokens(summary.total_input_tokens)}",
             f"- **总输出Token**: {self._format_tokens(summary.total_output_tokens)}",
@@ -439,37 +673,42 @@ class WorkflowReportGenerator:
             "",
             "## 🔄 阶段执行详情",
             "",
-            "| 阶段名称 | 状态 | 执行时间(秒) | 输入Token | 输出Token | 工具调用次数 |",
-            "|---------|------|-------------|-----------|-----------|-------------|"
+            "| 阶段名称 | 状态 | 执行时间(秒) | 输入Token | 输出Token | 工具调用次数 | 效率评分 |",
+            "|---------|------|-------------|-----------|-----------|-------------|----------|"
         ]
         
         # 添加各阶段详情
         for stage in summary.stages:
             status_icon = "✅" if stage.success else "❌"
             duration = f"{stage.duration:.2f}" if stage.duration else "N/A"
+            efficiency = self._calculate_stage_efficiency(stage)
             
             report_lines.append(
-                f"| {stage.stage_name} | {status_icon} | {duration} | {self._format_tokens(stage.input_tokens)} | {self._format_tokens(stage.output_tokens)} | {stage.tool_calls} |"
+                f"| {stage.stage_name} | {status_icon} | {duration} | {self._format_tokens(stage.input_tokens)} | {self._format_tokens(stage.output_tokens)} | {stage.tool_calls} | {efficiency} |"
             )
             
             # 如果有错误信息，添加详细信息
             if stage.error_message:
-                report_lines.append(f"| | **错误**: {stage.error_message} | | | | |")
+                report_lines.append(f"| | **错误**: {stage.error_message} | | | | | |")
         
         report_lines.extend([
             "",
             "## 🛠️ 工具使用统计",
             "",
-            "| 工具名称 | 调用次数 |",
-            "|---------|----------|"
+            "| 工具名称 | 调用次数 | 使用频率 | 平均耗时(秒) | 成功率 |",
+            "|---------|----------|----------|-------------|--------|"
         ])
         
         # 添加工具使用统计
         if summary.tool_usage_summary:
-            for tool_name, call_count in sorted(summary.tool_usage_summary.items(), key=lambda x: x[1], reverse=True):
-                report_lines.append(f"| {tool_name} | {call_count} |")
+            tool_stats = self._calculate_tool_statistics(summary.stages)
+            for tool_name, stats in sorted(tool_stats.items(), key=lambda x: x[1]['call_count'], reverse=True):
+                frequency = f"{stats['call_count']}/{summary.total_tool_calls}" if summary.total_tool_calls > 0 else "0/0"
+                avg_time = f"{stats['avg_time']:.3f}" if stats['avg_time'] > 0 else "N/A"
+                success_rate = f"{stats['success_rate']:.1f}%" if stats['success_rate'] >= 0 else "N/A"
+                report_lines.append(f"| {tool_name} | {stats['call_count']} | {frequency} | {avg_time} | {success_rate} |")
         else:
-            report_lines.append("| 无工具调用记录 | 0 |")
+            report_lines.append("| 无工具调用记录 | 0 | 0/0 | N/A | N/A |")
         
         report_lines.extend([
             "",
@@ -478,6 +717,27 @@ class WorkflowReportGenerator:
             f"- **平均每阶段执行时间**: {summary.total_duration / len(summary.stages):.2f} 秒",
             f"- **Token效率**: {summary.total_output_tokens / max(summary.total_input_tokens, 1):.2f} (输出/输入比)",
             f"- **工具调用频率**: {summary.total_tool_calls / max(summary.total_duration, 1):.2f} 次/秒",
+            f"- **平均每阶段Token消耗**: {self._format_tokens((summary.total_input_tokens + summary.total_output_tokens) // len(summary.stages))}",
+            f"- **成本效率**: ${summary.cost_estimation.get('total_cost_usd', 0) / max(summary.total_tool_calls, 1):.6f} USD/工具调用",
+            "",
+            "### 🎯 阶段性能对比",
+            "",
+            "| 阶段 | 执行时间占比 | Token占比 | 工具调用占比 | 效率等级 |",
+            "|------|-------------|----------|-------------|----------|"
+        ])
+        
+        # 添加阶段性能对比
+        for stage in summary.stages:
+            time_ratio = (stage.duration / summary.total_duration * 100) if summary.total_duration > 0 and stage.duration else 0
+            token_ratio = ((stage.input_tokens + stage.output_tokens) / (summary.total_input_tokens + summary.total_output_tokens) * 100) if (summary.total_input_tokens + summary.total_output_tokens) > 0 else 0
+            tool_ratio = (stage.tool_calls / summary.total_tool_calls * 100) if summary.total_tool_calls > 0 else 0
+            efficiency = self._calculate_stage_efficiency(stage)
+            
+            report_lines.append(
+                f"| {stage.stage_name} | {time_ratio:.1f}% | {token_ratio:.1f}% | {tool_ratio:.1f}% | {efficiency} |"
+            )
+        
+        report_lines.extend([
             "",
             "## 🔍 详细工具调用记录",
             ""
@@ -489,26 +749,52 @@ class WorkflowReportGenerator:
                 report_lines.extend([
                     f"### {stage.stage_name}",
                     "",
-                    "| 工具名称 | 调用次数 | 成功次数 | 失败次数 | 总耗时(秒) |",
-                    "|---------|----------|----------|----------|------------|"
+                    "| 工具名称 | 调用次数 | 成功次数 | 失败次数 | 总耗时(秒) | 平均耗时(秒) | 成功率 |",
+                    "|---------|----------|----------|----------|------------|-------------|--------|"
                 ])
                 
                 for tool_detail in stage.tool_call_details:
+                    avg_time = tool_detail['total_time'] / tool_detail['call_count'] if tool_detail['call_count'] > 0 else 0
+                    success_rate = (tool_detail['success_count'] / tool_detail['call_count'] * 100) if tool_detail['call_count'] > 0 else 0
+                    
                     report_lines.append(
                         f"| {tool_detail['tool_name']} | {tool_detail['call_count']} | "
                         f"{tool_detail['success_count']} | {tool_detail['error_count']} | "
-                        f"{tool_detail['total_time']:.3f} |"
+                        f"{tool_detail['total_time']:.3f} | {avg_time:.3f} | {success_rate:.1f}% |"
                     )
                 report_lines.append("")
         
         report_lines.extend([
-            "## 📝 总结",
+            "## 📝 总结与建议",
             "",
             f"本次工作流执行共涉及 {len(summary.stages)} 个阶段，",
             f"成功完成 {summary.successful_stages} 个阶段，",
-            f"总耗时 {summary.total_duration:.2f} 秒，",
+            f"总耗时 {summary.total_duration:.2f} 秒 ({self._format_duration(summary.total_duration)})，",
             f"消耗Token {self._format_tokens(summary.total_input_tokens + summary.total_output_tokens)} 个，",
-            f"调用工具 {summary.total_tool_calls} 次。",
+            f"调用工具 {summary.total_tool_calls} 次，",
+            f"总成本 ${summary.cost_estimation.get('total_cost_usd', 0):.6f} USD。",
+            "",
+            "### 🎯 关键发现",
+            ""
+        ])
+        
+        # 添加关键发现
+        findings = self._generate_key_findings(summary)
+        for finding in findings:
+            report_lines.append(f"- {finding}")
+        
+        report_lines.extend([
+            "",
+            "### 💡 优化建议",
+            ""
+        ])
+        
+        # 添加优化建议
+        suggestions = self._generate_optimization_suggestions(summary)
+        for suggestion in suggestions:
+            report_lines.append(f"- {suggestion}")
+        
+        report_lines.extend([
             "",
             "---",
             f"*报告生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*"

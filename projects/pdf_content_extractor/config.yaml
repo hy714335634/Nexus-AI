@@ -1,0 +1,6 @@
+project:
+  created_date: '2025-09-12T09:22:48.465235+00:00'
+  description: 一个能够处理PDF文件并提取文本内容的智能Agent，支持PDF转图片、多模态文本提取和断点续传功能。
+  name: pdf_content_extractor
+  updated_date: '2025-09-12T09:22:52.252931+00:00'
+  version: 1.0.0

@@ -1,0 +1,597 @@
+# 项目上下文信息
+
+**项目名称**: aws_pricing_agent
+**Agent名称**: requirements_analyzer  
+**开发阶段**: tools_developer
+**生成时间**: 2025-09-14 04:10:26 UTC
+
+---
+
+{
+  "tool_development": {
+    "development_overview": {
+      "project_name": "aws_pricing_agent",
+      "version": "1.0",
+      "date": "2025-09-14",
+      "development_scope": "开发AWS价格查询工具，支持EC2、EBS、S3、网络流量、ELB、RDS、ElastiCache和OpenSearch服务的价格获取，支持按需和预留实例价格，支持所有AWS区域包括中国区域",
+      "design_principles": [
+        "单一职责：每个工具函数只负责一个特定功能",
+        "清晰接口：定义明确的输入输出参数",
+        "错误处理：捕获并处理所有可能的异常",
+        "性能优化：优化API调用，减少不必要的请求",
+        "模块化设计：清晰的函数分离和接口定义"
+      ],
+      "key_decisions": [
+        "使用boto3作为AWS SDK进行API调用",
+        "实现专门的工具函数处理不同服务的价格查询",
+        "提供实例推荐功能，优先推荐最新一代实例",
+        "统一响应格式，便于智能体处理",
+        "支持多种过滤条件，提高查询精度"
+      ]
+    },
+    "tools": [
+      {
+        "tool_name": "use_aws",
+        "description": "通用AWS服务调用工具，可以调用任何AWS服务的任何操作",
+        "function_signature": "use_aws(region: str, service_name: str, operation_name: str, parameters: Dict[str, Any], label: str, profile_name: str = None) -> str",
+        "parameters": [
+          {
+            "name": "region",
+            "type": "str",
+            "description": "AWS区域名称",
+            "required": true
+          },
+          {
+            "name": "service_name",
+            "type": "str",
+            "description": "AWS服务名称",
+            "required": true
+          },
+          {
+            "name": "operation_name",
+            "type": "str",
+            "description": "要执行的操作名称",
+            "required": true
+          },
+          {
+            "name": "parameters",
+            "type": "Dict[str, Any]",
+            "description": "操作参数",
+            "required": true
+          },
+          {
+            "name": "label",
+            "type": "str",
+            "description": "AWS API操作的人类可读说明",
+            "required": true
+          },
+          {
+            "name": "profile_name",
+            "type": "str",
+            "description": "AWS配置文件名称",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "包含响应或错误信息的JSON字符串",
+        "dependencies": ["boto3", "json", "logging"],
+        "implementation_notes": [
+          "使用boto3.Session创建会话",
+          "动态获取并调用指定的AWS服务操作",
+          "处理AWS API错误和其他异常",
+          "返回统一格式的JSON响应"
+        ],
+        "error_handling": [
+          "捕获ClientError和BotoCoreError处理AWS API错误",
+          "捕获通用Exception处理其他异常",
+          "返回结构化的错误信息"
+        ],
+        "usage_examples": [
+          "调用EC2服务描述实例: use_aws('us-east-1', 'ec2', 'describe_instances', {}, '获取EC2实例列表')"
+        ]
+      },
+      {
+        "tool_name": "get_aws_pricing",
+        "description": "获取特定服务在特定区域的AWS价格信息",
+        "function_signature": "get_aws_pricing(service_code: str, region: str, filters: List[Dict[str, Any]] = None, max_results: int = 10) -> str",
+        "parameters": [
+          {
+            "name": "service_code",
+            "type": "str",
+            "description": "AWS服务代码(ec2, ebs, s3, network, elb, rds, elasticache, opensearch)",
+            "required": true
+          },
+          {
+            "name": "region",
+            "type": "str",
+            "description": "AWS区域代码(例如us-east-1, eu-west-1, cn-north-1)",
+            "required": true
+          },
+          {
+            "name": "filters",
+            "type": "List[Dict[str, Any]]",
+            "description": "应用于价格数据的过滤器列表",
+            "required": false
+          },
+          {
+            "name": "max_results",
+            "type": "int",
+            "description": "返回的最大结果数",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "包含价格信息的JSON字符串",
+        "dependencies": ["boto3", "json", "logging"],
+        "implementation_notes": [
+          "将服务代码映射到AWS服务代码",
+          "创建pricing客户端(仅在us-east-1和ap-south-1可用)",
+          "准备过滤器包括服务代码和区域",
+          "调用AWS价格API获取价格数据",
+          "处理和格式化响应"
+        ],
+        "error_handling": [
+          "验证服务代码是否支持",
+          "捕获AWS API错误",
+          "捕获通用异常"
+        ],
+        "usage_examples": [
+          "获取EC2价格: get_aws_pricing('ec2', 'us-east-1')"
+        ]
+      },
+      {
+        "tool_name": "get_ec2_instance_pricing",
+        "description": "获取EC2实例价格信息",
+        "function_signature": "get_ec2_instance_pricing(region: str, instance_type: str = None, tenancy: str = \"Shared\", offering_class: str = \"standard\", term_type: str = \"OnDemand\") -> str",
+        "parameters": [
+          {
+            "name": "region",
+            "type": "str",
+            "description": "AWS区域代码",
+            "required": true
+          },
+          {
+            "name": "instance_type",
+            "type": "str",
+            "description": "EC2实例类型(例如t3.micro, m5.large)",
+            "required": false
+          },
+          {
+            "name": "tenancy",
+            "type": "str",
+            "description": "租赁类型(Shared, Dedicated, Host)",
+            "required": false
+          },
+          {
+            "name": "offering_class",
+            "type": "str",
+            "description": "产品类别(standard, convertible)",
+            "required": false
+          },
+          {
+            "name": "term_type",
+            "type": "str",
+            "description": "期限类型(OnDemand, Reserved)",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "包含EC2价格信息的JSON字符串",
+        "dependencies": ["boto3", "json", "logging"],
+        "implementation_notes": [
+          "构建适当的过滤器",
+          "调用get_aws_pricing获取原始价格数据",
+          "处理和格式化价格数据以提高可读性",
+          "提取实例详情和价格信息"
+        ],
+        "error_handling": [
+          "处理get_aws_pricing返回的错误",
+          "捕获处理过程中的异常"
+        ],
+        "usage_examples": [
+          "获取t3.micro实例价格: get_ec2_instance_pricing('us-east-1', 't3.micro')"
+        ]
+      },
+      {
+        "tool_name": "get_ebs_pricing",
+        "description": "获取EBS卷价格信息",
+        "function_signature": "get_ebs_pricing(region: str, volume_type: str = None) -> str",
+        "parameters": [
+          {
+            "name": "region",
+            "type": "str",
+            "description": "AWS区域代码",
+            "required": true
+          },
+          {
+            "name": "volume_type",
+            "type": "str",
+            "description": "EBS卷类型(例如gp2, io1, st1)",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "包含EBS价格信息的JSON字符串",
+        "dependencies": ["boto3", "json", "logging"],
+        "implementation_notes": [
+          "构建适当的过滤器",
+          "调用get_aws_pricing获取原始价格数据",
+          "处理和格式化价格数据以提高可读性",
+          "提取卷详情和价格信息"
+        ],
+        "error_handling": [
+          "处理get_aws_pricing返回的错误",
+          "捕获处理过程中的异常"
+        ],
+        "usage_examples": [
+          "获取gp2卷价格: get_ebs_pricing('us-east-1', 'gp2')"
+        ]
+      },
+      {
+        "tool_name": "get_s3_pricing",
+        "description": "获取S3存储价格信息",
+        "function_signature": "get_s3_pricing(region: str, storage_class: str = None) -> str",
+        "parameters": [
+          {
+            "name": "region",
+            "type": "str",
+            "description": "AWS区域代码",
+            "required": true
+          },
+          {
+            "name": "storage_class",
+            "type": "str",
+            "description": "S3存储类别(例如Standard, Standard-IA, Glacier)",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "包含S3价格信息的JSON字符串",
+        "dependencies": ["boto3", "json", "logging"],
+        "implementation_notes": [
+          "构建适当的过滤器",
+          "调用get_aws_pricing获取原始价格数据",
+          "处理和格式化价格数据以提高可读性",
+          "提取存储详情和价格信息"
+        ],
+        "error_handling": [
+          "处理get_aws_pricing返回的错误",
+          "捕获处理过程中的异常"
+        ],
+        "usage_examples": [
+          "获取标准存储价格: get_s3_pricing('us-east-1', 'Standard')"
+        ]
+      },
+      {
+        "tool_name": "get_rds_pricing",
+        "description": "获取RDS实例价格信息",
+        "function_signature": "get_rds_pricing(region: str, instance_type: str = None, engine: str = None) -> str",
+        "parameters": [
+          {
+            "name": "region",
+            "type": "str",
+            "description": "AWS区域代码",
+            "required": true
+          },
+          {
+            "name": "instance_type",
+            "type": "str",
+            "description": "RDS实例类型(例如db.t3.micro, db.m5.large)",
+            "required": false
+          },
+          {
+            "name": "engine",
+            "type": "str",
+            "description": "数据库引擎(例如MySQL, PostgreSQL, Oracle)",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "包含RDS价格信息的JSON字符串",
+        "dependencies": ["boto3", "json", "logging"],
+        "implementation_notes": [
+          "构建适当的过滤器",
+          "调用get_aws_pricing获取原始价格数据",
+          "处理和格式化价格数据以提高可读性",
+          "提取实例详情和价格信息",
+          "处理按需和预留实例价格"
+        ],
+        "error_handling": [
+          "处理get_aws_pricing返回的错误",
+          "捕获处理过程中的异常"
+        ],
+        "usage_examples": [
+          "获取MySQL db.t3.micro实例价格: get_rds_pricing('us-east-1', 'db.t3.micro', 'MySQL')"
+        ]
+      },
+      {
+        "tool_name": "get_elasticache_pricing",
+        "description": "获取ElastiCache价格信息",
+        "function_signature": "get_elasticache_pricing(region: str, instance_type: str = None, cache_engine: str = None) -> str",
+        "parameters": [
+          {
+            "name": "region",
+            "type": "str",
+            "description": "AWS区域代码",
+            "required": true
+          },
+          {
+            "name": "instance_type",
+            "type": "str",
+            "description": "ElastiCache节点类型(例如cache.t3.micro, cache.m5.large)",
+            "required": false
+          },
+          {
+            "name": "cache_engine",
+            "type": "str",
+            "description": "缓存引擎(Redis, Memcached)",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "包含ElastiCache价格信息的JSON字符串",
+        "dependencies": ["boto3", "json", "logging"],
+        "implementation_notes": [
+          "构建适当的过滤器",
+          "调用get_aws_pricing获取原始价格数据",
+          "处理和格式化价格数据以提高可读性",
+          "提取缓存节点详情和价格信息"
+        ],
+        "error_handling": [
+          "处理get_aws_pricing返回的错误",
+          "捕获处理过程中的异常"
+        ],
+        "usage_examples": [
+          "获取Redis cache.t3.micro节点价格: get_elasticache_pricing('us-east-1', 'cache.t3.micro', 'Redis')"
+        ]
+      },
+      {
+        "tool_name": "get_opensearch_pricing",
+        "description": "获取OpenSearch服务价格信息",
+        "function_signature": "get_opensearch_pricing(region: str, instance_type: str = None) -> str",
+        "parameters": [
+          {
+            "name": "region",
+            "type": "str",
+            "description": "AWS区域代码",
+            "required": true
+          },
+          {
+            "name": "instance_type",
+            "type": "str",
+            "description": "OpenSearch实例类型(例如t3.small.search, m5.large.search)",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "包含OpenSearch价格信息的JSON字符串",
+        "dependencies": ["boto3", "json", "logging"],
+        "implementation_notes": [
+          "构建适当的过滤器",
+          "调用get_aws_pricing获取原始价格数据",
+          "处理和格式化价格数据以提高可读性",
+          "提取搜索实例详情和价格信息"
+        ],
+        "error_handling": [
+          "处理get_aws_pricing返回的错误",
+          "捕获处理过程中的异常"
+        ],
+        "usage_examples": [
+          "获取t3.small.search实例价格: get_opensearch_pricing('us-east-1', 't3.small.search')"
+        ]
+      },
+      {
+        "tool_name": "get_elb_pricing",
+        "description": "获取弹性负载均衡(ELB)价格信息",
+        "function_signature": "get_elb_pricing(region: str, load_balancer_type: str = None) -> str",
+        "parameters": [
+          {
+            "name": "region",
+            "type": "str",
+            "description": "AWS区域代码",
+            "required": true
+          },
+          {
+            "name": "load_balancer_type",
+            "type": "str",
+            "description": "负载均衡器类型(例如ALB, NLB, CLB)",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "包含ELB价格信息的JSON字符串",
+        "dependencies": ["boto3", "json", "logging"],
+        "implementation_notes": [
+          "构建适当的过滤器",
+          "将负载均衡器类型映射到AWS使用类型",
+          "调用get_aws_pricing获取原始价格数据",
+          "处理和格式化价格数据以提高可读性"
+        ],
+        "error_handling": [
+          "处理get_aws_pricing返回的错误",
+          "捕获处理过程中的异常"
+        ],
+        "usage_examples": [
+          "获取ALB价格: get_elb_pricing('us-east-1', 'ALB')"
+        ]
+      },
+      {
+        "tool_name": "get_network_pricing",
+        "description": "获取网络数据传输价格信息",
+        "function_signature": "get_network_pricing(region: str, data_direction: str = None) -> str",
+        "parameters": [
+          {
+            "name": "region",
+            "type": "str",
+            "description": "AWS区域代码",
+            "required": true
+          },
+          {
+            "name": "data_direction",
+            "type": "str",
+            "description": "数据传输方向(例如In, Out, InterRegion)",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "包含网络价格信息的JSON字符串",
+        "dependencies": ["boto3", "json", "logging"],
+        "implementation_notes": [
+          "构建适当的过滤器",
+          "将数据方向映射到AWS传输类型",
+          "调用get_aws_pricing获取原始价格数据",
+          "处理和格式化价格数据以提高可读性"
+        ],
+        "error_handling": [
+          "处理get_aws_pricing返回的错误",
+          "捕获处理过程中的异常"
+        ],
+        "usage_examples": [
+          "获取数据传出价格: get_network_pricing('us-east-1', 'Out')"
+        ]
+      },
+      {
+        "tool_name": "get_available_instance_types",
+        "description": "获取特定区域和服务的可用实例类型",
+        "function_signature": "get_available_instance_types(region: str, service: str = \"ec2\") -> str",
+        "parameters": [
+          {
+            "name": "region",
+            "type": "str",
+            "description": "AWS区域代码",
+            "required": true
+          },
+          {
+            "name": "service",
+            "type": "str",
+            "description": "AWS服务(ec2, rds, elasticache, opensearch)",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "包含可用实例类型的JSON字符串",
+        "dependencies": ["boto3", "json", "logging"],
+        "implementation_notes": [
+          "根据服务创建适当的客户端",
+          "对于EC2，使用describe_instance_types API",
+          "对于其他服务，使用pricing API的get_attribute_values",
+          "处理分页以获取所有实例类型",
+          "按当前代和实例类型排序"
+        ],
+        "error_handling": [
+          "验证服务是否支持",
+          "捕获AWS API错误",
+          "捕获通用异常"
+        ],
+        "usage_examples": [
+          "获取us-east-1区域的EC2实例类型: get_available_instance_types('us-east-1')"
+        ]
+      },
+      {
+        "tool_name": "recommend_instance_types",
+        "description": "根据最低要求推荐实例类型",
+        "function_signature": "recommend_instance_types(region: str, vcpu_min: int, memory_min: float, service: str = \"ec2\", current_generation_only: bool = True) -> str",
+        "parameters": [
+          {
+            "name": "region",
+            "type": "str",
+            "description": "AWS区域代码",
+            "required": true
+          },
+          {
+            "name": "vcpu_min",
+            "type": "int",
+            "description": "所需的最小vCPU数量",
+            "required": true
+          },
+          {
+            "name": "memory_min",
+            "type": "float",
+            "description": "所需的最小内存(GiB)",
+            "required": true
+          },
+          {
+            "name": "service",
+            "type": "str",
+            "description": "AWS服务(ec2, rds, elasticache, opensearch)",
+            "required": false
+          },
+          {
+            "name": "current_generation_only",
+            "type": "bool",
+            "description": "是否只包含当前一代实例",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "包含推荐实例类型的JSON字符串",
+        "dependencies": ["boto3", "json", "logging"],
+        "implementation_notes": [
+          "调用get_available_instance_types获取可用实例类型",
+          "根据vCPU和内存要求过滤实例",
+          "按与要求的接近程度排序",
+          "限制为前10个推荐"
+        ],
+        "error_handling": [
+          "验证服务是否支持(当前仅支持EC2)",
+          "处理get_available_instance_types返回的错误",
+          "捕获处理过程中的异常"
+        ],
+        "usage_examples": [
+          "推荐至少有4个vCPU和8GB内存的实例: recommend_instance_types('us-east-1', 4, 8)"
+        ]
+      }
+    ],
+    "code_quality": {
+      "code_standards": [
+        "遵循PEP 8代码风格指南",
+        "使用类型注解提高代码可读性和安全性",
+        "提供详细的文档字符串",
+        "使用常量避免魔术字符串",
+        "使用统一的错误处理和响应格式"
+      ],
+      "testing_strategy": [
+        "单元测试每个工具函数的基本功能",
+        "模拟AWS API响应进行测试",
+        "测试边缘情况和错误处理",
+        "集成测试验证与AWS API的交互"
+      ],
+      "performance_considerations": [
+        "优化API调用频率，减少不必要的请求",
+        "对EC2实例类型等信息进行缓存",
+        "使用分页处理大量数据",
+        "适当处理和格式化响应数据，减少不必要的数据传输"
+      ],
+      "security_measures": [
+        "不在代码中硬编码AWS凭证",
+        "使用boto3的标准凭证管理机制",
+        "验证用户输入，防止注入攻击",
+        "遵循最小权限原则访问AWS API"
+      ]
+    },
+    "integration_details": {
+      "aws_services": [
+        "AWS Price List API",
+        "AWS EC2 API",
+        "AWS Service Catalog"
+      ],
+      "external_libraries": [
+        "boto3",
+        "botocore",
+        "json",
+        "logging",
+        "decimal"
+      ],
+      "api_endpoints": [
+        "pricing.amazonaws.com",
+        "ec2.amazonaws.com",
+        "其他AWS服务端点"
+      ],
+      "data_formats": [
+        "JSON",
+        "AWS API响应格式"
+      ]
+    },
+    "development_notes": "在工具开发过程中，我们发现AWS价格API的一些特点和限制：1) 价格API仅在us-east-1和ap-south-1区域可用，但可以查询任何区域的价格；2) 价格数据结构复杂，需要额外处理以提高可读性；3) 不同服务的价格查询需要不同的过滤器；4) 中国区域的价格查询需要特殊处理。我们通过设计通用的get_aws_pricing函数和特定服务的辅助函数来解决这些问题，提供了统一的接口和响应格式。我们还添加了实例推荐功能，可以根据vCPU和内存要求推荐合适的实例类型，并优先考虑最新一代实例。"
+  }
+}

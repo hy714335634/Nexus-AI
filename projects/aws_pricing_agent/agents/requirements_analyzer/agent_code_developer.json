@@ -1,0 +1,310 @@
+# 项目上下文信息
+
+**项目名称**: aws_pricing_agent
+**Agent名称**: requirements_analyzer  
+**开发阶段**: agent_code_developer
+**生成时间**: 2025-09-14 04:19:29 UTC
+
+---
+
+{
+  "agent_code_development": {
+    "development_overview": {
+      "project_name": "aws_pricing_agent",
+      "version": "1.0",
+      "date": "2025-09-14",
+      "development_scope": "开发一个AWS产品报价智能体，能够解析用户的自然语言需求，推荐合适的AWS服务配置，通过AWS价格API获取实时价格信息，并生成专业的报价方案",
+      "design_principles": [
+        "单一职责：智能体专注于AWS产品报价功能",
+        "可扩展性：支持未来添加更多AWS服务类型",
+        "错误处理：优雅处理API调用失败和信息不完整的情况",
+        "用户友好：提供清晰的交互和专业的报价方案",
+        "模块化设计：清晰的功能分离和接口定义"
+      ],
+      "key_decisions": [
+        "基于api_integration_agent模板实现",
+        "集成自定义AWS价格查询工具",
+        "实现交互式命令行界面",
+        "支持文件输入和直接命令行输入",
+        "实现对话历史记忆功能"
+      ]
+    },
+    "agent_implementation": {
+      "agent_name": "aws_pricing_agent",
+      "file_path": "agents/generated_agents/aws_pricing_agent/aws_pricing_agent.py",
+      "main_class": "AWSPricingAgentCLI",
+      "entry_point": "run",
+      "dependencies": [
+        "utils.agent_factory",
+        "strands.telemetry",
+        "os",
+        "json",
+        "argparse",
+        "typing"
+      ],
+      "imports": [
+        "from utils.agent_factory import create_agent_from_prompt_template",
+        "from strands.telemetry import StrandsTelemetry",
+        "import os",
+        "import json",
+        "import argparse",
+        "from typing import Dict, Any, Optional, List"
+      ]
+    },
+    "core_functions": [
+      {
+        "function_name": "create_agent_from_prompt_template",
+        "purpose": "创建AWS Pricing Agent实例",
+        "parameters": [
+          {
+            "name": "agent_name",
+            "type": "str",
+            "description": "智能体提示词模板路径",
+            "required": true
+          },
+          {
+            "name": "env",
+            "type": "str",
+            "description": "环境设置（development, production, testing）",
+            "required": true
+          },
+          {
+            "name": "version",
+            "type": "str",
+            "description": "智能体版本",
+            "required": true
+          },
+          {
+            "name": "model_id",
+            "type": "str",
+            "description": "使用的模型ID",
+            "required": true
+          }
+        ],
+        "return_type": "Agent",
+        "return_description": "初始化后的AWS Pricing Agent实例",
+        "implementation_notes": [
+          "使用utils.agent_factory创建智能体",
+          "指定generated_agents_prompts/aws_pricing_agent/aws_pricing_agent作为提示词模板路径",
+          "配置环境为production",
+          "使用最新版本和默认模型ID"
+        ]
+      },
+      {
+        "function_name": "AWSPricingAgentCLI.__init__",
+        "purpose": "初始化命令行接口类",
+        "parameters": [
+          {
+            "name": "agent",
+            "type": "Agent",
+            "description": "已初始化的AWS Pricing Agent实例",
+            "required": true
+          }
+        ],
+        "return_type": "None",
+        "return_description": "无返回值",
+        "implementation_notes": [
+          "存储智能体实例",
+          "创建命令行参数解析器"
+        ]
+      },
+      {
+        "function_name": "AWSPricingAgentCLI._create_parser",
+        "purpose": "创建命令行参数解析器",
+        "parameters": [],
+        "return_type": "argparse.ArgumentParser",
+        "return_description": "配置好的参数解析器对象",
+        "implementation_notes": [
+          "定义-r/--requirement参数用于直接输入需求",
+          "定义-f/--file参数用于从文件读取需求",
+          "定义--region参数用于指定AWS区域",
+          "定义--interactive参数用于启用交互模式"
+        ]
+      },
+      {
+        "function_name": "AWSPricingAgentCLI.run",
+        "purpose": "运行AWS Pricing Agent命令行界面",
+        "parameters": [],
+        "return_type": "None",
+        "return_description": "无返回值",
+        "implementation_notes": [
+          "解析命令行参数",
+          "获取用户需求描述",
+          "添加区域信息",
+          "根据交互模式选择调用方式",
+          "捕获并处理异常"
+        ]
+      },
+      {
+        "function_name": "AWSPricingAgentCLI._get_requirement",
+        "purpose": "从命令行参数或文件中获取需求描述",
+        "parameters": [
+          {
+            "name": "args",
+            "type": "Namespace",
+            "description": "解析后的命令行参数",
+            "required": true
+          }
+        ],
+        "return_type": "Optional[str]",
+        "return_description": "需求描述文本，如果未提供则返回None",
+        "implementation_notes": [
+          "优先使用--requirement参数",
+          "其次尝试从--file指定的文件读取",
+          "在交互模式下提示用户输入",
+          "处理文件读取异常"
+        ]
+      },
+      {
+        "function_name": "AWSPricingAgentCLI._run_interactive_mode",
+        "purpose": "运行交互模式，支持多轮对话",
+        "parameters": [
+          {
+            "name": "initial_requirement",
+            "type": "str",
+            "description": "初始需求描述",
+            "required": true
+          }
+        ],
+        "return_type": "None",
+        "return_description": "无返回值",
+        "implementation_notes": [
+          "维护对话历史记录",
+          "处理用户输入",
+          "构建包含完整对话历史的提示",
+          "支持exit/quit命令退出"
+        ]
+      },
+      {
+        "function_name": "AWSPricingAgentCLI._build_conversation_prompt",
+        "purpose": "构建包含对话历史的完整提示",
+        "parameters": [
+          {
+            "name": "history",
+            "type": "List[Dict[str, str]]",
+            "description": "对话历史记录",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "包含对话历史的完整提示文本",
+        "implementation_notes": [
+          "格式化用户和智能体的对话记录",
+          "构建结构化的对话历史提示"
+        ]
+      }
+    ],
+    "tool_integration": {
+      "custom_tools": [
+        "use_aws",
+        "get_aws_pricing",
+        "get_ec2_instance_pricing",
+        "get_ebs_pricing",
+        "get_s3_pricing",
+        "get_network_pricing",
+        "get_elb_pricing",
+        "get_rds_pricing",
+        "get_elasticache_pricing",
+        "get_opensearch_pricing",
+        "get_available_instance_types",
+        "recommend_instance_types"
+      ],
+      "system_tools": [
+        "current_time",
+        "calculator"
+      ],
+      "strands_tools": [
+        "StrandsTelemetry"
+      ],
+      "integration_notes": [
+        "通过提示词模板中的tools_dependencies配置集成工具",
+        "使用use_aws工具进行通用AWS API调用",
+        "使用专用价格查询工具获取不同服务的价格信息",
+        "使用current_time工具获取当前时间",
+        "使用calculator工具执行数学计算"
+      ]
+    },
+    "configuration": {
+      "environment_variables": [
+        "BYPASS_TOOL_CONSENT=true",
+        "OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318"
+      ],
+      "model_configuration": {
+        "model_name": "Claude 3.5 Sonnet",
+        "max_tokens": 60000,
+        "temperature": 0.3,
+        "top_p": 0.8
+      },
+      "streaming_config": {
+        "enabled": true,
+        "chunk_size": 1024
+      }
+    },
+    "error_handling": {
+      "exception_types": [
+        "API调用异常",
+        "文件读取异常",
+        "参数解析异常",
+        "智能体调用异常"
+      ],
+      "error_responses": [
+        "价格API不可用时明确标注无法获取价格的项目",
+        "需求不明确时提出澄清问题",
+        "文件读取失败时提供错误信息",
+        "智能体调用失败时显示错误原因"
+      ],
+      "recovery_strategies": [
+        "捕获并处理所有可能的异常",
+        "提供友好的错误信息",
+        "在交互模式下允许用户重新输入",
+        "在API调用失败时继续提供其他可用信息"
+      ]
+    },
+    "testing": {
+      "test_cases": [
+        "基本EC2实例推荐测试",
+        "复杂多服务架构测试",
+        "需求不明确测试",
+        "中国区域部署测试",
+        "价格API不可用测试"
+      ],
+      "test_scenarios": [
+        "通过命令行参数提供需求",
+        "从文件读取需求",
+        "使用交互模式进行多轮对话",
+        "指定不同区域进行报价",
+        "处理模糊或不完整的需求"
+      ],
+      "validation_criteria": [
+        "需求解析准确性",
+        "配置推荐合理性",
+        "价格查询准确性",
+        "报价方案完整性",
+        "错误处理有效性"
+      ]
+    },
+    "deployment": {
+      "deployment_requirements": [
+        "Python 3.13+环境",
+        "Strands SDK",
+        "boto3 SDK",
+        "AWS API访问权限",
+        "AWS Bedrock模型访问权限"
+      ],
+      "runtime_dependencies": [
+        "utils.agent_factory",
+        "strands.telemetry",
+        "boto3",
+        "json",
+        "argparse"
+      ],
+      "performance_considerations": [
+        "优化AWS API调用频率",
+        "缓存常用的服务目录和实例类型信息",
+        "优化对话历史处理",
+        "控制提示词长度，避免超出模型上下文限制"
+      ]
+    },
+    "development_notes": "在开发过程中，我们基于api_integration_agent模板实现了AWS Pricing Agent，并集成了专门开发的AWS价格查询工具。智能体通过提示词模板定义了专业的AWS产品报价专家角色，能够解析用户需求、推荐配置、查询价格并生成报价方案。为了提升用户体验，我们实现了交互式命令行界面，支持多种输入方式和多轮对话。在错误处理方面，我们确保了智能体能够优雅地处理各种异常情况，特别是API调用失败时的情况。智能体的核心功能围绕需求解析、配置推荐、价格查询和报价生成四个主要模块展开，这与系统架构设计保持一致。我们还通过命令行参数提供了灵活的配置选项，使用户能够根据自己的需求定制智能体的行为。"
+  }
+}

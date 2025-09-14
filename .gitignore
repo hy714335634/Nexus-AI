@@ -11,6 +11,7 @@ case
 .venv
 .sessions
 .kiro
+.cache
 
 # 需要排除的目录和文件
 Tech Design/

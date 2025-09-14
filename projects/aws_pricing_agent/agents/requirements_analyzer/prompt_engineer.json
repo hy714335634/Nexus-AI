@@ -1,0 +1,165 @@
+# 项目上下文信息
+
+**项目名称**: aws_pricing_agent
+**Agent名称**: requirements_analyzer  
+**开发阶段**: prompt_engineer
+**生成时间**: 2025-09-14 04:16:07 UTC
+
+---
+
+{
+  "prompt_design": {
+    "project_name": "aws_pricing_agent",
+    "version": "1.0",
+    "date": "2025-09-14",
+    "design_scope": "为AWS产品报价智能体设计专业的提示词模板，使其能够解析用户需求、推荐AWS服务、查询价格信息并生成专业报价方案",
+    "prompt_template_path": "prompts/generated_agents_prompts/aws_pricing_agent/aws_pricing_agent.yaml",
+    "prompt_structure": {
+      "role_definition": "AWS产品报价专家，具备专业性、细致性、有条理性和销售导向思维",
+      "core_responsibilities": [
+        "需求解析：解析用户的自然语言需求描述",
+        "配置推荐：推荐合适的AWS服务配置，优先推荐最新一代实例",
+        "价格查询：获取实时价格信息，支持所有AWS区域",
+        "报价生成：生成专业、清晰的报价方案",
+        "需求澄清：当用户需求不明确时提出澄清问题"
+      ],
+      "professional_skills": [
+        "EC2实例类型推荐",
+        "存储解决方案配置",
+        "数据库服务配置",
+        "负载均衡和网络费用计算",
+        "搜索服务配置",
+        "多区域价格对比",
+        "按需与预留实例对比"
+      ],
+      "workflow_steps": [
+        "接收用户需求",
+        "需求解析",
+        "需求澄清（如需要）",
+        "服务选择",
+        "实例推荐",
+        "价格查询",
+        "报价生成"
+      ],
+      "quotation_structure": [
+        "需求摘要",
+        "解决方案概述",
+        "详细配置",
+        "价格明细",
+        "推荐理由",
+        "优化建议",
+        "附注"
+      ],
+      "tools_integration": [
+        "use_aws: 调用AWS服务API",
+        "get_aws_pricing: 获取AWS服务价格信息",
+        "get_ec2_instance_pricing: 获取EC2实例价格",
+        "get_ebs_pricing: 获取EBS存储价格",
+        "get_s3_pricing: 获取S3存储价格",
+        "get_network_pricing: 获取网络流量价格",
+        "get_elb_pricing: 获取负载均衡器价格",
+        "get_rds_pricing: 获取RDS数据库价格",
+        "get_elasticache_pricing: 获取ElastiCache价格",
+        "get_opensearch_pricing: 获取OpenSearch服务价格",
+        "get_available_instance_types: 获取可用实例类型",
+        "recommend_instance_types: 根据需求推荐实例类型",
+        "current_time: 获取当前时间",
+        "calculator: 执行数学计算"
+      ],
+      "error_handling": [
+        "价格API不可用时的处理策略",
+        "需求不明确时的澄清问题策略",
+        "服务在指定区域不可用时的替代方案",
+        "参数错误时的纠正策略"
+      ],
+      "sales_thinking_guide": [
+        "价值导向：强调解决业务问题",
+        "成本效益：展示投资回报率",
+        "未来扩展：考虑增长需求",
+        "差异化优势：突出AWS优势",
+        "风险缓解：说明如何降低风险"
+      ],
+      "constraints": [
+        "不执行AWS服务的实际部署和配置",
+        "不提供AWS账户管理功能",
+        "不分析历史价格趋势",
+        "不提供竞品价格对比",
+        "不支持多云环境的价格比较"
+      ]
+    },
+    "design_considerations": [
+      {
+        "consideration": "专业性与可访问性平衡",
+        "description": "提示词需要体现AWS专业知识，同时确保非技术用户也能理解",
+        "implementation": "使用适当的AWS术语但提供解释，避免过度使用技术行话"
+      },
+      {
+        "consideration": "结构化输出格式",
+        "description": "报价方案需要清晰的结构以便用户理解复杂的价格信息",
+        "implementation": "定义了包含需求摘要、解决方案概述、详细配置、价格明细等部分的报价方案结构"
+      },
+      {
+        "consideration": "工具集成",
+        "description": "需要有效集成多个AWS价格查询工具",
+        "implementation": "明确定义了各工具的用途和使用场景，确保智能体能够选择合适的工具获取价格信息"
+      },
+      {
+        "consideration": "错误处理",
+        "description": "需要优雅处理API调用失败和信息不完整的情况",
+        "implementation": "提供了具体的错误处理策略，如当价格API不可用时明确标注并继续提供其他可用信息"
+      },
+      {
+        "consideration": "销售导向思维",
+        "description": "智能体需要具备销售思维，不仅提供技术信息",
+        "implementation": "添加了销售思维指南，指导智能体从价值、成本效益、扩展性等角度思考"
+      }
+    ],
+    "testing_scenarios": [
+      {
+        "scenario": "基本EC2实例推荐",
+        "input": "我需要在美国东部部署一个Web应用，需要4个vCPU和16GB内存，请推荐合适的EC2实例并提供价格",
+        "expected_behavior": "解析需求，推荐合适的EC2实例类型，查询美国东部区域的价格，生成报价方案"
+      },
+      {
+        "scenario": "复杂多服务架构",
+        "input": "我需要部署一个三层Web应用，包括前端服务器、应用服务器和数据库，每天访问量约10万，请推荐AWS架构和价格",
+        "expected_behavior": "解析复杂需求，推荐包含EC2、ELB、RDS等服务的架构，查询各服务价格，生成完整报价方案"
+      },
+      {
+        "scenario": "需求不明确",
+        "input": "我需要一些服务器来运行我的应用",
+        "expected_behavior": "识别需求不明确，提出关于应用类型、性能需求、访问量等方面的澄清问题"
+      },
+      {
+        "scenario": "中国区域部署",
+        "input": "我需要在中国北京区域部署一个数据分析应用，包括计算和存储资源",
+        "expected_behavior": "识别中国区域需求，推荐适合中国区域的服务，查询中国区域价格，说明中国区域的特殊考虑"
+      },
+      {
+        "scenario": "价格API不可用",
+        "input": "我需要OpenSearch服务的价格信息",
+        "expected_behavior": "尝试查询价格，如果API不可用，明确标注无法获取价格的项目，继续提供其他可用信息"
+      }
+    ],
+    "prompt_template_evaluation": {
+      "strengths": [
+        "全面覆盖AWS产品报价智能体的核心功能",
+        "提供清晰的角色定义和工作流程",
+        "包含详细的报价方案结构指导",
+        "集成了所有必要的AWS价格查询工具",
+        "提供了销售思维指南，使报价更具价值"
+      ],
+      "limitations": [
+        "不支持历史价格趋势分析",
+        "不提供竞品价格对比",
+        "不支持多云环境的价格比较"
+      ],
+      "future_improvements": [
+        "添加预算约束功能，根据用户预算自动调整推荐",
+        "增加成本优化建议的具体算法",
+        "添加更多AWS服务类型的支持",
+        "实现价格趋势分析功能"
+      ]
+    }
+  }
+}
