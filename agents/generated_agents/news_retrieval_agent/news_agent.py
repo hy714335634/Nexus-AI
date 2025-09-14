@@ -269,7 +269,7 @@ if __name__ == "__main__":
                 # 默认作为话题关键词处理
                 result = process_news_request(user_input)
             
-            print(result)
+            # print(result)
             print()
     
     else:

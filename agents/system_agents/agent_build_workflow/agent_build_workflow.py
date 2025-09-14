@@ -163,6 +163,20 @@ def run_workflow(user_input: str, session_id="default"):
         print(f"Execution time: {result.execution_time}ms")
         print(f"Token usage: {result.accumulated_usage}")
         print(f"{'='*80}")
+        
+        # 将result变量保存到本地json文件
+        result_dict = {
+            "total_nodes": result.total_nodes,
+            "completed_nodes": result.completed_nodes,
+            "failed_nodes": result.failed_nodes,
+            "execution_time": result.execution_time,
+            "accumulated_usage": result.accumulated_usage.__dict__ if hasattr(result.accumulated_usage, '__dict__') else str(result.accumulated_usage),
+            "outputs": {k: str(v) for k, v in result.outputs.items()} if hasattr(result, 'outputs') else {}
+        }
+        with open('result.json', 'w', encoding='utf-8') as f:
+            json.dump(result_dict, f, ensure_ascii=False, indent=4)
+            print(f"📝 [SYSTEM] 已将result变量保存到本地json文件")
+
         report_path = generate_workflow_summary_report(result, './projects')
         
         return {
@@ -182,15 +196,17 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='工作流编排器 Agent 测试')
     parser.add_argument('-i', '--input', type=str, 
                        default="""
-请创建一个用于AWS产品报价的Agent，我需要他帮我完成AWS产品报价工作，我会提供自然语言描述的其他云平台账单或IDC配置清单，请分析并推荐正确且合理AWS配置，并告诉我真实价格，具体要求如下：
-1、至少需要支持EC2、EBS、S3、网络流量、负载均衡器、RDS、ElastiCache、Opensearch这几个产品，能够获取实时的按需和RI价格
-2、在用户提出的描述不清晰时，需要能够根据用户需求推测合理配置
-3、在生产环境中除非用户指定t系列或说明用于测试需要，否则应避免使用t系列实例
-4、需要使用真实实例类型及价格数据，通过aws接口获取真实数据
+
+请创建一个用于AWS产品报价的Agent，我需要他帮我完成AWS产品报价工作，我会提供自然语言描述的资源和配置要求，请分析并推荐合理AWS服务和配置，然后进行实时的报价并生成报告。
+具体要求如下：
+1.至少需要支持EC2、EBS、S3、网络流量、ELB、RDS、ElastiCache、Opensearch这几个产品，能够获取实时且真实的按需和预留实例价格
+2.在用户提出的描述不清晰时，需要能够根据用户需求推测合理配置
+3.在推荐配置和获取价格时，应通过API或SDK获取当前支持的实例类型和真实价格，因为不同区域支持的机型有所区别
+4.在同系列同配置情况下，优先推荐最新一代实例
 5、能够支持根据客户指定区域进行报价，包括中国区
 6、能够按照销售的思维分析用户提供的数据，生成清晰且有逻辑的报价方案
-7、报价文档尽量使用中文输出
-如果价格获取失败或无法获取，请在对应资源报价中注明。		
+
+如果价格获取失败或无法获取，请在对应资源报价中注明。
 """,
                        help='测试输入内容')
     parser.add_argument('-f', '--file', type=str, 

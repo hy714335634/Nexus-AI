@@ -1,0 +1,302 @@
+# 项目上下文信息
+
+**项目名称**: aws_pricing_agent
+**Agent名称**: requirements_analyzer  
+**开发阶段**: system_architect
+**生成时间**: 2025-09-14 04:02:46 UTC
+
+---
+
+{
+  "system_design": {
+    "design_overview": {
+      "project_name": "aws_pricing_agent",
+      "version": "1.0",
+      "date": "2025-09-14",
+      "design_scope": "设计一个AWS产品报价Agent系统，能够解析用户的自然语言需求，推荐合适的AWS服务配置，并通过AWS价格API获取实时价格信息，生成专业的报价方案",
+      "design_principles": [
+        "单一职责：Agent专注于AWS产品报价功能",
+        "可扩展性：支持未来添加更多AWS服务类型",
+        "准确性：确保价格信息的实时性和准确性",
+        "用户友好：提供清晰的交互和专业的报价方案",
+        "错误容忍：优雅处理API调用失败和信息不完整的情况"
+      ],
+      "key_decisions": [
+        "采用单Agent架构，集成多个功能模块",
+        "使用AWS SDK进行价格API调用",
+        "实现自然语言处理能力，解析用户需求",
+        "设计模块化的服务配置推荐逻辑",
+        "开发结构化的报价方案生成模板"
+      ],
+      "workflow_type": "single_agent",
+      "recommended_templates": ["api_integration_agent"]
+    },
+    "architecture": {
+      "system_context": "AWS产品报价Agent作为一个独立系统，接收用户的自然语言需求输入，通过内部处理和AWS价格API调用，生成专业的AWS服务报价方案。系统不负责实际部署或配置AWS服务，仅提供配置建议和价格估算。",
+      "agent_topology": "单Agent架构，内部分为需求解析、配置推荐、价格查询和报价生成四个主要功能模块，通过顺序调用完成完整的报价流程。",
+      "interaction_model": "用户通过自然语言与Agent交互，Agent解析需求后可能提出澄清问题，然后推荐配置并生成报价方案。交互过程采用对话式模式，支持用户提供补充信息或修改需求。",
+      "technology_stack": {
+        "sdk": "Strands SDK",
+        "runtime": "Local",
+        "integrations": [
+          "AWS Price List API",
+          "AWS SDK for Python (boto3)",
+          "AWS Service Catalog"
+        ]
+      }
+    },
+    "agents": [
+      {
+        "name": "aws_pricing_agent",
+        "purpose": "分析用户的AWS资源需求，推荐合适的AWS服务配置，并提供实时准确的价格报价",
+        "responsibilities": [
+          "解析用户的自然语言需求描述",
+          "推荐符合需求的AWS服务配置",
+          "通过AWS价格API获取实时价格信息",
+          "生成专业的报价方案",
+          "处理用户的澄清问题和补充信息"
+        ],
+        "interfaces": {
+          "inputs": [
+            "用户的自然语言需求描述",
+            "指定的AWS区域（可选）",
+            "特定的服务要求（可选）",
+            "预算限制（可选）",
+            "澄清问题的回答（交互过程中）"
+          ],
+          "outputs": [
+            "AWS服务配置建议",
+            "实时价格报价（按需和预留实例）",
+            "结构化的报价方案",
+            "澄清问题（当需求不明确时）",
+            "配置推荐理由和说明"
+          ]
+        },
+        "dependencies": [
+          "AWS Price List API",
+          "AWS Service Catalog",
+          "AWS SDK for Python (boto3)"
+        ],
+        "implementation_notes": [
+          "基于api_integration_agent模板实现",
+          "扩展AWS特定的价格计算逻辑",
+          "添加服务配置推荐算法",
+          "实现结构化的报价方案生成",
+          "集成AWS产品知识库"
+        ],
+        "recommended_template": "api_integration_agent"
+      }
+    ],
+    "data_models": [
+      {
+        "name": "UserRequirement",
+        "schema": "包含用户需求的结构化表示，包括资源类型、性能要求、数量、区域等信息",
+        "validation_rules": [
+          "资源类型必须是支持的AWS服务类型",
+          "性能参数必须在合理范围内",
+          "区域必须是有效的AWS区域"
+        ],
+        "relationships": ["关联到ServiceConfiguration模型"]
+      },
+      {
+        "name": "ServiceConfiguration",
+        "schema": "包含推荐的AWS服务配置详情，包括服务类型、实例类型、数量、存储配置等",
+        "validation_rules": [
+          "服务配置必须符合AWS服务目录",
+          "实例类型必须在指定区域可用",
+          "配置参数必须符合AWS服务限制"
+        ],
+        "relationships": ["关联到PriceQuotation模型"]
+      },
+      {
+        "name": "PriceQuotation",
+        "schema": "包含价格信息的结构化表示，包括按需价格、预留实例价格、总价、各组件价格明细等",
+        "validation_rules": [
+          "价格必须为非负数",
+          "必须包含所有配置组件的价格",
+          "价格获取失败的项目必须标注"
+        ],
+        "relationships": ["关联到ServiceConfiguration模型"]
+      },
+      {
+        "name": "QuotationReport",
+        "schema": "包含完整报价方案的结构化表示，包括配置建议、价格明细、推荐理由、总价等",
+        "validation_rules": [
+          "必须包含所有必要的配置和价格信息",
+          "必须包含配置推荐理由",
+          "必须标注价格获取失败的项目"
+        ],
+        "relationships": ["关联到UserRequirement、ServiceConfiguration和PriceQuotation模型"]
+      }
+    ],
+    "interaction_flows": [
+      {
+        "name": "需求解析流程",
+        "description": "解析用户的自然语言需求，提取关键资源需求信息",
+        "steps": [
+          {
+            "step": "接收用户输入",
+            "agent": "aws_pricing_agent",
+            "action": "接收并存储用户的自然语言需求描述",
+            "data": "原始用户输入"
+          },
+          {
+            "step": "需求解析",
+            "agent": "aws_pricing_agent",
+            "action": "分析用户输入，提取资源类型、性能要求、数量等关键信息",
+            "data": "结构化的UserRequirement数据"
+          },
+          {
+            "step": "需求验证",
+            "agent": "aws_pricing_agent",
+            "action": "验证提取的需求信息是否完整和合理",
+            "data": "验证结果"
+          },
+          {
+            "step": "需求澄清",
+            "agent": "aws_pricing_agent",
+            "action": "如果需求不完整或不明确，生成澄清问题",
+            "data": "澄清问题列表"
+          }
+        ]
+      },
+      {
+        "name": "配置推荐流程",
+        "description": "根据用户需求推荐合适的AWS服务配置",
+        "steps": [
+          {
+            "step": "接收需求信息",
+            "agent": "aws_pricing_agent",
+            "action": "接收结构化的用户需求信息",
+            "data": "UserRequirement数据"
+          },
+          {
+            "step": "区域验证",
+            "agent": "aws_pricing_agent",
+            "action": "验证用户指定的区域，或使用默认区域",
+            "data": "AWS区域信息"
+          },
+          {
+            "step": "服务类型选择",
+            "agent": "aws_pricing_agent",
+            "action": "根据需求选择合适的AWS服务类型",
+            "data": "服务类型列表"
+          },
+          {
+            "step": "实例类型推荐",
+            "agent": "aws_pricing_agent",
+            "action": "为每种服务推荐合适的实例类型和配置",
+            "data": "实例类型和配置建议"
+          },
+          {
+            "step": "配置优化",
+            "agent": "aws_pricing_agent",
+            "action": "根据最佳实践和成本效益优化配置",
+            "data": "优化后的ServiceConfiguration数据"
+          }
+        ]
+      },
+      {
+        "name": "价格查询流程",
+        "description": "通过AWS价格API获取推荐配置的实时价格",
+        "steps": [
+          {
+            "step": "接收配置信息",
+            "agent": "aws_pricing_agent",
+            "action": "接收推荐的服务配置信息",
+            "data": "ServiceConfiguration数据"
+          },
+          {
+            "step": "API认证",
+            "agent": "aws_pricing_agent",
+            "action": "进行AWS API认证",
+            "data": "认证凭证"
+          },
+          {
+            "step": "按需价格查询",
+            "agent": "aws_pricing_agent",
+            "action": "查询每个服务配置的按需价格",
+            "data": "按需价格数据"
+          },
+          {
+            "step": "预留实例价格查询",
+            "agent": "aws_pricing_agent",
+            "action": "查询每个服务配置的预留实例价格",
+            "data": "预留实例价格数据"
+          },
+          {
+            "step": "价格数据处理",
+            "agent": "aws_pricing_agent",
+            "action": "处理和格式化价格数据，计算总价",
+            "data": "PriceQuotation数据"
+          }
+        ]
+      },
+      {
+        "name": "报价方案生成流程",
+        "description": "生成专业的报价方案",
+        "steps": [
+          {
+            "step": "接收配置和价格信息",
+            "agent": "aws_pricing_agent",
+            "action": "接收服务配置和价格信息",
+            "data": "ServiceConfiguration和PriceQuotation数据"
+          },
+          {
+            "step": "报价方案组装",
+            "agent": "aws_pricing_agent",
+            "action": "组装配置详情、价格明细和推荐理由",
+            "data": "初步报价方案"
+          },
+          {
+            "step": "报价方案格式化",
+            "agent": "aws_pricing_agent",
+            "action": "格式化报价方案，确保清晰易读",
+            "data": "格式化的报价方案"
+          },
+          {
+            "step": "报价方案验证",
+            "agent": "aws_pricing_agent",
+            "action": "验证报价方案的完整性和准确性",
+            "data": "验证结果"
+          },
+          {
+            "step": "报价方案输出",
+            "agent": "aws_pricing_agent",
+            "action": "输出最终的报价方案",
+            "data": "QuotationReport数据"
+          }
+        ]
+      }
+    ],
+    "security_considerations": [
+      "安全存储和使用AWS API凭证",
+      "避免在报价方案中包含敏感信息",
+      "验证用户输入，防止注入攻击",
+      "遵循最小权限原则访问AWS API",
+      "保护用户需求和报价数据的隐私"
+    ],
+    "error_handling": [
+      "优雅处理AWS API暂时不可用的情况",
+      "当无法获取某些价格信息时，明确标注并继续提供其他可用信息",
+      "处理用户输入不完整或模糊的情况，提供合理的默认值或澄清问题",
+      "记录错误和异常情况，便于调试和改进",
+      "提供清晰的错误信息和恢复建议"
+    ],
+    "performance_considerations": [
+      "优化AWS API调用频率，减少不必要的请求",
+      "缓存常用的服务目录和实例类型信息，减少API调用",
+      "并行处理多个服务的价格查询，提高响应速度",
+      "优化自然语言处理逻辑，确保快速响应",
+      "监控和优化内存使用，特别是在处理大量配置和价格数据时"
+    ],
+    "monitoring_strategy": [
+      "记录API调用成功率和响应时间",
+      "监控用户需求解析的准确率",
+      "跟踪配置推荐的接受率和调整率",
+      "监控报价方案生成的完整性和准确性",
+      "收集用户反馈，持续改进系统性能和准确性"
+    ]
+  },
+  "design_rationale": "本设计采用单Agent架构，主要基于以下考虑：1) 功能虽然复杂但高度内聚，围绕AWS产品报价这一核心目标；2) 各功能模块之间有明确的数据流和依赖关系，适合在单一Agent内协调；3) 单Agent架构简化了实现和维护，降低了复杂度。\n\n推荐使用api_integration_agent模板作为基础，因为该模板专为API集成设计，包含了HTTP客户端、认证管理和数据转换等核心功能，完全满足调用AWS价格API的需求。该模板需要扩展以添加AWS特定的价格计算逻辑、服务配置推荐功能和AWS产品知识库。\n\n系统设计为模块化结构，包括需求解析、配置推荐、价格查询和报价生成四个主要功能模块，这样可以实现高内聚低耦合，便于开发、测试和维护。数据模型设计支持从用户需求到最终报价的完整数据流，确保数据的一致性和完整性。\n\n交互流程设计考虑了用户体验，支持对话式交互和需求澄清，使非专业用户也能获得准确的配置建议和报价。错误处理和监控策略确保系统的可靠性和可观测性，能够优雅地处理各种异常情况。\n\n总体而言，该设计满足了所有功能需求和非功能需求，同时保持了架构的简洁性和可扩展性，为未来添加更多AWS服务类型或优化功能提供了良好的基础。"
+}

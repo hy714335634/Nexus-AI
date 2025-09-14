@@ -1,0 +1,6 @@
+project:
+  created_date: '2025-09-14T03:55:16.007096+00:00'
+  description: AWS产品报价智能体，能够根据自然语言描述的资源需求，分析并推荐合理的AWS服务和配置，提供实时报价并生成专业的报价方案。支持EC2、EBS、S3、网络流量、ELB、RDS、ElastiCache、Opensearch等多种AWS产品的价格查询。
+  name: aws_pricing_agent
+  updated_date: '2025-09-14T03:55:20.364619+00:00'
+  version: 1.0.0

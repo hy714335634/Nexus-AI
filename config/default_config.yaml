@@ -45,7 +45,7 @@ default-config:
       retries:
         max_attempts: 10
         mode: "standard"
-      connect_timeout: 600
+      connect_timeout: 1800
       read_timeout: 3600
     
   logging:
