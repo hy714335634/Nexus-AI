@@ -1,0 +1,163 @@
+{
+  "agent_code_development": {
+    "development_overview": {
+      "project_name": "aws_pricing_agent",
+      "version": "1.0",
+      "date": "2025-09-09",
+      "development_scope": "开发一个能够处理TSV格式的云平台账单或IDC配置清单，并提供AWS产品报价的智能体",
+      "design_principles": [
+        "准确性：确保AWS产品报价的准确性和真实性",
+        "灵活性：支持不同区域的报价和多种产品类型",
+        "用户友好：提供清晰、有逻辑的中文报价方案",
+        "智能推断：能够根据不完整信息推测合理配置"
+      ],
+      "key_decisions": [
+        "采用API集成专家模板作为基础",
+        "使用Strands SDK创建Agent",
+        "集成自定义工具处理TSV解析、配置匹配和报价生成",
+        "使用Claude 3 Sonnet模型提供专业的AWS产品报价服务"
+      ]
+    },
+    "agent_implementation": {
+      "agent_name": "aws_pricing_agent",
+      "file_path": "agents/generated_agents/aws_pricing_agent/aws_pricing_agent.py",
+      "main_class": "N/A（使用函数式编程）",
+      "entry_point": "main()",
+      "dependencies": [
+        "utils.agent_factory",
+        "strands.telemetry",
+        "os",
+        "argparse"
+      ],
+      "imports": [
+        "import os",
+        "import argparse",
+        "from utils.agent_factory import create_agent_from_prompt_template",
+        "from strands.telemetry import StrandsTelemetry"
+      ]
+    },
+    "core_functions": [
+      {
+        "function_name": "main",
+        "purpose": "AWS产品报价Agent的主函数，处理命令行参数并运行agent",
+        "parameters": [
+          {
+            "name": "无参数",
+            "type": "None",
+            "description": "无需传入参数，通过argparse处理命令行参数",
+            "required": false
+          }
+        ],
+        "return_type": "None",
+        "return_description": "无返回值",
+        "implementation_notes": [
+          "解析命令行参数，包括用户输入、TSV文件路径和AWS区域",
+          "构建测试输入，组合用户输入、文件路径和区域信息",
+          "调用agent处理请求并打印结果",
+          "实现异常处理机制"
+        ]
+      }
+    ],
+    "tool_integration": {
+      "custom_tools": [
+        "tsv_parser：解析TSV格式的云平台账单或IDC配置清单",
+        "config_matcher：将解析后的配置数据映射到匹配的AWS产品",
+        "pricing_proposal_generator：生成AWS产品报价方案"
+      ],
+      "system_tools": [
+        "use_aws：与AWS Pricing API交互，获取AWS产品的真实价格数据",
+        "file_read：读取TSV文件内容",
+        "file_write：将报价方案保存为文件",
+        "calculator：进行价格计算",
+        "current_time：获取当前时间，用于报价有效期等信息",
+        "python_repl：执行Python代码，进行数据处理和计算"
+      ],
+      "strands_tools": [
+        "StrandsTelemetry：设置和配置遥测数据收集"
+      ],
+      "integration_notes": [
+        "所有工具通过提示词模板中的tools配置进行集成",
+        "自定义工具实现为独立的Python模块，使用@tool装饰器",
+        "系统工具直接通过Strands SDK提供",
+        "遥测数据收集通过StrandsTelemetry类配置"
+      ]
+    },
+    "configuration": {
+      "environment_variables": [
+        "BYPASS_TOOL_CONSENT=true：绕过工具使用确认",
+        "OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318：设置遥测数据导出端点"
+      ],
+      "model_configuration": {
+        "model_name": "us.anthropic.claude-3-7-sonnet-20250219-v1:0",
+        "max_tokens": 60000,
+        "temperature": 0.3,
+        "top_p": 0.8
+      },
+      "streaming_config": {
+        "enabled": true,
+        "chunk_size": 1024
+      }
+    },
+    "error_handling": {
+      "exception_types": [
+        "ValueError：处理输入验证错误",
+        "json.JSONDecodeError：处理JSON解析错误",
+        "Exception：处理一般异常"
+      ],
+      "error_responses": [
+        "TSV解析错误：提供清晰的错误信息，并建议用户检查文件格式",
+        "配置匹配失败：提供近似匹配的产品，并说明差异",
+        "API调用失败：提供备选方案，如使用缓存数据或估算价格",
+        "信息不足：明确指出缺失信息，并请求用户提供或同意使用推断值"
+      ],
+      "recovery_strategies": [
+        "配置推断：在信息不完整时推测合理配置",
+        "价格估算：在无法获取实际价格时使用估算价格",
+        "备选方案：在主要服务不可用时提供备选AWS服务"
+      ]
+    },
+    "testing": {
+      "test_cases": [
+        "完整TSV数据处理：测试处理包含完整配置信息的TSV文件",
+        "不完整数据处理：测试处理缺少部分配置参数的TSV文件",
+        "多产品类别处理：测试处理包含计算、存储、网络、数据库四类产品的TSV文件",
+        "错误处理测试：测试处理格式错误的TSV文件"
+      ],
+      "test_scenarios": [
+        "命令行参数测试：测试不同的命令行参数组合",
+        "区域参数测试：测试不同的AWS区域参数",
+        "文件输入测试：测试从文件读取TSV数据",
+        "直接输入测试：测试直接在命令行提供配置信息"
+      ],
+      "validation_criteria": [
+        "配置匹配准确率：检查配置匹配的准确性",
+        "价格计算精确度：验证价格计算的准确性",
+        "报价方案完整性：确保报价方案包含所有必要信息",
+        "用户需求理解准确度：验证对用户需求的理解准确性",
+        "配置推断合理性：评估配置推断的合理性"
+      ]
+    },
+    "deployment": {
+      "deployment_requirements": [
+        "Python 3.13+：使用最新Python特性和语法",
+        "Strands SDK：核心智能体框架和工具系统",
+        "AWS Bedrock：AI模型推理引擎",
+        "boto3 SDK：AWS服务集成",
+        "AWS凭证配置：配置有效的AWS凭证以访问AWS Pricing API"
+      ],
+      "runtime_dependencies": [
+        "AWS Pricing API访问权限：需要有权限访问AWS Pricing API",
+        "网络连接：需要稳定的网络连接以访问AWS服务",
+        "内存要求：处理大型TSV文件需要足够的内存",
+        "存储空间：存储报价方案和中间数据需要足够的存储空间"
+      ],
+      "performance_considerations": [
+        "缓存常用AWS产品的价格数据以减少API调用",
+        "优化TSV解析算法提高处理速度",
+        "实现批量价格查询减少API请求次数",
+        "对大型输入文件实现分批处理"
+      ]
+    },
+    "development_notes": "在开发AWS产品报价Agent过程中，我重点关注了智能体与自定义工具的集成，特别是tsv_parser、config_matcher和pricing_proposal_generator三个核心工具。这些工具分别负责解析TSV数据、匹配AWS产品配置和生成报价方案，是整个智能体的核心功能组件。在设计这些工具时，我特别注重了配置匹配的灵活性和准确性，使其能够处理不完整的配置信息并进行合理推断。同时，报价生成工具被设计为提供专业、清晰的中文报价方案，包含详细的配置信息、价格明细和优化建议。在Agent代码实现中，我采用了函数式编程风格，使用utils.agent_factory.create_agent_from_prompt_template创建Agent，并提供了命令行接口以便于测试和使用。为了提高用户体验，我还实现了完善的错误处理机制，能够在各种异常情况下提供有意义的反馈。总体而言，这个AWS产品报价Agent能够满足用户需求，提供准确、专业的AWS产品报价服务。"
+  }
+}

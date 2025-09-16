@@ -1,0 +1,88 @@
+{
+  "projects": [
+    {
+      "id": "aws_pricing_agent",
+      "name": "Aws Pricing Agent",
+      "description": "基于aws_pricing_agent的AI代理系统",
+      "status": "running",
+      "created_at": "2025-09-15T21:36:45.904918",
+      "updated_at": "2025-09-16T19:53:43.796890",
+      "build_time": "未知",
+      "version": "v1.0",
+      "agent_path": "agents/generated_agents/aws_pricing_agent",
+      "agents": [],
+      "metrics": {
+        "total_calls": 0,
+        "success_rate": 100.0,
+        "avg_response_time": "2.3s",
+        "last_call": null
+      },
+      "build_history": []
+    },
+    {
+      "id": "news_retrieval_agent",
+      "name": "News Retrieval Agent",
+      "description": "基于news_retrieval_agent的AI代理系统",
+      "status": "running",
+      "created_at": "2025-09-16T21:00:01.754728",
+      "updated_at": "2025-09-16T21:04:20.302273",
+      "build_time": "未知",
+      "version": "v1.0",
+      "agent_path": "agents/generated_agents/news_retrieval_agent",
+      "agents": [],
+      "metrics": {
+        "total_calls": 0,
+        "success_rate": 100.0,
+        "avg_response_time": "2.3s",
+        "last_call": null
+      },
+      "build_history": []
+    },
+    {
+      "id": "html2pptx",
+      "name": "Html2Pptx",
+      "description": "基于html2pptx的AI代理系统",
+      "status": "running",
+      "created_at": "2025-09-16T20:59:54.668114",
+      "updated_at": "2025-09-16T21:04:20.302450",
+      "build_time": "未知",
+      "version": "v1.0",
+      "agent_path": "agents/generated_agents/html2pptx",
+      "agents": [],
+      "metrics": {
+        "total_calls": 0,
+        "success_rate": 100.0,
+        "avg_response_time": "2.3s",
+        "last_call": null
+      },
+      "build_history": []
+    },
+    {
+      "id": "ppt_to_markdown",
+      "name": "Ppt To Markdown",
+      "description": "基于ppt_to_markdown的AI代理系统",
+      "status": "running",
+      "created_at": "2025-09-16T20:59:54.669747",
+      "updated_at": "2025-09-16T21:04:20.302633",
+      "build_time": "未知",
+      "version": "v1.0",
+      "agent_path": "agents/generated_agents/ppt_to_markdown",
+      "agents": [],
+      "metrics": {
+        "total_calls": 0,
+        "success_rate": 100.0,
+        "avg_response_time": "2.3s",
+        "last_call": null
+      },
+      "build_history": []
+    }
+  ],
+  "last_updated": "2025-09-16T21:04:20.302659",
+  "total_projects": 4,
+  "active_projects": 4,
+  "system_metrics": {
+    "cpu_usage": 45.2,
+    "memory_usage": 62.1,
+    "disk_usage": 78.5
+  }
+}
