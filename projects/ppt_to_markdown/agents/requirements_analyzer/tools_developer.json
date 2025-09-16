@@ -1,0 +1,593 @@
+# 项目上下文信息
+
+**项目名称**: ppt_to_markdown
+**Agent名称**: requirements_analyzer  
+**开发阶段**: tools_developer
+**生成时间**: 2025-09-15 08:30:35 UTC
+
+---
+
+{
+  "tool_development": {
+    "development_overview": {
+      "project_name": "ppt_to_markdown",
+      "version": "1.0",
+      "date": "2025-09-15",
+      "development_scope": "开发PPT到Markdown转换工具，包括PPT解析、内容提取、格式转换和文件管理功能",
+      "design_principles": [
+        "模块化设计，职责单一",
+        "完整的错误处理和异常恢复",
+        "清晰的接口定义和文档",
+        "保持内容结构和层次",
+        "支持批量处理和自定义格式"
+      ],
+      "key_decisions": [
+        "使用Python-pptx库进行PPT解析",
+        "实现分页处理和页面分隔标记",
+        "提供多种格式化选项和样式预设",
+        "支持批量处理和目录管理",
+        "返回结构化JSON格式结果"
+      ]
+    },
+    "tools": [
+      {
+        "tool_name": "ppt_to_markdown_converter",
+        "description": "将PowerPoint文件转换为Markdown格式",
+        "function_signature": "ppt_to_markdown_converter(file_path: str, include_page_numbers: bool = True, include_slide_titles: bool = True, extract_notes: bool = False, include_images: bool = False, output_file: Optional[str] = None) -> str",
+        "parameters": [
+          {
+            "name": "file_path",
+            "type": "str",
+            "description": "PowerPoint文件路径",
+            "required": true
+          },
+          {
+            "name": "include_page_numbers",
+            "type": "bool",
+            "description": "是否包含页码",
+            "required": false
+          },
+          {
+            "name": "include_slide_titles",
+            "type": "bool",
+            "description": "是否包含幻灯片标题",
+            "required": false
+          },
+          {
+            "name": "extract_notes",
+            "type": "bool",
+            "description": "是否提取演讲者笔记",
+            "required": false
+          },
+          {
+            "name": "include_images",
+            "type": "bool",
+            "description": "是否包含图片引用",
+            "required": false
+          },
+          {
+            "name": "output_file",
+            "type": "Optional[str]",
+            "description": "输出文件路径",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的转换结果，包含Markdown内容和元数据",
+        "dependencies": ["Python-pptx库"],
+        "implementation_notes": [
+          "使用Python-pptx库解析PPT文件",
+          "按页面提取内容并保持结构",
+          "转换文本格式（标题、列表、段落等）",
+          "处理表格和基本图表",
+          "支持保存到文件或返回内容"
+        ],
+        "error_handling": [
+          "验证文件存在性和格式",
+          "捕获并记录解析错误",
+          "提供详细的错误信息",
+          "返回结构化的错误响应"
+        ],
+        "usage_examples": [
+          "ppt_to_markdown_converter('presentation.pptx')",
+          "ppt_to_markdown_converter('slides.ppt', include_page_numbers=False, extract_notes=True)",
+          "ppt_to_markdown_converter('deck.pptx', output_file='output.md')"
+        ]
+      },
+      {
+        "tool_name": "extract_ppt_structure",
+        "description": "提取PowerPoint文件的结构信息",
+        "function_signature": "extract_ppt_structure(file_path: str) -> str",
+        "parameters": [
+          {
+            "name": "file_path",
+            "type": "str",
+            "description": "PowerPoint文件路径",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的PPT结构信息，包含幻灯片、形状和文本元素",
+        "dependencies": ["Python-pptx库"],
+        "implementation_notes": [
+          "分析PPT文件结构",
+          "提取幻灯片标题和内容元素",
+          "识别文本、表格、图表和图片",
+          "返回结构化的分析结果"
+        ],
+        "error_handling": [
+          "验证文件存在性和格式",
+          "捕获并记录解析错误",
+          "提供详细的错误信息"
+        ],
+        "usage_examples": [
+          "extract_ppt_structure('presentation.pptx')"
+        ]
+      },
+      {
+        "tool_name": "batch_convert_ppt_to_markdown",
+        "description": "批量转换目录中的PowerPoint文件为Markdown格式",
+        "function_signature": "batch_convert_ppt_to_markdown(directory_path: str, output_directory: Optional[str] = None, include_page_numbers: bool = True, include_slide_titles: bool = True, extract_notes: bool = False, include_images: bool = False) -> str",
+        "parameters": [
+          {
+            "name": "directory_path",
+            "type": "str",
+            "description": "包含PowerPoint文件的目录路径",
+            "required": true
+          },
+          {
+            "name": "output_directory",
+            "type": "Optional[str]",
+            "description": "输出目录路径",
+            "required": false
+          },
+          {
+            "name": "include_page_numbers",
+            "type": "bool",
+            "description": "是否包含页码",
+            "required": false
+          },
+          {
+            "name": "include_slide_titles",
+            "type": "bool",
+            "description": "是否包含幻灯片标题",
+            "required": false
+          },
+          {
+            "name": "extract_notes",
+            "type": "bool",
+            "description": "是否提取演讲者笔记",
+            "required": false
+          },
+          {
+            "name": "include_images",
+            "type": "bool",
+            "description": "是否包含图片引用",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的批量转换结果，包含每个文件的转换状态和摘要信息",
+        "dependencies": ["Python-pptx库"],
+        "implementation_notes": [
+          "查找目录中的所有PPT文件",
+          "逐个处理每个文件",
+          "创建对应的Markdown输出文件",
+          "汇总转换结果和统计信息"
+        ],
+        "error_handling": [
+          "验证目录存在性",
+          "单独处理每个文件的错误",
+          "提供详细的错误信息",
+          "返回完整的转换状态"
+        ],
+        "usage_examples": [
+          "batch_convert_ppt_to_markdown('presentations/')",
+          "batch_convert_ppt_to_markdown('input/', output_directory='output/')"
+        ]
+      },
+      {
+        "tool_name": "format_markdown_document",
+        "description": "格式化和增强从PowerPoint转换的Markdown文档",
+        "function_signature": "format_markdown_document(markdown_content: str, add_toc: bool = False, add_metadata: bool = False, presentation_title: Optional[str] = None, presentation_date: Optional[str] = None, author: Optional[str] = None, custom_css: Optional[str] = None, heading_style: str = 'atx') -> str",
+        "parameters": [
+          {
+            "name": "markdown_content",
+            "type": "str",
+            "description": "要格式化的Markdown内容",
+            "required": true
+          },
+          {
+            "name": "add_toc",
+            "type": "bool",
+            "description": "是否添加目录",
+            "required": false
+          },
+          {
+            "name": "add_metadata",
+            "type": "bool",
+            "description": "是否添加YAML元数据",
+            "required": false
+          },
+          {
+            "name": "presentation_title",
+            "type": "Optional[str]",
+            "description": "演示文稿标题",
+            "required": false
+          },
+          {
+            "name": "presentation_date",
+            "type": "Optional[str]",
+            "description": "演示文稿日期",
+            "required": false
+          },
+          {
+            "name": "author",
+            "type": "Optional[str]",
+            "description": "作者",
+            "required": false
+          },
+          {
+            "name": "custom_css",
+            "type": "Optional[str]",
+            "description": "自定义CSS",
+            "required": false
+          },
+          {
+            "name": "heading_style",
+            "type": "str",
+            "description": "标题样式",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的格式化结果，包含格式化后的Markdown内容和元数据",
+        "dependencies": [],
+        "implementation_notes": [
+          "添加目录和元数据",
+          "转换标题样式",
+          "应用自定义格式"
+        ],
+        "error_handling": [
+          "验证输入内容",
+          "捕获并记录格式化错误",
+          "提供详细的错误信息"
+        ],
+        "usage_examples": [
+          "format_markdown_document(markdown_content, add_toc=True)",
+          "format_markdown_document(markdown_content, add_metadata=True, presentation_title='My Presentation')"
+        ]
+      },
+      {
+        "tool_name": "customize_markdown_styling",
+        "description": "应用自定义样式到从PowerPoint转换的Markdown内容",
+        "function_signature": "customize_markdown_styling(markdown_content: str, style_preset: str = 'default', custom_replacements: Optional[Dict[str, str]] = None, enhance_lists: bool = False, enhance_tables: bool = False, add_page_breaks: bool = True) -> str",
+        "parameters": [
+          {
+            "name": "markdown_content",
+            "type": "str",
+            "description": "要样式化的Markdown内容",
+            "required": true
+          },
+          {
+            "name": "style_preset",
+            "type": "str",
+            "description": "样式预设",
+            "required": false
+          },
+          {
+            "name": "custom_replacements",
+            "type": "Optional[Dict[str, str]]",
+            "description": "自定义替换规则",
+            "required": false
+          },
+          {
+            "name": "enhance_lists",
+            "type": "bool",
+            "description": "是否增强列表格式",
+            "required": false
+          },
+          {
+            "name": "enhance_tables",
+            "type": "bool",
+            "description": "是否增强表格格式",
+            "required": false
+          },
+          {
+            "name": "add_page_breaks",
+            "type": "bool",
+            "description": "是否添加分页符",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的样式化结果，包含样式化后的Markdown内容和元数据",
+        "dependencies": [],
+        "implementation_notes": [
+          "应用预定义样式预设",
+          "执行自定义文本替换",
+          "增强列表和表格格式",
+          "添加分页符"
+        ],
+        "error_handling": [
+          "验证输入内容",
+          "捕获并记录样式化错误",
+          "提供详细的错误信息"
+        ],
+        "usage_examples": [
+          "customize_markdown_styling(markdown_content, style_preset='business')",
+          "customize_markdown_styling(markdown_content, enhance_tables=True, enhance_lists=True)"
+        ]
+      },
+      {
+        "tool_name": "extract_markdown_sections",
+        "description": "从Markdown内容中提取特定部分",
+        "function_signature": "extract_markdown_sections(markdown_content: str, section_type: str = 'all', include_content: bool = True) -> str",
+        "parameters": [
+          {
+            "name": "markdown_content",
+            "type": "str",
+            "description": "要分析的Markdown内容",
+            "required": true
+          },
+          {
+            "name": "section_type",
+            "type": "str",
+            "description": "要提取的部分类型",
+            "required": false
+          },
+          {
+            "name": "include_content",
+            "type": "bool",
+            "description": "是否包含每个部分的内容",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的提取结果，包含提取的部分和元数据",
+        "dependencies": [],
+        "implementation_notes": [
+          "提取标题、列表、表格和代码块",
+          "分析Markdown结构",
+          "返回结构化的提取结果"
+        ],
+        "error_handling": [
+          "验证输入内容",
+          "捕获并记录提取错误",
+          "提供详细的错误信息"
+        ],
+        "usage_examples": [
+          "extract_markdown_sections(markdown_content, section_type='headings')",
+          "extract_markdown_sections(markdown_content, section_type='tables', include_content=False)"
+        ]
+      },
+      {
+        "tool_name": "validate_ppt_file",
+        "description": "验证PowerPoint文件并提取基本元数据",
+        "function_signature": "validate_ppt_file(file_path: str) -> str",
+        "parameters": [
+          {
+            "name": "file_path",
+            "type": "str",
+            "description": "PowerPoint文件路径",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的验证结果，包含文件有效性和元数据",
+        "dependencies": [],
+        "implementation_notes": [
+          "检查文件是否存在和可访问",
+          "验证文件扩展名",
+          "提取基本文件元数据"
+        ],
+        "error_handling": [
+          "检查文件存在性",
+          "验证文件类型",
+          "测试文件可读性",
+          "提供详细的错误信息"
+        ],
+        "usage_examples": [
+          "validate_ppt_file('presentation.pptx')"
+        ]
+      },
+      {
+        "tool_name": "find_ppt_files",
+        "description": "在目录中查找PowerPoint文件",
+        "function_signature": "find_ppt_files(directory_path: str, recursive: bool = False, include_ppt: bool = True, include_pptx: bool = True, max_files: int = 100) -> str",
+        "parameters": [
+          {
+            "name": "directory_path",
+            "type": "str",
+            "description": "要搜索的目录路径",
+            "required": true
+          },
+          {
+            "name": "recursive",
+            "type": "bool",
+            "description": "是否递归搜索子目录",
+            "required": false
+          },
+          {
+            "name": "include_ppt",
+            "type": "bool",
+            "description": "是否包含.ppt文件",
+            "required": false
+          },
+          {
+            "name": "include_pptx",
+            "type": "bool",
+            "description": "是否包含.pptx文件",
+            "required": false
+          },
+          {
+            "name": "max_files",
+            "type": "int",
+            "description": "最大返回文件数",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的搜索结果，包含找到的文件列表和元数据",
+        "dependencies": [],
+        "implementation_notes": [
+          "搜索指定目录中的PPT文件",
+          "支持递归搜索子目录",
+          "过滤文件类型",
+          "提取文件元数据"
+        ],
+        "error_handling": [
+          "验证目录存在性",
+          "检查搜索参数有效性",
+          "提供详细的错误信息"
+        ],
+        "usage_examples": [
+          "find_ppt_files('documents/')",
+          "find_ppt_files('presentations/', recursive=True, include_ppt=False)"
+        ]
+      },
+      {
+        "tool_name": "create_output_directory",
+        "description": "创建Markdown文件的输出目录",
+        "function_signature": "create_output_directory(base_directory: str, output_name: Optional[str] = None, clear_existing: bool = False) -> str",
+        "parameters": [
+          {
+            "name": "base_directory",
+            "type": "str",
+            "description": "基础目录路径",
+            "required": true
+          },
+          {
+            "name": "output_name",
+            "type": "Optional[str]",
+            "description": "输出目录名称",
+            "required": false
+          },
+          {
+            "name": "clear_existing",
+            "type": "bool",
+            "description": "是否清空已存在的目录",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的结果，包含创建的输出目录路径和元数据",
+        "dependencies": [],
+        "implementation_notes": [
+          "创建新目录或使用现有目录",
+          "支持清空现有目录内容",
+          "生成默认目录名称"
+        ],
+        "error_handling": [
+          "验证基础目录存在性",
+          "处理目录创建错误",
+          "处理目录清空错误",
+          "提供详细的错误信息"
+        ],
+        "usage_examples": [
+          "create_output_directory('documents/')",
+          "create_output_directory('output/', output_name='markdown_files', clear_existing=True)"
+        ]
+      },
+      {
+        "tool_name": "save_markdown_file",
+        "description": "将Markdown内容保存到文件",
+        "function_signature": "save_markdown_file(content: str, output_directory: str, file_name: Optional[str] = None, source_file_path: Optional[str] = None, overwrite: bool = False) -> str",
+        "parameters": [
+          {
+            "name": "content",
+            "type": "str",
+            "description": "要保存的Markdown内容",
+            "required": true
+          },
+          {
+            "name": "output_directory",
+            "type": "str",
+            "description": "输出目录路径",
+            "required": true
+          },
+          {
+            "name": "file_name",
+            "type": "Optional[str]",
+            "description": "输出文件名",
+            "required": false
+          },
+          {
+            "name": "source_file_path",
+            "type": "Optional[str]",
+            "description": "源PowerPoint文件路径",
+            "required": false
+          },
+          {
+            "name": "overwrite",
+            "type": "bool",
+            "description": "是否覆盖已存在的文件",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的结果，包含保存的文件路径和元数据",
+        "dependencies": [],
+        "implementation_notes": [
+          "保存Markdown内容到文件",
+          "支持自动生成文件名",
+          "控制文件覆盖行为"
+        ],
+        "error_handling": [
+          "验证输出目录存在性",
+          "处理文件已存在情况",
+          "处理文件写入错误",
+          "提供详细的错误信息"
+        ],
+        "usage_examples": [
+          "save_markdown_file(markdown_content, 'output/')",
+          "save_markdown_file(markdown_content, 'docs/', file_name='presentation.md', overwrite=True)"
+        ]
+      }
+    ],
+    "code_quality": {
+      "code_standards": [
+        "遵循PEP 8编码规范",
+        "使用类型注解提高代码可读性",
+        "详细的函数文档字符串",
+        "模块化设计和职责分离",
+        "一致的错误处理和日志记录"
+      ],
+      "testing_strategy": [
+        "单元测试各个工具函数",
+        "集成测试验证工具间协作",
+        "边缘情况测试（无效文件、大文件等）",
+        "异常处理测试",
+        "性能测试（大型PPT文件）"
+      ],
+      "performance_considerations": [
+        "优化大型PPT文件的内存使用",
+        "分块处理避免内存溢出",
+        "缓存中间结果提高性能",
+        "批处理模式提高效率"
+      ],
+      "security_measures": [
+        "验证文件路径和类型",
+        "安全处理用户输入",
+        "限制文件大小和处理时间",
+        "处理完成后清理临时文件"
+      ]
+    },
+    "integration_details": {
+      "aws_services": [],
+      "external_libraries": [
+        "Python-pptx: 用于解析PowerPoint文件",
+        "re: 用于正则表达式处理",
+        "pathlib: 用于路径处理",
+        "json: 用于结构化输出"
+      ],
+      "api_endpoints": [],
+      "data_formats": [
+        "PowerPoint (.ppt, .pptx)",
+        "Markdown (.md)",
+        "JSON (用于结构化输出)"
+      ]
+    },
+    "development_notes": "工具开发过程中，我们发现Python-pptx库对PPT文件的解析能力很强，但对某些复杂元素（如SmartArt、复杂图表）的支持有限。因此，我们采用了降级处理策略，对无法完全解析的元素提供基本描述。此外，我们设计了模块化的工具集，将PPT解析、Markdown转换和文件管理功能分离，以提高代码的可维护性和扩展性。我们还实现了多种格式化选项和样式预设，使用户可以根据需要自定义输出。为了支持批量处理，我们添加了目录扫描和批处理功能，并确保了健壮的错误处理机制。所有工具都返回结构化的JSON格式结果，包含详细的元数据和错误信息，便于集成和调试。"
+  }
+}

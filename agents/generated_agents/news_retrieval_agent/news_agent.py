@@ -245,7 +245,9 @@ if __name__ == "__main__":
         print()
         
         while True:
-            user_input = input("请输入您的请求: ")
+            print("---"*10)
+            user_input = input("🌏请输入您的请求: ")
+            print(">>>:")
             
             if user_input.lower() in ['exit', 'quit']:
                 print("感谢使用，再见！")

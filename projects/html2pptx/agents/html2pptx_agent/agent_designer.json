@@ -1,0 +1,182 @@
+# 项目上下文信息
+
+**项目名称**: html2pptx
+**Agent名称**: html2pptx_agent  
+**开发阶段**: agent_designer
+**生成时间**: 2025-09-15 17:26:53 UTC
+
+---
+
+{
+  "agent_design": {
+    "design_overview": {
+      "project_name": "html2pptx",
+      "version": "1.0",
+      "date": "2025-09-15",
+      "design_scope": "设计一个能够将HTML文档转换为PPTX格式的智能Agent，保留原始文档的结构、样式、图片和语义内容，支持自定义模板，并实现本地缓存机制",
+      "design_goals": [
+        "创建一个能够准确解析HTML文档并提取语义结构的Agent",
+        "确保转换后的PPT保持HTML文档的原始内容和视觉风格",
+        "支持任意复杂度的HTML标签结构和样式",
+        "实现图片内容的保留和合理布局",
+        "支持用户自定义PPT模板",
+        "保留必要的文字内容和备注信息",
+        "实现本地缓存机制以解决Token限制问题"
+      ],
+      "key_design_decisions": [
+        {
+          "decision": "采用单Agent架构",
+          "rationale": "HTML到PPTX的转换是一个连贯的流程，不需要多个Agent协作",
+          "alternatives": ["多Agent协作架构"],
+          "consequences": ["简化系统复杂度", "减少通信开销", "便于维护和扩展"]
+        },
+        {
+          "decision": "基于document_processor_agent模板开发",
+          "rationale": "该模板已包含文档处理的核心框架，适合扩展HTML解析和PPTX生成功能",
+          "alternatives": ["从头开发专用模板", "使用其他类型的模板"],
+          "consequences": ["加速开发过程", "利用现有的文档处理能力", "确保代码质量和一致性"]
+        },
+        {
+          "decision": "使用BeautifulSoup/lxml进行HTML解析",
+          "rationale": "这些是成熟稳定的HTML解析库，能够处理复杂的HTML结构",
+          "alternatives": ["html.parser", "自定义解析器"],
+          "consequences": ["高效准确的HTML解析", "良好的容错能力", "广泛的社区支持"]
+        },
+        {
+          "decision": "使用python-pptx库生成PowerPoint文档",
+          "rationale": "python-pptx是Python中处理PPTX文件的标准库，功能完善",
+          "alternatives": ["其他PPT生成库", "调用外部API"],
+          "consequences": ["完全的PPT控制能力", "无需外部依赖", "高度可定制"]
+        },
+        {
+          "decision": "实现本地缓存机制",
+          "rationale": "解决Token限制问题，提高处理大型文档和图片的效率",
+          "alternatives": ["分批处理不缓存", "使用外部存储服务"],
+          "consequences": ["减少Token消耗", "提高处理速度", "支持处理大型文档"]
+        }
+      ]
+    },
+    "agents": [
+      {
+        "agent_id": "html2pptx_agent",
+        "name": "html2pptx_agent",
+        "role": "HTML到PPTX转换专家",
+        "purpose": "将HTML文档转换为PPTX格式的演示文稿，保留原始文档的结构、样式、图片和语义内容，支持自定义模板，并能处理任意复杂度的HTML文档",
+        "personality": {
+          "traits": ["专业", "精确", "高效", "适应性强", "注重细节"],
+          "communication_style": "清晰、专业、结构化的沟通方式，提供详细的转换过程和结果说明",
+          "tone": "专业、友好、耐心"
+        },
+        "capabilities": {
+          "core_functions": [
+            "HTML文档解析与语义提取",
+            "PPT结构和布局生成",
+            "HTML样式到PPT样式的映射",
+            "图片提取与布局优化",
+            "自定义PPT模板支持",
+            "文字内容和备注信息保留",
+            "本地缓存机制实现"
+          ],
+          "specialized_skills": [
+            "语义结构分析",
+            "样式映射算法",
+            "智能布局优化",
+            "图片处理和优化",
+            "缓存管理"
+          ],
+          "limitations": [
+            "不支持HTML动画效果转换",
+            "不支持交互式HTML元素的功能复制",
+            "不支持视频内容的处理和嵌入",
+            "不提供在线存储和共享功能",
+            "不支持实时协作编辑"
+          ],
+          "tools_required": [
+            "file_read",
+            "file_write",
+            "html_parser",
+            "pptx_generator",
+            "image_processor",
+            "cache_manager",
+            "style_mapper",
+            "semantic_analyzer",
+            "layout_optimizer"
+          ]
+        },
+        "knowledge_domain": {
+          "primary_domains": [
+            "HTML文档结构和语义",
+            "CSS样式和属性",
+            "PowerPoint演示文稿结构和格式",
+            "文档转换技术",
+            "图片处理和优化"
+          ],
+          "expertise_level": "专家级",
+          "knowledge_sources": [
+            "HTML和CSS规范",
+            "PowerPoint文档格式规范",
+            "文档转换最佳实践",
+            "布局设计原则"
+          ],
+          "update_frequency": "根据HTML和PPTX标准更新，以及用户反馈进行调整"
+        },
+        "interaction_patterns": {
+          "communication_style": "命令行界面(CLI)和函数调用接口",
+          "conversation_flow": "单轮对话，用户提供输入参数，Agent完成转换后返回结果",
+          "error_responses": [
+            "提供详细的错误信息和上下文",
+            "对于不支持的HTML元素，给出警告并继续处理",
+            "对于格式错误的HTML，尝试修复或提供清晰的错误说明",
+            "对于资源访问失败，提供替代方案或明确的错误提示"
+          ]
+        },
+        "constraints": [
+          "必须避免使用base64编码传输大文件以防止Token超限",
+          "必须使用python-pptx库进行PPT生成",
+          "必须支持常见的HTML解析库如BeautifulSoup或lxml",
+          "必须考虑LLM的上下文长度限制",
+          "必须在60秒内完成中等复杂度HTML文档的转换",
+          "必须能处理至少100页的HTML文档",
+          "必须能处理包含至少50张图片的HTML文档"
+        ],
+        "evaluation_criteria": [
+          "转换成功率：能够成功转换90%以上的测试HTML文档",
+          "内容一致性：生成的PPT内容与原HTML文档的内容一致性达到95%以上",
+          "视觉相似度：生成的PPT样式与原HTML文档的视觉效果相似度达到80%以上",
+          "用户满意度：用户满意度调查达到4/5分以上",
+          "性能效率：在规定时间内完成转换",
+          "错误处理：能够优雅处理各种异常情况"
+        ],
+        "model_requirements": {
+          "model_name": "us.anthropic.claude-3-7-sonnet-20250219-v1:0",
+          "minimum_capabilities": [
+            "理解HTML和CSS结构",
+            "分析文档语义",
+            "处理复杂指令",
+            "记忆长上下文"
+          ],
+          "rationale": "选择Claude 3.7 Sonnet模型是因为它具有强大的文本理解和处理能力，能够准确理解HTML结构和语义，同时具有足够的上下文长度处理较大的文档"
+        },
+        "memory_configuration": {
+          "memory_type": "本地文件系统缓存",
+          "retention_policy": "任务完成后保留缓存一段时间，定期清理过期或过大的缓存",
+          "retrieval_strategy": "基于文档哈希和内容特征的快速检索"
+        }
+      }
+    ],
+    "agent_relationships": [],
+    "system_integration": {
+      "entry_point": "命令行接口或函数调用",
+      "exit_points": [
+        "生成的PPTX文件路径",
+        "转换状态和统计信息",
+        "警告和错误信息"
+      ],
+      "external_interfaces": [
+        "文件系统接口（读取HTML文件和模板，写入PPTX文件）",
+        "缓存系统接口（存储和检索中间处理结果）",
+        "可选的网络接口（下载远程图片资源）"
+      ]
+    }
+  }
+}

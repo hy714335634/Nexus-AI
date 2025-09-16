@@ -1,0 +1,195 @@
+# 项目上下文信息
+
+**项目名称**: html2pptx
+**Agent名称**: html2pptx_agent  
+**开发阶段**: requirements_analyzer
+**生成时间**: 2025-09-15 17:21:38 UTC
+
+---
+
+{
+  "requirements_document": {
+    "feature_name": "HTML to PowerPoint Converter",
+    "version": "1.0",
+    "date": "2025-09-15",
+    "overview": "一个智能Agent系统，能够将HTML文档转换为PPTX格式的演示文稿，保留原始文档的结构、样式、图片和语义内容，支持自定义模板，并能处理任意复杂度的HTML文档。",
+    "business_value": "帮助用户快速将网页内容、HTML文档或报告转换为专业的演示文稿，节省手动创建PPT的时间和精力，同时保持内容的完整性和一致性。特别适用于需要频繁将网页内容转为演示文稿的教育工作者、营销人员、内容创作者和企业用户。",
+    "workflow_complexity": "single_agent",
+    "recommended_agent_type": "文档处理类",
+    "scope": {
+      "included": [
+        "HTML文档解析与语义提取",
+        "PPT结构和布局生成",
+        "HTML样式到PPT样式的映射",
+        "图片提取与布局优化",
+        "自定义PPT模板支持",
+        "文字内容和备注信息保留",
+        "本地缓存机制实现"
+      ],
+      "excluded": [
+        "实时协作编辑功能",
+        "HTML动画效果转换",
+        "交互式HTML元素的功能复制",
+        "视频内容的处理和嵌入",
+        "在线存储和共享功能"
+      ]
+    },
+    "functional_requirements": [
+      {
+        "id": "FR-001",
+        "title": "HTML文档解析与语义提取",
+        "user_story": "作为用户，我希望Agent能够解析任意复杂度的HTML文档并提取关键语义信息，以便生成结构合理的PPT内容。",
+        "acceptance_criteria": [
+          "WHEN 提供HTML文档 THEN 系统应能正确解析DOM结构",
+          "WHEN HTML包含复杂嵌套标签 THEN 系统应能正确识别层级关系",
+          "WHEN HTML内容包含关键信息 THEN 系统应能识别并突出显示这些信息",
+          "WHEN 解析完成 THEN 系统应生成语义结构化的内容表示"
+        ],
+        "priority": "High",
+        "complexity": "High",
+        "dependencies": [],
+        "assumptions": ["HTML文档结构符合W3C标准"]
+      },
+      {
+        "id": "FR-002",
+        "title": "PPT结构生成",
+        "user_story": "作为用户，我希望Agent能够基于HTML文档的结构自动生成合理的PPT页面结构，以便获得层次清晰的演示文稿。",
+        "acceptance_criteria": [
+          "WHEN HTML包含标题标签(h1-h6) THEN 系统应创建对应的PPT标题页或章节页",
+          "WHEN HTML包含分区内容(div, section) THEN 系统应创建对应的PPT页面",
+          "WHEN 内容过多无法在一页展示 THEN 系统应自动分页并保持内容完整性",
+          "WHEN HTML有明确的层次结构 THEN PPT应保持相同的层次结构"
+        ],
+        "priority": "High",
+        "complexity": "Medium",
+        "dependencies": ["FR-001"],
+        "assumptions": ["HTML文档具有明确的结构层次"]
+      },
+      {
+        "id": "FR-003",
+        "title": "样式映射",
+        "user_story": "作为用户，我希望Agent能够将HTML的样式属性映射到PPT的样式设置，以便保持原始文档的视觉效果。",
+        "acceptance_criteria": [
+          "WHEN HTML元素有特定字体样式 THEN PPT应使用相同或最接近的字体样式",
+          "WHEN HTML元素有颜色设置 THEN PPT应使用相同的颜色设置",
+          "WHEN HTML包含列表(ul, ol) THEN PPT应创建对应的项目符号或编号列表",
+          "WHEN HTML包含表格(table) THEN PPT应创建对应的表格结构",
+          "WHEN HTML元素有对齐方式设置 THEN PPT应使用相同的对齐方式"
+        ],
+        "priority": "Medium",
+        "complexity": "Medium",
+        "dependencies": ["FR-002"],
+        "assumptions": ["PPT支持HTML中使用的大部分样式属性"]
+      },
+      {
+        "id": "FR-004",
+        "title": "图片处理",
+        "user_story": "作为用户，我希望Agent能够提取HTML中的图片并合理布局到PPT中，以便保持视觉内容的完整性。",
+        "acceptance_criteria": [
+          "WHEN HTML包含图片元素 THEN 系统应提取图片并插入到PPT中",
+          "WHEN 图片有特定尺寸设置 THEN PPT中的图片应保持相同的比例",
+          "WHEN 图片有说明文字 THEN PPT应在图片下方添加说明文字",
+          "WHEN 一页PPT中有多张图片 THEN 系统应自动优化布局",
+          "WHEN 图片为背景图 THEN PPT应将其设置为幻灯片背景"
+        ],
+        "priority": "High",
+        "complexity": "Medium",
+        "dependencies": ["FR-002"],
+        "assumptions": ["HTML中的图片链接可访问或为本地资源"]
+      },
+      {
+        "id": "FR-005",
+        "title": "自定义模板支持",
+        "user_story": "作为用户，我希望能够指定PPT模板，以便生成的演示文稿符合我的品牌或风格要求。",
+        "acceptance_criteria": [
+          "WHEN 用户提供PPT模板文件 THEN 系统应使用该模板生成演示文稿",
+          "WHEN 模板包含母版设计 THEN 系统应正确应用母版样式",
+          "WHEN 模板定义了特定的颜色主题 THEN 系统应优先使用该颜色主题",
+          "WHEN 未提供模板 THEN 系统应使用默认模板",
+          "WHEN 模板与内容存在冲突 THEN 系统应优先保持内容的完整性"
+        ],
+        "priority": "Medium",
+        "complexity": "Medium",
+        "dependencies": ["FR-002", "FR-003"],
+        "assumptions": ["提供的模板文件格式正确且可读取"]
+      },
+      {
+        "id": "FR-006",
+        "title": "备注信息保留",
+        "user_story": "作为用户，我希望HTML中的重要注释和补充信息能够保存在PPT的备注部分，以便演讲时参考。",
+        "acceptance_criteria": [
+          "WHEN HTML包含注释(<!-- -->) THEN 系统应将注释内容添加到对应幻灯片的备注中",
+          "WHEN HTML包含特定的备注标记(如特定class的元素) THEN 系统应将其内容添加到备注中",
+          "WHEN 一页PPT对应多个HTML备注 THEN 系统应合并这些备注",
+          "WHEN 备注内容过长 THEN 系统应保持完整性不截断"
+        ],
+        "priority": "Low",
+        "complexity": "Low",
+        "dependencies": ["FR-002"],
+        "assumptions": ["HTML中有明确标识的备注内容"]
+      },
+      {
+        "id": "FR-007",
+        "title": "本地缓存机制",
+        "user_story": "作为用户，我希望系统能够使用本地缓存存储中间处理结果，以便避免Token限制并提高处理效率。",
+        "acceptance_criteria": [
+          "WHEN 处理大型HTML文档 THEN 系统应将解析结果缓存到本地.cache目录",
+          "WHEN 处理包含多张图片的文档 THEN 系统应将图片临时存储而非使用base64编码",
+          "WHEN 重复处理相同文档 THEN 系统应利用缓存提高效率",
+          "WHEN 缓存文件超过一定大小或时间 THEN 系统应自动清理"
+        ],
+        "priority": "High",
+        "complexity": "Medium",
+        "dependencies": [],
+        "assumptions": ["系统有本地存储权限"]
+      }
+    ],
+    "non_functional_requirements": {
+      "performance": [
+        "系统应能在60秒内完成中等复杂度(约5000字)HTML文档的转换",
+        "系统应能处理至少100页的HTML文档",
+        "系统应能处理包含至少50张图片的HTML文档"
+      ],
+      "security": [
+        "系统不应将用户文档内容发送到未授权的第三方服务",
+        "缓存的敏感内容应在处理完成后自动清理"
+      ],
+      "usability": [
+        "系统应提供清晰的错误信息当HTML解析失败时",
+        "系统应支持常见的HTML标签和CSS属性",
+        "系统应允许用户指定输出PPT的文件路径"
+      ],
+      "reliability": [
+        "系统应能处理格式不完全规范的HTML文档",
+        "当遇到不支持的HTML元素时，系统应跳过而非中断整个处理流程",
+        "系统应在处理失败时保留已完成的部分结果"
+      ]
+    },
+    "constraints": [
+      "系统必须避免使用base64编码传输大文件以防止Token超限",
+      "系统必须使用python-pptx库进行PPT生成",
+      "系统必须支持常见的HTML解析库如BeautifulSoup或lxml",
+      "系统必须考虑LLM的上下文长度限制"
+    ],
+    "assumptions": [
+      "用户提供的HTML文档基本符合HTML标准",
+      "用户有权限访问HTML文档中引用的外部资源",
+      "系统运行环境有足够的磁盘空间存储缓存文件",
+      "用户安装了必要的Python依赖库"
+    ],
+    "success_criteria": [
+      "系统能够成功转换90%以上的测试HTML文档",
+      "生成的PPT内容与原HTML文档的内容一致性达到95%以上",
+      "生成的PPT样式与原HTML文档的视觉效果相似度达到80%以上",
+      "用户满意度调查达到4/5分以上"
+    ],
+    "glossary": {
+      "HTML": "超文本标记语言，用于创建网页的标准标记语言",
+      "PPTX": "Microsoft PowerPoint演示文稿的文件格式",
+      "DOM": "文档对象模型，HTML文档的编程接口",
+      "Token": "LLM处理的基本文本单位，有数量限制",
+      "语义提取": "从文本中识别和提取关键概念、主题和关系的过程"
+    }
+  },
+  "analysis_notes": "本项目是一个典型的文档转换Agent，主要将HTML文档转换为PPTX格式。经过分析，这是一个单Agent场景，因为所有功能都围绕一个核心转换流程，不需要多个专业角色协作。选择'文档处理类'作为Agent类型最为合适，因为核心功能是文档格式转换和内容处理。主要挑战在于HTML的语义提取、结构映射和样式转换，以及如何在不超出Token限制的情况下处理大型文档和图片。为此，设计了本地缓存机制作为关键需求。自定义模板支持也是一个重要特性，允许用户保持其品牌一致性。整体而言，这是一个中等复杂度的项目，主要技术难点在于语义理解和格式映射。"
+}

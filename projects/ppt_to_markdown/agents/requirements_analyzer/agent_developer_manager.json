@@ -1,0 +1,125 @@
+# 项目上下文信息
+
+**项目名称**: ppt_to_markdown
+**Agent名称**: requirements_analyzer  
+**开发阶段**: agent_developer_manager
+**生成时间**: 2025-09-15 08:40:08 UTC
+
+---
+
+{
+  "project_summary": {
+    "project_name": "ppt_to_markdown",
+    "version": "1.0.0",
+    "completion_date": "2025-09-15",
+    "development_status": "Completed",
+    "overview": "PPT to Markdown Converter 是一个专业的智能体系统，能够解析PPT文件、提取每页内容并生成完整的Markdown格式总结报告。该系统允许用户上传PPT文件，自动提取每页内容，并将其转换为结构化的Markdown文档，保持原始PPT的层次结构和格式。",
+    "development_phases": {
+      "requirements_analysis": {
+        "status": "Completed",
+        "key_outcomes": [
+          "定义了系统的功能需求和非功能需求",
+          "确定了系统范围和约束条件",
+          "建立了成功标准和假设条件",
+          "完成了需求文档的编写"
+        ]
+      },
+      "system_architecture": {
+        "status": "Completed",
+        "key_outcomes": [
+          "设计了单Agent架构",
+          "确定了系统上下文和交互模型",
+          "定义了数据模型和交互流程",
+          "制定了安全、错误处理和性能考量"
+        ]
+      },
+      "agent_design": {
+        "status": "Completed",
+        "key_outcomes": [
+          "设计了ppt_to_markdown_converter智能体",
+          "定义了智能体的角色、能力和知识领域",
+          "确定了交互模式和评估标准",
+          "选择了Claude 3.7 Sonnet作为底层模型"
+        ]
+      },
+      "tools_development": {
+        "status": "Completed",
+        "key_outcomes": [
+          "开发了ppt_to_markdown_converter工具",
+          "实现了PPT文件解析和内容提取功能",
+          "实现了格式转换和Markdown生成功能",
+          "添加了错误处理和异常情况管理"
+        ]
+      },
+      "prompt_engineering": {
+        "status": "Completed",
+        "key_outcomes": [
+          "创建了专业的PPT转Markdown提示词模板",
+          "定义了智能体的角色和交互风格",
+          "提供了处理指南和错误处理协议",
+          "优化了提示词以提高转换质量"
+        ]
+      },
+      "agent_code_development": {
+        "status": "Completed",
+        "key_outcomes": [
+          "实现了完整的智能体代码",
+          "集成了工具和提示词模板",
+          "添加了文件验证和错误处理逻辑",
+          "支持多轮交互和结果调整"
+        ]
+      }
+    },
+    "key_features": [
+      "PPT文件上传和验证",
+      "按页面提取PPT内容",
+      "保持原始内容的层次结构",
+      "转换为标准Markdown格式",
+      "支持基本文本格式（标题、列表、段落等）",
+      "提供清晰的处理状态和错误信息",
+      "支持多轮交互和结果调整"
+    ],
+    "limitations": [
+      "不支持复杂图表和图片的详细转换",
+      "不处理PPT动画效果",
+      "不保留高级样式和主题",
+      "不进行内容翻译或修改",
+      "不支持实时协作编辑"
+    ],
+    "usage_instructions": {
+      "basic_usage": "用户只需提供PPT文件路径，智能体将自动处理并返回Markdown格式的结果",
+      "example_commands": [
+        "请将我的presentation.pptx转换为Markdown",
+        "解析/path/to/slides.ppt并生成Markdown报告",
+        "提取这个PPT文件的内容并转换为Markdown格式"
+      ],
+      "advanced_options": [
+        "用户可以请求调整特定页面的格式",
+        "用户可以询问特定部分的转换结果",
+        "用户可以要求优化特定类型的内容（如列表或表格）"
+      ]
+    },
+    "technical_implementation": {
+      "architecture": "单Agent架构，基于Strands框架",
+      "model": "Claude 3.7 Sonnet",
+      "key_technologies": [
+        "Python-pptx库用于PPT解析",
+        "Markdown生成工具",
+        "Strands SDK",
+        "文件系统访问工具"
+      ],
+      "integration_points": [
+        "文件系统接口",
+        "用户交互接口"
+      ]
+    },
+    "future_enhancements": [
+      "增强图片和图表的处理能力",
+      "支持更多PPT格式和特殊元素",
+      "添加批量处理功能",
+      "提供更多自定义选项",
+      "改进处理速度和效率"
+    ]
+  },
+  "agent_development_manager_notes": "项目开发已成功完成所有阶段，从需求分析到智能体代码实现。采用单Agent架构简化了系统复杂度，同时保证了功能完整性。工具开发阶段实现了核心的PPT解析和转换功能，提示词工程阶段创建了专业的交互模板，代码开发阶段集成了所有组件并添加了必要的错误处理和用户交互逻辑。整个开发过程遵循了模块化设计原则，确保了各组件之间的清晰接口和职责分离。最终产品是一个功能完整、用户友好的PPT到Markdown转换智能体，能够满足项目需求文档中定义的所有核心功能。系统设计注重了错误处理和用户体验，确保在各种情况下都能提供有用的反馈和高质量的转换结果。"
+}

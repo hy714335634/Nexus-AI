@@ -208,7 +208,7 @@ def get_aws_pricing(service_code: str, region: str, filters: List[Dict[str, Any]
 @tool
 def get_ec2_instance_pricing(region: str, instance_type: str = None, 
                            tenancy: str = "Shared", offering_class: str = "standard", 
-                           term_type: str = "OnDemand") -> str:
+                           term_type: str = "OnDemand", filter_zero_prices: bool = True) -> str:
     """Get EC2 instance pricing information.
 
     Args:
@@ -217,6 +217,7 @@ def get_ec2_instance_pricing(region: str, instance_type: str = None,
         tenancy (str, optional): Tenancy type (Shared, Dedicated, Host). Defaults to "Shared".
         offering_class (str, optional): Offering class (standard, convertible). Defaults to "standard".
         term_type (str, optional): Term type (OnDemand, Reserved). Defaults to "OnDemand".
+        filter_zero_prices (bool, optional): Whether to filter out items with zero prices. Defaults to True.
 
     Returns:
         str: JSON string containing EC2 pricing information
@@ -266,17 +267,20 @@ def get_ec2_instance_pricing(region: str, instance_type: str = None,
             # Get price information
             terms = item.get('terms', {})
             price_dimensions = None
+            term_info = None
             
             if term_type == 'OnDemand':
                 on_demand_terms = terms.get('OnDemand', {})
                 if on_demand_terms:
                     first_key = next(iter(on_demand_terms))
-                    price_dimensions = on_demand_terms[first_key].get('priceDimensions', {})
+                    term_info = on_demand_terms[first_key]
+                    price_dimensions = term_info.get('priceDimensions', {})
             else:
                 reserved_terms = terms.get('Reserved', {})
                 if reserved_terms:
                     first_key = next(iter(reserved_terms))
-                    price_dimensions = reserved_terms[first_key].get('priceDimensions', {})
+                    term_info = reserved_terms[first_key]
+                    price_dimensions = term_info.get('priceDimensions', {})
             
             # Extract price
             price_per_unit = None
@@ -284,7 +288,31 @@ def get_ec2_instance_pricing(region: str, instance_type: str = None,
                 first_price_key = next(iter(price_dimensions))
                 price_per_unit = price_dimensions[first_price_key].get('pricePerUnit', {})
             
+            # Filter out zero prices if requested
+            if filter_zero_prices and price_per_unit:
+                has_non_zero_price = False
+                for currency, price in price_per_unit.items():
+                    try:
+                        if float(price) > 0:
+                            has_non_zero_price = True
+                            break
+                    except (ValueError, TypeError):
+                        continue
+                if not has_non_zero_price:
+                    continue
+            
+            # Extract additional pricing context
+            pricing_context = {}
+            if term_info:
+                pricing_context = {
+                    'termType': term_info.get('termType'),
+                    'offeringClass': term_info.get('offeringClass'),
+                    'purchaseOption': term_info.get('purchaseOption'),
+                    'leaseContractLength': term_info.get('leaseContractLength')
+                }
+            
             instance_info = {
+                'sku': product.get('sku'),  # Add SKU for differentiation
                 'instanceType': attributes.get('instanceType'),
                 'vCPU': attributes.get('vcpu'),
                 'memory': attributes.get('memory'),
@@ -292,7 +320,8 @@ def get_ec2_instance_pricing(region: str, instance_type: str = None,
                 'operatingSystem': attributes.get('operatingSystem'),
                 'tenancy': attributes.get('tenancy'),
                 'location': attributes.get('location'),
-                'price': price_per_unit
+                'price': price_per_unit,
+                'pricingContext': pricing_context  # Add pricing context
             }
             
             processed_data.append(instance_info)
@@ -302,6 +331,169 @@ def get_ec2_instance_pricing(region: str, instance_type: str = None,
     
     except Exception as e:
         error_message = f"Error getting EC2 pricing: {str(e)}"
+        logger.error(error_message)
+        return json.dumps(format_response(False, None, error_message))
+
+@tool
+def get_ec2_instance_pricing_detailed(region: str, instance_type: str = None, 
+                                   tenancy: str = "Shared", offering_class: str = "standard", 
+                                   term_type: str = "OnDemand", purchase_option: str = None,
+                                   lease_contract_length: str = None) -> str:
+    """Get detailed EC2 instance pricing information with more precise filtering.
+
+    Args:
+        region (str): AWS region code (e.g., us-east-1, eu-west-1, cn-north-1)
+        instance_type (str, optional): EC2 instance type (e.g., t3.micro, m5.large)
+        tenancy (str, optional): Tenancy type (Shared, Dedicated, Host). Defaults to "Shared".
+        offering_class (str, optional): Offering class (standard, convertible). Defaults to "standard".
+        term_type (str, optional): Term type (OnDemand, Reserved). Defaults to "OnDemand".
+        purchase_option (str, optional): Purchase option for Reserved instances (No Upfront, Partial Upfront, All Upfront)
+        lease_contract_length (str, optional): Lease contract length for Reserved instances (1yr, 3yr)
+
+    Returns:
+        str: JSON string containing detailed EC2 pricing information
+    """
+    try:
+        filters = []
+        
+        # Add instance type filter if provided
+        if instance_type:
+            filters.append({
+                'Field': 'instanceType',
+                'Value': instance_type
+            })
+        
+        # Add tenancy filter
+        filters.append({
+            'Field': 'tenancy',
+            'Value': tenancy
+        })
+        
+        # Add term type filter
+        filters.append({
+            'Field': 'termType',
+            'Value': term_type
+        })
+        
+        # Add offering class filter for Reserved instances
+        if term_type == 'Reserved':
+            filters.append({
+                'Field': 'offeringClass',
+                'Value': offering_class
+            })
+            
+            # Add purchase option filter if provided
+            if purchase_option:
+                filters.append({
+                    'Field': 'purchaseOption',
+                    'Value': purchase_option
+                })
+            
+            # Add lease contract length filter if provided
+            if lease_contract_length:
+                filters.append({
+                    'Field': 'leaseContractLength',
+                    'Value': lease_contract_length
+                })
+        
+        # Add operating system filter (Linux)
+        filters.append({
+            'Field': 'operatingSystem',
+            'Value': 'Linux'
+        })
+        
+        # Get pricing information
+        result = json.loads(get_aws_pricing('ec2', region, filters, 100))
+        
+        if not result.get('success'):
+            return json.dumps(result)
+        
+        # Process the pricing data with detailed information
+        pricing_data = result['data']['pricing_data']
+        processed_data = []
+        
+        for item in pricing_data:
+            product = item.get('product', {})
+            attributes = product.get('attributes', {})
+            
+            # Get price information
+            terms = item.get('terms', {})
+            price_dimensions = None
+            term_info = None
+            
+            if term_type == 'OnDemand':
+                on_demand_terms = terms.get('OnDemand', {})
+                if on_demand_terms:
+                    first_key = next(iter(on_demand_terms))
+                    term_info = on_demand_terms[first_key]
+                    price_dimensions = term_info.get('priceDimensions', {})
+            else:
+                reserved_terms = terms.get('Reserved', {})
+                if reserved_terms:
+                    first_key = next(iter(reserved_terms))
+                    term_info = reserved_terms[first_key]
+                    price_dimensions = term_info.get('priceDimensions', {})
+            
+            # Extract price
+            price_per_unit = None
+            if price_dimensions:
+                first_price_key = next(iter(price_dimensions))
+                price_per_unit = price_dimensions[first_price_key].get('pricePerUnit', {})
+            
+            # Skip items with zero prices
+            if price_per_unit:
+                has_non_zero_price = False
+                for currency, price in price_per_unit.items():
+                    try:
+                        if float(price) > 0:
+                            has_non_zero_price = True
+                            break
+                    except (ValueError, TypeError):
+                        continue
+                if not has_non_zero_price:
+                    continue
+            
+            # Extract detailed pricing context
+            pricing_context = {}
+            if term_info:
+                pricing_context = {
+                    'termType': term_info.get('termType'),
+                    'offeringClass': term_info.get('offeringClass'),
+                    'purchaseOption': term_info.get('purchaseOption'),
+                    'leaseContractLength': term_info.get('leaseContractLength'),
+                    'effectiveDate': term_info.get('effectiveDate'),
+                    'expirationDate': term_info.get('expirationDate')
+                }
+            
+            # Extract additional product attributes
+            product_attributes = {
+                'sku': product.get('sku'),
+                'productFamily': product.get('productFamily'),
+                'instanceFamily': attributes.get('instanceFamily'),
+                'instanceType': attributes.get('instanceType'),
+                'vCPU': attributes.get('vcpu'),
+                'memory': attributes.get('memory'),
+                'storage': attributes.get('storage'),
+                'operatingSystem': attributes.get('operatingSystem'),
+                'tenancy': attributes.get('tenancy'),
+                'location': attributes.get('location'),
+                'regionCode': attributes.get('regionCode'),
+                'enhancedNetworkingSupported': attributes.get('enhancedNetworkingSupported'),
+                'dedicatedEbsThroughput': attributes.get('dedicatedEbsThroughput'),
+                'networkPerformance': attributes.get('networkPerformance'),
+                'processorArchitecture': attributes.get('processorArchitecture'),
+                'processorFeatures': attributes.get('processorFeatures'),
+                'price': price_per_unit,
+                'pricingContext': pricing_context
+            }
+            
+            processed_data.append(product_attributes)
+        
+        result['data']['pricing_data'] = processed_data
+        return json.dumps(result, default=decimal_default)
+    
+    except Exception as e:
+        error_message = f"Error getting detailed EC2 pricing: {str(e)}"
         logger.error(error_message)
         return json.dumps(format_response(False, None, error_message))
 

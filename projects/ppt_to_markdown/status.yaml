@@ -1,0 +1,57 @@
+project_info:
+- agents:
+  - created_date: '2025-09-15T08:18:53.358354+00:00'
+    description: 智能体：requirements_analyzer
+    last_updated: '2025-09-15T08:39:28.130890+00:00'
+    name: requirements_analyzer
+    pipeline:
+    - description: 需求分析阶段 - 分析用户需求，定义功能规格
+      doc_path: projects/ppt_to_markdown/agents/requirements_analyzer/requirements_analyzer.json
+      stage: requirements_analyzer
+      status: true
+      updated_date: '2025-09-15T08:18:53.358375+00:00'
+    - description: 系统架构设计阶段 - 设计系统架构和技术方案
+      doc_path: projects/ppt_to_markdown/agents/requirements_analyzer/system_architect.json
+      stage: system_architect
+      status: true
+      updated_date: '2025-09-15T08:21:46.389924+00:00'
+    - description: Agent设计阶段 - 设计智能体结构和交互模式
+      doc_path: projects/ppt_to_markdown/agents/requirements_analyzer/agent_designer.json
+      stage: agent_designer
+      status: true
+      updated_date: '2025-09-15T08:24:02.220867+00:00'
+    - agent_artifact_path:
+      - prompts/generated_agents_prompts/ppt_to_markdown/ppt_to_markdown_converter.yaml
+      description: 提示词工程阶段 - 设计和优化提示词模板
+      doc_path: projects/ppt_to_markdown/agents/requirements_analyzer/prompt_engineer.json
+      stage: prompt_engineer
+      status: true
+      updated_date: '2025-09-15T08:35:27.944564+00:00'
+    - agent_artifact_path:
+      - tools/generated_tools/ppt_to_markdown/ppt_converter.py
+      - tools/generated_tools/ppt_to_markdown/markdown_formatter.py
+      - tools/generated_tools/ppt_to_markdown/file_manager.py
+      description: 工具开发阶段 - 开发必要的工具和函数
+      doc_path: ''
+      stage: tools_developer
+      status: true
+      updated_date: '2025-09-15T08:30:46.984306+00:00'
+    - agent_artifact_path:
+      - agents/generated_agents/ppt_to_markdown/ppt_to_markdown_converter.py
+      description: Agent代码开发阶段 - 实现智能体代码
+      doc_path: projects/ppt_to_markdown/agents/requirements_analyzer/agent_code_developer.json
+      stage: agent_code_developer
+      status: true
+      updated_date: '2025-09-15T08:39:05.570071+00:00'
+    - description: Agent开发管理阶段 - 管理和协调开发流程
+      doc_path: projects/ppt_to_markdown/agents/requirements_analyzer/agent_developer_manager.json
+      stage: agent_developer_manager
+      status: true
+      updated_date: '2025-09-15T08:39:28.130893+00:00'
+  description: 一个能够解析PPT文件、提取每页内容并生成完整Markdown格式总结报告的智能体
+  last_updated: '2025-09-15T08:39:28.130867+00:00'
+  name: ppt_to_markdown
+  progress:
+  - completed: 7
+    total: 7
+  version: 1.0.0

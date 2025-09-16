@@ -1,0 +1,106 @@
+project_info:
+- agents:
+  - created_date: '2025-09-15T17:20:24.853395+00:00'
+    description: 智能体：html2pptx_agent
+    last_updated: '2025-09-15T18:16:04.898053+00:00'
+    name: html2pptx_agent
+    pipeline:
+    - description: 需求分析阶段 - 分析用户需求，定义功能规格
+      doc_path: agents/html2pptx_agent/requirements_analyzer.json
+      stage: requirements_analyzer
+      status: true
+      updated_date: '2025-09-15T17:21:43.469555+00:00'
+    - description: 系统架构设计阶段 - 设计系统架构和技术方案
+      doc_path: agents/html2pptx_agent/system_architect.json
+      stage: system_architect
+      status: true
+      updated_date: '2025-09-15T17:25:13.152360+00:00'
+    - description: Agent设计阶段 - 设计智能体结构和交互模式
+      doc_path: agents/html2pptx_agent/agent_designer.json
+      stage: agent_designer
+      status: true
+      updated_date: '2025-09-15T17:26:59.674140+00:00'
+    - agent_artifact_path:
+      - prompts/generated_agents_prompts/html2pptx/html2pptx_agent.yaml
+      description: 提示词工程阶段 - 设计和优化提示词模板
+      doc_path: ''
+      stage: prompt_engineer
+      status: true
+      updated_date: '2025-09-15T18:15:47.761669+00:00'
+    - agent_artifact_path:
+      - tools/generated_tools/html2pptx/html_parser.py
+      - tools/generated_tools/html2pptx/pptx_generator.py
+      - tools/generated_tools/html2pptx/image_processor.py
+      - tools/generated_tools/html2pptx/cache_manager.py
+      - tools/generated_tools/html2pptx/style_mapper.py
+      - tools/generated_tools/html2pptx/semantic_analyzer.py
+      - tools/generated_tools/html2pptx/layout_optimizer.py
+      description: 工具开发阶段 - 开发必要的工具和函数
+      doc_path: ''
+      stage: tools_developer
+      status: true
+      updated_date: '2025-09-15T18:15:39.847751+00:00'
+    - agent_artifact_path:
+      - agents/generated_agents/html2pptx/html2pptx_agent.py
+      description: Agent代码开发阶段 - 实现智能体代码
+      doc_path: ''
+      stage: agent_code_developer
+      status: true
+      updated_date: '2025-09-15T18:15:57.534568+00:00'
+    - description: Agent开发管理阶段 - 管理和协调开发流程
+      doc_path: ''
+      stage: agent_developer_manager
+      status: true
+      updated_date: '2025-09-15T18:16:04.898057+00:00'
+  - created_date: '2025-09-15T18:03:41.252937+00:00'
+    description: 智能体：HTML2PPTXAgent
+    last_updated: '2025-09-15T18:03:41.252966+00:00'
+    name: HTML2PPTXAgent
+    pipeline:
+    - description: 需求分析阶段 - 分析用户需求，定义功能规格
+      doc_path: ''
+      stage: requirements_analyzer
+      status: false
+      updated_date: null
+    - description: 系统架构设计阶段 - 设计系统架构和技术方案
+      doc_path: ''
+      stage: system_architect
+      status: false
+      updated_date: null
+    - description: Agent设计阶段 - 设计智能体结构和交互模式
+      doc_path: ''
+      stage: agent_designer
+      status: false
+      updated_date: null
+    - description: 提示词工程阶段 - 设计和优化提示词模板
+      doc_path: ''
+      stage: prompt_engineer
+      status: false
+      updated_date: null
+    - agent_artifact_path:
+      - tools/generated_tools/html2pptx/image_processor.py
+      - tools/generated_tools/html2pptx/cache_manager.py
+      - tools/generated_tools/html2pptx/style_mapper.py
+      - tools/generated_tools/html2pptx/semantic_analyzer.py
+      description: 工具开发阶段 - 开发必要的工具和函数
+      doc_path: ''
+      stage: tools_developer
+      status: true
+      updated_date: '2025-09-15T18:03:41.252969+00:00'
+    - description: Agent代码开发阶段 - 实现智能体代码
+      doc_path: ''
+      stage: agent_code_developer
+      status: false
+      updated_date: null
+    - description: Agent开发管理阶段 - 管理和协调开发流程
+      doc_path: ''
+      stage: agent_developer_manager
+      status: false
+      updated_date: null
+  description: 一个智能Agent，能够将HTML文档转换为PPTX格式的演示文稿，保留原始文档的结构、样式、图片和语义内容，支持自定义模板，并能处理任意复杂度的HTML文档。
+  last_updated: '2025-09-15T18:16:04.898042+00:00'
+  name: html2pptx
+  progress:
+  - completed: 8
+    total: 14
+  version: 1.0.0

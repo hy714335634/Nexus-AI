@@ -1,0 +1,441 @@
+# 项目上下文信息
+
+**项目名称**: html2pptx
+**Agent名称**: HTML2PPTXAgent  
+**开发阶段**: tools_developer
+**生成时间**: 2025-09-15 18:03:23 UTC
+
+---
+
+{
+  "tool_development": {
+    "development_overview": {
+      "project_name": "html2pptx",
+      "version": "1.0",
+      "date": "2023-09-15",
+      "development_scope": "开发一组工具，用于将HTML内容转换为PowerPoint演示文稿，包括图片处理、缓存管理、样式映射、语义分析等功能",
+      "design_principles": [
+        "模块化设计，每个工具专注于单一功能",
+        "完整的错误处理和异常捕获",
+        "使用类型注解确保代码安全",
+        "返回结构化JSON数据，便于后续处理",
+        "支持AWS服务集成",
+        "高性能和可扩展性"
+      ],
+      "key_decisions": [
+        "使用BeautifulSoup库进行HTML解析",
+        "使用PIL库进行图片处理",
+        "实现本地缓存机制减少重复处理",
+        "采用JSON作为数据交换格式",
+        "设计专用的样式映射系统确保HTML样式正确转换到PPT"
+      ]
+    },
+    "tools": [
+      {
+        "tool_name": "download_image",
+        "description": "从URL下载图片到本地文件",
+        "function_signature": "download_image(image_url: str, output_path: str = None, timeout: int = 10, headers: Dict[str, str] = None, cache_dir: str = None) -> str",
+        "parameters": [
+          {
+            "name": "image_url",
+            "type": "str",
+            "description": "图片URL",
+            "required": true
+          },
+          {
+            "name": "output_path",
+            "type": "str",
+            "description": "输出文件路径，如果不提供则使用临时文件",
+            "required": false
+          },
+          {
+            "name": "timeout",
+            "type": "int",
+            "description": "下载超时时间（秒）",
+            "required": false
+          },
+          {
+            "name": "headers",
+            "type": "Dict[str, str]",
+            "description": "请求头",
+            "required": false
+          },
+          {
+            "name": "cache_dir",
+            "type": "str",
+            "description": "缓存目录，如果提供则使用缓存",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的下载结果，包含文件路径和元数据",
+        "dependencies": ["requests", "PIL", "os", "hashlib"],
+        "implementation_notes": [
+          "支持URL格式验证",
+          "实现缓存机制避免重复下载",
+          "自动创建临时文件或指定输出路径",
+          "提取图片元数据（尺寸、格式等）"
+        ],
+        "error_handling": [
+          "处理网络连接错误",
+          "处理无效URL",
+          "处理非图片内容",
+          "处理文件写入错误"
+        ],
+        "usage_examples": [
+          "download_image('https://example.com/image.jpg')",
+          "download_image('https://example.com/image.png', output_path='local/path.png', cache_dir='cache')"
+        ]
+      },
+      {
+        "tool_name": "resize_image",
+        "description": "调整图片大小",
+        "function_signature": "resize_image(image_path: str, output_path: str = None, width: int = None, height: int = None, maintain_aspect_ratio: bool = True, resize_method: str = 'lanczos', quality: int = 90) -> str",
+        "parameters": [
+          {
+            "name": "image_path",
+            "type": "str",
+            "description": "输入图片路径",
+            "required": true
+          },
+          {
+            "name": "output_path",
+            "type": "str",
+            "description": "输出图片路径，如果不提供则覆盖原图片",
+            "required": false
+          },
+          {
+            "name": "width",
+            "type": "int",
+            "description": "目标宽度（像素）",
+            "required": false
+          },
+          {
+            "name": "height",
+            "type": "int",
+            "description": "目标高度（像素）",
+            "required": false
+          },
+          {
+            "name": "maintain_aspect_ratio",
+            "type": "bool",
+            "description": "是否保持纵横比",
+            "required": false
+          },
+          {
+            "name": "resize_method",
+            "type": "str",
+            "description": "调整方法，可选值: 'nearest', 'box', 'bilinear', 'hamming', 'bicubic', 'lanczos'",
+            "required": false
+          },
+          {
+            "name": "quality",
+            "type": "int",
+            "description": "JPEG压缩质量（1-100）",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的处理结果",
+        "dependencies": ["PIL", "os"],
+        "implementation_notes": [
+          "支持多种重采样方法",
+          "可以保持或不保持纵横比",
+          "可以只指定宽度或高度，自动计算另一维度",
+          "支持图片质量控制"
+        ],
+        "error_handling": [
+          "处理文件不存在错误",
+          "处理无效参数",
+          "处理图片处理失败"
+        ],
+        "usage_examples": [
+          "resize_image('image.jpg', width=800)",
+          "resize_image('image.png', width=800, height=600, maintain_aspect_ratio=False)"
+        ]
+      },
+      {
+        "tool_name": "initialize_cache",
+        "description": "初始化缓存系统",
+        "function_signature": "initialize_cache(cache_dir: str = None, max_size_mb: int = 500, expiration_days: int = 7, create_if_missing: bool = True) -> str",
+        "parameters": [
+          {
+            "name": "cache_dir",
+            "type": "str",
+            "description": "缓存目录路径，如果不提供则使用系统临时目录下的子目录",
+            "required": false
+          },
+          {
+            "name": "max_size_mb",
+            "type": "int",
+            "description": "缓存最大大小（MB）",
+            "required": false
+          },
+          {
+            "name": "expiration_days",
+            "type": "int",
+            "description": "缓存项过期天数",
+            "required": false
+          },
+          {
+            "name": "create_if_missing",
+            "type": "bool",
+            "description": "如果缓存目录不存在，是否创建",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的初始化结果",
+        "dependencies": ["os", "json", "datetime", "tempfile"],
+        "implementation_notes": [
+          "创建缓存目录结构",
+          "创建配置文件",
+          "设置缓存参数",
+          "返回缓存统计信息"
+        ],
+        "error_handling": [
+          "处理目录创建失败",
+          "处理权限错误",
+          "处理配置文件写入失败"
+        ],
+        "usage_examples": [
+          "initialize_cache()",
+          "initialize_cache('cache_dir', max_size_mb=1000, expiration_days=14)"
+        ]
+      },
+      {
+        "tool_name": "map_html_styles_to_ppt",
+        "description": "将HTML样式映射到PPT样式",
+        "function_signature": "map_html_styles_to_ppt(html_styles: Dict[str, Any], element_type: str, target_format: str = 'pptx') -> str",
+        "parameters": [
+          {
+            "name": "html_styles",
+            "type": "Dict[str, Any]",
+            "description": "HTML元素的样式属性字典",
+            "required": true
+          },
+          {
+            "name": "element_type",
+            "type": "str",
+            "description": "HTML元素类型，如'p', 'h1', 'img', 'table'等",
+            "required": true
+          },
+          {
+            "name": "target_format",
+            "type": "str",
+            "description": "目标格式，默认为'pptx'",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的PPT样式属性",
+        "dependencies": ["re", "json", "colorsys"],
+        "implementation_notes": [
+          "针对不同元素类型进行专门处理",
+          "处理字体、颜色、对齐方式等属性",
+          "支持文本、图片、表格等元素的样式映射"
+        ],
+        "error_handling": [
+          "处理无效样式属性",
+          "处理不支持的元素类型",
+          "处理样式值解析错误"
+        ],
+        "usage_examples": [
+          "map_html_styles_to_ppt({'font-size': '14px', 'color': '#333'}, 'p')",
+          "map_html_styles_to_ppt({'width': '100%', 'border': '1px solid black'}, 'table')"
+        ]
+      },
+      {
+        "tool_name": "analyze_document_structure",
+        "description": "分析HTML文档的语义结构",
+        "function_signature": "analyze_document_structure(html_content: str, parser: str = 'html.parser', max_depth: int = 5) -> str",
+        "parameters": [
+          {
+            "name": "html_content",
+            "type": "str",
+            "description": "HTML文档内容或文件路径",
+            "required": true
+          },
+          {
+            "name": "parser",
+            "type": "str",
+            "description": "解析器类型，可选值: 'html.parser', 'lxml', 'html5lib'",
+            "required": false
+          },
+          {
+            "name": "max_depth",
+            "type": "int",
+            "description": "分析的最大深度",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的文档结构分析结果",
+        "dependencies": ["BeautifulSoup", "json", "re", "nltk"],
+        "implementation_notes": [
+          "分析文档的标题层次结构",
+          "识别主要内容区域",
+          "分析语义分区",
+          "提取文档基本信息"
+        ],
+        "error_handling": [
+          "处理HTML解析错误",
+          "处理无效文件路径",
+          "处理编码问题"
+        ],
+        "usage_examples": [
+          "analyze_document_structure('<html><body><h1>Title</h1><p>Content</p></body></html>')",
+          "analyze_document_structure('document.html', parser='lxml')"
+        ]
+      },
+      {
+        "tool_name": "optimize_slide_layout",
+        "description": "优化幻灯片布局，计算内容元素的最佳位置和大小",
+        "function_signature": "optimize_slide_layout(content_elements: List[Dict[str, Any]], slide_size: Dict[str, float], layout_type: str = 'auto', title_height: float = 1.0) -> str",
+        "parameters": [
+          {
+            "name": "content_elements",
+            "type": "List[Dict[str, Any]]",
+            "description": "内容元素列表，每个元素包含类型、内容和可选的原始大小",
+            "required": true
+          },
+          {
+            "name": "slide_size",
+            "type": "Dict[str, float]",
+            "description": "幻灯片大小，包含宽度和高度（英寸）",
+            "required": true
+          },
+          {
+            "name": "layout_type",
+            "type": "str",
+            "description": "布局类型，可选值: 'auto', 'balanced', 'grid', 'column', 'row'",
+            "required": false
+          },
+          {
+            "name": "title_height",
+            "type": "float",
+            "description": "标题区域高度（英寸）",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的优化布局，包含每个元素的位置和大小",
+        "dependencies": ["json", "math"],
+        "implementation_notes": [
+          "支持多种布局类型",
+          "根据内容元素类型和数量自动选择最佳布局",
+          "考虑元素间的空间关系",
+          "保留标题区域"
+        ],
+        "error_handling": [
+          "处理空元素列表",
+          "处理无效的幻灯片大小",
+          "处理不支持的布局类型"
+        ],
+        "usage_examples": [
+          "optimize_slide_layout([{'type': 'text', 'content': 'Hello'}], {'width': 10, 'height': 7.5})",
+          "optimize_slide_layout([...], {'width': 10, 'height': 7.5}, layout_type='grid')"
+        ]
+      },
+      {
+        "tool_name": "parse_html_document",
+        "description": "解析HTML文档，提取结构化内容",
+        "function_signature": "parse_html_document(html_content: str, parser: str = 'html.parser', extract_images: bool = True, extract_styles: bool = True) -> str",
+        "parameters": [
+          {
+            "name": "html_content",
+            "type": "str",
+            "description": "HTML文档内容或文件路径",
+            "required": true
+          },
+          {
+            "name": "parser",
+            "type": "str",
+            "description": "解析器类型，可选值: 'html.parser', 'lxml', 'html5lib'",
+            "required": false
+          },
+          {
+            "name": "extract_images",
+            "type": "bool",
+            "description": "是否提取图片",
+            "required": false
+          },
+          {
+            "name": "extract_styles",
+            "type": "bool",
+            "description": "是否提取样式",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的结构化内容",
+        "dependencies": ["BeautifulSoup", "json", "re", "os", "urllib.parse"],
+        "implementation_notes": [
+          "支持从文件或字符串解析HTML",
+          "提取文档基本信息",
+          "提取主要内容",
+          "可选提取图片和样式"
+        ],
+        "error_handling": [
+          "处理HTML解析错误",
+          "处理文件读取错误",
+          "处理编码问题"
+        ],
+        "usage_examples": [
+          "parse_html_document('<html><body><h1>Title</h1><p>Content</p></body></html>')",
+          "parse_html_document('document.html', extract_styles=False)"
+        ]
+      }
+    ],
+    "code_quality": {
+      "code_standards": [
+        "遵循PEP 8编码规范",
+        "使用类型注解增强代码安全性",
+        "函数命名清晰表达功能",
+        "详细的文档字符串",
+        "适当的注释说明复杂逻辑"
+      ],
+      "testing_strategy": [
+        "单元测试覆盖主要功能点",
+        "边界条件测试",
+        "异常处理测试",
+        "集成测试验证工具间交互"
+      ],
+      "performance_considerations": [
+        "实现缓存机制减少重复处理",
+        "优化图片处理算法",
+        "高效的HTML解析策略",
+        "避免不必要的计算和内存使用"
+      ],
+      "security_measures": [
+        "验证和清理输入数据",
+        "安全处理文件路径",
+        "避免代码注入风险",
+        "安全处理外部资源（如远程图片）"
+      ]
+    },
+    "integration_details": {
+      "aws_services": [
+        "可扩展以使用S3存储图片和缓存",
+        "可集成AWS Lambda进行无服务器处理"
+      ],
+      "external_libraries": [
+        "BeautifulSoup4: HTML解析",
+        "Pillow (PIL): 图片处理",
+        "requests: 网络请求",
+        "nltk: 自然语言处理"
+      ],
+      "api_endpoints": [
+        "RESTful API设计，便于与前端集成",
+        "支持批量处理的端点"
+      ],
+      "data_formats": [
+        "JSON: 数据交换格式",
+        "Base64: 图片编码",
+        "HTML: 输入格式",
+        "PPTX: 输出格式"
+      ]
+    },
+    "development_notes": "工具开发过程中特别关注了HTML样式到PPT样式的精确映射，这是实现高质量转换的关键。图片处理工具设计了完整的缓存机制，可以显著提高处理效率。语义分析工具使用了自然语言处理技术，能够更好地理解文档结构和内容重要性，从而生成更合理的PPT结构。"
+  }
+}
