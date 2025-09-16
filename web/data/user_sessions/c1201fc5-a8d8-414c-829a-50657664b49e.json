@@ -1,0 +1,30 @@
+{
+  "user_info": {
+    "name": "张强",
+    "department": "企业业务部门",
+    "role": "business_user"
+  },
+  "user_preferences": {
+    "auto_refresh": false,
+    "refresh_interval": 10,
+    "theme": "dark",
+    "language": "zh-CN"
+  },
+  "selected_agent": "aws_pricing_agent",
+  "selected_project_id": "demo-project-1",
+  "selected_template": null,
+  "session_created_at": "2025-09-13T18:03:58.218320",
+  "chat_history_aws_pricing_agent": [
+    {
+      "role": "user",
+      "content": "你好，请帮我查询AWS EC2价格",
+      "timestamp": "2025-09-13T18:03:58.219597"
+    },
+    {
+      "role": "assistant",
+      "content": "好的，我来帮您查询AWS EC2的价格信息。",
+      "timestamp": "2025-09-13T18:03:58.220096"
+    }
+  ],
+  "last_saved": "2025-09-13T18:03:58.220623"
+}
