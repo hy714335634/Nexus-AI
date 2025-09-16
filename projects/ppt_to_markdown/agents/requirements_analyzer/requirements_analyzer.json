@@ -1,0 +1,156 @@
+# 项目上下文信息
+
+**项目名称**: ppt_to_markdown
+**Agent名称**: requirements_analyzer  
+**开发阶段**: requirements_analyzer
+**生成时间**: 2025-09-15 08:18:47 UTC
+
+---
+
+{
+  "requirements_document": {
+    "feature_name": "PPT to Markdown Converter",
+    "version": "1.0",
+    "date": "2025-09-15",
+    "overview": "一个能够解析PPT文件、提取每页内容并生成完整Markdown格式总结报告的智能体系统。该系统允许用户上传PPT文件，自动提取每页内容，并将其转换为结构化的Markdown文档。",
+    "business_value": "帮助用户快速将演示文稿内容转换为易于编辑、分享和发布的Markdown格式，提高文档处理效率，简化知识提取和内容重用过程。",
+    "workflow_complexity": "single_agent",
+    "recommended_agent_type": "文档处理类",
+    "scope": {
+      "included": [
+        "PPT文件上传和解析",
+        "按页面提取PPT内容（文本、标题、列表等）",
+        "保持内容的层级结构",
+        "生成结构化的Markdown文档",
+        "支持基本格式转换（标题、列表、段落等）"
+      ],
+      "excluded": [
+        "图片和复杂图表的详细转换",
+        "动画效果的处理",
+        "实时协作编辑功能",
+        "高级样式和主题保留",
+        "自动翻译或内容修改"
+      ]
+    },
+    "functional_requirements": [
+      {
+        "id": "FR-001",
+        "title": "PPT文件上传和解析",
+        "user_story": "作为用户，我希望能够上传PPT文件，以便系统可以解析其内容",
+        "acceptance_criteria": [
+          "WHEN 用户上传PPT文件 THEN 系统应接受并验证文件格式",
+          "WHEN 文件格式无效 THEN 系统应提供明确的错误消息",
+          "WHEN 文件上传成功 THEN 系统应确认接收并开始处理"
+        ],
+        "priority": "High",
+        "complexity": "Medium",
+        "dependencies": [],
+        "assumptions": ["用户有权访问要上传的PPT文件"]
+      },
+      {
+        "id": "FR-002",
+        "title": "按页面提取PPT内容",
+        "user_story": "作为用户，我希望系统能够按页面顺序提取PPT中的内容，以便保持原始文档的结构",
+        "acceptance_criteria": [
+          "WHEN 系统处理PPT文件 THEN 应按顺序处理每一页",
+          "WHEN 提取页面内容 THEN 应识别标题、正文、列表等基本元素",
+          "WHEN 页面包含文本内容 THEN 应正确提取文本而不丢失信息"
+        ],
+        "priority": "High",
+        "complexity": "High",
+        "dependencies": ["FR-001"],
+        "assumptions": ["PPT文件结构符合标准格式"]
+      },
+      {
+        "id": "FR-003",
+        "title": "内容转换为Markdown格式",
+        "user_story": "作为用户，我希望系统能够将提取的PPT内容转换为标准Markdown格式，以便我可以在各种支持Markdown的平台上使用",
+        "acceptance_criteria": [
+          "WHEN 处理PPT标题 THEN 应转换为对应级别的Markdown标题",
+          "WHEN 处理PPT列表 THEN 应转换为Markdown列表格式",
+          "WHEN 处理PPT段落 THEN 应保持段落结构并转换为Markdown文本",
+          "WHEN 转换完成 THEN 应生成符合Markdown语法的文本"
+        ],
+        "priority": "High",
+        "complexity": "Medium",
+        "dependencies": ["FR-002"],
+        "assumptions": ["系统能够识别PPT中的基本格式元素"]
+      },
+      {
+        "id": "FR-004",
+        "title": "生成完整的Markdown总结报告",
+        "user_story": "作为用户，我希望获得一个完整的Markdown格式总结报告，以便我可以查看和使用转换后的内容",
+        "acceptance_criteria": [
+          "WHEN 所有页面处理完成 THEN 系统应生成单一的Markdown文档",
+          "WHEN 生成报告 THEN 应包含清晰的页面分隔标记",
+          "WHEN 生成报告 THEN 应保持原PPT的内容层次结构",
+          "WHEN 报告生成完成 THEN 用户应能够查看或下载该文档"
+        ],
+        "priority": "High",
+        "complexity": "Medium",
+        "dependencies": ["FR-003"],
+        "assumptions": ["转换过程中不会丢失关键内容信息"]
+      },
+      {
+        "id": "FR-005",
+        "title": "基本格式保留",
+        "user_story": "作为用户，我希望在转换过程中保留基本的文本格式，以便Markdown文档能够反映原始PPT的结构",
+        "acceptance_criteria": [
+          "WHEN 处理加粗文本 THEN 应转换为Markdown加粗格式",
+          "WHEN 处理斜体文本 THEN 应转换为Markdown斜体格式",
+          "WHEN 处理项目符号和编号列表 THEN 应转换为对应的Markdown列表格式"
+        ],
+        "priority": "Medium",
+        "complexity": "Medium",
+        "dependencies": ["FR-003"],
+        "assumptions": ["PPT中使用了标准的文本格式化方式"]
+      }
+    ],
+    "non_functional_requirements": {
+      "performance": [
+        "系统应能在60秒内处理不超过50页的标准PPT文件",
+        "系统应支持同时处理多个用户的请求"
+      ],
+      "security": [
+        "上传的PPT文件应在处理完成后安全删除",
+        "用户数据和文件内容应保持私密性"
+      ],
+      "usability": [
+        "系统界面应简洁明了，易于操作",
+        "应提供处理进度指示",
+        "应提供清晰的错误消息和使用指南"
+      ],
+      "reliability": [
+        "系统应能处理各种常见PPT文件格式（.ppt, .pptx）",
+        "系统应能优雅地处理格式异常的PPT文件",
+        "转换过程中不应丢失关键内容"
+      ]
+    },
+    "constraints": [
+      "系统需要能够解析主流版本的PPT文件格式",
+      "转换过程中可能无法保留所有复杂的格式和样式",
+      "图片和图表只能以简化形式或链接形式在Markdown中表示",
+      "系统处理能力受限于服务器资源"
+    ],
+    "assumptions": [
+      "用户上传的是有效的PPT文件",
+      "PPT文件不包含恶意代码",
+      "用户了解Markdown的基本格式和限制",
+      "系统有足够的资源处理上传的文件"
+    ],
+    "success_criteria": [
+      "系统能够成功解析90%以上的标准PPT文件",
+      "转换后的Markdown保留原PPT的主要内容和结构",
+      "用户能够轻松获取和使用生成的Markdown文档",
+      "转换过程对用户透明且提供适当的反馈"
+    ],
+    "glossary": {
+      "PPT": "PowerPoint演示文稿，微软Office套件的一部分，用于创建演示文稿",
+      "Markdown": "一种轻量级标记语言，创建格式化文本的简单方法，广泛用于文档编写",
+      "解析": "分析和处理文件结构和内容的过程",
+      "提取": "从源文件中获取特定内容的过程",
+      "转换": "将内容从一种格式更改为另一种格式的过程"
+    }
+  },
+  "analysis_notes": "这是一个文档处理类的单Agent项目，主要功能集中在PPT文件解析和Markdown转换上。评估为单Agent是因为整个工作流程相对线性，不需要多个专业角色协作。主要挑战在于准确提取PPT内容并保持结构，特别是处理不同格式和样式的PPT文件时。系统应专注于文本内容的转换，而对于复杂图表和图片等元素可能需要简化处理。用户体验应当简单直接，允许用户上传文件并获取转换结果，无需复杂的交互过程。"
+}

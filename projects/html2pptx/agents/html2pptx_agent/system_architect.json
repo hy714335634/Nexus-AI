@@ -1,0 +1,357 @@
+# 项目上下文信息
+
+**项目名称**: html2pptx
+**Agent名称**: html2pptx_agent  
+**开发阶段**: system_architect
+**生成时间**: 2025-09-15 17:25:07 UTC
+
+---
+
+{
+  "system_design": {
+    "design_overview": {
+      "project_name": "html2pptx",
+      "version": "1.0",
+      "date": "2025-09-15",
+      "design_scope": "设计一个能够将HTML文档转换为PPTX格式的Agent系统，保留原始文档的结构、样式、图片和语义内容，支持自定义模板，并能处理任意复杂度的HTML文档",
+      "design_principles": [
+        "语义优先：确保转换过程中保留HTML文档的语义结构和内容",
+        "样式保留：尽可能保持原始HTML的视觉样式",
+        "模块化设计：将HTML解析、内容提取、PPT生成等功能模块化",
+        "缓存机制：实现本地缓存以解决Token限制问题",
+        "错误容忍：能够处理不规范的HTML文档，跳过不支持的元素而非中断整个流程"
+      ],
+      "key_decisions": [
+        "采用单Agent架构，集成多个专业工具实现完整功能",
+        "使用BeautifulSoup或lxml进行HTML解析",
+        "使用python-pptx库生成PowerPoint文档",
+        "实现本地缓存机制存储中间处理结果和图片资源",
+        "基于document_processor_agent模板开发，扩展文档处理能力"
+      ],
+      "workflow_type": "single_agent",
+      "recommended_templates": ["document_processor_agent"]
+    },
+    "architecture": {
+      "system_context": "系统接收HTML文档和可选的PPT模板作为输入，通过解析HTML结构、提取内容和样式、生成PPT页面等步骤，最终输出PPTX格式的演示文稿。整个过程在单个Agent内完成，通过多个专业工具协同工作。",
+      "agent_topology": "单Agent架构，集成多个专业工具实现完整功能流程",
+      "interaction_model": "用户向Agent提供HTML文档路径和可选的PPT模板路径，Agent完成转换后返回生成的PPTX文件路径。整个过程可以是一次性完成，也可以分步骤交互（如先解析文档，再定制转换选项）。",
+      "technology_stack": {
+        "sdk": "Strands SDK",
+        "runtime": "Local",
+        "integrations": [
+          "BeautifulSoup/lxml (HTML解析)",
+          "python-pptx (PPT生成)",
+          "Pillow (图片处理)",
+          "AWS Bedrock (AI推理引擎)"
+        ]
+      }
+    },
+    "agents": [
+      {
+        "name": "html2pptx_agent",
+        "purpose": "将HTML文档转换为PPTX格式的演示文稿，保留原始文档的结构、样式、图片和语义内容",
+        "responsibilities": [
+          "解析HTML文档结构和内容",
+          "提取HTML中的文本、图片、表格等元素",
+          "分析HTML的语义结构和层次关系",
+          "将HTML元素映射到PPT元素",
+          "生成符合原始样式的PPT页面",
+          "处理和嵌入图片资源",
+          "应用用户指定的PPT模板",
+          "保存备注信息到PPT页面",
+          "实现本地缓存机制"
+        ],
+        "interfaces": {
+          "inputs": [
+            "HTML文档路径或内容",
+            "PPT模板路径（可选）",
+            "输出文件路径（可选）",
+            "转换选项（如是否保留注释、是否分页等）"
+          ],
+          "outputs": [
+            "生成的PPTX文件路径",
+            "转换状态和统计信息（如页数、图片数等）",
+            "警告和错误信息（如不支持的HTML元素）"
+          ]
+        },
+        "dependencies": [
+          "HTML解析工具",
+          "内容提取工具",
+          "PPT生成工具",
+          "图片处理工具",
+          "本地缓存管理工具"
+        ],
+        "implementation_notes": [
+          "基于document_processor_agent模板实现",
+          "核心功能通过自定义工具实现",
+          "使用提示词工程优化AI对HTML结构的理解和PPT生成的质量",
+          "实现渐进式处理机制，避免一次性处理大型文档导致Token超限"
+        ],
+        "recommended_template": "document_processor_agent"
+      }
+    ],
+    "data_models": [
+      {
+        "name": "HTMLDocument",
+        "schema": "包含HTML文档的路径、内容、DOM结构、元数据等信息",
+        "validation_rules": [
+          "HTML文档必须可解析",
+          "文档路径必须存在且可访问"
+        ],
+        "relationships": ["与HTMLElement有一对多关系"]
+      },
+      {
+        "name": "HTMLElement",
+        "schema": "表示HTML文档中的元素，包含标签名、属性、内容、样式、子元素等信息",
+        "validation_rules": [
+          "元素必须有有效的标签名",
+          "样式属性必须格式正确"
+        ],
+        "relationships": ["与HTMLDocument有多对一关系", "与其他HTMLElement有父子关系"]
+      },
+      {
+        "name": "PPTXDocument",
+        "schema": "表示生成的PPT文档，包含文件路径、幻灯片集合、元数据等信息",
+        "validation_rules": [
+          "文件路径必须可写",
+          "至少包含一个幻灯片"
+        ],
+        "relationships": ["与PPTXSlide有一对多关系"]
+      },
+      {
+        "name": "PPTXSlide",
+        "schema": "表示PPT中的一个幻灯片，包含布局、内容元素、备注等信息",
+        "validation_rules": [
+          "幻灯片必须有有效的布局",
+          "内容元素不能超出幻灯片边界"
+        ],
+        "relationships": ["与PPTXDocument有多对一关系", "与PPTXElement有一对多关系"]
+      },
+      {
+        "name": "PPTXElement",
+        "schema": "表示PPT幻灯片中的元素，如文本框、图片、表格等",
+        "validation_rules": [
+          "元素必须有有效的类型",
+          "元素必须有有效的位置和大小"
+        ],
+        "relationships": ["与PPTXSlide有多对一关系"]
+      },
+      {
+        "name": "ConversionMapping",
+        "schema": "定义HTML元素到PPT元素的映射规则，包含源元素、目标元素、转换规则等信息",
+        "validation_rules": [
+          "必须指定源HTML元素类型",
+          "必须指定目标PPT元素类型",
+          "转换规则必须有效"
+        ],
+        "relationships": ["与HTMLElement和PPTXElement有多对多关系"]
+      },
+      {
+        "name": "CacheItem",
+        "schema": "表示缓存的项目，包含键、值、类型、创建时间、过期时间等信息",
+        "validation_rules": [
+          "键必须唯一",
+          "值必须可序列化",
+          "过期时间必须大于创建时间"
+        ],
+        "relationships": []
+      }
+    ],
+    "interaction_flows": [
+      {
+        "name": "基本HTML到PPTX转换流程",
+        "description": "将HTML文档转换为PPTX格式的基本流程",
+        "steps": [
+          {
+            "step": "接收输入参数",
+            "agent": "html2pptx_agent",
+            "action": "验证HTML文档路径和可选的PPT模板路径",
+            "data": "HTML文档路径、PPT模板路径、输出文件路径、转换选项"
+          },
+          {
+            "step": "解析HTML文档",
+            "agent": "html2pptx_agent",
+            "action": "使用HTML解析工具解析文档结构",
+            "data": "HTML文档内容、DOM结构"
+          },
+          {
+            "step": "提取内容和样式",
+            "agent": "html2pptx_agent",
+            "action": "提取HTML中的文本、图片、表格等元素及其样式",
+            "data": "HTMLElement集合、样式信息"
+          },
+          {
+            "step": "分析语义结构",
+            "agent": "html2pptx_agent",
+            "action": "分析HTML的语义结构和层次关系",
+            "data": "语义结构树、关键信息标记"
+          },
+          {
+            "step": "创建PPT文档",
+            "agent": "html2pptx_agent",
+            "action": "创建新的PPT文档或基于模板创建",
+            "data": "PPTXDocument对象"
+          },
+          {
+            "step": "映射HTML到PPT",
+            "agent": "html2pptx_agent",
+            "action": "根据映射规则将HTML元素转换为PPT元素",
+            "data": "ConversionMapping规则、PPTXElement集合"
+          },
+          {
+            "step": "生成PPT页面",
+            "agent": "html2pptx_agent",
+            "action": "创建PPT幻灯片并添加内容元素",
+            "data": "PPTXSlide集合"
+          },
+          {
+            "step": "处理图片资源",
+            "agent": "html2pptx_agent",
+            "action": "下载、处理和嵌入图片资源",
+            "data": "图片文件、图片元数据"
+          },
+          {
+            "step": "应用样式和布局",
+            "agent": "html2pptx_agent",
+            "action": "应用与HTML样式对应的PPT样式和布局",
+            "data": "样式信息、布局配置"
+          },
+          {
+            "step": "添加备注信息",
+            "agent": "html2pptx_agent",
+            "action": "将HTML注释或特定标记的内容添加到PPT备注",
+            "data": "备注文本"
+          },
+          {
+            "step": "保存PPT文档",
+            "agent": "html2pptx_agent",
+            "action": "将生成的PPT文档保存到指定路径",
+            "data": "输出文件路径"
+          },
+          {
+            "step": "返回结果",
+            "agent": "html2pptx_agent",
+            "action": "返回生成的PPTX文件路径和转换统计信息",
+            "data": "PPTX文件路径、转换状态和统计信息"
+          }
+        ]
+      },
+      {
+        "name": "缓存管理流程",
+        "description": "管理本地缓存以解决Token限制问题",
+        "steps": [
+          {
+            "step": "生成缓存键",
+            "agent": "html2pptx_agent",
+            "action": "根据HTML文档内容或路径生成唯一缓存键",
+            "data": "HTML文档信息、缓存键"
+          },
+          {
+            "step": "检查缓存",
+            "agent": "html2pptx_agent",
+            "action": "检查本地缓存中是否存在对应的缓存项",
+            "data": "缓存键、缓存状态"
+          },
+          {
+            "step": "读取缓存",
+            "agent": "html2pptx_agent",
+            "action": "如果缓存存在且有效，读取缓存内容",
+            "data": "缓存内容"
+          },
+          {
+            "step": "处理数据",
+            "agent": "html2pptx_agent",
+            "action": "处理HTML文档或缓存的中间结果",
+            "data": "处理结果"
+          },
+          {
+            "step": "写入缓存",
+            "agent": "html2pptx_agent",
+            "action": "将处理结果写入本地缓存",
+            "data": "处理结果、缓存元数据"
+          },
+          {
+            "step": "清理缓存",
+            "agent": "html2pptx_agent",
+            "action": "清理过期或过大的缓存项",
+            "data": "缓存统计信息"
+          }
+        ]
+      },
+      {
+        "name": "错误处理流程",
+        "description": "处理转换过程中可能出现的错误",
+        "steps": [
+          {
+            "step": "检测错误",
+            "agent": "html2pptx_agent",
+            "action": "检测HTML解析或PPT生成过程中的错误",
+            "data": "错误类型、错误信息"
+          },
+          {
+            "step": "记录错误",
+            "agent": "html2pptx_agent",
+            "action": "记录错误详情和上下文信息",
+            "data": "错误日志"
+          },
+          {
+            "step": "尝试恢复",
+            "agent": "html2pptx_agent",
+            "action": "尝试从错误中恢复或采取替代方案",
+            "data": "恢复策略、恢复状态"
+          },
+          {
+            "step": "跳过不支持元素",
+            "agent": "html2pptx_agent",
+            "action": "跳过不支持的HTML元素而非中断整个流程",
+            "data": "不支持元素列表"
+          },
+          {
+            "step": "返回部分结果",
+            "agent": "html2pptx_agent",
+            "action": "在处理失败时返回已完成的部分结果",
+            "data": "部分结果、错误信息"
+          },
+          {
+            "step": "通知用户",
+            "agent": "html2pptx_agent",
+            "action": "向用户提供清晰的错误信息和建议",
+            "data": "用户友好的错误消息"
+          }
+        ]
+      }
+    ],
+    "security_considerations": [
+      "确保不将用户文档内容发送到未授权的第三方服务",
+      "处理完成后自动清理缓存的敏感内容",
+      "验证输入文件路径以防止路径遍历攻击",
+      "限制可访问的文件系统范围",
+      "避免在错误消息中暴露敏感信息"
+    ],
+    "error_handling": [
+      "对HTML解析错误进行优雅处理，提供清晰的错误信息",
+      "对不支持的HTML元素进行记录并跳过，而非中断整个流程",
+      "对图片下载失败进行处理，提供占位图或跳过",
+      "对PPT生成错误进行处理，尝试保存已完成的部分",
+      "实现超时机制，避免处理大型文档时无限等待",
+      "对本地缓存读写错误进行处理，提供备用方案"
+    ],
+    "performance_considerations": [
+      "实现渐进式处理机制，分批处理大型HTML文档",
+      "优化图片处理流程，避免一次性加载所有图片",
+      "使用本地缓存存储中间处理结果，提高重复处理效率",
+      "实现并行处理机制，同时处理多个独立元素",
+      "优化内存使用，避免存储完整DOM树",
+      "实现资源释放机制，及时释放不再需要的资源"
+    ],
+    "monitoring_strategy": [
+      "记录关键操作的执行时间和资源使用情况",
+      "跟踪HTML解析和PPT生成的成功率和错误率",
+      "监控缓存使用情况和命中率",
+      "记录不支持的HTML元素类型和频率",
+      "提供详细的转换统计信息（如页数、图片数、表格数等）",
+      "实现可配置的日志级别，方便调试和问题排查"
+    ]
+  },
+  "design_rationale": "本设计采用单Agent架构，主要考虑到整个HTML到PPTX的转换是一个连贯的流程，不需要多个Agent协作。选择document_processor_agent作为基础模板，因为它已经包含了文档处理的核心框架，只需要扩展特定的HTML解析和PPTX生成功能。\n\n系统设计重点关注以下几个方面：\n\n1. **语义提取和结构保留**：通过深入分析HTML的DOM结构和语义标签，确保在转换为PPT时保留原始文档的结构层次和语义关系。这对于生成有逻辑性的演示文稿至关重要。\n\n2. **样式映射**：设计了详细的样式映射机制，将HTML的CSS样式属性映射到PPT的样式设置，尽可能保持原始文档的视觉效果。\n\n3. **图片处理**：实现了完整的图片处理流程，包括提取、下载、处理和嵌入，确保PPT中的图片与HTML中的图片保持一致。\n\n4. **本地缓存机制**：为解决Token限制问题，设计了本地缓存机制，将中间处理结果和图片资源存储在本地，避免重复处理和base64编码传输。\n\n5. **错误处理和容错性**：设计了完善的错误处理策略，能够处理各种异常情况，如不规范的HTML、不支持的元素、图片下载失败等，确保系统的稳定性和可靠性。\n\n6. **模块化设计**：将系统分为多个功能模块，如HTML解析、内容提取、PPT生成等，每个模块职责明确，便于开发和维护。\n\n技术选择方面，使用BeautifulSoup或lxml进行HTML解析，python-pptx库生成PowerPoint文档，这些都是成熟稳定的库，能够满足需求。同时，利用AWS Bedrock作为AI推理引擎，提供智能的语义分析和内容提取能力。\n\n整体架构设计兼顾了功能完整性、性能效率和系统稳定性，能够满足将HTML文档转换为PPTX格式的各项需求。"
+}

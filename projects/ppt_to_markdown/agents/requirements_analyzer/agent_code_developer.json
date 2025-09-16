@@ -1,0 +1,231 @@
+# 项目上下文信息
+
+**项目名称**: ppt_to_markdown
+**Agent名称**: requirements_analyzer  
+**开发阶段**: agent_code_developer
+**生成时间**: 2025-09-15 08:38:56 UTC
+
+---
+
+{
+  "agent_code_development": {
+    "development_overview": {
+      "project_name": "ppt_to_markdown",
+      "version": "1.0",
+      "date": "2025-09-15",
+      "development_scope": "开发一个能够解析PPT文件、提取每页内容并生成完整Markdown格式总结报告的智能体",
+      "design_principles": [
+        "模块化设计，职责单一",
+        "完整的错误处理和异常恢复",
+        "清晰的用户交互界面",
+        "保持内容结构和层次",
+        "灵活的格式化选项"
+      ],
+      "key_decisions": [
+        "基于Strands框架和Claude 3.7 Sonnet模型实现",
+        "使用提供的工具集进行PPT解析和Markdown生成",
+        "实现自然语言参数提取功能",
+        "支持多种格式化选项和样式预设",
+        "提供完整的命令行接口"
+      ]
+    },
+    "agent_implementation": {
+      "agent_name": "ppt_to_markdown_converter",
+      "file_path": "agents/generated_agents/ppt_to_markdown/ppt_to_markdown_converter.py",
+      "main_class": "N/A (函数式实现)",
+      "entry_point": "ppt_to_markdown_converter(user_input)",
+      "dependencies": [
+        "utils.agent_factory",
+        "strands.telemetry",
+        "os",
+        "json",
+        "argparse",
+        "pathlib"
+      ],
+      "imports": [
+        "create_agent_from_prompt_template from utils.agent_factory",
+        "StrandsTelemetry from strands.telemetry",
+        "Path from pathlib"
+      ]
+    },
+    "core_functions": [
+      {
+        "function_name": "validate_file_path",
+        "purpose": "验证文件路径是否存在且是PPT文件",
+        "parameters": [
+          {
+            "name": "file_path",
+            "type": "str",
+            "description": "文件路径",
+            "required": true
+          }
+        ],
+        "return_type": "bool",
+        "return_description": "是否是有效的PPT文件",
+        "implementation_notes": [
+          "检查文件是否存在",
+          "验证文件扩展名是否为.ppt或.pptx"
+        ]
+      },
+      {
+        "function_name": "process_user_input",
+        "purpose": "处理用户输入，提取文件路径和其他参数",
+        "parameters": [
+          {
+            "name": "user_input",
+            "type": "str",
+            "description": "用户输入的文本",
+            "required": true
+          }
+        ],
+        "return_type": "Dict[str, Any]",
+        "return_description": "包含文件路径和参数的字典",
+        "implementation_notes": [
+          "使用正则表达式提取文件路径",
+          "识别各种参数选项（页码、标题、笔记等）",
+          "支持中英文指令识别"
+        ]
+      },
+      {
+        "function_name": "format_conversion_result",
+        "purpose": "格式化转换结果为可读的文本",
+        "parameters": [
+          {
+            "name": "conversion_result",
+            "type": "Dict[str, Any]",
+            "description": "转换结果字典",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "格式化后的结果文本",
+        "implementation_notes": [
+          "提取关键元数据（幻灯片数量、标题等）",
+          "使用emoji增强可读性",
+          "区分成功和失败情况"
+        ]
+      },
+      {
+        "function_name": "handle_conversion_request",
+        "purpose": "处理PPT转换请求",
+        "parameters": [
+          {
+            "name": "params",
+            "type": "Dict[str, Any]",
+            "description": "转换参数",
+            "required": true
+          }
+        ],
+        "return_type": "Dict[str, Any]",
+        "return_description": "转换结果",
+        "implementation_notes": [
+          "验证文件有效性",
+          "调用PPT转换工具",
+          "应用格式化和样式",
+          "处理文件保存"
+        ]
+      }
+    ],
+    "tool_integration": {
+      "custom_tools": [
+        "validate_ppt_file",
+        "ppt_to_markdown_converter",
+        "format_markdown_document",
+        "customize_markdown_styling",
+        "save_markdown_file"
+      ],
+      "system_tools": [
+        "file_read",
+        "current_time"
+      ],
+      "strands_tools": [
+        "tool"
+      ],
+      "integration_notes": [
+        "使用strands.tool装饰器调用自定义工具",
+        "工具调用结果以JSON字符串返回，需解析为Python对象",
+        "工具调用采用链式处理模式，结果逐步优化"
+      ]
+    },
+    "configuration": {
+      "environment_variables": [
+        "BYPASS_TOOL_CONSENT",
+        "OTEL_EXPORTER_OTLP_ENDPOINT"
+      ],
+      "model_configuration": {
+        "model_name": "us.anthropic.claude-3-7-sonnet-20250219-v1:0",
+        "max_tokens": 60000,
+        "temperature": 0.3,
+        "top_p": 0.8
+      },
+      "streaming_config": {
+        "enabled": true,
+        "chunk_size": 1024
+      }
+    },
+    "error_handling": {
+      "exception_types": [
+        "FileNotFoundError",
+        "PermissionError",
+        "ValueError",
+        "Exception"
+      ],
+      "error_responses": [
+        "文件不存在或无法访问时提供明确错误信息",
+        "不支持的PPT格式或损坏文件时给出具体提示",
+        "内容提取失败时尝试备用解析方法",
+        "格式转换异常时保留原始内容并标记问题区域"
+      ],
+      "recovery_strategies": [
+        "验证文件存在性和格式",
+        "捕获并记录解析错误",
+        "提供详细的错误信息",
+        "返回结构化的错误响应"
+      ]
+    },
+    "testing": {
+      "test_cases": [
+        "基本PPT转换测试",
+        "错误文件处理测试",
+        "格式调整请求测试",
+        "批量处理测试",
+        "复杂格式处理测试"
+      ],
+      "test_scenarios": [
+        "转换标准PPT文件",
+        "处理不存在的文件",
+        "处理损坏的PPT文件",
+        "自定义格式和样式",
+        "提取演讲者笔记"
+      ],
+      "validation_criteria": [
+        "转换准确性：Markdown内容应准确反映原PPT内容",
+        "结构保持：应保持原PPT的层次结构和组织",
+        "格式转换：基本格式（标题、列表等）应正确转换",
+        "处理效率：应在合理时间内完成转换",
+        "错误处理：应优雅处理异常情况并提供有用反馈"
+      ]
+    },
+    "deployment": {
+      "deployment_requirements": [
+        "Python 3.13+环境",
+        "Strands SDK",
+        "Python-pptx库",
+        "适当的文件系统权限"
+      ],
+      "runtime_dependencies": [
+        "utils.agent_factory",
+        "strands.telemetry",
+        "Python-pptx",
+        "re",
+        "json"
+      ],
+      "performance_considerations": [
+        "大型PPT文件可能需要更多处理时间",
+        "复杂格式和图表可能影响转换质量",
+        "并发处理多个文件需考虑内存使用"
+      ]
+    },
+    "development_notes": "在开发过程中，我采用了模块化设计原则，将功能分解为清晰的组件：文件验证、用户输入处理、转换处理和结果格式化。特别注重自然语言理解能力，使Agent能够从用户描述中提取文件路径和参数，支持灵活的指令表达。为提高用户体验，实现了多种格式化选项和样式预设，并提供了完整的命令行接口，便于集成到自动化流程中。错误处理机制确保在各种异常情况下提供清晰的反馈。通过集成项目中开发的专用工具，实现了高质量的PPT到Markdown转换功能，保持了原始文档的结构和层次。最终的Agent代码既满足了项目需求，又具备良好的可维护性和扩展性。"
+  }
+}

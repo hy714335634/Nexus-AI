@@ -1,0 +1,252 @@
+# 项目上下文信息
+
+**项目名称**: ppt_to_markdown
+**Agent名称**: requirements_analyzer  
+**开发阶段**: system_architect
+**生成时间**: 2025-09-15 08:21:41 UTC
+
+---
+
+{
+  "system_design": {
+    "design_overview": {
+      "project_name": "ppt_to_markdown",
+      "version": "1.0",
+      "date": "2025-09-15",
+      "design_scope": "设计一个能够解析PPT文件、提取每页内容并生成完整Markdown格式总结报告的智能体系统",
+      "design_principles": [
+        "模块化设计，职责单一",
+        "简洁明了的用户交互",
+        "可扩展的文件处理能力",
+        "保持内容结构和层次",
+        "优雅处理异常情况"
+      ],
+      "key_decisions": [
+        "采用单Agent架构，简化系统复杂度",
+        "使用多模态内容分析专家模板作为基础",
+        "利用系统工具parse_multimodal_content_from_path处理PPT文件",
+        "设计清晰的输入输出接口",
+        "实现分页处理和格式转换功能"
+      ],
+      "workflow_type": "single_agent",
+      "recommended_templates": ["multimodal_analyzer_agent", "document_processor_agent"]
+    },
+    "architecture": {
+      "system_context": "系统接收用户上传的PPT文件，通过多模态内容解析工具提取每页内容，保持原始结构和格式，最终生成一个完整的Markdown格式总结报告。整个过程由单一Agent完成，不需要多Agent协作。",
+      "agent_topology": "单Agent架构，由一个核心Agent负责整个工作流程，从文件验证、内容提取到格式转换和报告生成。",
+      "interaction_model": "用户通过提供PPT文件路径与Agent交互，Agent处理文件并返回Markdown格式的结果。支持多轮交互，用户可以询问处理结果或请求调整格式。",
+      "technology_stack": {
+        "sdk": "Strands SDK",
+        "runtime": "Local",
+        "integrations": [
+          "Python-pptx库用于PPT解析",
+          "Markdown生成库",
+          "文件系统访问"
+        ]
+      }
+    },
+    "agents": [
+      {
+        "name": "ppt_to_markdown_converter",
+        "purpose": "将PPT文件转换为结构化的Markdown文档",
+        "responsibilities": [
+          "验证和解析PPT文件",
+          "按页面提取PPT内容",
+          "识别和转换文本格式（标题、列表、段落等）",
+          "保持内容的层级结构",
+          "生成完整的Markdown格式报告"
+        ],
+        "interfaces": {
+          "inputs": [
+            "PPT文件路径",
+            "可选的格式化参数",
+            "用户特定需求指令"
+          ],
+          "outputs": [
+            "Markdown格式的文本内容",
+            "处理状态和进度信息",
+            "错误和警告信息"
+          ]
+        },
+        "dependencies": [
+          "文件系统访问权限",
+          "Python-pptx库",
+          "Markdown生成工具"
+        ],
+        "implementation_notes": [
+          "基于multimodal_analyzer_agent模板实现",
+          "使用parse_multimodal_content_from_path工具处理PPT文件",
+          "设置include_metadata=True以获取更详细的内容结构",
+          "添加特定的PPT处理逻辑",
+          "实现分页处理和页面分隔标记"
+        ],
+        "recommended_template": "multimodal_analyzer_agent"
+      }
+    ],
+    "data_models": [
+      {
+        "name": "PPTDocument",
+        "schema": "包含PPT文件的元数据和内容结构，包括文件路径、页数、作者等信息",
+        "validation_rules": [
+          "文件必须是有效的PPT或PPTX格式",
+          "文件大小不超过系统限制",
+          "文件内容可以被成功解析"
+        ],
+        "relationships": ["与PPTPage有一对多关系"]
+      },
+      {
+        "name": "PPTPage",
+        "schema": "表示PPT中的单个页面，包含页面编号、标题、内容元素等",
+        "validation_rules": [
+          "页面编号必须唯一且连续",
+          "页面内容必须可以被解析"
+        ],
+        "relationships": ["与PPTDocument有多对一关系", "与ContentElement有一对多关系"]
+      },
+      {
+        "name": "ContentElement",
+        "schema": "表示页面中的内容元素，如标题、段落、列表、表格等",
+        "validation_rules": [
+          "元素类型必须是系统支持的类型",
+          "元素内容不能为空"
+        ],
+        "relationships": ["与PPTPage有多对一关系"]
+      },
+      {
+        "name": "MarkdownDocument",
+        "schema": "表示生成的Markdown文档，包含元数据和内容",
+        "validation_rules": [
+          "文档必须符合Markdown语法",
+          "文档必须包含所有转换的内容"
+        ],
+        "relationships": ["与PPTDocument有一对一关系"]
+      }
+    ],
+    "interaction_flows": [
+      {
+        "name": "PPT文件上传和验证",
+        "description": "用户提供PPT文件路径，系统验证文件有效性",
+        "steps": [
+          {
+            "step": "接收文件路径",
+            "agent": "ppt_to_markdown_converter",
+            "action": "验证文件路径是否有效",
+            "data": "文件路径字符串"
+          },
+          {
+            "step": "验证文件格式",
+            "agent": "ppt_to_markdown_converter",
+            "action": "检查文件是否为PPT/PPTX格式",
+            "data": "文件元数据"
+          },
+          {
+            "step": "确认文件可访问",
+            "agent": "ppt_to_markdown_converter",
+            "action": "尝试打开文件并读取基本信息",
+            "data": "文件访问状态"
+          },
+          {
+            "step": "返回验证结果",
+            "agent": "ppt_to_markdown_converter",
+            "action": "通知用户文件验证状态",
+            "data": "验证结果消息"
+          }
+        ]
+      },
+      {
+        "name": "PPT内容提取和转换",
+        "description": "系统解析PPT文件，提取内容并转换为Markdown格式",
+        "steps": [
+          {
+            "step": "解析PPT文件",
+            "agent": "ppt_to_markdown_converter",
+            "action": "使用parse_multimodal_content_from_path工具解析文件",
+            "data": "PPT文件内容"
+          },
+          {
+            "step": "按页面提取内容",
+            "agent": "ppt_to_markdown_converter",
+            "action": "逐页提取PPT内容元素",
+            "data": "页面内容数据"
+          },
+          {
+            "step": "识别内容结构",
+            "agent": "ppt_to_markdown_converter",
+            "action": "识别标题、列表、段落等结构",
+            "data": "结构化内容数据"
+          },
+          {
+            "step": "转换为Markdown格式",
+            "agent": "ppt_to_markdown_converter",
+            "action": "将内容元素转换为对应的Markdown语法",
+            "data": "Markdown文本片段"
+          },
+          {
+            "step": "组装完整文档",
+            "agent": "ppt_to_markdown_converter",
+            "action": "将所有页面内容组合为完整的Markdown文档",
+            "data": "完整Markdown文档"
+          }
+        ]
+      },
+      {
+        "name": "结果展示和交互",
+        "description": "系统向用户展示转换结果并支持进一步交互",
+        "steps": [
+          {
+            "step": "展示转换结果",
+            "agent": "ppt_to_markdown_converter",
+            "action": "向用户展示生成的Markdown内容",
+            "data": "Markdown文本"
+          },
+          {
+            "step": "处理用户反馈",
+            "agent": "ppt_to_markdown_converter",
+            "action": "接收用户对结果的反馈或问题",
+            "data": "用户反馈信息"
+          },
+          {
+            "step": "提供调整选项",
+            "agent": "ppt_to_markdown_converter",
+            "action": "根据用户需求提供格式调整选项",
+            "data": "调整选项列表"
+          },
+          {
+            "step": "执行调整操作",
+            "agent": "ppt_to_markdown_converter",
+            "action": "根据用户选择调整Markdown格式",
+            "data": "调整后的Markdown文本"
+          }
+        ]
+      }
+    ],
+    "security_considerations": [
+      "确保文件访问权限受限，只能访问用户提供的文件",
+      "处理完成后安全删除临时文件",
+      "验证文件内容，防止恶意文件执行",
+      "保护用户数据隐私，不存储敏感内容"
+    ],
+    "error_handling": [
+      "文件不存在或无法访问时提供明确错误信息",
+      "不支持的PPT格式或损坏文件时给出具体提示",
+      "内容提取失败时尝试备用解析方法",
+      "格式转换异常时保留原始内容并标记问题区域",
+      "系统资源不足时提供优化建议"
+    ],
+    "performance_considerations": [
+      "对大型PPT文件实现分块处理，避免内存溢出",
+      "优化图像处理逻辑，减少资源占用",
+      "实现处理进度指示，提升用户体验",
+      "考虑并发处理多个用户请求的能力",
+      "缓存常用操作结果，提高响应速度"
+    ],
+    "monitoring_strategy": [
+      "记录文件处理时间和资源使用情况",
+      "跟踪转换成功率和质量指标",
+      "监控用户交互模式和常见问题",
+      "定期分析错误日志，优化处理逻辑",
+      "收集用户反馈，持续改进系统"
+    ]
+  },
+  "design_rationale": "本设计采用单Agent架构是基于需求复杂度和工作流程的考量。PPT到Markdown的转换是一个相对线性的过程，不需要多个专业Agent协作。选择multimodal_analyzer_agent模板作为基础是因为它已经内置了处理多种文件格式并转换为Markdown的能力，特别是通过parse_multimodal_content_from_path工具可以直接处理PPT文件。系统设计注重模块化和可扩展性，将PPT解析、内容提取和Markdown生成分为清晰的处理步骤。数据模型设计反映了PPT文档的层次结构，便于保持原始内容的组织形式。交互流程设计简洁明了，让用户能够轻松上传文件并获取转换结果。错误处理和监控策略确保系统能够稳定运行并持续优化。总体而言，这一设计平衡了功能需求、用户体验和系统复杂度，为实现高质量的PPT到Markdown转换提供了清晰的技术路线。"
+}

@@ -1,0 +1,290 @@
+# 项目上下文信息
+
+**项目名称**: html2pptx
+**Agent名称**: html2pptx_agent  
+**开发阶段**: agent_code_developer
+**生成时间**: 2025-09-15 18:14:32 UTC
+
+---
+
+{
+  "agent_code_development": {
+    "development_overview": {
+      "project_name": "html2pptx",
+      "version": "1.0",
+      "date": "2025-09-15",
+      "development_scope": "开发一个能够将HTML文档转换为PPTX格式的Agent，保留原始文档的结构、样式、图片和语义内容，支持自定义模板，并实现本地缓存机制",
+      "design_principles": [
+        "模块化设计：将不同功能封装在独立函数中，提高代码可维护性",
+        "错误处理：实现健壮的异常处理机制，确保转换过程中的错误能够被优雅处理",
+        "用户友好：提供清晰的命令行接口和详细的帮助信息",
+        "缓存优化：集成缓存管理工具，提高处理效率并解决Token限制问题",
+        "工具集成：无缝集成各种专业工具，实现完整的转换功能"
+      ],
+      "key_decisions": [
+        "基于document_processor_agent模板进行开发，扩展其文档处理能力",
+        "使用argparse实现命令行界面，支持多种操作模式",
+        "设计多个公共函数，支持不同的使用场景",
+        "实现JSON响应解析，提高结果的结构化程度",
+        "添加详细的类型注解，提高代码可读性和可维护性"
+      ]
+    },
+    "agent_implementation": {
+      "agent_name": "html2pptx_agent",
+      "file_path": "agents/generated_agents/html2pptx/html2pptx_agent.py",
+      "main_class": "N/A (函数式实现)",
+      "entry_point": "main()",
+      "dependencies": [
+        "os", "sys", "json", "argparse", "tempfile", "pathlib",
+        "utils.agent_factory", "strands.telemetry"
+      ],
+      "imports": [
+        "from utils.agent_factory import create_agent_from_prompt_template",
+        "from strands.telemetry import StrandsTelemetry"
+      ]
+    },
+    "core_functions": [
+      {
+        "function_name": "convert_html_to_pptx",
+        "purpose": "将HTML文档转换为PPTX格式的演示文稿",
+        "parameters": [
+          {
+            "name": "html_path",
+            "type": "str",
+            "description": "HTML文档路径",
+            "required": true
+          },
+          {
+            "name": "output_path",
+            "type": "Optional[str]",
+            "description": "输出PPTX文件路径，如果不提供则自动生成",
+            "required": false
+          },
+          {
+            "name": "template_path",
+            "type": "Optional[str]",
+            "description": "PPT模板路径",
+            "required": false
+          },
+          {
+            "name": "use_cache",
+            "type": "bool",
+            "description": "是否使用缓存机制，默认为True",
+            "required": false
+          },
+          {
+            "name": "verbose",
+            "type": "bool",
+            "description": "是否输出详细信息，默认为False",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "生成的PPTX文件路径",
+        "implementation_notes": [
+          "验证输入文件和模板文件是否存在",
+          "如果未提供输出路径，根据输入文件名自动生成",
+          "构建结构化的转换请求",
+          "调用Agent执行转换并验证结果",
+          "处理可能的异常情况"
+        ]
+      },
+      {
+        "function_name": "analyze_html_structure",
+        "purpose": "分析HTML文档结构，但不进行实际转换",
+        "parameters": [
+          {
+            "name": "html_path",
+            "type": "str",
+            "description": "HTML文档路径",
+            "required": true
+          },
+          {
+            "name": "verbose",
+            "type": "bool",
+            "description": "是否输出详细信息，默认为False",
+            "required": false
+          }
+        ],
+        "return_type": "Dict[str, Any]",
+        "return_description": "文档结构分析结果",
+        "implementation_notes": [
+          "验证输入文件是否存在",
+          "构建分析请求",
+          "调用Agent执行分析",
+          "尝试从响应中提取JSON数据",
+          "处理可能的异常情况"
+        ]
+      },
+      {
+        "function_name": "suggest_ppt_structure",
+        "purpose": "根据HTML文档内容建议PPT幻灯片结构",
+        "parameters": [
+          {
+            "name": "html_path",
+            "type": "str",
+            "description": "HTML文档路径",
+            "required": true
+          },
+          {
+            "name": "max_slides",
+            "type": "int",
+            "description": "最大幻灯片数量，默认为10",
+            "required": false
+          },
+          {
+            "name": "verbose",
+            "type": "bool",
+            "description": "是否输出详细信息，默认为False",
+            "required": false
+          }
+        ],
+        "return_type": "Dict[str, Any]",
+        "return_description": "幻灯片结构建议",
+        "implementation_notes": [
+          "验证输入文件是否存在",
+          "构建建议请求",
+          "调用Agent执行分析",
+          "尝试从响应中提取JSON数据",
+          "处理可能的异常情况"
+        ]
+      },
+      {
+        "function_name": "clear_cache",
+        "purpose": "清理本地缓存",
+        "parameters": [
+          {
+            "name": "verbose",
+            "type": "bool",
+            "description": "是否输出详细信息，默认为False",
+            "required": false
+          }
+        ],
+        "return_type": "bool",
+        "return_description": "清理是否成功",
+        "implementation_notes": [
+          "构建清理请求",
+          "调用Agent执行清理",
+          "根据响应判断清理是否成功",
+          "处理可能的异常情况"
+        ]
+      },
+      {
+        "function_name": "main",
+        "purpose": "命令行入口函数",
+        "parameters": [],
+        "return_type": "None",
+        "return_description": "无返回值",
+        "implementation_notes": [
+          "使用argparse创建命令行参数解析器",
+          "定义子命令：convert, analyze, suggest, clear-cache",
+          "解析命令行参数",
+          "根据命令调用相应的函数",
+          "处理可能的异常情况并设置退出码"
+        ]
+      }
+    ],
+    "tool_integration": {
+      "custom_tools": [
+        "html_parser: 用于解析HTML文档结构和内容",
+        "pptx_generator: 用于生成PowerPoint文档",
+        "image_processor: 用于处理和嵌入图片资源",
+        "cache_manager: 用于实现本地缓存机制",
+        "style_mapper: 用于将HTML样式映射到PPT样式",
+        "semantic_analyzer: 用于分析HTML的语义结构",
+        "layout_optimizer: 用于优化PPT页面布局"
+      ],
+      "system_tools": [
+        "file_read: 用于读取HTML文件内容",
+        "file_write: 用于写入PPTX文件",
+        "current_time: 用于生成时间戳"
+      ],
+      "strands_tools": [
+        "utils.agent_factory: 用于创建Agent实例",
+        "strands.telemetry: 用于遥测和监控"
+      ],
+      "integration_notes": [
+        "工具通过提示词模板中的工具依赖配置集成",
+        "使用create_agent_from_prompt_template函数加载提示词和工具",
+        "Agent会根据用户请求自动选择和调用适当的工具",
+        "所有工具错误都会被Agent捕获并处理"
+      ]
+    },
+    "configuration": {
+      "environment_variables": [
+        "BYPASS_TOOL_CONSENT: 设置为true以绕过工具使用确认",
+        "OTEL_EXPORTER_OTLP_ENDPOINT: 设置OpenTelemetry导出器端点"
+      ],
+      "model_configuration": {
+        "model_name": "us.anthropic.claude-3-7-sonnet-20250219-v1:0",
+        "max_tokens": 60000,
+        "temperature": 0.3,
+        "top_p": 0.8
+      },
+      "streaming_config": {
+        "enabled": true,
+        "chunk_size": 1024
+      }
+    },
+    "error_handling": {
+      "exception_types": [
+        "FileNotFoundError: 处理输入文件或模板文件不存在的情况",
+        "json.JSONDecodeError: 处理JSON解析失败的情况",
+        "Exception: 处理其他所有异常"
+      ],
+      "error_responses": [
+        "详细的错误消息，包含错误类型和描述",
+        "对于命令行模式，设置非零退出码",
+        "对于函数调用模式，抛出异常供调用者处理"
+      ],
+      "recovery_strategies": [
+        "文件不存在时提供明确的错误消息",
+        "JSON解析失败时返回原始文本响应",
+        "命令行模式下捕获所有异常并提供用户友好的错误消息"
+      ]
+    },
+    "testing": {
+      "test_cases": [
+        "基本转换：将简单HTML文件转换为PPTX",
+        "模板使用：使用自定义模板进行转换",
+        "结构分析：分析HTML文档结构",
+        "建议生成：生成PPT结构建议",
+        "缓存管理：清理缓存并验证结果"
+      ],
+      "test_scenarios": [
+        "简单HTML文档（仅包含文本和基本格式）",
+        "复杂HTML文档（包含表格、图片和复杂结构）",
+        "不规范HTML文档（包含错误或不完整的标记）",
+        "大型HTML文档（测试性能和缓存机制）"
+      ],
+      "validation_criteria": [
+        "输出文件存在且格式正确",
+        "内容完整性：原始内容被正确转换",
+        "样式保留：原始样式被正确映射",
+        "结构保留：原始文档结构被正确保留",
+        "性能要求：转换时间在可接受范围内"
+      ]
+    },
+    "deployment": {
+      "deployment_requirements": [
+        "Python 3.13+",
+        "Strands SDK",
+        "python-pptx库",
+        "BeautifulSoup或lxml库",
+        "Pillow库"
+      ],
+      "runtime_dependencies": [
+        "utils.agent_factory",
+        "strands.telemetry",
+        "提示词模板：generated_agents_prompts/html2pptx/html2pptx_agent"
+      ],
+      "performance_considerations": [
+        "大型HTML文档可能需要较长处理时间",
+        "图片处理可能消耗大量内存",
+        "缓存机制可以显著提高重复处理的效率",
+        "模型上下文长度限制可能影响复杂文档的处理"
+      ]
+    },
+    "development_notes": "HTML2PPTX Agent的开发遵循了模块化设计原则，将功能分解为多个独立函数，便于维护和扩展。代码实现了完整的命令行接口，支持转换、分析、建议和缓存清理等功能。错误处理机制确保了在各种异常情况下能够提供清晰的错误信息。类型注解的使用提高了代码的可读性和可维护性。Agent通过提示词模板集成了多个专业工具，包括HTML解析、PPT生成、图片处理、缓存管理、样式映射、语义分析和布局优化等，实现了完整的HTML到PPTX的转换功能。此外，还实现了本地缓存机制，解决了Token限制问题，提高了处理效率。整体设计考虑了用户体验、性能优化和错误处理等方面，是一个功能完整、易于使用的文档转换Agent。"
+  }
+}

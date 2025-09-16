@@ -1,0 +1,6 @@
+project:
+  created_date: '2025-09-15T08:17:22.139490+00:00'
+  description: 一个能够解析PPT文件、提取每页内容并生成完整Markdown格式总结报告的智能体
+  name: ppt_to_markdown
+  updated_date: '2025-09-15T08:17:25.584124+00:00'
+  version: 1.0.0

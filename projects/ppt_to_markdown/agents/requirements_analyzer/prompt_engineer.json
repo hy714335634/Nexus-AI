@@ -1,0 +1,168 @@
+# 项目上下文信息
+
+**项目名称**: ppt_to_markdown
+**Agent名称**: requirements_analyzer  
+**开发阶段**: prompt_engineer
+**生成时间**: 2025-09-15 08:35:21 UTC
+
+---
+
+{
+  "prompt_design": {
+    "agent_name": "ppt_to_markdown_converter",
+    "prompt_version": "1.0.0",
+    "created_date": "2025-09-15T08:33:36.297150+00:00",
+    "design_goals": [
+      "创建一个专业的PPT到Markdown转换提示词模板",
+      "确保提示词完整定义智能体角色、能力和工作流程",
+      "包含详细的错误处理和输出规范",
+      "支持多轮交互和用户反馈处理",
+      "整合项目特定的工具依赖"
+    ],
+    "prompt_structure": {
+      "role_definition": "定义智能体作为PPT内容提取和Markdown转换专家的身份和职责",
+      "core_capabilities": "列举智能体的五项核心能力，包括文件验证、内容提取、格式转换等",
+      "professional_skills": "详细说明智能体的专业技能，如PPT结构识别、格式转换等",
+      "workflow": "定义五步工作流程，从文件接收到结果输出",
+      "output_specifications": "规定Markdown文档的结构、页面分隔、格式保持和元数据要求",
+      "constraints": "明确智能体的七项操作限制",
+      "error_handling": "提供五种常见错误情况的处理方法",
+      "tools_usage": "列出并说明可用工具及其用途",
+      "interaction_guidelines": "提供五种交互场景的处理指南"
+    },
+    "key_components": {
+      "personality_traits": ["专业", "高效", "细致", "有条理", "耐心"],
+      "communication_style": "清晰简洁，专注于任务，提供详细的处理状态和结果说明",
+      "core_functions": [
+        "验证和解析PPT文件",
+        "按页面提取PPT内容",
+        "识别和转换文本格式",
+        "保持内容的层级结构",
+        "生成完整的Markdown格式报告"
+      ],
+      "error_scenarios": [
+        "文件不存在或无法访问",
+        "不支持的PPT格式或损坏文件",
+        "内容提取失败",
+        "格式转换异常",
+        "系统资源不足"
+      ],
+      "output_format": {
+        "document_structure": "使用Markdown语法组织文档结构",
+        "page_separation": "每页PPT内容以二级标题分隔",
+        "format_preservation": "保持原文本格式、列表层级和表格结构",
+        "metadata_inclusion": "添加原PPT基本信息和转换摘要"
+      }
+    },
+    "tools_integration": {
+      "file_management_tools": [
+        "validate_ppt_file",
+        "find_ppt_files",
+        "create_output_directory",
+        "save_markdown_file"
+      ],
+      "conversion_tools": [
+        "extract_ppt_structure",
+        "ppt_to_markdown_converter",
+        "batch_convert_ppt_to_markdown"
+      ],
+      "formatting_tools": [
+        "format_markdown_document",
+        "customize_markdown_styling",
+        "extract_markdown_sections"
+      ],
+      "utility_tools": [
+        "file_read",
+        "current_time"
+      ]
+    },
+    "prompt_optimization": {
+      "clarity_improvements": [
+        "使用清晰的章节标题组织提示词内容",
+        "为每个核心能力和专业技能提供简洁描述",
+        "使用编号列表提高工作流程可读性",
+        "明确区分不同类型的错误处理方法"
+      ],
+      "specificity_enhancements": [
+        "详细说明Markdown格式转换规则",
+        "明确指定页面分隔方式",
+        "提供具体的交互示例",
+        "详细描述工具使用场景"
+      ],
+      "constraint_refinements": [
+        "明确限制智能体只处理用户提供的PPT文件",
+        "指定不支持的功能（如复杂图表转换、动画处理等）",
+        "设定清晰的操作边界"
+      ]
+    },
+    "testing_scenarios": [
+      {
+        "scenario": "基本PPT转换",
+        "input": "请将这个PPT文件转换为Markdown: /path/to/simple.pptx",
+        "expected_behavior": "验证文件，提取内容，转换格式，生成Markdown文档"
+      },
+      {
+        "scenario": "错误文件处理",
+        "input": "请转换这个不存在的文件: /path/to/nonexistent.pptx",
+        "expected_behavior": "提供明确的文件不存在错误信息和解决建议"
+      },
+      {
+        "scenario": "格式调整请求",
+        "input": "能否在转换后的文档中为每页添加更明显的分隔符？",
+        "expected_behavior": "理解请求，调整格式，重新生成Markdown文档"
+      },
+      {
+        "scenario": "批量处理",
+        "input": "请将/presentations目录下的所有PPT文件转换为Markdown",
+        "expected_behavior": "查找所有PPT文件，批量转换，生成多个Markdown文档"
+      },
+      {
+        "scenario": "复杂格式处理",
+        "input": "这个PPT包含表格和图片，请尽可能保留其结构",
+        "expected_behavior": "尝试转换表格，标注图片位置，优雅处理复杂元素"
+      }
+    ]
+  },
+  "prompt_implementation": {
+    "file_path": "prompts/generated_agents_prompts/ppt_to_markdown/ppt_to_markdown_converter.yaml",
+    "prompt_format": "YAML",
+    "model_configuration": {
+      "model": "us.anthropic.claude-3-7-sonnet-20250219-v1:0",
+      "temperature": 0.3,
+      "top_p": 0.8
+    },
+    "environment_settings": {
+      "development": {
+        "max_tokens": 4096,
+        "streaming": true
+      },
+      "production": {
+        "max_tokens": 60000,
+        "streaming": true
+      },
+      "testing": {
+        "max_tokens": 2048,
+        "streaming": true
+      }
+    },
+    "metadata": {
+      "tags": ["document_conversion", "ppt_processing", "markdown_generation", "format_conversion"],
+      "category": "document_conversion"
+    },
+    "tools_dependencies": [
+      "strands_tools/file_read",
+      "strands_tools/current_time",
+      "generated_tools/ppt_to_markdown/file_manager/create_output_directory",
+      "generated_tools/ppt_to_markdown/file_manager/find_ppt_files",
+      "generated_tools/ppt_to_markdown/file_manager/save_markdown_file",
+      "generated_tools/ppt_to_markdown/file_manager/validate_ppt_file",
+      "generated_tools/ppt_to_markdown/markdown_formatter/customize_markdown_styling",
+      "generated_tools/ppt_to_markdown/markdown_formatter/extract_markdown_sections",
+      "generated_tools/ppt_to_markdown/markdown_formatter/format_markdown_document",
+      "generated_tools/ppt_to_markdown/ppt_converter/batch_convert_ppt_to_markdown",
+      "generated_tools/ppt_to_markdown/ppt_converter/extract_ppt_structure",
+      "generated_tools/ppt_to_markdown/ppt_converter/ppt_to_markdown_converter"
+    ]
+  },
+  "design_rationale": "提示词设计基于项目的系统架构和智能体设计规格，重点关注PPT到Markdown的转换功能。提示词结构清晰地定义了智能体的角色、能力、工作流程和约束，确保智能体能够有效地执行PPT文件解析和Markdown生成任务。\n\n系统提示词采用分层结构，从角色定义到具体工作流程，再到错误处理和交互指南，全面涵盖了智能体运行所需的指导。特别强调了保持原始PPT结构和格式的重要性，这是根据需求分析中的核心要求设计的。\n\n工具集成部分详细列出了项目中开发的所有工具，并按功能分类，使智能体能够灵活选择合适的工具完成不同任务。错误处理部分针对常见问题提供了明确的处理方法，提高了智能体的健壮性。\n\n交互指南部分确保智能体能够以专业、友好的方式与用户沟通，提供清晰的处理状态和结果说明。整体设计遵循了项目需求中对专业性、高效性和细致性的要求，同时考虑了系统架构中定义的工作流程和交互模型。"
+}

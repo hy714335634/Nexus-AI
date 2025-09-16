@@ -1,0 +1,8 @@
+{
+    "total_nodes": 5,
+    "completed_nodes": 5,
+    "failed_nodes": 0,
+    "execution_time": 3451700,
+    "accumulated_usage": "{'inputTokens': 1598196, 'outputTokens': 22891, 'totalTokens': 1621087}",
+    "outputs": {}
+}

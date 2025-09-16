@@ -1,0 +1,6 @@
+project:
+  created_date: '2025-09-15T17:19:57.759347+00:00'
+  description: 一个智能Agent，能够将HTML文档转换为PPTX格式的演示文稿，保留原始文档的结构、样式、图片和语义内容，支持自定义模板，并能处理任意复杂度的HTML文档。
+  name: html2pptx
+  updated_date: '2025-09-15T17:20:02.507326+00:00'
+  version: 1.0.0
