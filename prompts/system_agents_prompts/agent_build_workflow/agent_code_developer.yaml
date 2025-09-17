@@ -536,4 +536,4 @@ agent:
           - "system_tools/agent_build_workflow/project_manager/get_agent_artifact_paths"
           - "system_tools/agent_build_workflow/project_manager/update_agent_artifact_paths"
           - "system_tools/agent_build_workflow/project_manager/get_agent_artifact_paths"
-          - "system_tools/agent_build_workflow/project_manager/update_agent_artifact_paths"        
+          - "system_tools/agent_build_workflow/project_manager/update_agent_artifact_paths"
