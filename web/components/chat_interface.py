@@ -1253,14 +1253,6 @@ def render_modern_chat_message(message: Dict, agent_name: str) -> None:
             content_html = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', content_html)
             content_html = re.sub(r'\*(.*?)\*', r'<em>\1</em>', content_html)
         
-        status_info = ""
-        if processing_time or tokens_used:
-            status_info = f"""
-            <div class="status-info">
-                <span>⏱️ 处理时间: {processing_time}</span>
-                <span>🔤 Token使用: {tokens_used}</span>
-            </div>
-            """
         
         st.markdown(f"""
         <div class="message-bubble assistant">
@@ -1269,7 +1261,6 @@ def render_modern_chat_message(message: Dict, agent_name: str) -> None:
                 <span class="message-time">({time_str})</span>
             </div>
             <div class="message-content">{content_html}</div>
-            {status_info}
         </div>
         """, unsafe_allow_html=True)
 
