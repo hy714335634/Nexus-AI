@@ -1,0 +1,6 @@
+project:
+  created_date: '2025-09-10T14:30:02.539045+00:00'
+  description: 一个能够根据用户关注话题检索热门新闻的智能体，支持从百度、新浪、澎湃等主流媒体获取新闻信息。
+  name: news_retrieval_agent
+  updated_date: '2025-09-10T14:30:06.620824+00:00'
+  version: 1.0.0
