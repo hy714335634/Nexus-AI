@@ -1,0 +1,347 @@
+# 项目上下文信息
+
+**项目名称**: pdf_content_extractor
+**Agent名称**: pdf_extractor_agent  
+**开发阶段**: tools_developer
+**生成时间**: 2025-09-12 09:33:54 UTC
+
+---
+
+{
+  "tool_development": {
+    "development_overview": {
+      "project_name": "pdf_content_extractor",
+      "version": "1.0",
+      "date": "2025-09-12",
+      "development_scope": "PDF处理工具开发，包括PDF转图片、处理状态管理和文本内容合并功能",
+      "design_principles": [
+        "模块化设计，分离不同功能",
+        "健壮的错误处理机制",
+        "支持断点续传功能",
+        "清晰的进度反馈",
+        "高效的资源管理"
+      ],
+      "key_decisions": [
+        "使用PyMuPDF库进行PDF转图片处理",
+        "使用JSON格式存储处理状态",
+        "实现页面级处理和合并功能",
+        "添加初始化和清理工具函数"
+      ]
+    },
+    "tools": [
+      {
+        "tool_name": "pdf_to_images",
+        "description": "将PDF文件的每一页转换为图片，存储在指定目录中",
+        "function_signature": "pdf_to_images(pdf_path: str, output_dir: str = '.cache', dpi: int = 300, start_page: int = 0, end_page: Optional[int] = None, image_format: str = 'png', overwrite: bool = False) -> str",
+        "parameters": [
+          {
+            "name": "pdf_path",
+            "type": "str",
+            "description": "PDF文件路径",
+            "required": true
+          },
+          {
+            "name": "output_dir",
+            "type": "str",
+            "description": "图片输出目录",
+            "required": false
+          },
+          {
+            "name": "dpi",
+            "type": "int",
+            "description": "图像分辨率",
+            "required": false
+          },
+          {
+            "name": "start_page",
+            "type": "int",
+            "description": "起始页码",
+            "required": false
+          },
+          {
+            "name": "end_page",
+            "type": "Optional[int]",
+            "description": "结束页码",
+            "required": false
+          },
+          {
+            "name": "image_format",
+            "type": "str",
+            "description": "图像格式",
+            "required": false
+          },
+          {
+            "name": "overwrite",
+            "type": "bool",
+            "description": "是否覆盖已存在的图像",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的转换结果，包括成功状态、转换页数和图像路径",
+        "dependencies": ["PyMuPDF (fitz)", "os", "json", "pathlib"],
+        "implementation_notes": [
+          "使用PyMuPDF库进行高效的PDF处理",
+          "支持指定页码范围进行处理",
+          "提供详细的错误处理和状态反馈",
+          "支持不同的图像格式和分辨率"
+        ],
+        "error_handling": [
+          "验证PDF文件是否存在",
+          "验证页码范围是否有效",
+          "捕获并记录每页转换过程中的异常",
+          "确保PDF文档在处理完成后关闭"
+        ],
+        "usage_examples": [
+          "pdf_to_images('document.pdf')",
+          "pdf_to_images('document.pdf', output_dir='output', dpi=200, image_format='jpg')",
+          "pdf_to_images('document.pdf', start_page=5, end_page=10, overwrite=True)"
+        ]
+      },
+      {
+        "tool_name": "manage_processing_state",
+        "description": "管理PDF处理状态，支持断点续传功能",
+        "function_signature": "manage_processing_state(action: str, pdf_path: str, state_dir: str = '.cache', state_data: Optional[Dict[str, Any]] = None) -> str",
+        "parameters": [
+          {
+            "name": "action",
+            "type": "str",
+            "description": "操作类型：create, read, update, delete",
+            "required": true
+          },
+          {
+            "name": "pdf_path",
+            "type": "str",
+            "description": "PDF文件路径",
+            "required": true
+          },
+          {
+            "name": "state_dir",
+            "type": "str",
+            "description": "状态文件存储目录",
+            "required": false
+          },
+          {
+            "name": "state_data",
+            "type": "Optional[Dict[str, Any]]",
+            "description": "状态数据（create和update操作需要）",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的操作结果，包括成功状态、消息和状态数据",
+        "dependencies": ["os", "json", "pathlib"],
+        "implementation_notes": [
+          "使用JSON格式存储处理状态",
+          "支持创建、读取、更新和删除操作",
+          "状态文件名基于PDF文件名生成",
+          "提供详细的操作反馈"
+        ],
+        "error_handling": [
+          "验证操作类型是否有效",
+          "检查状态文件是否存在",
+          "确保create和update操作提供了状态数据",
+          "捕获并处理文件操作异常"
+        ],
+        "usage_examples": [
+          "manage_processing_state('create', 'document.pdf', state_data={'processed_pages': []})",
+          "manage_processing_state('read', 'document.pdf')",
+          "manage_processing_state('update', 'document.pdf', state_data={'processed_pages': [0, 1, 2]})",
+          "manage_processing_state('delete', 'document.pdf')"
+        ]
+      },
+      {
+        "tool_name": "merge_text_content",
+        "description": "将多个文本文件合并成一个完整的文本文件",
+        "function_signature": "merge_text_content(input_files: List[str], output_file: str, include_page_numbers: bool = True, handle_missing_files: bool = True, cleanup_temp_files: bool = False) -> str",
+        "parameters": [
+          {
+            "name": "input_files",
+            "type": "List[str]",
+            "description": "要合并的文本文件路径列表",
+            "required": true
+          },
+          {
+            "name": "output_file",
+            "type": "str",
+            "description": "输出文件路径",
+            "required": true
+          },
+          {
+            "name": "include_page_numbers",
+            "type": "bool",
+            "description": "是否在输出中包含页码",
+            "required": false
+          },
+          {
+            "name": "handle_missing_files",
+            "type": "bool",
+            "description": "是否处理缺失文件的情况",
+            "required": false
+          },
+          {
+            "name": "cleanup_temp_files",
+            "type": "bool",
+            "description": "是否删除临时文件",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的合并结果，包括成功状态、处理文件数和内容长度",
+        "dependencies": ["os", "pathlib"],
+        "implementation_notes": [
+          "支持按顺序合并多个文本文件",
+          "可以在输出中包含页码标记",
+          "可以处理缺失文件的情况",
+          "可以在合并后清理临时文件"
+        ],
+        "error_handling": [
+          "验证输入文件列表是否为空",
+          "检查输入文件是否存在",
+          "捕获并处理文件读写异常",
+          "提供详细的错误信息"
+        ],
+        "usage_examples": [
+          "merge_text_content(['page_0.txt', 'page_1.txt'], 'output.txt')",
+          "merge_text_content(text_files, 'output.txt', include_page_numbers=False)",
+          "merge_text_content(text_files, 'output.txt', cleanup_temp_files=True)"
+        ]
+      },
+      {
+        "tool_name": "initialize_pdf_extraction",
+        "description": "初始化PDF提取过程，设置状态管理",
+        "function_signature": "initialize_pdf_extraction(pdf_path: str, output_dir: str = '.cache', output_file: str = None, force_restart: bool = False) -> str",
+        "parameters": [
+          {
+            "name": "pdf_path",
+            "type": "str",
+            "description": "PDF文件路径",
+            "required": true
+          },
+          {
+            "name": "output_dir",
+            "type": "str",
+            "description": "输出目录",
+            "required": false
+          },
+          {
+            "name": "output_file",
+            "type": "str",
+            "description": "输出文件路径",
+            "required": false
+          },
+          {
+            "name": "force_restart",
+            "type": "bool",
+            "description": "是否强制重新开始",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的初始化结果，包括PDF信息和状态文件路径",
+        "dependencies": ["PyMuPDF (fitz)", "os", "json", "pathlib"],
+        "implementation_notes": [
+          "获取PDF文件的基本信息",
+          "创建初始处理状态",
+          "支持从之前的状态恢复",
+          "支持强制重新开始处理"
+        ],
+        "error_handling": [
+          "验证PDF文件是否存在",
+          "捕获并处理PDF信息提取异常",
+          "确保PDF文档在处理完成后关闭",
+          "提供详细的错误信息"
+        ],
+        "usage_examples": [
+          "initialize_pdf_extraction('document.pdf')",
+          "initialize_pdf_extraction('document.pdf', output_dir='output')",
+          "initialize_pdf_extraction('document.pdf', force_restart=True)"
+        ]
+      },
+      {
+        "tool_name": "cleanup_extraction_files",
+        "description": "清理PDF提取过程中创建的临时文件",
+        "function_signature": "cleanup_extraction_files(pdf_path: str, cache_dir: str = '.cache', keep_state_file: bool = True, keep_output_file: bool = True) -> str",
+        "parameters": [
+          {
+            "name": "pdf_path",
+            "type": "str",
+            "description": "PDF文件路径",
+            "required": true
+          },
+          {
+            "name": "cache_dir",
+            "type": "str",
+            "description": "缓存目录",
+            "required": false
+          },
+          {
+            "name": "keep_state_file",
+            "type": "bool",
+            "description": "是否保留状态文件",
+            "required": false
+          },
+          {
+            "name": "keep_output_file",
+            "type": "bool",
+            "description": "是否保留输出文件",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的清理结果，包括删除的文件列表",
+        "dependencies": ["os", "pathlib"],
+        "implementation_notes": [
+          "识别并删除临时图像文件",
+          "可选择保留或删除状态文件",
+          "可选择保留或删除输出文件",
+          "提供详细的操作反馈"
+        ],
+        "error_handling": [
+          "验证缓存目录是否存在",
+          "捕获并处理文件删除异常",
+          "提供详细的错误信息",
+          "记录无法删除的文件"
+        ],
+        "usage_examples": [
+          "cleanup_extraction_files('document.pdf')",
+          "cleanup_extraction_files('document.pdf', keep_state_file=False)",
+          "cleanup_extraction_files('document.pdf', keep_output_file=False)"
+        ]
+      }
+    ],
+    "code_quality": {
+      "code_standards": [
+        "遵循PEP 8代码风格",
+        "使用类型注解提高代码可读性",
+        "提供详细的文档字符串",
+        "实现全面的错误处理"
+      ],
+      "testing_strategy": [
+        "验证PDF文件处理功能",
+        "测试不同页码范围和参数组合",
+        "测试状态管理的各种操作",
+        "测试文本合并功能"
+      ],
+      "performance_considerations": [
+        "优化PDF转图像的性能",
+        "减少不必要的文件读写操作",
+        "支持大型PDF文件的高效处理",
+        "实现页面级处理以提高效率"
+      ],
+      "security_measures": [
+        "验证文件路径和输入参数",
+        "限制文件操作在指定目录内",
+        "安全处理用户提供的输入",
+        "避免不必要的文件系统访问"
+      ]
+    },
+    "integration_details": {
+      "aws_services": [],
+      "external_libraries": ["PyMuPDF (fitz)"],
+      "api_endpoints": [],
+      "data_formats": ["JSON", "TXT", "PNG/JPEG"]
+    },
+    "development_notes": "本工具模块实现了PDF内容提取所需的全部核心功能，包括PDF转图像、状态管理和文本合并。使用PyMuPDF库进行高效的PDF处理，支持断点续传功能，能够处理大型PDF文件。工具函数设计注重可靠性和性能，提供详细的错误处理和状态反馈。每个函数都返回JSON格式的结构化数据，便于集成和使用。"
+  }
+}

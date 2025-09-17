@@ -1,0 +1,267 @@
+# 项目上下文信息
+
+**项目名称**: pdf_content_extractor
+**Agent名称**: pdf_extractor_agent  
+**开发阶段**: agent_code_developer
+**生成时间**: 2025-09-12 09:40:41 UTC
+
+---
+
+{
+  "agent_code_development": {
+    "development_overview": {
+      "project_name": "pdf_content_extractor",
+      "version": "1.0",
+      "date": "2025-09-12",
+      "development_scope": "开发PDF内容提取Agent，实现PDF转图片、多模态文本提取、内容合并和断点续传功能",
+      "design_principles": [
+        "模块化设计，分离不同功能组件",
+        "健壮的错误处理机制",
+        "详细的日志记录和进度反馈",
+        "支持断点续传功能",
+        "高效的资源管理"
+      ],
+      "key_decisions": [
+        "使用面向对象设计实现Agent核心功能",
+        "集成多模态Agent进行图像文本提取",
+        "使用JSON格式管理处理状态",
+        "实现命令行界面支持多种操作模式",
+        "采用工具函数进行PDF处理和文本合并"
+      ]
+    },
+    "agent_implementation": {
+      "agent_name": "pdf_extractor_agent",
+      "file_path": "agents/generated_agents/pdf_content_extractor/pdf_extractor_agent.py",
+      "main_class": "PDFExtractorAgent",
+      "entry_point": "main",
+      "dependencies": [
+        "PyMuPDF (fitz)",
+        "Strands SDK",
+        "pdf_processing_tools"
+      ],
+      "imports": [
+        "os",
+        "json",
+        "time",
+        "logging",
+        "pathlib",
+        "typing",
+        "argparse",
+        "utils.agent_factory",
+        "tools.pdf_processing_tools"
+      ]
+    },
+    "core_functions": [
+      {
+        "function_name": "__init__",
+        "purpose": "初始化PDF提取Agent",
+        "parameters": [
+          {
+            "name": "cache_dir",
+            "type": "str",
+            "description": "缓存目录路径，用于存储临时文件",
+            "required": false
+          }
+        ],
+        "return_type": "None",
+        "return_description": "无返回值",
+        "implementation_notes": [
+          "创建缓存目录",
+          "初始化多模态Agent为None",
+          "初始化状态字典",
+          "配置日志记录器"
+        ]
+      },
+      {
+        "function_name": "_initialize_multimodal_agent",
+        "purpose": "初始化多模态Agent",
+        "parameters": [],
+        "return_type": "None",
+        "return_description": "无返回值",
+        "implementation_notes": [
+          "懒加载模式，仅在需要时初始化",
+          "使用create_agent_from_prompt_template创建Agent",
+          "配置Agent参数",
+          "记录初始化日志"
+        ]
+      },
+      {
+        "function_name": "process_pdf",
+        "purpose": "处理PDF文件，提取文本内容",
+        "parameters": [
+          {
+            "name": "pdf_path",
+            "type": "str",
+            "description": "PDF文件路径",
+            "required": true
+          },
+          {
+            "name": "output_file",
+            "type": "Optional[str]",
+            "description": "输出文本文件路径，如果不提供则自动生成",
+            "required": false
+          },
+          {
+            "name": "force_restart",
+            "type": "bool",
+            "description": "是否强制重新开始处理",
+            "required": false
+          },
+          {
+            "name": "dpi",
+            "type": "int",
+            "description": "图像分辨率",
+            "required": false
+          },
+          {
+            "name": "cleanup",
+            "type": "bool",
+            "description": "是否在处理完成后清理临时文件",
+            "required": false
+          }
+        ],
+        "return_type": "Dict[str, Any]",
+        "return_description": "处理结果字典，包含成功状态、消息和输出文件路径",
+        "implementation_notes": [
+          "初始化PDF提取过程",
+          "读取和更新处理状态",
+          "将PDF转换为图片",
+          "使用多模态Agent提取文本",
+          "合并所有页面的文本内容",
+          "清理临时文件",
+          "完整的错误处理和状态管理"
+        ]
+      },
+      {
+        "function_name": "get_processing_status",
+        "purpose": "获取PDF处理状态",
+        "parameters": [
+          {
+            "name": "pdf_path",
+            "type": "str",
+            "description": "PDF文件路径",
+            "required": true
+          }
+        ],
+        "return_type": "Dict[str, Any]",
+        "return_description": "处理状态字典，包含进度信息和状态详情",
+        "implementation_notes": [
+          "读取状态文件",
+          "计算处理进度百分比",
+          "返回结构化状态信息",
+          "处理状态文件不存在的情况"
+        ]
+      },
+      {
+        "function_name": "main",
+        "purpose": "主函数，处理命令行参数并执行PDF提取",
+        "parameters": [],
+        "return_type": "None",
+        "return_description": "无返回值",
+        "implementation_notes": [
+          "解析命令行参数",
+          "创建PDF提取Agent",
+          "根据参数执行不同操作",
+          "显示处理结果和状态信息"
+        ]
+      }
+    ],
+    "tool_integration": {
+      "custom_tools": [
+        "pdf_to_images",
+        "manage_processing_state",
+        "merge_text_content",
+        "initialize_pdf_extraction",
+        "cleanup_extraction_files"
+      ],
+      "system_tools": [],
+      "strands_tools": [],
+      "integration_notes": [
+        "使用自定义工具函数进行PDF处理",
+        "通过JSON解析工具函数返回结果",
+        "处理工具函数可能的错误情况",
+        "保持工具函数的独立性和可复用性"
+      ]
+    },
+    "configuration": {
+      "environment_variables": [
+        "BYPASS_TOOL_CONSENT"
+      ],
+      "model_configuration": {
+        "model_name": "default",
+        "max_tokens": null,
+        "temperature": null,
+        "top_p": null
+      },
+      "streaming_config": {
+        "enabled": false,
+        "chunk_size": null
+      }
+    },
+    "error_handling": {
+      "exception_types": [
+        "FileNotFoundError",
+        "PermissionError",
+        "JSONDecodeError",
+        "RuntimeError",
+        "Exception"
+      ],
+      "error_responses": [
+        "文件不存在错误处理",
+        "权限错误处理",
+        "JSON解析错误处理",
+        "运行时错误处理",
+        "通用异常处理"
+      ],
+      "recovery_strategies": [
+        "记录错误并继续处理其他页面",
+        "保存当前状态以支持断点续传",
+        "提供详细错误信息和恢复建议",
+        "跳过问题页面继续处理"
+      ]
+    },
+    "testing": {
+      "test_cases": [
+        "处理简单的文本PDF文件",
+        "处理包含图像的PDF文件",
+        "处理大型多页PDF文件",
+        "测试断点续传功能",
+        "测试错误处理和恢复"
+      ],
+      "test_scenarios": [
+        "正常处理完整PDF",
+        "处理过程中断后恢复",
+        "处理无法访问的PDF文件",
+        "处理损坏的PDF文件",
+        "清理临时文件"
+      ],
+      "validation_criteria": [
+        "文本提取的准确性和完整性",
+        "断点续传功能的可靠性",
+        "错误处理的健壮性",
+        "处理大型PDF的性能",
+        "资源使用效率"
+      ]
+    },
+    "deployment": {
+      "deployment_requirements": [
+        "Python 3.13+",
+        "PyMuPDF库",
+        "Strands SDK",
+        "足够的磁盘空间用于临时文件"
+      ],
+      "runtime_dependencies": [
+        "多模态Agent模板",
+        "pdf_processing_tools工具模块",
+        "utils.agent_factory模块"
+      ],
+      "performance_considerations": [
+        "大型PDF文件的内存使用",
+        "多模态Agent的响应时间",
+        "临时文件的磁盘空间使用",
+        "并行处理的可能性"
+      ]
+    },
+    "development_notes": "在开发过程中，重点关注了断点续传功能的可靠性和多模态Agent的集成。断点续传通过JSON格式的状态文件实现，记录已处理页面和处理状态，确保在处理中断后能够从断点继续。多模态Agent的集成采用了指定的创建方式，并通过懒加载模式优化性能。错误处理机制确保即使在处理某些页面失败的情况下，整体流程仍能继续执行，并提供详细的错误信息和状态反馈。命令行界面支持多种操作模式，包括查看状态、强制重新开始和控制清理行为等，提高了工具的灵活性和用户体验。"
+  }
+}
