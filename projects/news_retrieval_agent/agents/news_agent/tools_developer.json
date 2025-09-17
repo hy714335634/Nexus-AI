@@ -1,0 +1,371 @@
+# 项目上下文信息
+
+**项目名称**: news_retrieval_agent
+**Agent名称**: news_agent  
+**开发阶段**: tools_developer
+**生成时间**: 2025-09-10 14:41:19 UTC
+
+---
+
+{
+  "tool_development": {
+    "development_overview": {
+      "project_name": "news_retrieval_agent",
+      "version": "1.0",
+      "date": "2025-09-10",
+      "development_scope": "开发多平台新闻检索、热度计算、摘要生成和用户话题管理工具",
+      "design_principles": [
+        "多平台支持：支持百度、新浪、澎湃等多个新闻平台",
+        "错误处理：当部分平台不可用时仍能提供服务",
+        "热度算法：基于阅读量、评论数和发布时间的综合热度计算",
+        "本地存储：使用本地文件系统管理用户关注话题",
+        "模块化设计：将功能拆分为独立的工具模块"
+      ],
+      "key_decisions": [
+        "使用BeautifulSoup进行网页解析，支持多平台数据获取",
+        "实现综合热度计算算法，考虑多种因素",
+        "使用Amazon Bedrock生成高质量新闻摘要",
+        "采用本地JSON文件存储用户话题数据",
+        "实现完善的错误处理机制，确保服务可靠性"
+      ]
+    },
+    "tools": [
+      {
+        "tool_name": "fetch_news",
+        "description": "从多个新闻平台获取新闻信息",
+        "function_signature": "fetch_news(topic: str, platforms: List[str] = None, max_results: int = 10) -> str",
+        "parameters": [
+          {
+            "name": "topic",
+            "type": "str",
+            "description": "搜索的新闻话题",
+            "required": true
+          },
+          {
+            "name": "platforms",
+            "type": "List[str]",
+            "description": "新闻平台列表，支持 'baidu', 'sina', 'thepaper'等，默认全部",
+            "required": false
+          },
+          {
+            "name": "max_results",
+            "type": "int",
+            "description": "每个平台最大返回结果数，默认10条",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的新闻信息，包含标题、来源、URL、发布时间、阅读量、评论数等",
+        "dependencies": ["requests", "BeautifulSoup", "uuid"],
+        "implementation_notes": [
+          "支持百度、新浪、澎湃、微博、腾讯五个主流平台",
+          "使用BeautifulSoup解析HTML内容",
+          "为每条新闻生成唯一ID",
+          "提取阅读量、评论数等热度指标",
+          "计算初步热度分数"
+        ],
+        "error_handling": [
+          "当某个平台不可用时，继续从其他平台获取新闻",
+          "处理网络连接错误",
+          "处理HTML解析错误",
+          "处理空结果情况"
+        ],
+        "usage_examples": [
+          "fetch_news('人工智能')",
+          "fetch_news('气候变化', ['baidu', 'sina'])",
+          "fetch_news('奥运会', None, 5)"
+        ]
+      },
+      {
+        "tool_name": "calculate_news_heat",
+        "description": "计算新闻热度并按热度排序",
+        "function_signature": "calculate_news_heat(news_data: str) -> str",
+        "parameters": [
+          {
+            "name": "news_data",
+            "type": "str",
+            "description": "JSON格式的新闻数据，通常是fetch_news的输出",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的排序后的新闻数据，包含热度分数",
+        "dependencies": ["datetime"],
+        "implementation_notes": [
+          "综合考虑阅读量、评论数和发布时间",
+          "对阅读量和评论数进行加权计算",
+          "根据发布时间计算新鲜度分数",
+          "按热度分数降序排序"
+        ],
+        "error_handling": [
+          "处理JSON解析错误",
+          "处理缺失字段情况",
+          "处理空数据情况"
+        ],
+        "usage_examples": [
+          "calculate_news_heat(fetch_news('科技创新'))"
+        ]
+      },
+      {
+        "tool_name": "generate_news_summary",
+        "description": "为新闻生成摘要",
+        "function_signature": "generate_news_summary(news_data: str, summary_length: str = 'short') -> str",
+        "parameters": [
+          {
+            "name": "news_data",
+            "type": "str",
+            "description": "JSON格式的新闻数据，通常是fetch_news或calculate_news_heat的输出",
+            "required": true
+          },
+          {
+            "name": "summary_length",
+            "type": "str",
+            "description": "摘要长度，可选值：short（短摘要，约50字）, medium（中等长度，约100字）, long（长摘要，约200字）",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的带摘要的新闻数据",
+        "dependencies": ["boto3"],
+        "implementation_notes": [
+          "使用Amazon Bedrock生成高质量摘要",
+          "根据指定长度限制摘要字数",
+          "保留原始摘要作为备选",
+          "当Bedrock不可用时使用简单提取方法"
+        ],
+        "error_handling": [
+          "处理JSON解析错误",
+          "处理Amazon Bedrock调用失败",
+          "处理缺失内容情况"
+        ],
+        "usage_examples": [
+          "generate_news_summary(calculate_news_heat(fetch_news('经济政策')))",
+          "generate_news_summary(fetch_news('体育赛事'), 'long')"
+        ]
+      },
+      {
+        "tool_name": "add_topic",
+        "description": "添加用户关注话题",
+        "function_signature": "add_topic(keyword: str, user_id: str = 'default') -> str",
+        "parameters": [
+          {
+            "name": "keyword",
+            "type": "str",
+            "description": "话题关键词",
+            "required": true
+          },
+          {
+            "name": "user_id",
+            "type": "str",
+            "description": "用户ID，默认为'default'",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的操作结果",
+        "dependencies": ["os", "uuid", "datetime"],
+        "implementation_notes": [
+          "使用本地文件系统存储话题数据",
+          "为每个话题生成唯一ID",
+          "记录创建时间和最后使用时间",
+          "防止添加重复话题"
+        ],
+        "error_handling": [
+          "处理空关键词情况",
+          "处理重复话题情况",
+          "处理文件操作错误"
+        ],
+        "usage_examples": [
+          "add_topic('人工智能')",
+          "add_topic('体育新闻', 'user123')"
+        ]
+      },
+      {
+        "tool_name": "view_topics",
+        "description": "查看用户关注的话题列表",
+        "function_signature": "view_topics(user_id: str = 'default') -> str",
+        "parameters": [
+          {
+            "name": "user_id",
+            "type": "str",
+            "description": "用户ID，默认为'default'",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的话题列表",
+        "dependencies": ["os"],
+        "implementation_notes": [
+          "从本地文件系统读取话题数据",
+          "返回完整话题列表",
+          "包含话题ID、关键词、创建时间和最后使用时间"
+        ],
+        "error_handling": [
+          "处理文件不存在情况",
+          "处理文件读取错误"
+        ],
+        "usage_examples": [
+          "view_topics()",
+          "view_topics('user123')"
+        ]
+      },
+      {
+        "tool_name": "delete_topic",
+        "description": "删除用户关注话题",
+        "function_signature": "delete_topic(topic_id: str = None, keyword: str = None, user_id: str = 'default') -> str",
+        "parameters": [
+          {
+            "name": "topic_id",
+            "type": "str",
+            "description": "话题ID，与keyword二选一",
+            "required": false
+          },
+          {
+            "name": "keyword",
+            "type": "str",
+            "description": "话题关键词，与topic_id二选一",
+            "required": false
+          },
+          {
+            "name": "user_id",
+            "type": "str",
+            "description": "用户ID，默认为'default'",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的操作结果",
+        "dependencies": ["os"],
+        "implementation_notes": [
+          "支持通过话题ID或关键词删除",
+          "从话题列表中移除指定话题",
+          "保存更新后的话题列表"
+        ],
+        "error_handling": [
+          "处理参数缺失情况",
+          "处理话题不存在情况",
+          "处理文件操作错误"
+        ],
+        "usage_examples": [
+          "delete_topic(topic_id='abc123')",
+          "delete_topic(keyword='人工智能')",
+          "delete_topic(keyword='体育新闻', user_id='user123')"
+        ]
+      },
+      {
+        "tool_name": "update_topic_usage",
+        "description": "更新话题使用时间",
+        "function_signature": "update_topic_usage(topic_id: str = None, keyword: str = None, user_id: str = 'default') -> str",
+        "parameters": [
+          {
+            "name": "topic_id",
+            "type": "str",
+            "description": "话题ID，与keyword二选一",
+            "required": false
+          },
+          {
+            "name": "keyword",
+            "type": "str",
+            "description": "话题关键词，与topic_id二选一",
+            "required": false
+          },
+          {
+            "name": "user_id",
+            "type": "str",
+            "description": "用户ID，默认为'default'",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的操作结果",
+        "dependencies": ["os", "datetime"],
+        "implementation_notes": [
+          "支持通过话题ID或关键词更新",
+          "更新话题的最后使用时间",
+          "保存更新后的话题列表"
+        ],
+        "error_handling": [
+          "处理参数缺失情况",
+          "处理话题不存在情况",
+          "处理文件操作错误"
+        ],
+        "usage_examples": [
+          "update_topic_usage(topic_id='abc123')",
+          "update_topic_usage(keyword='人工智能')"
+        ]
+      },
+      {
+        "tool_name": "get_recent_topics",
+        "description": "获取最近使用的话题",
+        "function_signature": "get_recent_topics(limit: int = 5, user_id: str = 'default') -> str",
+        "parameters": [
+          {
+            "name": "limit",
+            "type": "int",
+            "description": "返回的话题数量，默认为5",
+            "required": false
+          },
+          {
+            "name": "user_id",
+            "type": "str",
+            "description": "用户ID，默认为'default'",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的最近使用的话题列表",
+        "dependencies": ["os"],
+        "implementation_notes": [
+          "按最后使用时间排序话题",
+          "限制返回指定数量的话题",
+          "如果没有最后使用时间，则使用创建时间"
+        ],
+        "error_handling": [
+          "处理文件不存在情况",
+          "处理文件读取错误"
+        ],
+        "usage_examples": [
+          "get_recent_topics()",
+          "get_recent_topics(10)",
+          "get_recent_topics(3, 'user123')"
+        ]
+      }
+    ],
+    "code_quality": {
+      "code_standards": [
+        "遵循PEP 8编码规范",
+        "使用类型注解提高代码可读性",
+        "详细的函数文档字符串",
+        "合理的函数和变量命名",
+        "模块化设计，功能分离"
+      ],
+      "testing_strategy": [
+        "单元测试各工具函数",
+        "测试不同平台的新闻获取",
+        "测试热度计算算法",
+        "测试摘要生成功能",
+        "测试话题管理功能",
+        "测试错误处理机制"
+      ],
+      "performance_considerations": [
+        "使用异步请求同时查询多个新闻平台",
+        "优化热度计算算法",
+        "实现本地缓存机制",
+        "限制单次返回的新闻数量"
+      ],
+      "security_measures": [
+        "输入验证和清理",
+        "安全的文件操作",
+        "防止目录遍历",
+        "不存储用户敏感信息"
+      ]
+    },
+    "integration_details": {
+      "aws_services": ["Amazon Bedrock"],
+      "external_libraries": ["requests", "BeautifulSoup", "boto3"],
+      "api_endpoints": ["百度新闻", "新浪新闻", "澎湃新闻", "微博", "腾讯新闻"],
+      "data_formats": ["JSON"]
+    },
+    "development_notes": "在开发过程中，我们发现不同新闻平台的数据结构差异较大，需要针对每个平台定制解析逻辑。热度计算算法综合考虑了阅读量、评论数和发布时间，以提供更准确的热度排序。使用Amazon Bedrock生成新闻摘要，可以提供更高质量的摘要内容，但也增加了对AWS服务的依赖。话题管理功能使用本地文件系统存储，简化了部署和维护，但可能限制未来的扩展性。整体设计遵循模块化原则，将新闻获取、热度计算、摘要生成和话题管理功能分离，便于维护和扩展。"
+  }
+}
