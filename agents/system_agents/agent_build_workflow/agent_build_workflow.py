@@ -127,26 +127,58 @@ def create_build_workflow():
 
 
 def run_workflow(user_input: str, session_id="default"):
-    # 第一步：分析用户意图
-    intent_result = analyze_user_intent(user_input)
+    print(f"\n{'='*80}", flush=True)
+    print(f"🎯 [WORKFLOW] 开始工作流执行", flush=True)
+    print(f"{'='*80}", flush=True)
 
+    # 第一步：分析用户意图
+    print(f"🔍 [STEP 1] 分析用户意图...", flush=True)
+    intent_result = analyze_user_intent(user_input)
+    print(f"✅ 意图分析完成: {str(intent_result)[:100]}...", flush=True)
 
     # 创建工作流
+    print(f"\n🏗️ [STEP 2] 创建构建工作流...", flush=True)
     workflow = create_build_workflow()
     
     # 执行工作流
-    print(f"\n{'='*80}")
-    print(f"⚡ [EXECUTION] 执行工作流")
-    print(f"{'='*80}")
+    print(f"\n{'='*80}", flush=True)
+    print(f"⚡ [STEP 3] 执行工作流", flush=True)
+    print(f"📝 输入内容: {user_input[:100]}...", flush=True)
+    print(f"{'='*80}", flush=True)
     
     try:
+        print("🚀 开始执行工作流...", flush=True)
+        print("📋 预计执行阶段:", flush=True)
+        print("  1️⃣ orchestrator - 工作流编排", flush=True)
+        print("  2️⃣ requirements_analyzer - 需求分析", flush=True)
+        print("  3️⃣ system_architect - 系统架构设计", flush=True)
+        print("  4️⃣ agent_designer - Agent设计", flush=True)
+        print("  5️⃣ agent_developer_manager - 开发管理", flush=True)
+        print(f"{'='*60}", flush=True)
+
+        # 执行工作流并监控进度
+        import time
+        start_time = time.time()
+
         result = workflow(str(intent_result))
+
+        end_time = time.time()
+        execution_duration = end_time - start_time
+        print(f"\n⏱️ 实际执行时间: {execution_duration:.2f}秒")
+
         print("✅ 工作流执行完成")
         
         # 生成工作流总结报告
         print(f"\n{'='*80}")
-        
-        print(f"Status: {result.status}")  # COMPLETED, FAILED, etc.
+        print(f"📊 [RESULTS] 工作流执行结果")
+        print(f"{'='*80}")
+
+        print(f"📈 状态: {result.status}")  # COMPLETED, FAILED, etc.
+        print(f"📊 总节点数: {result.total_nodes}")
+        print(f"✅ 完成节点数: {result.completed_nodes}")
+        print(f"❌ 失败节点数: {result.failed_nodes}")
+        print(f"⏱️ 执行时间: {result.execution_time}ms")
+        print(f"🔢 Token使用: {result.accumulated_usage}")
 
         # See which nodes were executed and in what order
         for node in result.execution_order:
@@ -156,12 +188,6 @@ def run_workflow(user_input: str, session_id="default"):
         orchestrator_result = result.results["orchestrator"].result
         print(f"Analysis: {orchestrator_result}")
 
-        # Get performance metrics
-        print(f"Total nodes: {result.total_nodes}")
-        print(f"Completed nodes: {result.completed_nodes}")
-        print(f"Failed nodes: {result.failed_nodes}")
-        print(f"Execution time: {result.execution_time}ms")
-        print(f"Token usage: {result.accumulated_usage}")
         print(f"{'='*80}")
         
         # 将result变量保存到本地json文件
@@ -178,7 +204,9 @@ def run_workflow(user_input: str, session_id="default"):
             print(f"📝 [SYSTEM] 已将result变量保存到本地json文件")
 
         report_path = generate_workflow_summary_report(result, './projects')
-        
+        print(f"📄 报告路径: {report_path}")
+        print(f"{'='*80}")
+
         return {
             "report_path": report_path,
             "intent_analysis": intent_result,
@@ -213,10 +241,10 @@ if __name__ == "__main__":
                        help='从文件中读取内容并添加到测试输入中')
     args = parser.parse_args()
     
-    print(f"🎯 [SYSTEM] Orchestrator Agent 创建成功")
-    print(f"🎯 [SYSTEM] Intent Analyzer Agent 创建成功")
-    print(f"🎯 [SYSTEM] 所有工作流Agent创建成功")
-    print(f"🎯 [SYSTEM] 开始创建并运行完整工作流...")
+    print(f"🎯 [SYSTEM] Orchestrator Agent 创建成功", flush=True)
+    print(f"🎯 [SYSTEM] Intent Analyzer Agent 创建成功", flush=True)
+    print(f"🎯 [SYSTEM] 所有工作流Agent创建成功", flush=True)
+    print(f"🎯 [SYSTEM] 开始创建并运行完整工作流...", flush=True)
     
     # 运行完整工作流
     test_input = args.input
