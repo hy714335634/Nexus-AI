@@ -135,24 +135,34 @@ AWS Pricing Agent 采用单智能体架构，内部分为四个主要功能模�
 ## 项目目录结构
 
 ```
-aws_pricing_agent/
-├── README.md                 # 项目说明文档
-├── config.yaml               # 项目配置文件
-├── agents/
-│   └── requirements_analyzer/
-│       ├── requirements_analyzer.json    # 需求分析文档
-│       ├── system_architect.json         # 系统架构设计文档
-│       ├── agent_designer.json           # 智能体设计文档
-│       ├── tools_developer.json          # 工具开发文档
-│       ├── prompt_engineer.json          # 提示词工程文档
-│       ├── agent_code_developer.json     # 智能体代码开发文档
-│       └── agent_developer_manager.json  # 智能体开发管理总结文档
+Nexus-AI/
+├── projects/
+│   └── aws_pricing_agent/    # AWS定价智能体项目目录
+│       ├── README.md         # 项目说明文档
+│       ├── config.yaml       # 项目配置文件
+│       ├── status.yaml       # 项目状态文件
+│       ├── workflow_summary_report.md # 工作流总结报告
+│       └── agents/
+│           └── requirements_analyzer/
+│               ├── requirements_analyzer.json    # 需求分析文档
+│               ├── system_architect.json         # 系统架构设计文档
+│               ├── agent_designer.json           # 智能体设计文档
+│               ├── tools_developer.json          # 工具开发文档
+│               ├── prompt_engineer.json          # 提示词工程文档
+│               ├── agent_code_developer.json     # 智能体代码开发文档
+│               └── agent_developer_manager.json  # 智能体开发管理总结文档
 ├── tools/
-│   └── use_aws.py            # AWS服务交互工具
+│   └── generated_tools/
+│       └── aws_pricing_agent/
+│           └── aws_pricing_tool.py   # AWS定价服务交互工具
 ├── prompts/
-│   └── aws_pricing_agent.txt # 智能体提示词模板
-└── src/
-    └── aws_pricing_agent.py  # 智能体代码实现
+│   └── generated_agents_prompts/
+│       └── aws_pricing_agent/
+│           └── aws_pricing_agent.yaml # 智能体提示词模板
+└── agents/
+    └── generated_agents/
+        └── aws_pricing_agent/
+            └── aws_pricing_agent.py  # 智能体代码实现
 ```
 
 ## 使用说明

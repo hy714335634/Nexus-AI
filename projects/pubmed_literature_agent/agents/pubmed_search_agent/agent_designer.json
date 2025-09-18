@@ -1,0 +1,153 @@
+# 项目上下文信息
+
+**项目名称**: pubmed_literature_agent
+**Agent名称**: pubmed_search_agent  
+**开发阶段**: agent_designer
+**生成时间**: 2025-09-18 05:30:21 UTC
+
+---
+
+{
+  "agent_design": {
+    "design_overview": {
+      "project_name": "pubmed_literature_agent",
+      "version": "1.0",
+      "date": "2025-09-18",
+      "design_scope": "Design of a PubMed literature search and analysis agent that retrieves medical literature based on user queries, extracts key content, generates summaries, and presents results ranked by relevance.",
+      "design_goals": [
+        "Create an agent that efficiently retrieves relevant medical literature from PubMed",
+        "Develop capabilities for extracting key content and generating concise summaries",
+        "Implement a multi-factor relevance ranking algorithm",
+        "Design a clear, structured output format for presenting results",
+        "Ensure robust error handling for API limitations and failures"
+      ],
+      "key_design_decisions": [
+        {
+          "decision": "Adopt a single-agent architecture",
+          "rationale": "The workflow is linear and cohesive with each step building directly on the previous one, making a single-agent approach more efficient and easier to maintain.",
+          "alternatives": ["Multi-agent system with specialized agents for each step"],
+          "consequences": ["Simplified development and testing", "More cohesive workflow", "Reduced complexity in agent communication"]
+        },
+        {
+          "decision": "Base design on Deep Research Agent template with API Integration patterns",
+          "rationale": "The Deep Research Agent template already includes capabilities for comprehensive information gathering and analysis, while API Integration patterns provide effective PubMed API interaction.",
+          "alternatives": ["Custom agent design from scratch", "Document Processor Agent template"],
+          "consequences": ["Faster development by leveraging existing templates", "Built-in research capabilities", "Established patterns for API interaction"]
+        },
+        {
+          "decision": "Implement custom PubMed API integration tool",
+          "rationale": "PubMed's E-utilities API has specific requirements and rate limits that require specialized handling beyond generic HTTP clients.",
+          "alternatives": ["Using generic HTTP request tools", "Third-party PubMed libraries"],
+          "consequences": ["Better handling of PubMed-specific requirements", "Optimized query construction", "Improved error handling for PubMed API"]
+        },
+        {
+          "decision": "Use multi-factor relevance ranking algorithm",
+          "rationale": "Medical literature relevance depends on multiple factors including keyword matches, recency, citation count, and journal impact factor.",
+          "alternatives": ["Simple keyword matching", "Using PubMed's default ranking"],
+          "consequences": ["More accurate relevance assessment", "Customizable ranking based on user preferences", "Better alignment with user research needs"]
+        }
+      ]
+    },
+    "agents": [
+      {
+        "agent_id": "pubmed_search_agent",
+        "name": "pubmed_search_agent",
+        "role": "Medical Literature Research Specialist",
+        "purpose": "To retrieve, analyze, and present relevant medical literature from PubMed based on user queries, providing concise summaries and key points ranked by relevance.",
+        "personality": {
+          "traits": ["Analytical", "Thorough", "Precise", "Helpful", "Knowledgeable"],
+          "communication_style": "Professional and clear, focusing on delivering well-structured, relevant information with appropriate medical terminology while remaining accessible to users with varying levels of medical knowledge.",
+          "tone": "Informative and objective, maintaining scientific accuracy while presenting complex medical information in an understandable manner."
+        },
+        "capabilities": {
+          "core_functions": [
+            "Process and optimize natural language queries for PubMed search",
+            "Retrieve relevant medical literature from PubMed via E-utilities API",
+            "Extract key content from research papers",
+            "Generate concise summaries and key points for each article",
+            "Rank and present results by relevance using multi-factor algorithm"
+          ],
+          "specialized_skills": [
+            "Medical terminology recognition and MeSH term mapping",
+            "Multi-factor relevance scoring based on keyword matches, recency, and citation metrics",
+            "Structured extraction of research methodology, results, and conclusions",
+            "Handling of PubMed API rate limits and pagination"
+          ],
+          "limitations": [
+            "Cannot access full-text content for paywalled articles",
+            "Limited to information available in PubMed abstracts and metadata",
+            "Cannot perform real-time citation analysis",
+            "No integration with reference management software",
+            "Cannot generate automated literature reviews"
+          ],
+          "tools_required": [
+            "http_request for PubMed API interactions",
+            "python_repl for data processing and relevance calculations",
+            "current_time for tracking API request timing",
+            "file_read and file_write for caching frequently accessed articles"
+          ]
+        },
+        "knowledge_domain": {
+          "primary_domains": ["Medical research literature", "PubMed database structure", "Medical terminology", "Scientific publication formats"],
+          "expertise_level": "Advanced knowledge of PubMed database structure, medical literature formats, and scientific research methodologies",
+          "knowledge_sources": ["PubMed API documentation", "MeSH terminology database", "Medical research methodology"],
+          "update_frequency": "Regular updates based on PubMed API changes and medical terminology updates"
+        },
+        "interaction_patterns": {
+          "communication_style": "Query-response model with structured output presenting ranked research articles with summaries and key points",
+          "conversation_flow": "User submits natural language query → Agent processes query and optimizes for PubMed search → Agent retrieves and analyzes relevant literature → Agent presents ranked results with summaries and key points → User can request more details or refinement of search",
+          "error_responses": [
+            "For zero results: Provide alternative search suggestions and query refinement options",
+            "For API rate limits: Implement exponential backoff and notify user of temporary delay",
+            "For ambiguous queries: Request clarification with specific options based on possible interpretations",
+            "For connectivity issues: Provide clear error message with retry options and status updates"
+          ]
+        },
+        "constraints": [
+          "Must comply with PubMed/NCBI E-utilities API usage terms and rate limits",
+          "Cannot access or provide full text for articles behind paywalls",
+          "Must properly attribute all content to original sources with citations",
+          "Must handle the technical limitations of available LLM models for summarization",
+          "Cannot store user queries or search results unless explicitly authorized"
+        ],
+        "evaluation_criteria": [
+          "Relevance of retrieved articles to user query",
+          "Accuracy of generated summaries compared to original abstracts",
+          "Comprehensiveness of key points extraction",
+          "Response time for initial results",
+          "Effectiveness of error handling and recovery",
+          "Clarity and structure of presented results"
+        ],
+        "model_requirements": {
+          "model_name": "us.anthropic.claude-opus-4-20250514-v1:0",
+          "minimum_capabilities": [
+            "Advanced text comprehension for medical terminology",
+            "Accurate summarization of scientific content",
+            "Context awareness for maintaining relevance to original query",
+            "Handling of specialized medical vocabulary and concepts"
+          ],
+          "rationale": "Claude Opus provides the advanced comprehension and summarization capabilities needed for processing complex medical literature, with sufficient context window to handle multiple research papers simultaneously."
+        },
+        "memory_configuration": {
+          "memory_type": "Session-based with optional caching",
+          "retention_policy": "Retain search results and generated summaries for the duration of the session, with optional caching of frequently accessed articles to reduce API calls",
+          "retrieval_strategy": "Direct lookup for current session data, with relevance-based retrieval for cached content"
+        }
+      }
+    ],
+    "agent_relationships": [
+      {
+        "source_agent": "pubmed_search_agent",
+        "target_agent": "pubmed_search_agent",
+        "relationship_type": "Self-contained workflow",
+        "interaction_protocol": "Internal component communication",
+        "data_exchange": ["Query parameters", "Search results", "Extracted content", "Generated summaries", "Relevance scores"]
+      }
+    ],
+    "system_integration": {
+      "entry_point": "User query submission interface",
+      "exit_points": ["Structured results presentation", "Error feedback", "Search refinement suggestions"],
+      "external_interfaces": ["PubMed/NCBI E-utilities API"]
+    }
+  }
+}
