@@ -75,11 +75,49 @@
         "last_call": null
       },
       "build_history": []
+    },
+    {
+      "id": "pdf_content_extractor",
+      "name": "Pdf Content Extractor",
+      "description": "基于pdf_content_extractor的AI代理系统",
+      "status": "running",
+      "created_at": "2025-09-12T18:05:01.533029",
+      "updated_at": "2025-09-18T21:24:13.324801",
+      "build_time": "未知",
+      "version": "v1.0",
+      "agent_path": "agents/generated_agents/pdf_content_extractor",
+      "agents": [],
+      "metrics": {
+        "total_calls": 0,
+        "success_rate": 100.0,
+        "avg_response_time": "2.3s",
+        "last_call": null
+      },
+      "build_history": []
+    },
+    {
+      "id": "pubmed_literature_agent",
+      "name": "Pubmed Literature Agent",
+      "description": "基于pubmed_literature_agent的AI代理系统",
+      "status": "running",
+      "created_at": "2025-09-18T13:58:18.326189",
+      "updated_at": "2025-09-18T21:24:13.324969",
+      "build_time": "未知",
+      "version": "v1.0",
+      "agent_path": "agents/generated_agents/pubmed_literature_agent",
+      "agents": [],
+      "metrics": {
+        "total_calls": 0,
+        "success_rate": 100.0,
+        "avg_response_time": "2.3s",
+        "last_call": null
+      },
+      "build_history": []
     }
   ],
-  "last_updated": "2025-09-17T13:57:18.501352",
-  "total_projects": 4,
-  "active_projects": 4,
+  "last_updated": "2025-09-18T21:33:44.145816",
+  "total_projects": 6,
+  "active_projects": 6,
   "system_metrics": {
     "cpu_usage": 45.2,
     "memory_usage": 62.1,

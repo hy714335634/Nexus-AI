@@ -12,7 +12,7 @@ templates:
       - "strands_tools/current_time"
       - "strands_tools/use_aws"
     path: "agents/template_agents/single_agent/requirements_analyzer.py"
-    prompt_template: "prompts/template_prompts/template_requirements_analyzer"
+    prompt_template: "prompts/template_prompts/requirements_analyzer"
     tags:
       - "single_agent"
       - "system_tools"
