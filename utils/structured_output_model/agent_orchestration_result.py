@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 class AgentInfo(BaseModel):
     """单个Agent信息"""
     agent_name: str = Field(description="Agent名称")
-    template_path: str = Field(description="Agent模板路径，用于create_agent_from_prompt_template")
+    template_path: str = Field(description="Agent对应的YAML模板路径，用于create_agent_from_prompt_template,应该以'prompts/'或'generated_agents_prompts/'开头")
     description: str = Field(description="Agent功能描述")
     category: str = Field(description="Agent分类")
     capabilities: List[str] = Field(description="Agent能力列表")

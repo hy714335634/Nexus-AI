@@ -1,0 +1,229 @@
+# 项目上下文信息
+
+**项目名称**: pubmed_literature_agent
+**Agent名称**: pubmed_search_agent  
+**开发阶段**: system_architect
+**生成时间**: 2025-09-18 05:28:43 UTC
+
+---
+
+{
+  "system_design": {
+    "design_overview": {
+      "project_name": "pubmed_literature_agent",
+      "version": "1.0",
+      "date": "2025-09-18",
+      "design_scope": "Design of a PubMed literature search and analysis agent that retrieves medical literature based on user queries, extracts key content, generates summaries, and presents results ranked by relevance.",
+      "design_principles": [
+        "Single responsibility - Each component has a clear and focused purpose",
+        "Modularity - Components can be developed and tested independently",
+        "Extensibility - Design allows for future enhancements and additional features",
+        "User-centric - Focus on providing valuable, relevant information efficiently",
+        "Error resilience - Graceful handling of API limitations and failures"
+      ],
+      "key_decisions": [
+        "Using a single-agent architecture for simplicity and cohesion",
+        "Selecting Deep Research Agent template as the foundation",
+        "Implementing custom PubMed API integration tool",
+        "Using LLM for query optimization, content extraction, and summary generation",
+        "Implementing a multi-factor relevance ranking algorithm"
+      ],
+      "workflow_type": "single_agent",
+      "recommended_templates": ["deep_research_agent", "api_integration_agent"]
+    },
+    "architecture": {
+      "system_context": "The PubMed Literature Search Agent operates as a standalone system that interfaces with the PubMed/NCBI E-utilities API to retrieve medical literature based on user queries. It processes and analyzes the retrieved information to present relevant, summarized results to the user.",
+      "agent_topology": "Single-agent architecture with multiple specialized components for query processing, literature retrieval, content extraction, summary generation, and results presentation.",
+      "interaction_model": "Synchronous request-response model where the user submits a query and waits for the agent to process and return results. The agent handles all interactions with external systems and data processing internally.",
+      "technology_stack": {
+        "sdk": "Strands SDK",
+        "runtime": "Local",
+        "integrations": [
+          "PubMed/NCBI E-utilities API",
+          "AWS Bedrock for AI inference",
+          "Python libraries for XML processing and text analysis"
+        ]
+      }
+    },
+    "agents": [
+      {
+        "name": "pubmed_search_agent",
+        "purpose": "To retrieve, analyze, and present relevant medical literature from PubMed based on user queries",
+        "responsibilities": [
+          "Process and optimize natural language queries for PubMed search",
+          "Retrieve relevant medical literature from PubMed",
+          "Extract key content from research papers",
+          "Generate concise summaries and key points",
+          "Rank and present results by relevance"
+        ],
+        "interfaces": {
+          "inputs": [
+            "Natural language query describing research topic or medical question",
+            "Optional search parameters (publication date range, article types, etc.)",
+            "Optional ranking preferences"
+          ],
+          "outputs": [
+            "Ranked list of relevant articles with metadata",
+            "Key content extracts from each article",
+            "Generated summaries and key points for each article",
+            "Relevance scores and ranking explanation"
+          ]
+        },
+        "dependencies": [
+          "PubMed/NCBI E-utilities API",
+          "AWS Bedrock AI services"
+        ],
+        "implementation_notes": [
+          "Based on Deep Research Agent template with customizations for PubMed integration",
+          "Incorporates API integration patterns from API Integration Agent template",
+          "Requires custom tools for PubMed API interaction and medical content processing"
+        ],
+        "recommended_template": "deep_research_agent"
+      }
+    ],
+    "data_models": [
+      {
+        "name": "UserQuery",
+        "schema": "{ query_text: string, search_params?: { date_range?: { start: string, end: string }, article_types?: string[], languages?: string[] }, ranking_preferences?: { recency_weight?: number, relevance_weight?: number, citation_weight?: number } }",
+        "validation_rules": [
+          "query_text must not be empty",
+          "date_range values must be valid dates in YYYY-MM-DD format",
+          "weights must be between 0 and 1"
+        ],
+        "relationships": ["Input to QueryProcessor"]
+      },
+      {
+        "name": "PubMedArticle",
+        "schema": "{ pmid: string, title: string, authors: string[], journal: string, publication_date: string, abstract: string, doi?: string, mesh_terms?: string[], keywords?: string[] }",
+        "validation_rules": [
+          "pmid must be a valid PubMed ID",
+          "title must not be empty",
+          "publication_date must be a valid date"
+        ],
+        "relationships": ["Output from PubMedRetriever, Input to ContentExtractor"]
+      },
+      {
+        "name": "AnalyzedArticle",
+        "schema": "{ article_metadata: PubMedArticle, key_content: string, summary: string, key_points: string[], relevance_score: number, relevance_factors: { keyword_match: number, recency: number, citation_impact?: number } }",
+        "validation_rules": [
+          "summary must not exceed 500 characters",
+          "key_points must contain 3-5 items",
+          "relevance_score must be between 0 and 100"
+        ],
+        "relationships": ["Output from ContentAnalyzer, Input to ResultsPresenter"]
+      },
+      {
+        "name": "SearchResults",
+        "schema": "{ query: UserQuery, result_count: number, processing_time: number, articles: AnalyzedArticle[], ranking_explanation: string }",
+        "validation_rules": [
+          "result_count must match the length of articles array",
+          "processing_time must be a positive number"
+        ],
+        "relationships": ["Final output to user"]
+      }
+    ],
+    "interaction_flows": [
+      {
+        "name": "Literature Search and Analysis Flow",
+        "description": "The main workflow for processing a user query, retrieving literature, analyzing content, and presenting results",
+        "steps": [
+          {
+            "step": "Query Processing",
+            "agent": "pubmed_search_agent",
+            "action": "Process natural language query and convert to optimized PubMed search terms",
+            "data": "UserQuery → PubMedSearchTerms"
+          },
+          {
+            "step": "Literature Retrieval",
+            "agent": "pubmed_search_agent",
+            "action": "Execute search against PubMed API and retrieve matching articles",
+            "data": "PubMedSearchTerms → List<PubMedArticle>"
+          },
+          {
+            "step": "Content Extraction",
+            "agent": "pubmed_search_agent",
+            "action": "Extract key content from each retrieved article",
+            "data": "PubMedArticle → ArticleContent"
+          },
+          {
+            "step": "Summary Generation",
+            "agent": "pubmed_search_agent",
+            "action": "Generate concise summaries and key points for each article",
+            "data": "ArticleContent → ArticleSummary"
+          },
+          {
+            "step": "Relevance Ranking",
+            "agent": "pubmed_search_agent",
+            "action": "Calculate relevance scores and rank articles accordingly",
+            "data": "List<PubMedArticle> → RankedArticles"
+          },
+          {
+            "step": "Results Presentation",
+            "agent": "pubmed_search_agent",
+            "action": "Format and present the ranked results with all required information",
+            "data": "RankedArticles → SearchResults"
+          }
+        ]
+      },
+      {
+        "name": "Error Handling Flow",
+        "description": "Process for handling various error conditions during the search and analysis process",
+        "steps": [
+          {
+            "step": "API Error Detection",
+            "agent": "pubmed_search_agent",
+            "action": "Detect and categorize PubMed API errors",
+            "data": "APIResponse → ErrorType"
+          },
+          {
+            "step": "Rate Limit Handling",
+            "agent": "pubmed_search_agent",
+            "action": "Implement backoff strategy for rate limit errors",
+            "data": "RateLimitError → RetryStrategy"
+          },
+          {
+            "step": "Zero Results Handling",
+            "agent": "pubmed_search_agent",
+            "action": "Generate alternative search suggestions when no results are found",
+            "data": "EmptyResults → SearchSuggestions"
+          },
+          {
+            "step": "Error Reporting",
+            "agent": "pubmed_search_agent",
+            "action": "Present user-friendly error messages with appropriate guidance",
+            "data": "ErrorType → UserFeedback"
+          }
+        ]
+      }
+    ],
+    "security_considerations": [
+      "Ensure compliance with PubMed/NCBI API usage terms and conditions",
+      "Implement appropriate rate limiting to prevent API abuse",
+      "Do not store user queries or search results unless explicitly authorized",
+      "Properly attribute all content to original sources with citations",
+      "Handle any potential personally identifiable information (PII) in accordance with privacy regulations"
+    ],
+    "error_handling": [
+      "Implement exponential backoff for PubMed API rate limit errors",
+      "Provide meaningful feedback for zero-result searches with alternative suggestions",
+      "Handle network connectivity issues with appropriate retry mechanisms",
+      "Gracefully degrade functionality when full text access is unavailable",
+      "Log errors for monitoring and improvement without exposing sensitive information"
+    ],
+    "performance_considerations": [
+      "Implement caching for frequently accessed articles to reduce API calls",
+      "Optimize batch retrieval from PubMed API to minimize round trips",
+      "Process articles in parallel where possible to improve response time",
+      "Implement progressive loading for large result sets",
+      "Monitor and optimize LLM token usage for cost efficiency"
+    ],
+    "monitoring_strategy": [
+      "Track PubMed API usage and rate limit consumption",
+      "Monitor query processing time and success rates",
+      "Collect anonymized metrics on result relevance and user satisfaction",
+      "Implement logging for error conditions and performance bottlenecks",
+      "Create dashboards for key performance indicators and system health"
+    ]
+  },
+  "design_rationale": "The system architecture is designed as a single-agent solution based on the requirements analysis, which indicated a focused workflow with clear sequential steps: query processing, literature retrieval, content extraction, summary generation, and results presentation. The Deep Research Agent template was selected as the primary foundation because it already includes many of the required capabilities for comprehensive information gathering and analysis, with additional patterns borrowed from the API Integration Agent template for effective PubMed API interaction.\n\nA single-agent architecture was chosen over a multi-agent approach because the workflow is linear and cohesive, with each step building directly on the previous one. This approach simplifies development, testing, and maintenance while still allowing for modularity through well-defined internal components.\n\nThe data models are designed to capture the complete flow of information from initial user query through to final results presentation, with clear validation rules to ensure data integrity throughout the process. The interaction flows define both the happy path for successful searches and specific error handling paths to ensure robustness.\n\nThe architecture incorporates several performance optimizations, including caching and parallel processing, to meet the non-functional requirements for response time. Security considerations focus on compliance with PubMed's terms of service and appropriate handling of user data. The monitoring strategy ensures that system health and performance can be tracked over time for continuous improvement.\n\nThis design provides a solid foundation for implementing a PubMed literature search and analysis agent that delivers relevant, well-summarized medical literature to users efficiently and effectively."
+}

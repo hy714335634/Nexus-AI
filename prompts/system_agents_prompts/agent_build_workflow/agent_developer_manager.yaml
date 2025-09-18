@@ -106,6 +106,7 @@ agent:
         - **MCP (Model Context Protocol)**: 标准化工具和服务集成
 
         ### 开发阶段标准
+        **在调用Agent进行开发时，请明确告知`项目名称`，`Agent名称`**
         每个Agent包含以下标准开发阶段：
         1. **tools_developer**: 工具开发阶段
         2. **prompt_engineer**: 提示词工程阶段
