@@ -1,0 +1,6 @@
+project:
+  created_date: '2025-09-19T08:49:20.936334+00:00'
+  description: 专业的Logo设计智能体，能够根据用户需求分析和设计概念，生成高质量的logo图片，并提供设计说明报告。
+  name: logo_design_agent
+  updated_date: '2025-09-19T08:49:25.338723+00:00'
+  version: 1.0.0
