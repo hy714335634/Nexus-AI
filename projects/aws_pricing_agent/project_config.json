@@ -1,0 +1,111 @@
+{
+  "project_name": "aws_pricing_agent",
+  "validation_timestamp": "2025-09-19T03:35:46.288494+00:00",
+  "overall_status": "success",
+  "agent_scripts": [
+    {
+      "script_path": "agents/generated_agents/aws_pricing_agent/aws_pricing_agent.py",
+      "syntax_valid": true,
+      "dependencies": [
+        "os",
+        "json",
+        "argparse",
+        "typing",
+        "utils.agent_factory",
+        "strands.telemetry"
+      ],
+      "execution_params": [],
+      "argparse_params": [
+        {
+          "name": "-r",
+          "type": "str",
+          "description": "自然语言描述的资源需求",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "-f",
+          "type": "str",
+          "description": "包含需求描述的文件路径",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "--region",
+          "type": "str",
+          "description": "AWS区域代码，默认为us-east-1",
+          "required": false,
+          "default": "us-east-1",
+          "action": null
+        },
+        {
+          "name": "--interactive",
+          "type": "str",
+          "description": "启用交互模式，允许多轮对话",
+          "required": false,
+          "default": null,
+          "action": "store_true"
+        }
+      ],
+      "error_message": ""
+    }
+  ],
+  "prompt_files": [
+    {
+      "prompt_path": "generated_agents_prompts/aws_pricing_agent/aws_pricing_agent.yaml",
+      "tool_count": 14,
+      "valid": true,
+      "error_message": "",
+      "metadata": {
+        "tags": [
+          "aws",
+          "pricing",
+          "cloud_consulting",
+          "cost_optimization"
+        ],
+        "supported_models": [
+          "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
+        ],
+        "tools_dependencies": [
+          "strands_tools/current_time",
+          "strands_tools/calculator",
+          "generated_tools/aws_pricing_agent/aws_pricing_tool/use_aws",
+          "generated_tools/aws_pricing_agent/aws_pricing_tool/get_aws_pricing",
+          "generated_tools/aws_pricing_agent/aws_pricing_tool/get_ec2_instance_pricing",
+          "generated_tools/aws_pricing_agent/aws_pricing_tool/get_ebs_pricing",
+          "generated_tools/aws_pricing_agent/aws_pricing_tool/get_s3_pricing",
+          "generated_tools/aws_pricing_agent/aws_pricing_tool/get_network_pricing",
+          "generated_tools/aws_pricing_agent/aws_pricing_tool/get_elb_pricing",
+          "generated_tools/aws_pricing_agent/aws_pricing_tool/get_rds_pricing",
+          "generated_tools/aws_pricing_agent/aws_pricing_tool/get_elasticache_pricing",
+          "generated_tools/aws_pricing_agent/aws_pricing_tool/get_opensearch_pricing",
+          "generated_tools/aws_pricing_agent/aws_pricing_tool/get_available_instance_types",
+          "generated_tools/aws_pricing_agent/aws_pricing_tool/recommend_instance_types"
+        ]
+      },
+      "agent_info": {
+        "name": "aws_pricing_agent",
+        "description": "AWS产品报价智能体，能够根据自然语言描述的资源需求，分析并推荐合理的AWS服务和配置，提供实时报价并生成专业的报价方案。支持EC2、EBS、S3、网络流量、ELB、RDS、ElastiCache、Opensearch等多种AWS产品的价格查询。",
+        "category": "cloud_consulting"
+      }
+    }
+  ],
+  "generated_tools": [
+    {
+      "tool_path": "generated_tools/aws_pricing_agent/aws_pricing_tool.py",
+      "syntax_valid": true,
+      "error_message": ""
+    }
+  ],
+  "total_tools": 14,
+  "summary": {
+    "agent_scripts_count": 1,
+    "prompt_files_count": 1,
+    "generated_tool_files_count": 1,
+    "all_scripts_valid": true,
+    "all_tools_valid": true,
+    "all_prompts_valid": true
+  }
+}

@@ -33,6 +33,8 @@ agent:
            - 调用agent_tool_developer工具，确保必要的工具被正确开发
            - 调用agent_prompt_engineer工具，确保Agent提示词符合需求
            - 调用agent_code_developer工具，确保Agent代码正确实现
+           - 调用project_verify工具，针对项目进行校验，并生成配置文件
+           - 调用generate_python_requirements工具，基于工具中使用的包，在项目文件夹中生成python依赖包的requirements.txt文件
            - 管理各开发阶段的依赖关系和时序
 
         2. **项目进度管理**
@@ -160,3 +162,5 @@ agent:
           - "system_tools/agent_build_workflow/project_manager/update_project_readme"
           - "system_tools/agent_build_workflow/project_manager/update_project_status"
           - "system_tools/agent_build_workflow/project_manager/update_project_stage_content"
+          - "system_tools/agent_build_workflow/project_information/project_verify"
+          - "system_tools/agent_build_workflow/project_manager/generate_python_requirements"

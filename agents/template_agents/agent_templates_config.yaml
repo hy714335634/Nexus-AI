@@ -260,3 +260,155 @@ templates:
       - "image_processing"
       - "cache_management"
       - "template_support"
+
+  # AWS架构生成器Agent模板 - 云架构设计专家
+  aws_architecture_generator:
+    name: "AWS架构生成器"
+    description: "单Agent模板，专业的AWS解决方案架构师，能够根据自然语言需求描述生成专业的AWS云架构图，包括正确的AWS服务选择、组件关系和安全配置。集成AWS服务知识库、架构图生成器、架构验证器等工具，支持需求解析、服务映射、架构设计、架构验证、架构图生成等功能。适用于云架构设计、AWS服务规划、技术架构咨询等场景"
+    agent_dependencies: []
+    tools_dependencies:
+      - "strands_tools/current_time"
+      - "generated_tools/aws_architecture_generator/aws_service_knowledge_base/aws_service_info"
+      - "generated_tools/aws_architecture_generator/aws_service_knowledge_base/aws_service_search"
+      - "generated_tools/aws_architecture_generator/aws_service_knowledge_base/aws_service_mapping"
+      - "generated_tools/aws_architecture_generator/aws_service_knowledge_base/aws_architecture_pattern"
+      - "generated_tools/aws_architecture_generator/aws_service_knowledge_base/aws_service_compatibility"
+      - "generated_tools/aws_architecture_generator/architecture_diagram_generator/generate_architecture_diagram"
+      - "generated_tools/aws_architecture_generator/architecture_diagram_generator/create_architecture_description"
+      - "generated_tools/aws_architecture_generator/architecture_diagram_generator/extract_architecture_from_text"
+      - "generated_tools/aws_architecture_generator/architecture_diagram_generator/get_aws_service_icons"
+      - "generated_tools/aws_architecture_generator/architecture_validator/validate_architecture"
+      - "generated_tools/aws_architecture_generator/architecture_validator/validate_service_configuration"
+      - "generated_tools/aws_architecture_generator/architecture_validator/check_service_compatibility"
+      - "generated_tools/aws_architecture_generator/architecture_validator/validate_against_well_architected"
+      - "generated_tools/aws_architecture_generator/architecture_validator/check_architecture_pattern_compliance"
+    path: "agents/generated_agents/aws_architecture_generator/aws_architecture_generator.py"
+    prompt_template: "prompts/generated_agents_prompts/aws_architecture_generator/aws_architecture_generator"
+    tags:
+      - "single_agent"
+      - "aws_architecture"
+      - "cloud_design"
+      - "infrastructure"
+      - "diagram_generation"
+      - "service_mapping"
+      - "architecture_validation"
+      - "well_architected"
+
+  # AWS定价Agent模板 - 云成本咨询专家
+  aws_pricing_agent:
+    name: "AWS定价专家"
+    description: "单Agent模板，专业的AWS产品报价专家，能够根据自然语言描述的资源需求，分析并推荐合理的AWS服务和配置，提供实时报价并生成专业的报价方案。集成AWS定价工具、实例推荐、价格查询等工具，支持EC2、EBS、S3、网络流量、ELB、RDS、ElastiCache、OpenSearch等多种AWS产品的价格查询。适用于云成本优化、AWS服务规划、预算评估等场景"
+    agent_dependencies: []
+    tools_dependencies:
+      - "strands_tools/current_time"
+      - "strands_tools/calculator"
+      - "generated_tools/aws_pricing_agent/aws_pricing_tool/use_aws"
+      - "generated_tools/aws_pricing_agent/aws_pricing_tool/get_aws_pricing"
+      - "generated_tools/aws_pricing_agent/aws_pricing_tool/get_ec2_instance_pricing"
+      - "generated_tools/aws_pricing_agent/aws_pricing_tool/get_ebs_pricing"
+      - "generated_tools/aws_pricing_agent/aws_pricing_tool/get_s3_pricing"
+      - "generated_tools/aws_pricing_agent/aws_pricing_tool/get_network_pricing"
+      - "generated_tools/aws_pricing_agent/aws_pricing_tool/get_elb_pricing"
+      - "generated_tools/aws_pricing_agent/aws_pricing_tool/get_rds_pricing"
+      - "generated_tools/aws_pricing_agent/aws_pricing_tool/get_elasticache_pricing"
+      - "generated_tools/aws_pricing_agent/aws_pricing_tool/get_opensearch_pricing"
+      - "generated_tools/aws_pricing_agent/aws_pricing_tool/get_available_instance_types"
+      - "generated_tools/aws_pricing_agent/aws_pricing_tool/recommend_instance_types"
+    path: "agents/generated_agents/aws_pricing_agent/aws_pricing_agent.py"
+    prompt_template: "prompts/generated_agents_prompts/aws_pricing_agent/aws_pricing_agent"
+    tags:
+      - "single_agent"
+      - "aws_pricing"
+      - "cloud_consulting"
+      - "cost_optimization"
+      - "instance_recommendation"
+      - "price_analysis"
+      - "budget_planning"
+      - "aws_services"
+
+  # 新闻检索Agent模板 - 信息聚合专家
+  news_retrieval_agent:
+    name: "新闻检索专家"
+    description: "单Agent模板，专业的新闻检索与聚合专家，能够根据用户关注话题从多个主流媒体平台检索热门新闻，进行热度排序和摘要生成，为用户提供最新、最热门的新闻信息。集成新闻获取、热度计算、摘要生成、话题管理等工具，支持多平台新闻检索、热度排序、内容摘要、话题管理等功能。适用于新闻聚合、信息监控、话题跟踪等场景"
+    agent_dependencies: []
+    tools_dependencies:
+      - "strands_tools/current_time"
+      - "generated_tools/news_retrieval_agent/news_fetcher/fetch_news"
+      - "generated_tools/news_retrieval_agent/news_processor/calculate_news_heat"
+      - "generated_tools/news_retrieval_agent/news_processor/generate_news_summary"
+      - "generated_tools/news_retrieval_agent/topic_manager/add_topic"
+      - "generated_tools/news_retrieval_agent/topic_manager/delete_topic"
+      - "generated_tools/news_retrieval_agent/topic_manager/get_recent_topics"
+      - "generated_tools/news_retrieval_agent/topic_manager/update_topic_usage"
+      - "generated_tools/news_retrieval_agent/topic_manager/view_topics"
+    path: "agents/generated_agents/news_retrieval_agent/news_agent.py"
+    prompt_template: "prompts/generated_agents_prompts/news_retrieval_agent/news_agent_prompt"
+    tags:
+      - "single_agent"
+      - "news_retrieval"
+      - "information_aggregation"
+      - "topic_management"
+      - "content_analysis"
+      - "heat_calculation"
+      - "summary_generation"
+      - "multi_platform"
+
+  # PPT到Markdown转换Agent模板 - 演示文稿处理专家
+  ppt_to_markdown_agent:
+    name: "PPT到Markdown转换专家"
+    description: "单Agent模板，专业的PPT内容提取和Markdown转换专家，能够解析PPT文件、提取每页内容并生成完整Markdown格式总结报告。集成PPT验证、内容提取、格式转换、文档管理等工具，支持PPT结构解析、内容提取、格式转换、Markdown生成等功能。适用于文档转换、内容提取、格式标准化等场景"
+    agent_dependencies: []
+    tools_dependencies:
+      - "strands_tools/file_read"
+      - "strands_tools/current_time"
+      - "generated_tools/ppt_to_markdown/file_manager/create_output_directory"
+      - "generated_tools/ppt_to_markdown/file_manager/find_ppt_files"
+      - "generated_tools/ppt_to_markdown/file_manager/save_markdown_file"
+      - "generated_tools/ppt_to_markdown/file_manager/validate_ppt_file"
+      - "generated_tools/ppt_to_markdown/markdown_formatter/customize_markdown_styling"
+      - "generated_tools/ppt_to_markdown/markdown_formatter/extract_markdown_sections"
+      - "generated_tools/ppt_to_markdown/markdown_formatter/format_markdown_document"
+      - "generated_tools/ppt_to_markdown/ppt_converter/batch_convert_ppt_to_markdown"
+      - "generated_tools/ppt_to_markdown/ppt_converter/extract_ppt_structure"
+      - "generated_tools/ppt_to_markdown/ppt_converter/ppt_to_markdown_converter"
+    path: "agents/generated_agents/ppt_to_markdown/ppt_to_markdown_converter.py"
+    prompt_template: "prompts/generated_agents_prompts/ppt_to_markdown/ppt_to_markdown_converter"
+    tags:
+      - "single_agent"
+      - "ppt_processing"
+      - "markdown_conversion"
+      - "document_conversion"
+      - "content_extraction"
+      - "format_conversion"
+      - "structure_analysis"
+      - "batch_processing"
+
+  # PubMed文献搜索Agent模板 - 医学研究专家
+  pubmed_literature_agent:
+    name: "PubMed文献搜索专家"
+    description: "单Agent模板，专业的医学文献研究专家，能够检索、分析和呈现来自PubMed的相关医学文献。集成PubMed API工具、文献分析、摘要生成等工具，支持自然语言查询处理、文献检索、内容提取、摘要生成、相关性排序等功能。适用于医学研究、文献综述、学术分析等场景"
+    agent_dependencies: []
+    tools_dependencies:
+      - "strands_tools/http_request"
+      - "strands_tools/current_time"
+      - "strands_tools/calculator"
+      - "strands_tools/think"
+      - "generated_tools/pubmed_search_agent/pubmed_api_tool/pubmed_search"
+      - "generated_tools/pubmed_search_agent/pubmed_api_tool/pubmed_fetch_abstract"
+      - "generated_tools/pubmed_search_agent/pubmed_api_tool/pubmed_advanced_search"
+      - "generated_tools/pubmed_search_agent/pubmed_api_tool/pubmed_fetch_citations"
+      - "generated_tools/pubmed_search_agent/pubmed_api_tool/pubmed_fetch_related"
+      - "generated_tools/pubmed_search_agent/pubmed_api_tool/pubmed_get_trending_articles"
+      - "generated_tools/pubmed_search_agent/pubmed_api_tool/pubmed_rank_articles"
+      - "generated_tools/pubmed_search_agent/pubmed_api_tool/pubmed_get_author_publications"
+    path: "agents/generated_agents/pubmed_literature_agent/pubmed_search_agent.py"
+    prompt_template: "prompts/generated_agents_prompts/pubmed_literature_agent/pubmed_search_agent"
+    tags:
+      - "single_agent"
+      - "medical_research"
+      - "pubmed_search"
+      - "literature_analysis"
+      - "academic_research"
+      - "content_extraction"
+      - "summary_generation"
+      - "relevance_ranking"

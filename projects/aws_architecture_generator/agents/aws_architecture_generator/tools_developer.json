@@ -1,0 +1,703 @@
+{
+  "tool_development": {
+    "development_overview": {
+      "project_name": "aws_architecture_generator",
+      "version": "1.0",
+      "date": "2025-09-19",
+      "development_scope": "Development of essential tools for the AWS Architecture Generator Agent, including AWS Service Knowledge Base, Architecture Diagram Generator, and Architecture Validator",
+      "design_principles": [
+        "Comprehensive AWS service information access",
+        "Flexible and visually appealing diagram generation",
+        "Thorough architecture validation against AWS best practices",
+        "Robust error handling and fallback mechanisms",
+        "Modular design for maintainability and extensibility"
+      ],
+      "key_decisions": [
+        "Implemented AWS Service Knowledge Base with real-time AWS API access and comprehensive fallback data",
+        "Created multi-format diagram generation supporting mermaid, drawio, and ASCII formats",
+        "Developed architecture validation against AWS Well-Architected Framework",
+        "Used boto3 for direct AWS service interaction",
+        "Implemented detailed validation for common architecture patterns"
+      ]
+    },
+    "tools": [
+      {
+        "tool_name": "aws_service_info",
+        "description": "Get detailed information about specific AWS services",
+        "function_signature": "aws_service_info(service_name: str, info_type: str = \"general\") -> str",
+        "parameters": [
+          {
+            "name": "service_name",
+            "type": "str",
+            "description": "The name of the AWS service (e.g., \"EC2\", \"S3\", \"RDS\")",
+            "required": true
+          },
+          {
+            "name": "info_type",
+            "type": "str",
+            "description": "Type of information to retrieve (general, features, use_cases, limits, pricing, related, best_practices)",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON formatted information about the requested AWS service",
+        "dependencies": ["boto3", "json"],
+        "implementation_notes": [
+          "Uses AWS Service Catalog API to get service information",
+          "Falls back to comprehensive built-in knowledge base when API data is unavailable",
+          "Handles different information types with specialized retrieval methods"
+        ],
+        "error_handling": [
+          "Graceful fallback to knowledge base when AWS API calls fail",
+          "Structured error responses with helpful messages",
+          "Service name normalization to handle different input formats"
+        ],
+        "usage_examples": [
+          "aws_service_info(\"EC2\", \"general\")",
+          "aws_service_info(\"S3\", \"features\")",
+          "aws_service_info(\"RDS\", \"best_practices\")"
+        ]
+      },
+      {
+        "tool_name": "aws_service_search",
+        "description": "Search for AWS services based on keywords or categories",
+        "function_signature": "aws_service_search(keyword: str, category: Optional[str] = None, max_results: int = 10) -> str",
+        "parameters": [
+          {
+            "name": "keyword",
+            "type": "str",
+            "description": "Keyword to search for in service descriptions",
+            "required": true
+          },
+          {
+            "name": "category",
+            "type": "str",
+            "description": "Filter by service category (e.g., \"Compute\", \"Storage\", \"Database\")",
+            "required": false
+          },
+          {
+            "name": "max_results",
+            "type": "int",
+            "description": "Maximum number of results to return",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON formatted list of matching AWS services",
+        "dependencies": ["boto3", "json"],
+        "implementation_notes": [
+          "Uses AWS Service Catalog API to search for services",
+          "Supports category filtering with normalized category names",
+          "Falls back to knowledge base search when API calls fail"
+        ],
+        "error_handling": [
+          "Graceful fallback to knowledge base when AWS API calls fail",
+          "Structured error responses with helpful messages"
+        ],
+        "usage_examples": [
+          "aws_service_search(\"database\")",
+          "aws_service_search(\"container\", \"Compute\")",
+          "aws_service_search(\"storage\", max_results=5)"
+        ]
+      },
+      {
+        "tool_name": "aws_service_mapping",
+        "description": "Map a technology or concept to equivalent AWS services",
+        "function_signature": "aws_service_mapping(technology: str, use_case: Optional[str] = None, alternatives: bool = False) -> str",
+        "parameters": [
+          {
+            "name": "technology",
+            "type": "str",
+            "description": "The technology or concept to map (e.g., \"MySQL\", \"load balancer\", \"message queue\")",
+            "required": true
+          },
+          {
+            "name": "use_case",
+            "type": "str",
+            "description": "Specific use case to refine the mapping",
+            "required": false
+          },
+          {
+            "name": "alternatives",
+            "type": "bool",
+            "description": "Whether to include alternative AWS services",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON formatted mapping of the technology to AWS services",
+        "dependencies": ["json"],
+        "implementation_notes": [
+          "Uses comprehensive mapping database of technologies to AWS services",
+          "Supports use case-specific recommendations",
+          "Provides alternative services when requested"
+        ],
+        "error_handling": [
+          "Structured error responses with helpful messages",
+          "Technology name normalization to handle different input formats",
+          "Helpful suggestions when technology not found"
+        ],
+        "usage_examples": [
+          "aws_service_mapping(\"MySQL\")",
+          "aws_service_mapping(\"load balancer\", \"http\")",
+          "aws_service_mapping(\"message queue\", alternatives=True)"
+        ]
+      },
+      {
+        "tool_name": "aws_architecture_pattern",
+        "description": "Get information about common AWS architecture patterns",
+        "function_signature": "aws_architecture_pattern(pattern_name: str, details: bool = False) -> str",
+        "parameters": [
+          {
+            "name": "pattern_name",
+            "type": "str",
+            "description": "Name of the architecture pattern (e.g., \"three-tier\", \"microservices\", \"serverless\")",
+            "required": true
+          },
+          {
+            "name": "details",
+            "type": "bool",
+            "description": "Whether to include detailed implementation information",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON formatted information about the architecture pattern",
+        "dependencies": ["json"],
+        "implementation_notes": [
+          "Provides comprehensive information about common AWS architecture patterns",
+          "Includes components, AWS services, benefits, and use cases",
+          "Offers detailed implementation guidance when requested"
+        ],
+        "error_handling": [
+          "Structured error responses with helpful messages",
+          "Pattern name normalization to handle different input formats",
+          "Suggestions for available patterns when pattern not found"
+        ],
+        "usage_examples": [
+          "aws_architecture_pattern(\"three-tier\")",
+          "aws_architecture_pattern(\"microservices\", details=True)",
+          "aws_architecture_pattern(\"serverless\")"
+        ]
+      },
+      {
+        "tool_name": "aws_service_compatibility",
+        "description": "Check compatibility between two AWS services",
+        "function_signature": "aws_service_compatibility(service1: str, service2: str) -> str",
+        "parameters": [
+          {
+            "name": "service1",
+            "type": "str",
+            "description": "First AWS service name",
+            "required": true
+          },
+          {
+            "name": "service2",
+            "type": "str",
+            "description": "Second AWS service name",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON formatted compatibility information between the services",
+        "dependencies": ["json"],
+        "implementation_notes": [
+          "Uses compatibility database to check service interoperability",
+          "Provides integration methods, best practices, and limitations",
+          "Normalizes service names for consistent lookups"
+        ],
+        "error_handling": [
+          "Structured error responses with helpful messages",
+          "Service name normalization to handle different input formats",
+          "Generic guidance when specific compatibility information not available"
+        ],
+        "usage_examples": [
+          "aws_service_compatibility(\"EC2\", \"RDS\")",
+          "aws_service_compatibility(\"Lambda\", \"DynamoDB\")",
+          "aws_service_compatibility(\"S3\", \"CloudFront\")"
+        ]
+      },
+      {
+        "tool_name": "generate_architecture_diagram",
+        "description": "Generate a visual architecture diagram from an architecture description",
+        "function_signature": "generate_architecture_diagram(architecture_description: Dict[str, Any], diagram_format: str = \"mermaid\", include_icons: bool = True, layout_style: str = \"top-down\") -> str",
+        "parameters": [
+          {
+            "name": "architecture_description",
+            "type": "Dict[str, Any]",
+            "description": "A structured description of the architecture with components, connections, and optional groups",
+            "required": true
+          },
+          {
+            "name": "diagram_format",
+            "type": "str",
+            "description": "Output format of the diagram (mermaid, drawio, ascii)",
+            "required": false
+          },
+          {
+            "name": "include_icons",
+            "type": "bool",
+            "description": "Whether to include AWS service icons",
+            "required": false
+          },
+          {
+            "name": "layout_style",
+            "type": "str",
+            "description": "Layout style of the diagram (top-down, left-right, circular)",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON formatted result containing the diagram in the requested format",
+        "dependencies": ["json", "re", "base64", "datetime"],
+        "implementation_notes": [
+          "Supports multiple diagram formats (mermaid, drawio, ascii)",
+          "Implements layout algorithms for different styles",
+          "Includes AWS service icons for visual identification",
+          "Handles component grouping for logical organization"
+        ],
+        "error_handling": [
+          "Validates input architecture description",
+          "Structured error responses with helpful messages",
+          "Graceful handling of unsupported diagram formats"
+        ],
+        "usage_examples": [
+          "generate_architecture_diagram(architecture_description)",
+          "generate_architecture_diagram(architecture_description, diagram_format=\"drawio\")",
+          "generate_architecture_diagram(architecture_description, include_icons=False, layout_style=\"left-right\")"
+        ]
+      },
+      {
+        "tool_name": "convert_diagram_format",
+        "description": "Convert a diagram from one format to another",
+        "function_signature": "convert_diagram_format(diagram_content: str, source_format: str, target_format: str, include_icons: bool = True) -> str",
+        "parameters": [
+          {
+            "name": "diagram_content",
+            "type": "str",
+            "description": "The content of the diagram to convert",
+            "required": true
+          },
+          {
+            "name": "source_format",
+            "type": "str",
+            "description": "The current format of the diagram (mermaid, drawio, json)",
+            "required": true
+          },
+          {
+            "name": "target_format",
+            "type": "str",
+            "description": "The desired output format (mermaid, drawio, ascii, json)",
+            "required": true
+          },
+          {
+            "name": "include_icons",
+            "type": "bool",
+            "description": "Whether to include AWS service icons in the output",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON formatted result containing the converted diagram",
+        "dependencies": ["json", "re", "datetime"],
+        "implementation_notes": [
+          "Parses diagrams to internal architecture description format",
+          "Generates target format from unified representation",
+          "Preserves component relationships and grouping"
+        ],
+        "error_handling": [
+          "Validates input diagram content",
+          "Structured error responses with helpful messages",
+          "Graceful handling of unsupported formats"
+        ],
+        "usage_examples": [
+          "convert_diagram_format(diagram_content, \"mermaid\", \"drawio\")",
+          "convert_diagram_format(diagram_content, \"json\", \"ascii\")",
+          "convert_diagram_format(diagram_content, \"drawio\", \"json\", include_icons=False)"
+        ]
+      },
+      {
+        "tool_name": "create_architecture_description",
+        "description": "Create a structured architecture description from components and connections",
+        "function_signature": "create_architecture_description(components: List[Dict[str, Any]], connections: List[Dict[str, Any]], groups: Optional[List[Dict[str, Any]]] = None, metadata: Optional[Dict[str, Any]] = None) -> str",
+        "parameters": [
+          {
+            "name": "components",
+            "type": "List[Dict[str, Any]]",
+            "description": "List of architecture components with id, type, name, and optional properties",
+            "required": true
+          },
+          {
+            "name": "connections",
+            "type": "List[Dict[str, Any]]",
+            "description": "List of connections between components with source, target, type, and optional label",
+            "required": true
+          },
+          {
+            "name": "groups",
+            "type": "List[Dict[str, Any]]",
+            "description": "List of logical groups (e.g., VPCs, subnets) with id, name, type, and components",
+            "required": false
+          },
+          {
+            "name": "metadata",
+            "type": "Dict[str, Any]",
+            "description": "Additional metadata about the architecture",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON formatted architecture description",
+        "dependencies": ["json", "datetime"],
+        "implementation_notes": [
+          "Validates components and connections for consistency",
+          "Checks for duplicate IDs and references",
+          "Adds default metadata if not provided"
+        ],
+        "error_handling": [
+          "Validates component and connection structure",
+          "Checks for missing references between components and connections",
+          "Structured error responses with helpful messages"
+        ],
+        "usage_examples": [
+          "create_architecture_description(components, connections)",
+          "create_architecture_description(components, connections, groups)",
+          "create_architecture_description(components, connections, groups, metadata)"
+        ]
+      },
+      {
+        "tool_name": "extract_architecture_from_text",
+        "description": "Extract architecture components and connections from a natural language description",
+        "function_signature": "extract_architecture_from_text(text_description: str, extract_connections: bool = True, identify_groups: bool = True) -> str",
+        "parameters": [
+          {
+            "name": "text_description",
+            "type": "str",
+            "description": "Natural language description of the architecture",
+            "required": true
+          },
+          {
+            "name": "extract_connections",
+            "type": "bool",
+            "description": "Whether to extract connections between components",
+            "required": false
+          },
+          {
+            "name": "identify_groups",
+            "type": "bool",
+            "description": "Whether to identify logical groups like VPCs and subnets",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON formatted architecture description extracted from the text",
+        "dependencies": ["json", "re", "datetime"],
+        "implementation_notes": [
+          "Uses pattern matching to identify AWS services",
+          "Infers connections based on text analysis",
+          "Identifies logical grouping based on architectural patterns",
+          "Includes confidence scores for extraction quality"
+        ],
+        "error_handling": [
+          "Graceful handling of ambiguous or incomplete descriptions",
+          "Structured error responses with helpful messages"
+        ],
+        "usage_examples": [
+          "extract_architecture_from_text(\"A three-tier architecture with EC2, RDS, and an ELB\")",
+          "extract_architecture_from_text(text_description, extract_connections=False)",
+          "extract_architecture_from_text(text_description, identify_groups=False)"
+        ]
+      },
+      {
+        "tool_name": "get_aws_service_icons",
+        "description": "Get AWS service icons for use in architecture diagrams",
+        "function_signature": "get_aws_service_icons(service_types: List[str], icon_format: str = \"url\") -> str",
+        "parameters": [
+          {
+            "name": "service_types",
+            "type": "List[str]",
+            "description": "List of AWS service types (e.g., [\"EC2\", \"S3\", \"RDS\"])",
+            "required": true
+          },
+          {
+            "name": "icon_format",
+            "type": "str",
+            "description": "Format of the icons to return (url, base64, markdown)",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON formatted mapping of service types to their icons",
+        "dependencies": ["json", "datetime"],
+        "implementation_notes": [
+          "Provides access to official AWS Architecture Icons",
+          "Supports multiple icon formats for different use cases",
+          "Includes fallback generic icons for unknown services"
+        ],
+        "error_handling": [
+          "Graceful handling of unknown service types",
+          "Structured error responses with helpful messages"
+        ],
+        "usage_examples": [
+          "get_aws_service_icons([\"EC2\", \"S3\", \"RDS\"])",
+          "get_aws_service_icons([\"Lambda\", \"DynamoDB\"], icon_format=\"base64\")",
+          "get_aws_service_icons([\"API Gateway\"], icon_format=\"markdown\")"
+        ]
+      },
+      {
+        "tool_name": "validate_architecture",
+        "description": "Validate an AWS architecture against best practices and design principles",
+        "function_signature": "validate_architecture(architecture_description: Dict[str, Any], validation_level: str = \"standard\", check_categories: Optional[List[str]] = None) -> str",
+        "parameters": [
+          {
+            "name": "architecture_description",
+            "type": "Dict[str, Any]",
+            "description": "A structured description of the architecture with components and connections",
+            "required": true
+          },
+          {
+            "name": "validation_level",
+            "type": "str",
+            "description": "Level of validation to perform (basic, standard, strict)",
+            "required": false
+          },
+          {
+            "name": "check_categories",
+            "type": "List[str]",
+            "description": "Specific categories of checks to perform (security, reliability, performance, cost, operational)",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON formatted validation results including issues, warnings, and recommendations",
+        "dependencies": ["json", "datetime"],
+        "implementation_notes": [
+          "Validates architecture against AWS best practices",
+          "Supports different validation levels for varying strictness",
+          "Categorizes findings by security, reliability, performance, cost, and operational excellence",
+          "Provides actionable recommendations for improvement"
+        ],
+        "error_handling": [
+          "Validates input architecture description",
+          "Structured error responses with helpful messages"
+        ],
+        "usage_examples": [
+          "validate_architecture(architecture_description)",
+          "validate_architecture(architecture_description, validation_level=\"strict\")",
+          "validate_architecture(architecture_description, check_categories=[\"security\", \"reliability\"])"
+        ]
+      },
+      {
+        "tool_name": "check_service_compatibility",
+        "description": "Check compatibility between two AWS services",
+        "function_signature": "check_service_compatibility(service1: str, service2: str, connection_type: Optional[str] = None) -> str",
+        "parameters": [
+          {
+            "name": "service1",
+            "type": "str",
+            "description": "First AWS service name",
+            "required": true
+          },
+          {
+            "name": "service2",
+            "type": "str",
+            "description": "Second AWS service name",
+            "required": true
+          },
+          {
+            "name": "connection_type",
+            "type": "str",
+            "description": "Type of connection to check (e.g., \"network\", \"data\", \"api\")",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON formatted compatibility information including integration methods, best practices, and limitations",
+        "dependencies": ["json", "datetime"],
+        "implementation_notes": [
+          "Uses comprehensive compatibility database",
+          "Provides integration methods specific to connection types",
+          "Includes best practices and limitations for service integration"
+        ],
+        "error_handling": [
+          "Service name normalization to handle different input formats",
+          "Structured error responses with helpful messages",
+          "Generic guidance when specific compatibility information not available"
+        ],
+        "usage_examples": [
+          "check_service_compatibility(\"EC2\", \"RDS\")",
+          "check_service_compatibility(\"Lambda\", \"DynamoDB\", connection_type=\"data\")",
+          "check_service_compatibility(\"API Gateway\", \"Lambda\", connection_type=\"api\")"
+        ]
+      },
+      {
+        "tool_name": "validate_against_well_architected",
+        "description": "Validate an architecture against the AWS Well-Architected Framework",
+        "function_signature": "validate_against_well_architected(architecture_description: Dict[str, Any], pillars: Optional[List[str]] = None) -> str",
+        "parameters": [
+          {
+            "name": "architecture_description",
+            "type": "Dict[str, Any]",
+            "description": "A structured description of the architecture",
+            "required": true
+          },
+          {
+            "name": "pillars",
+            "type": "List[str]",
+            "description": "Specific Well-Architected pillars to check (operational_excellence, security, reliability, performance_efficiency, cost_optimization, sustainability)",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON formatted validation results against the Well-Architected Framework",
+        "dependencies": ["json", "datetime"],
+        "implementation_notes": [
+          "Validates architecture against all six AWS Well-Architected pillars",
+          "Provides pillar-specific scores and findings",
+          "Generates prioritized recommendations based on findings"
+        ],
+        "error_handling": [
+          "Validates input architecture description",
+          "Structured error responses with helpful messages",
+          "Handles unknown pillars gracefully"
+        ],
+        "usage_examples": [
+          "validate_against_well_architected(architecture_description)",
+          "validate_against_well_architected(architecture_description, pillars=[\"security\", \"reliability\"])",
+          "validate_against_well_architected(architecture_description, pillars=[\"cost_optimization\"])"
+        ]
+      },
+      {
+        "tool_name": "validate_service_configuration",
+        "description": "Validate the configuration of a specific AWS service against best practices",
+        "function_signature": "validate_service_configuration(service_type: str, configuration: Dict[str, Any]) -> str",
+        "parameters": [
+          {
+            "name": "service_type",
+            "type": "str",
+            "description": "The AWS service type (e.g., \"EC2\", \"S3\", \"RDS\")",
+            "required": true
+          },
+          {
+            "name": "configuration",
+            "type": "Dict[str, Any]",
+            "description": "Configuration parameters for the service",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON formatted validation results for the service configuration",
+        "dependencies": ["json", "datetime"],
+        "implementation_notes": [
+          "Validates service-specific configuration parameters",
+          "Checks against AWS best practices for each service",
+          "Provides severity-rated issues, warnings, and recommendations"
+        ],
+        "error_handling": [
+          "Service type normalization to handle different input formats",
+          "Structured error responses with helpful messages",
+          "Graceful handling of unknown service types"
+        ],
+        "usage_examples": [
+          "validate_service_configuration(\"EC2\", {\"instance_type\": \"t3.micro\", \"ebs_optimized\": false})",
+          "validate_service_configuration(\"S3\", {\"versioning\": true, \"encryption\": true})",
+          "validate_service_configuration(\"RDS\", {\"multi_az\": false, \"backup_retention_period\": 7})"
+        ]
+      },
+      {
+        "tool_name": "check_architecture_pattern_compliance",
+        "description": "Check if an architecture follows a specific AWS architecture pattern",
+        "function_signature": "check_architecture_pattern_compliance(architecture_description: Dict[str, Any], pattern_name: str) -> str",
+        "parameters": [
+          {
+            "name": "architecture_description",
+            "type": "Dict[str, Any]",
+            "description": "A structured description of the architecture",
+            "required": true
+          },
+          {
+            "name": "pattern_name",
+            "type": "str",
+            "description": "Name of the architecture pattern to check (e.g., \"three-tier\", \"microservices\", \"serverless\")",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON formatted compliance results including missing components, connections, and recommendations",
+        "dependencies": ["json", "datetime"],
+        "implementation_notes": [
+          "Checks architecture against common AWS architecture patterns",
+          "Identifies missing components and connections",
+          "Provides recommendations to better align with the pattern"
+        ],
+        "error_handling": [
+          "Validates input architecture description",
+          "Pattern name normalization to handle different input formats",
+          "Structured error responses with helpful messages",
+          "Graceful handling of unknown patterns"
+        ],
+        "usage_examples": [
+          "check_architecture_pattern_compliance(architecture_description, \"three-tier\")",
+          "check_architecture_pattern_compliance(architecture_description, \"microservices\")",
+          "check_architecture_pattern_compliance(architecture_description, \"serverless\")"
+        ]
+      }
+    ],
+    "code_quality": {
+      "code_standards": [
+        "PEP 8 compliant code style",
+        "Comprehensive type annotations for all functions and parameters",
+        "Detailed docstrings for all functions and modules",
+        "Consistent error handling patterns across all tools",
+        "Modular design with clear separation of concerns"
+      ],
+      "testing_strategy": [
+        "Unit tests for individual function validation",
+        "Integration tests for AWS service interactions",
+        "Mocked AWS responses for testing error handling",
+        "Validation of all tool outputs against expected schemas",
+        "Edge case testing for error conditions"
+      ],
+      "performance_considerations": [
+        "Efficient AWS API usage with appropriate caching",
+        "Optimized diagram generation algorithms",
+        "Fallback mechanisms to reduce latency on API failures",
+        "Minimal memory footprint for large architecture descriptions",
+        "Efficient text processing for natural language extraction"
+      ],
+      "security_measures": [
+        "Secure AWS API interactions using boto3",
+        "Input validation to prevent injection attacks",
+        "No hardcoded credentials or sensitive information",
+        "Proper error handling to prevent information leakage",
+        "Secure handling of user-provided content"
+      ]
+    },
+    "integration_details": {
+      "aws_services": [
+        "AWS Service Catalog API for service information",
+        "AWS Service Quotas API for service limits",
+        "AWS Pricing API for service pricing",
+        "AWS Well-Architected Tool concepts for architecture validation"
+      ],
+      "external_libraries": [
+        "boto3 for AWS service interactions",
+        "json for data serialization",
+        "re for pattern matching",
+        "datetime for timestamp generation"
+      ],
+      "api_endpoints": [
+        "AWS Service Catalog API",
+        "AWS Service Quotas API",
+        "AWS Pricing API"
+      ],
+      "data_formats": [
+        "JSON for structured data exchange",
+        "Mermaid diagram syntax",
+        "Draw.io XML format",
+        "ASCII art for text-based diagrams"
+      ]
+    },
+    "development_notes": "The tools developed for the AWS Architecture Generator Agent provide a comprehensive set of capabilities for understanding AWS services, generating architecture diagrams, and validating architectures against best practices. The AWS Service Knowledge Base Tool offers deep insights into AWS services, their capabilities, and relationships, with real AWS API integration and a robust fallback knowledge base. The Architecture Diagram Generator Tool supports multiple diagram formats with flexible layouts and AWS service icons. The Architecture Validator Tool provides thorough validation against AWS best practices and the Well-Architected Framework. All tools are designed with robust error handling, comprehensive documentation, and a focus on usability and performance. The modular design allows for future extensions and improvements."
+  }
+}

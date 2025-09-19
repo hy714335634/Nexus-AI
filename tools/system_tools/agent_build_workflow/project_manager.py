@@ -2063,6 +2063,23 @@ def verify_file_content(type: Literal["agent", "prompt", "tool"], file_path: str
         }, ensure_ascii=False, indent=2)
 
 @tool
+def generate_python_requirements(project_name: str, content: str) -> str:
+    """
+    基于工具中使用的包，在项目文件夹中生成python requirements.txt 文件，内容为项目依赖的库
+    
+    Args:
+        project_name (str): 项目名称（必须）
+        content (str): 要写入的文件内容（必须）
+        
+    Returns:
+        str: 操作结果信息
+    """
+    with open(os.path.join("projects", project_name, "requirements.txt"), "w") as f:
+        f.write(content)
+    return f"在projects/{project_name}/requirements.txt 文件中生成项目依赖的库"
+    
+
+@tool
 def generate_content(type: Literal["agent", "prompt", "tool"], content: str, project_name: str, artifact_name: str) -> str:
     """
     根据类型生成内容文件到指定目录

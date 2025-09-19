@@ -1,0 +1,284 @@
+{
+  "agent_code_development": {
+    "development_overview": {
+      "project_name": "aws_architecture_generator",
+      "version": "1.0",
+      "date": "2025-09-19",
+      "development_scope": "Development of an AWS Architecture Generator Agent that creates architecture diagrams based on natural language descriptions",
+      "design_principles": [
+        "Modular design with clear separation of concerns",
+        "Integration with specialized AWS knowledge and diagram generation tools",
+        "Comprehensive error handling and recovery mechanisms",
+        "User-friendly interaction with clear explanations",
+        "Adherence to AWS architecture best practices"
+      ],
+      "key_decisions": [
+        "Used data_analyzer_agent template as the foundation due to its existing data processing and visualization capabilities",
+        "Implemented a helper class to manage state and provide utility functions",
+        "Integrated three custom tools: AWS Service Knowledge Base, Architecture Diagram Generator, and Architecture Validator",
+        "Configured the agent to use Claude 3 Opus model for advanced reasoning capabilities",
+        "Added telemetry for monitoring and debugging"
+      ]
+    },
+    "agent_implementation": {
+      "agent_name": "aws_architecture_generator",
+      "file_path": "agents/generated_agents/aws_architecture_generator/aws_architecture_generator.py",
+      "main_class": "AwsArchitectureGenerator",
+      "entry_point": "aws_architecture_generator",
+      "dependencies": [
+        "utils.agent_factory",
+        "strands.telemetry",
+        "logging",
+        "os",
+        "json",
+        "argparse"
+      ],
+      "imports": [
+        "from utils.agent_factory import create_agent_from_prompt_template",
+        "from strands.telemetry import StrandsTelemetry",
+        "import os",
+        "import json",
+        "import logging",
+        "from typing import Dict, List, Any, Optional, Union"
+      ]
+    },
+    "core_functions": [
+      {
+        "function_name": "create_agent_from_prompt_template",
+        "purpose": "Create the AWS Architecture Generator agent using the prompt template",
+        "parameters": [
+          {
+            "name": "agent_name",
+            "type": "str",
+            "description": "Path to the agent prompt template",
+            "required": true
+          }
+        ],
+        "return_type": "Agent",
+        "return_description": "Initialized agent instance",
+        "implementation_notes": [
+          "Uses the Strands SDK agent factory",
+          "Points to the specific AWS architecture generator prompt template",
+          "Configures the agent with production environment settings"
+        ]
+      },
+      {
+        "function_name": "AwsArchitectureGenerator.save_architecture",
+        "purpose": "Save the current architecture and add previous one to history",
+        "parameters": [
+          {
+            "name": "architecture",
+            "type": "Dict[str, Any]",
+            "description": "The architecture description to save",
+            "required": true
+          }
+        ],
+        "return_type": "None",
+        "return_description": "No return value",
+        "implementation_notes": [
+          "Maintains a history of architecture versions",
+          "Updates the current architecture reference"
+        ]
+      },
+      {
+        "function_name": "AwsArchitectureGenerator.get_current_architecture",
+        "purpose": "Retrieve the current architecture description",
+        "parameters": [],
+        "return_type": "Optional[Dict[str, Any]]",
+        "return_description": "The current architecture description or None if not set",
+        "implementation_notes": [
+          "Simple getter method for the current architecture state"
+        ]
+      },
+      {
+        "function_name": "AwsArchitectureGenerator.save_diagram",
+        "purpose": "Save the last generated diagram",
+        "parameters": [
+          {
+            "name": "diagram",
+            "type": "Dict[str, Any]",
+            "description": "The diagram data to save",
+            "required": true
+          }
+        ],
+        "return_type": "None",
+        "return_description": "No return value",
+        "implementation_notes": [
+          "Stores the diagram data for later reference"
+        ]
+      },
+      {
+        "function_name": "AwsArchitectureGenerator.get_last_diagram",
+        "purpose": "Retrieve the last generated diagram",
+        "parameters": [],
+        "return_type": "Optional[Dict[str, Any]]",
+        "return_description": "The last diagram data or None if not generated",
+        "implementation_notes": [
+          "Simple getter method for the last diagram state"
+        ]
+      },
+      {
+        "function_name": "AwsArchitectureGenerator.add_service_mapping",
+        "purpose": "Add a mapping from technology to AWS service",
+        "parameters": [
+          {
+            "name": "technology",
+            "type": "str",
+            "description": "The technology or concept",
+            "required": true
+          },
+          {
+            "name": "aws_service",
+            "type": "str",
+            "description": "The corresponding AWS service",
+            "required": true
+          }
+        ],
+        "return_type": "None",
+        "return_description": "No return value",
+        "implementation_notes": [
+          "Normalizes technology names to lowercase for case-insensitive lookups",
+          "Updates the service mappings dictionary"
+        ]
+      },
+      {
+        "function_name": "AwsArchitectureGenerator.get_service_mapping",
+        "purpose": "Get the AWS service mapping for a technology",
+        "parameters": [
+          {
+            "name": "technology",
+            "type": "str",
+            "description": "The technology or concept to look up",
+            "required": true
+          }
+        ],
+        "return_type": "Optional[str]",
+        "return_description": "The corresponding AWS service or None if not found",
+        "implementation_notes": [
+          "Normalizes technology name to lowercase for case-insensitive lookups",
+          "Returns None if no mapping exists"
+        ]
+      },
+      {
+        "function_name": "AwsArchitectureGenerator.clear_state",
+        "purpose": "Clear the current state but keep history",
+        "parameters": [],
+        "return_type": "None",
+        "return_description": "No return value",
+        "implementation_notes": [
+          "Resets current architecture and diagram while preserving history",
+          "Useful when starting a new architecture design"
+        ]
+      }
+    ],
+    "tool_integration": {
+      "custom_tools": [
+        "aws_service_knowledge_base.aws_service_info",
+        "aws_service_knowledge_base.aws_service_search",
+        "aws_service_knowledge_base.aws_service_mapping",
+        "aws_service_knowledge_base.aws_architecture_pattern",
+        "aws_service_knowledge_base.aws_service_compatibility",
+        "architecture_diagram_generator.generate_architecture_diagram",
+        "architecture_diagram_generator.create_architecture_description",
+        "architecture_diagram_generator.extract_architecture_from_text",
+        "architecture_diagram_generator.get_aws_service_icons",
+        "architecture_validator.validate_architecture",
+        "architecture_validator.validate_service_configuration",
+        "architecture_validator.check_service_compatibility",
+        "architecture_validator.validate_against_well_architected",
+        "architecture_validator.check_architecture_pattern_compliance"
+      ],
+      "system_tools": [
+        "strands_tools/current_time"
+      ],
+      "strands_tools": [
+        "StrandsTelemetry"
+      ],
+      "integration_notes": [
+        "Tools are integrated through the prompt template tools_dependencies configuration",
+        "The agent uses the AWS Service Knowledge Base to understand and map technologies to AWS services",
+        "Architecture diagrams are generated using the Architecture Diagram Generator tool",
+        "Architectures are validated against AWS best practices using the Architecture Validator tool",
+        "The current_time tool is used for timestamping operations",
+        "StrandsTelemetry is used for monitoring and debugging"
+      ]
+    },
+    "configuration": {
+      "environment_variables": [
+        "BYPASS_TOOL_CONSENT=true",
+        "OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318"
+      ],
+      "model_configuration": {
+        "model_name": "Claude 3 Opus",
+        "max_tokens": 60000,
+        "temperature": 0.3,
+        "top_p": 0.8
+      },
+      "streaming_config": {
+        "enabled": true,
+        "chunk_size": 1024
+      }
+    },
+    "error_handling": {
+      "exception_types": [
+        "General exceptions in main execution",
+        "Tool execution errors",
+        "Model response errors"
+      ],
+      "error_responses": [
+        "Detailed error logging with exception information",
+        "User-friendly error messages",
+        "Fallback mechanisms when tools fail"
+      ],
+      "recovery_strategies": [
+        "Exception catching in main execution block",
+        "Logging of errors for debugging",
+        "State management to prevent data loss"
+      ]
+    },
+    "testing": {
+      "test_cases": [
+        "Basic three-tier web application architecture",
+        "Serverless data processing pipeline",
+        "High-availability e-commerce platform",
+        "Big data analytics platform"
+      ],
+      "test_scenarios": [
+        "Different diagram format outputs (mermaid, drawio, ascii)",
+        "Varying levels of detail in requirements",
+        "Specific AWS service requests",
+        "Architecture pattern compliance"
+      ],
+      "validation_criteria": [
+        "Correct AWS service selection based on requirements",
+        "Valid architecture with proper component relationships",
+        "Compliance with AWS best practices",
+        "Clear and understandable diagram output",
+        "Helpful explanations of design decisions"
+      ]
+    },
+    "deployment": {
+      "deployment_requirements": [
+        "Python 3.13+ environment",
+        "Strands SDK",
+        "Access to AWS Bedrock for model inference",
+        "boto3 for AWS service integration",
+        "Custom tools installed and accessible"
+      ],
+      "runtime_dependencies": [
+        "utils.agent_factory",
+        "strands.telemetry",
+        "boto3",
+        "logging",
+        "json"
+      ],
+      "performance_considerations": [
+        "Model response time for complex architectures",
+        "Diagram generation time for large architectures",
+        "Memory usage for storing architecture history",
+        "Tool execution time for AWS service lookups and validations"
+      ]
+    },
+    "development_notes": "The AWS Architecture Generator Agent was developed as a specialized agent that leverages AWS service knowledge and diagram generation capabilities to create architecture diagrams based on natural language descriptions. The agent uses a modular design with a helper class to manage state and provide utility functions. It integrates three custom tools: AWS Service Knowledge Base for service information and mapping, Architecture Diagram Generator for creating visual diagrams, and Architecture Validator for ensuring architectures follow AWS best practices. The agent is configured to use the Claude 3 Opus model for advanced reasoning capabilities, allowing it to understand complex requirements and map them to appropriate AWS services. The development process focused on creating a user-friendly agent that can generate accurate, well-designed AWS architectures with clear explanations of design decisions. The agent supports multiple diagram formats and can handle various levels of detail in requirements."
+  }
+}

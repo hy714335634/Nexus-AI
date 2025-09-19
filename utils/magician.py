@@ -64,7 +64,6 @@ class Magician:
             f"生成编排配置"
         )
         self.magician_agent = self.dynamic_build_magician_agent(self.orchestration_result)
-        print(self.orchestration_result)
         return self.magician_agent
 
     def get_magician_agent(self, template_path, nocallback=False, custom_params=None):

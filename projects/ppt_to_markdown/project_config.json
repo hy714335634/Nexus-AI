@@ -1,0 +1,162 @@
+{
+  "project_name": "ppt_to_markdown",
+  "validation_timestamp": "2025-09-19T03:35:48.088437+00:00",
+  "overall_status": "success",
+  "agent_scripts": [
+    {
+      "script_path": "agents/generated_agents/ppt_to_markdown/ppt_to_markdown_converter.py",
+      "syntax_valid": true,
+      "dependencies": [
+        "os",
+        "json",
+        "argparse",
+        "pathlib",
+        "typing",
+        "utils.agent_factory",
+        "strands.telemetry",
+        "strands",
+        "re"
+      ],
+      "execution_params": [],
+      "argparse_params": [
+        {
+          "name": "-f",
+          "type": "str",
+          "description": "要转换的PPT文件路径",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "-o",
+          "type": "str",
+          "description": "输出Markdown文件路径",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "-q",
+          "type": "str",
+          "description": "转换请求或问题",
+          "required": false,
+          "default": "请将这个PPT文件转换为Markdown格式",
+          "action": null
+        },
+        {
+          "name": "--no-page-numbers",
+          "type": "str",
+          "description": "不包含页码",
+          "required": false,
+          "default": null,
+          "action": "store_true"
+        },
+        {
+          "name": "--no-titles",
+          "type": "str",
+          "description": "不包含幻灯片标题",
+          "required": false,
+          "default": null,
+          "action": "store_true"
+        },
+        {
+          "name": "--extract-notes",
+          "type": "str",
+          "description": "提取演讲者笔记",
+          "required": false,
+          "default": null,
+          "action": "store_true"
+        },
+        {
+          "name": "--include-images",
+          "type": "str",
+          "description": "包含图片引用",
+          "required": false,
+          "default": null,
+          "action": "store_true"
+        },
+        {
+          "name": "--add-toc",
+          "type": "str",
+          "description": "添加目录",
+          "required": false,
+          "default": null,
+          "action": "store_true"
+        },
+        {
+          "name": "--style",
+          "type": "str",
+          "description": "Markdown样式",
+          "required": false,
+          "default": "default",
+          "action": null
+        }
+      ],
+      "error_message": ""
+    }
+  ],
+  "prompt_files": [
+    {
+      "prompt_path": "generated_agents_prompts/ppt_to_markdown/ppt_to_markdown_converter.yaml",
+      "tool_count": 12,
+      "valid": true,
+      "error_message": "",
+      "metadata": {
+        "tags": [
+          "document_conversion",
+          "ppt_processing",
+          "markdown_generation",
+          "format_conversion"
+        ],
+        "supported_models": [
+          "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
+        ],
+        "tools_dependencies": [
+          "strands_tools/file_read",
+          "strands_tools/current_time",
+          "generated_tools/ppt_to_markdown/file_manager/create_output_directory",
+          "generated_tools/ppt_to_markdown/file_manager/find_ppt_files",
+          "generated_tools/ppt_to_markdown/file_manager/save_markdown_file",
+          "generated_tools/ppt_to_markdown/file_manager/validate_ppt_file",
+          "generated_tools/ppt_to_markdown/markdown_formatter/customize_markdown_styling",
+          "generated_tools/ppt_to_markdown/markdown_formatter/extract_markdown_sections",
+          "generated_tools/ppt_to_markdown/markdown_formatter/format_markdown_document",
+          "generated_tools/ppt_to_markdown/ppt_converter/batch_convert_ppt_to_markdown",
+          "generated_tools/ppt_to_markdown/ppt_converter/extract_ppt_structure",
+          "generated_tools/ppt_to_markdown/ppt_converter/ppt_to_markdown_converter"
+        ]
+      },
+      "agent_info": {
+        "name": "ppt_to_markdown_converter",
+        "description": "专业的PPT内容提取和Markdown转换专家，能够解析PPT文件、提取每页内容并生成完整Markdown格式总结报告",
+        "category": "document_conversion"
+      }
+    }
+  ],
+  "generated_tools": [
+    {
+      "tool_path": "generated_tools/ppt_to_markdown/ppt_converter.py",
+      "syntax_valid": true,
+      "error_message": ""
+    },
+    {
+      "tool_path": "generated_tools/ppt_to_markdown/markdown_formatter.py",
+      "syntax_valid": true,
+      "error_message": ""
+    },
+    {
+      "tool_path": "generated_tools/ppt_to_markdown/file_manager.py",
+      "syntax_valid": true,
+      "error_message": ""
+    }
+  ],
+  "total_tools": 12,
+  "summary": {
+    "agent_scripts_count": 1,
+    "prompt_files_count": 1,
+    "generated_tool_files_count": 3,
+    "all_scripts_valid": true,
+    "all_tools_valid": true,
+    "all_prompts_valid": true
+  }
+}
