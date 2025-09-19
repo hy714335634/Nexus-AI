@@ -2,6 +2,8 @@
 
 <div align="center">
 
+<img src="architecture/default_logo.png" alt="Nexus-AI Logo" width="200" height="200">
+
 ![Nexus-AI Logo](https://img.shields.io/badge/Nexus--AI-Enterprise%20AI%20Platform-blue?style=for-the-badge&logo=aws)
 
 **Agentic AI-Native Platform - 从想法到实现，只需要一句话**
@@ -120,6 +122,45 @@ graph TD
 - **自然语言驱动**：通过自然语言描述自动生成完整的AI代理系统
 - **模板化开发**：内置多种Agent模板，支持单Agent和多Agent场景
 - **智能资产复用**：自动识别和复用现有Agent、工具和提示词
+
+### 🎯 已构建的Agent示例
+
+Nexus-AI 已经成功构建了多个实用的AI代理，展示了平台的强大能力：
+
+#### 🏗️ AWS架构生成器 (aws_architecture_generator)
+- **功能**：将自然语言描述转换为专业的AWS架构图
+- **特点**：支持IT技术栈映射、架构验证、可视化优化
+- **应用场景**：云架构设计、技术方案展示、系统规划
+
+#### 💰 AWS定价代理 (aws_pricing_agent)
+- **功能**：根据资源需求提供AWS服务配置推荐和实时报价
+- **特点**：支持EC2、EBS、S3、RDS等多种AWS服务，具备销售思维分析
+- **应用场景**：成本估算、方案报价、资源配置优化
+
+#### 📄 HTML转PPT代理 (html2pptx)
+- **功能**：将HTML文档智能转换为PPTX演示文稿
+- **特点**：保留原始样式、支持自定义模板、语义优先处理
+- **应用场景**：文档转换、演示文稿制作、内容迁移
+
+#### 📰 新闻检索代理 (news_retrieval_agent)
+- **功能**：基于用户关注话题检索热门新闻
+- **特点**：多平台聚合、热度排序、智能摘要生成
+- **应用场景**：信息收集、舆情监控、内容聚合
+
+#### 📋 PDF内容提取代理 (pdf_content_extractor)
+- **功能**：从PDF文件中提取文本内容
+- **特点**：多模态处理、断点续传、批量处理
+- **应用场景**：文档数字化、内容提取、信息整理
+
+#### 📊 PPT转Markdown代理 (ppt_to_markdown)
+- **功能**：将PPT文件转换为Markdown格式
+- **特点**：保持结构层次、格式转换、批量处理
+- **应用场景**：文档转换、内容迁移、格式标准化
+
+#### 🔬 PubMed文献检索代理 (pubmed_literature_agent)
+- **功能**：检索和分析医学文献
+- **特点**：智能查询优化、相关性排序、摘要生成
+- **应用场景**：学术研究、文献调研、知识发现
 
 ### 🏗️ 企业级架构
 
@@ -375,24 +416,14 @@ multimodal_parser:
 3. **完善文档**: 改进文档和示例
 4. **分享经验**: 在Discussions中分享使用经验
 
-
-## 🙏 致谢
-
-感谢以下开源项目和服务：
-
-- [AWS Bedrock](https://aws.amazon.com/bedrock/) - 提供强大的AI能力
-- [Strands](https://strands.ai) - Agent框架支持
-- [Streamlit](https://streamlit.io) - Web界面框架
-- [MCP Protocol](https://modelcontextprotocol.io) - 标准化协议
-
 ---
 
 <div align="center">
 
 **让AI帮你构建AI，开启智能代理开发的新时代**
 
-[![Star](https://img.shields.io/github/stars/your-org/nexus-ai?style=social)](https://github.com/your-org/nexus-ai)
-[![Fork](https://img.shields.io/github/forks/your-org/nexus-ai?style=social)](https://github.com/your-org/nexus-ai/fork)
-[![Watch](https://img.shields.io/github/watchers/your-org/nexus-ai?style=social)](https://github.com/your-org/nexus-ai)
+[![Star](https://img.shields.io/github/stars/hy714335634/nexus-ai?style=social)](https://github.com/hy714335634/nexus-ai)
+[![Fork](https://img.shields.io/github/forks/hy714335634ur-org/nexus-ai?style=social)](https://github.com/hy714335634/nexus-ai/fork)
+[![Watch](https://img.shields.io/github/watchers/hy714335634/nexus-ai?style=social)](https://github.com/hy714335634/nexus-ai)
 
 </div>

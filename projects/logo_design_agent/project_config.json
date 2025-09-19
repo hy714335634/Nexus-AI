@@ -1,0 +1,99 @@
+{
+  "project_name": "logo_design_agent",
+  "validation_timestamp": "2025-09-19T09:15:30.209547+00:00",
+  "overall_status": "success",
+  "agent_scripts": [
+    {
+      "script_path": "agents/generated_agents/logo_design_agent/logo_designer.py",
+      "syntax_valid": true,
+      "dependencies": [
+        "os",
+        "json",
+        "logging",
+        "typing",
+        "utils.agent_factory",
+        "strands.telemetry",
+        "argparse"
+      ],
+      "execution_params": [],
+      "argparse_params": [
+        {
+          "name": "-i",
+          "type": "str",
+          "description": "用户需求描述",
+          "required": false,
+          "default": "我需要为一家名为'TechNova'的科技初创公司设计logo，主要从事人工智能和云计算业务。希望logo能体现科技感和创新精神，色调偏好蓝色和紫色。",
+          "action": null
+        },
+        {
+          "name": "-e",
+          "type": "str",
+          "description": "运行环境 (development, production, testing)",
+          "required": false,
+          "default": "production",
+          "action": null
+        },
+        {
+          "name": "-m",
+          "type": "str",
+          "description": "使用的模型ID",
+          "required": false,
+          "default": "default",
+          "action": null
+        }
+      ],
+      "error_message": ""
+    }
+  ],
+  "prompt_files": [
+    {
+      "prompt_path": "generated_agents_prompts/logo_design_agent/logo_designer.yaml",
+      "tool_count": 7,
+      "valid": true,
+      "error_message": "",
+      "metadata": {
+        "tags": [
+          "logo_design",
+          "brand_identity",
+          "visual_design",
+          "creative_design",
+          "professional_design"
+        ],
+        "supported_models": [
+          "us.anthropic.claude-3-7-sonnet-20250219-v1:0",
+          "us.anthropic.claude-3-opus-20240229-v1:0"
+        ],
+        "tools_dependencies": [
+          "strands_tools/current_time",
+          "strands_tools/file_write",
+          "strands_tools/generate_image",
+          "strands_tools/calculator",
+          "generated_tools/logo_design_agent/logo_design_tools/image_generator",
+          "generated_tools/logo_design_agent/logo_design_tools/html_report_generator",
+          "generated_tools/logo_design_agent/logo_design_tools/web_search"
+        ]
+      },
+      "agent_info": {
+        "name": "logo_designer",
+        "description": "专业的Logo设计智能体，能够分析用户需求，设计并生成高质量的logo图片，并提供设计说明报告。",
+        "category": "design"
+      }
+    }
+  ],
+  "generated_tools": [
+    {
+      "tool_path": "generated_tools/logo_design_agent/logo_design_tools.py",
+      "syntax_valid": true,
+      "error_message": ""
+    }
+  ],
+  "total_tools": 7,
+  "summary": {
+    "agent_scripts_count": 1,
+    "prompt_files_count": 1,
+    "generated_tool_files_count": 1,
+    "all_scripts_valid": true,
+    "all_tools_valid": true,
+    "all_prompts_valid": true
+  }
+}
