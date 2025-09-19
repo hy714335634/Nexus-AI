@@ -4,7 +4,7 @@
 
 ![Nexus-AI Logo](https://img.shields.io/badge/Nexus--AI-Enterprise%20AI%20Platform-blue?style=for-the-badge&logo=aws)
 
-**Agentic Native Platform - 从想法到实现，只需要一句话**
+**Agentic AI-Native Platform - 从想法到实现，只需要一句话**
 
 [![Python](https://img.shields.io/badge/Python-3.12+-blue?style=flat-square&logo=python)](https://python.org)
 [![AWS Bedrock](https://img.shields.io/badge/AWS-Bedrock-orange?style=flat-square&logo=amazon-aws)](https://aws.amazon.com/bedrock/)
@@ -224,7 +224,7 @@ streamlit run streamlit_app.py
 5. 构建完成后测试你的Agent
 
 ## 📖 使用指南
-### 示例：构建客服机器人
+### 示例：构建HTML转PPT Agent
 
 ```python
 # 1. 需求描述
@@ -255,17 +255,41 @@ streamlit run streamlit_app.py
 
 ```yaml
 # config/default_config.yaml
-aws:
-  bedrock_region: "us-west-2"
-  aws_region: "us-east-1"
-
-strands:
-  default_model: "claude-3-7-sonnet"
-  lite_model: "claude-3-5-haiku"
+default-config:
+  aws:
+    bedrock_region_name: 'us-west-2'  # Amazon Bedrock API调用区域
+    aws_region_name: 'us-west-2'      # 其他AWS服务的默认区域
+    aws_profile_name: 'default'       # AWS配置文件名称
+    verify: True                      # 验证SSL证书
   
-agentcore:
-  execution_role_prefix: "agentcore"
-  runtime_timeout: 1800
+  strands:
+    template:
+      agent_template_path: 'agents/template_agents'     # Agent模板路径
+      prompt_template_path: 'prompts/template_prompts'  # 提示词模板路径
+      tool_template_path: 'tools/template_tools'        # 工具模板路径
+    generated:
+      agent_generated_path: 'agents/generated_agents'   # 生成的Agent路径
+      prompt_generated_path: 'prompts/generated_agents_prompts'
+      tool_generated_path: 'tools/generated_tools'
+    default_tools:
+      - 'calculator'    # 计算器工具
+      - 'shell'         # Shell命令工具
+      - 'file_read'     # 文件读取工具
+      - 'file_write'    # 文件写入工具
+  
+  agentcore:
+    execution_role_prefix: 'agentcore'     # IAM执行角色前缀
+    ecr_auto_create: True                  # 自动创建ECR仓库
+    runtime_timeout_minutes: 30            # Agent运行时超时时间
+  
+  bedrock:
+    model_id: 'us.anthropic.claude-3-7-sonnet-20250219-v1:0'    # 默认模型
+    lite_model_id: 'us.anthropic.claude-3-5-haiku-20241022-v1:0' # 轻量模型
+    pro_model_id: 'us.anthropic.claude-opus-4-20250514-v1:0'     # 专业模型
+  
+  logging:
+    level: 'INFO'                          # 日志级别
+    file_path: 'logs/nexus_ai.log'         # 日志文件路径
 ```
 
 ### MCP服务器配置
@@ -273,17 +297,63 @@ agentcore:
 ```json
 // mcp/system_mcp_server.json
 {
-  "servers": {
+  "mcpServers": {
     "awslabs.core-mcp-server": {
-      "command": "uvx awslabs.core-mcp-server@latest",
-      "enabled": true
+      "command": "uvx",
+      "args": ["awslabs.core-mcp-server@latest"],
+      "env": {
+        "FASTMCP_LOG_LEVEL": "ERROR"
+      },
+      "disabled": false
     },
     "awslabs.aws-pricing-mcp-server": {
-      "command": "uvx awslabs.aws-pricing-mcp-server@latest",
-      "enabled": true
+      "command": "uvx", 
+      "args": ["awslabs.aws-pricing-mcp-server@latest"],
+      "env": {
+        "FASTMCP_LOG_LEVEL": "ERROR",
+        "AWS_PROFILE": "default",
+        "AWS_REGION": "us-east-1"
+      },
+      "disabled": false
+    },
+    "awslabs.aws-api-mcp-server": {
+      "command": "uvx",
+      "args": ["awslabs.aws-api-mcp-server@latest"],
+      "env": {
+        "FASTMCP_LOG_LEVEL": "ERROR",
+        "AWS_PROFILE": "default", 
+        "AWS_REGION": "us-west-2"
+      },
+      "disabled": false
     }
   }
 }
+```
+
+### 多模态处理配置
+
+```yaml
+# config/default_config.yaml (多模态部分)
+multimodal_parser:
+  aws:
+    s3_bucket: "awesome-nexus-ai-file-storage"  # S3存储桶
+    s3_prefix: "multimodal-content/"            # S3前缀
+    bedrock_region: "us-west-2"                 # Bedrock区域
+  
+  file_limits:
+    max_file_size: "50MB"                       # 最大文件大小
+    max_files_per_request: 10                   # 每次请求最大文件数
+    supported_formats: ["jpg", "jpeg", "png", "gif", "txt", "xlsx", "docx", "csv"]
+  
+  processing:
+    timeout_seconds: 300                        # 处理超时时间
+    retry_attempts: 3                          # 重试次数
+    batch_size: 5                              # 批处理大小
+  
+  model:
+    primary_model: "us.anthropic.claude-opus-4-20250514-v1:0"    # 主模型
+    fallback_model: "us.anthropic.claude-3-7-sonnet-20250219-v1:0" # 备用模型
+    max_tokens: 40000                          # 最大Token数
 ```
 
 ## 🎯 路线图
