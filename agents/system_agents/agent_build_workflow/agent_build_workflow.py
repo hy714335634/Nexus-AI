@@ -184,24 +184,8 @@ def run_workflow(user_input: str, session_id="default"):
         for node in result.execution_order:
             print(f"Executed: {node.node_id}")
 
-        # Get results from specific nodes
-        orchestrator_result = result.results["orchestrator"].result
-        print(f"Analysis: {orchestrator_result}")
-
         print(f"{'='*80}")
         
-        # 将result变量保存到本地json文件
-        result_dict = {
-            "total_nodes": result.total_nodes,
-            "completed_nodes": result.completed_nodes,
-            "failed_nodes": result.failed_nodes,
-            "execution_time": result.execution_time,
-            "accumulated_usage": result.accumulated_usage.__dict__ if hasattr(result.accumulated_usage, '__dict__') else str(result.accumulated_usage),
-            "outputs": {k: str(v) for k, v in result.outputs.items()} if hasattr(result, 'outputs') else {}
-        }
-        with open('result.json', 'w', encoding='utf-8') as f:
-            json.dump(result_dict, f, ensure_ascii=False, indent=4)
-            print(f"📝 [SYSTEM] 已将result变量保存到本地json文件")
 
         report_path = generate_workflow_summary_report(result, './projects')
         print(f"📄 报告路径: {report_path}")
@@ -270,8 +254,6 @@ if __name__ == "__main__":
         # 将result持久化保存到本地文件，方便后续测试
         print(f"\n{'='*80}")
         print(f"🎉 [SYSTEM] 工作流执行完成")
-        # print(f"📊 意图分析: {result['intent_analysis']}")
-        # print(f"📊 工作流结果: {result['workflow_result']}")
         print(f"📊 工作流报告: {result['report_path']}")
         print(f"{'='*80}")
     except Exception as e:

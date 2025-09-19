@@ -1,0 +1,287 @@
+{
+  "system_design": {
+    "design_overview": {
+      "project_name": "AWS Architecture Generator",
+      "version": "1.0",
+      "date": "2025-09-19",
+      "design_scope": "设计一个能够将自然语言需求转换为AWS架构图的Agent系统，包括AWS服务映射、架构合理性验证和可视化生成",
+      "design_principles": [
+        "准确性：确保AWS服务选择和架构设计符合最佳实践",
+        "可理解性：生成的架构图清晰易懂，适合技术和非技术人员",
+        "美观性：架构图视觉效果专业，布局合理",
+        "灵活性：支持多种架构模式和复杂度级别",
+        "实用性：生成的架构图可直接用于演示和文档"
+      ],
+      "key_decisions": [
+        "采用单Agent架构，简化工作流程",
+        "使用数据分析师模板作为基础，扩展AWS服务知识和图表生成能力",
+        "集成图表生成库以支持多种输出格式",
+        "建立AWS服务知识库和架构模式库",
+        "实现自然语言处理能力以解析技术需求"
+      ],
+      "workflow_type": "single_agent",
+      "recommended_templates": ["data_analyzer_agent"]
+    },
+    "architecture": {
+      "system_context": "系统接收用户的自然语言架构需求描述，通过理解和分析将其转换为AWS架构设计，并生成可视化的架构图。系统需要具备IT技术栈知识、AWS服务映射能力、架构设计规则和图表生成能力。",
+      "agent_topology": "单Agent架构，集成多个功能模块处理不同任务",
+      "interaction_model": "用户通过自然语言与Agent交互，Agent完成需求解析、架构设计和图表生成后返回结果",
+      "technology_stack": {
+        "sdk": "Strands SDK",
+        "runtime": "Local",
+        "integrations": [
+          "AWS Service Catalog API",
+          "图表生成库（如Graphviz、PlantUML、Mermaid）",
+          "AWS图标库",
+          "AWS最佳实践知识库"
+        ]
+      }
+    },
+    "agents": [
+      {
+        "name": "aws_architecture_generator",
+        "purpose": "将自然语言架构需求转换为可视化的AWS架构图",
+        "responsibilities": [
+          "解析用户的自然语言架构需求",
+          "将IT技术栈映射到AWS托管服务",
+          "设计符合最佳实践的AWS架构",
+          "生成美观、专业的架构图",
+          "验证架构的合理性和正确性",
+          "识别和应用常见架构模式"
+        ],
+        "interfaces": {
+          "inputs": [
+            "自然语言架构需求描述",
+            "可选的架构约束条件",
+            "可选的输出格式偏好",
+            "可选的架构复杂度级别"
+          ],
+          "outputs": [
+            "可视化架构图（多种格式：drawio、mermaid、PNG等）",
+            "架构设计说明",
+            "AWS服务选择理由",
+            "架构最佳实践建议"
+          ]
+        },
+        "dependencies": [
+          "AWS服务知识库",
+          "图表生成库",
+          "架构模式库",
+          "AWS图标库"
+        ],
+        "implementation_notes": [
+          "基于数据分析师模板实现，扩展AWS服务知识和图表生成能力",
+          "使用LLM能力解析自然语言需求并映射到技术概念",
+          "实现架构验证逻辑以确保设计合理性",
+          "集成图表美化功能以提升视觉效果"
+        ],
+        "recommended_template": "data_analyzer_agent"
+      }
+    ],
+    "data_models": [
+      {
+        "name": "ArchitectureRequirement",
+        "schema": "包含用户需求描述、技术约束、业务场景等信息的结构化数据",
+        "validation_rules": [
+          "需求描述不能为空",
+          "如果指定了特定AWS服务，需验证其有效性"
+        ],
+        "relationships": ["输入到RequirementParser模块"]
+      },
+      {
+        "name": "AWSService",
+        "schema": "AWS服务的结构化表示，包含服务名称、类别、功能描述、图标URL、兼容性信息等",
+        "validation_rules": [
+          "服务名称必须是有效的AWS服务",
+          "服务类别必须符合AWS服务目录分类"
+        ],
+        "relationships": ["用于构建ArchitectureDesign"]
+      },
+      {
+        "name": "ArchitectureDesign",
+        "schema": "完整的架构设计，包含组件列表、组件关系、网络配置、安全规则等",
+        "validation_rules": [
+          "组件间的关系必须有效（如VPC间需要peering才能通信）",
+          "安全组规则必须符合AWS最佳实践",
+          "架构必须包含所有必要的组件以满足需求"
+        ],
+        "relationships": ["输入到DiagramGenerator模块"]
+      },
+      {
+        "name": "ArchitectureDiagram",
+        "schema": "架构图的表示，包含图形元素、布局信息、样式设置等",
+        "validation_rules": [
+          "所有组件必须可见且不重叠",
+          "连接线必须清晰表示组件间关系",
+          "图表必须包含所有设计中的组件"
+        ],
+        "relationships": ["系统最终输出"]
+      }
+    ],
+    "interaction_flows": [
+      {
+        "name": "架构需求解析流程",
+        "description": "将用户的自然语言需求转换为结构化的架构需求",
+        "steps": [
+          {
+            "step": "接收用户输入",
+            "agent": "aws_architecture_generator",
+            "action": "接收并预处理用户的自然语言描述",
+            "data": "原始文本输入"
+          },
+          {
+            "step": "需求解析",
+            "agent": "aws_architecture_generator",
+            "action": "识别关键技术需求、架构模式和业务场景",
+            "data": "结构化的ArchitectureRequirement对象"
+          },
+          {
+            "step": "需求验证",
+            "agent": "aws_architecture_generator",
+            "action": "检查需求的完整性和一致性，必要时请求用户澄清",
+            "data": "验证后的ArchitectureRequirement对象"
+          }
+        ]
+      },
+      {
+        "name": "AWS服务映射流程",
+        "description": "将技术需求映射到具体的AWS服务",
+        "steps": [
+          {
+            "step": "技术栈分析",
+            "agent": "aws_architecture_generator",
+            "action": "识别需求中的技术组件和架构模式",
+            "data": "技术组件列表"
+          },
+          {
+            "step": "AWS服务选择",
+            "agent": "aws_architecture_generator",
+            "action": "为每个技术组件选择最合适的AWS服务",
+            "data": "AWS服务映射表"
+          },
+          {
+            "step": "服务配置确定",
+            "agent": "aws_architecture_generator",
+            "action": "确定每个AWS服务的配置参数",
+            "data": "服务配置详情"
+          }
+        ]
+      },
+      {
+        "name": "架构设计流程",
+        "description": "基于AWS服务选择创建完整的架构设计",
+        "steps": [
+          {
+            "step": "组件关系建模",
+            "agent": "aws_architecture_generator",
+            "action": "确定AWS服务之间的连接和依赖关系",
+            "data": "组件关系图"
+          },
+          {
+            "step": "网络设计",
+            "agent": "aws_architecture_generator",
+            "action": "设计VPC、子网、路由表等网络结构",
+            "data": "网络配置"
+          },
+          {
+            "step": "安全规则设计",
+            "agent": "aws_architecture_generator",
+            "action": "设计安全组、IAM策略等安全规则",
+            "data": "安全配置"
+          },
+          {
+            "step": "架构验证",
+            "agent": "aws_architecture_generator",
+            "action": "验证架构的合理性和符合AWS最佳实践",
+            "data": "验证结果和改进建议"
+          }
+        ]
+      },
+      {
+        "name": "架构图生成流程",
+        "description": "将架构设计转换为可视化图表",
+        "steps": [
+          {
+            "step": "图表元素准备",
+            "agent": "aws_architecture_generator",
+            "action": "为每个AWS服务准备图形表示",
+            "data": "图表元素集合"
+          },
+          {
+            "step": "布局优化",
+            "agent": "aws_architecture_generator",
+            "action": "优化组件布局以提高可读性和美观性",
+            "data": "布局配置"
+          },
+          {
+            "step": "连接线绘制",
+            "agent": "aws_architecture_generator",
+            "action": "绘制表示组件关系的连接线",
+            "data": "连接线配置"
+          },
+          {
+            "step": "图表渲染",
+            "agent": "aws_architecture_generator",
+            "action": "渲染最终的架构图",
+            "data": "多种格式的架构图"
+          }
+        ]
+      },
+      {
+        "name": "结果展示流程",
+        "description": "向用户展示生成的架构图和相关信息",
+        "steps": [
+          {
+            "step": "架构图展示",
+            "agent": "aws_architecture_generator",
+            "action": "展示生成的架构图",
+            "data": "可视化架构图"
+          },
+          {
+            "step": "架构说明生成",
+            "agent": "aws_architecture_generator",
+            "action": "生成架构设计说明",
+            "data": "架构说明文本"
+          },
+          {
+            "step": "服务选择解释",
+            "agent": "aws_architecture_generator",
+            "action": "解释AWS服务选择理由",
+            "data": "服务选择理由"
+          },
+          {
+            "step": "最佳实践建议",
+            "agent": "aws_architecture_generator",
+            "action": "提供架构最佳实践建议",
+            "data": "最佳实践建议列表"
+          }
+        ]
+      }
+    ],
+    "security_considerations": [
+      "确保架构设计遵循AWS安全最佳实践",
+      "不存储用户的敏感业务信息",
+      "生成的架构图不应包含可能泄露安全信息的细节",
+      "遵循最小权限原则设计IAM策略和安全组规则"
+    ],
+    "error_handling": [
+      "当用户需求不明确时，主动请求澄清",
+      "当无法映射某技术到AWS服务时，提供最接近的替代方案并说明差异",
+      "当生成的架构违反AWS最佳实践时，提供警告和改进建议",
+      "当图表生成失败时，提供文本描述作为备选输出"
+    ],
+    "performance_considerations": [
+      "系统应在30秒内完成架构设计和图形生成",
+      "支持处理复杂度不超过20个AWS服务组件的架构设计",
+      "优化图表生成算法以提高大型架构图的渲染速度",
+      "缓存常用AWS服务信息以减少查询时间"
+    ],
+    "monitoring_strategy": [
+      "记录用户需求和生成结果以持续改进系统",
+      "监控AWS服务映射准确率",
+      "跟踪架构验证成功率",
+      "收集用户反馈以优化图表美观性"
+    ]
+  },
+  "design_rationale": "本设计采用单Agent架构，主要基于需求的工作流程是线性的（输入需求→解析→设计架构→生成图形），不需要多Agent协作。选择数据分析师模板作为基础是因为它已具备数据处理和可视化能力，可以较容易扩展以支持AWS架构图生成。系统设计分为四个主要流程：需求解析、AWS服务映射、架构设计和图表生成，每个流程都有明确的输入输出和处理步骤。为了确保架构的准确性和合理性，系统集成了AWS服务知识库和最佳实践规则。为了满足美观性要求，系统包含专门的布局优化和图表美化功能。系统采用模块化设计，各个模块职责明确，接口清晰，便于未来扩展和维护。整体设计遵循AWS架构最佳实践，确保生成的架构不仅美观，而且在技术上是合理和正确的。"
+}

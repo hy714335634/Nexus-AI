@@ -1,0 +1,6 @@
+project:
+  created_date: '2025-09-19T04:10:07.403755+00:00'
+  description: AWS架构图生成智能体，能够理解IT技术栈和自然语言描述，将其转换为合理、美观的AWS架构图，包括正确的AWS服务选择、组件关系和安全配置。
+  name: aws_architecture_generator
+  updated_date: '2025-09-19T04:10:12.002371+00:00'
+  version: 1.0.0

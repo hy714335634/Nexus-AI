@@ -119,7 +119,7 @@ class AWSPricingAgentCLI:
                 self._run_interactive_mode(requirement)
             else:
                 response = self.agent(requirement)
-                print(f"📋 AWS服务报价方案:\n{response}")
+                # print(f"📋 AWS服务报价方案:\n{response}")
         except Exception as e:
             print(f"❌ 处理失败: {str(e)}")
     

@@ -1,0 +1,239 @@
+{
+  "project_name": "html2pptx",
+  "validation_timestamp": "2025-09-19T03:35:47.548048+00:00",
+  "overall_status": "success",
+  "agent_scripts": [
+    {
+      "script_path": "agents/generated_agents/html2pptx/html2pptx_agent.py",
+      "syntax_valid": true,
+      "dependencies": [
+        "os",
+        "sys",
+        "json",
+        "argparse",
+        "tempfile",
+        "pathlib",
+        "typing",
+        "utils.agent_factory",
+        "strands.telemetry"
+      ],
+      "execution_params": [],
+      "argparse_params": [
+        {
+          "name": "-i",
+          "type": "str",
+          "description": "输入HTML文件路径",
+          "required": true,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "-o",
+          "type": "str",
+          "description": "输出PPTX文件路径",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "-t",
+          "type": "str",
+          "description": "PPT模板路径",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "--no-cache",
+          "type": "str",
+          "description": "禁用缓存",
+          "required": false,
+          "default": null,
+          "action": "store_true"
+        },
+        {
+          "name": "-v",
+          "type": "str",
+          "description": "输出详细信息",
+          "required": false,
+          "default": null,
+          "action": "store_true"
+        },
+        {
+          "name": "-i",
+          "type": "str",
+          "description": "输入HTML文件路径",
+          "required": true,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "-v",
+          "type": "str",
+          "description": "输出详细信息",
+          "required": false,
+          "default": null,
+          "action": "store_true"
+        },
+        {
+          "name": "-i",
+          "type": "str",
+          "description": "输入HTML文件路径",
+          "required": true,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "-m",
+          "type": "int",
+          "description": "最大幻灯片数量",
+          "required": false,
+          "default": 10,
+          "action": null
+        },
+        {
+          "name": "-v",
+          "type": "str",
+          "description": "输出详细信息",
+          "required": false,
+          "default": null,
+          "action": "store_true"
+        },
+        {
+          "name": "-v",
+          "type": "str",
+          "description": "输出详细信息",
+          "required": false,
+          "default": null,
+          "action": "store_true"
+        }
+      ],
+      "error_message": ""
+    }
+  ],
+  "prompt_files": [
+    {
+      "prompt_path": "generated_agents_prompts/html2pptx/html2pptx_agent.yaml",
+      "tool_count": 53,
+      "valid": true,
+      "error_message": "",
+      "metadata": {
+        "tags": [
+          "document_conversion",
+          "html_processing",
+          "pptx_generation",
+          "semantic_analysis"
+        ],
+        "supported_models": [
+          "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
+        ],
+        "tools_dependencies": [
+          "strands_tools/file_read",
+          "strands_tools/file_write",
+          "strands_tools/current_time",
+          "strands_tools/calculator",
+          "generated_tools/html2pptx/html_parser/parse_html",
+          "generated_tools/html2pptx/html_parser/extract_elements",
+          "generated_tools/html2pptx/html_parser/extract_text_content",
+          "generated_tools/html2pptx/html_parser/extract_images",
+          "generated_tools/html2pptx/html_parser/extract_tables",
+          "generated_tools/html2pptx/html_parser/extract_links",
+          "generated_tools/html2pptx/html_parser/analyze_document_structure",
+          "generated_tools/html2pptx/semantic_analyzer/analyze_document_structure",
+          "generated_tools/html2pptx/semantic_analyzer/identify_key_topics",
+          "generated_tools/html2pptx/semantic_analyzer/extract_hierarchical_structure",
+          "generated_tools/html2pptx/semantic_analyzer/analyze_content_importance",
+          "generated_tools/html2pptx/semantic_analyzer/extract_key_content",
+          "generated_tools/html2pptx/semantic_analyzer/suggest_slide_structure",
+          "generated_tools/html2pptx/semantic_analyzer/summarize_content",
+          "generated_tools/html2pptx/style_mapper/analyze_document_theme",
+          "generated_tools/html2pptx/style_mapper/extract_html_styles",
+          "generated_tools/html2pptx/style_mapper/map_color_scheme",
+          "generated_tools/html2pptx/style_mapper/map_font_scheme",
+          "generated_tools/html2pptx/style_mapper/map_html_styles_to_ppt",
+          "generated_tools/html2pptx/style_mapper/map_text_style_to_ppt",
+          "generated_tools/html2pptx/style_mapper/get_element_box_model",
+          "generated_tools/html2pptx/pptx_generator/create_presentation",
+          "generated_tools/html2pptx/pptx_generator/add_slide",
+          "generated_tools/html2pptx/pptx_generator/add_text",
+          "generated_tools/html2pptx/pptx_generator/add_image",
+          "generated_tools/html2pptx/pptx_generator/add_table",
+          "generated_tools/html2pptx/pptx_generator/add_shape",
+          "generated_tools/html2pptx/pptx_generator/get_presentation_info",
+          "generated_tools/html2pptx/layout_optimizer/optimize_slide_layout",
+          "generated_tools/html2pptx/layout_optimizer/optimize_image_placement",
+          "generated_tools/html2pptx/layout_optimizer/optimize_table_layout",
+          "generated_tools/html2pptx/layout_optimizer/optimize_visual_hierarchy",
+          "generated_tools/html2pptx/layout_optimizer/suggest_content_distribution",
+          "generated_tools/html2pptx/layout_optimizer/create_balanced_composition",
+          "generated_tools/html2pptx/layout_optimizer/calculate_text_box_size",
+          "generated_tools/html2pptx/image_processor/download_image",
+          "generated_tools/html2pptx/image_processor/resize_image",
+          "generated_tools/html2pptx/image_processor/optimize_image",
+          "generated_tools/html2pptx/image_processor/crop_image",
+          "generated_tools/html2pptx/image_processor/convert_image_format",
+          "generated_tools/html2pptx/image_processor/enhance_image",
+          "generated_tools/html2pptx/image_processor/get_image_info",
+          "generated_tools/html2pptx/cache_manager/initialize_cache",
+          "generated_tools/html2pptx/cache_manager/cached_operation",
+          "generated_tools/html2pptx/cache_manager/retrieve_cached_item",
+          "generated_tools/html2pptx/cache_manager/cache_item",
+          "generated_tools/html2pptx/cache_manager/delete_cached_item",
+          "generated_tools/html2pptx/cache_manager/get_cache_info",
+          "generated_tools/html2pptx/cache_manager/clear_cache"
+        ]
+      },
+      "agent_info": {
+        "name": "html2pptx_agent",
+        "description": "将HTML文档转换为PPTX格式的演示文稿，保留原始文档的结构、样式、图片和语义内容，支持自定义模板，并能处理任意复杂度的HTML文档",
+        "category": "document_conversion"
+      }
+    }
+  ],
+  "generated_tools": [
+    {
+      "tool_path": "generated_tools/html2pptx/image_processor.py",
+      "syntax_valid": true,
+      "error_message": ""
+    },
+    {
+      "tool_path": "generated_tools/html2pptx/pptx_generator.py",
+      "syntax_valid": true,
+      "error_message": ""
+    },
+    {
+      "tool_path": "generated_tools/html2pptx/semantic_analyzer.py",
+      "syntax_valid": true,
+      "error_message": ""
+    },
+    {
+      "tool_path": "generated_tools/html2pptx/html_parser.py",
+      "syntax_valid": true,
+      "error_message": ""
+    },
+    {
+      "tool_path": "generated_tools/html2pptx/cache_manager.py",
+      "syntax_valid": true,
+      "error_message": ""
+    },
+    {
+      "tool_path": "generated_tools/html2pptx/layout_optimizer.py",
+      "syntax_valid": true,
+      "error_message": ""
+    },
+    {
+      "tool_path": "generated_tools/html2pptx/style_mapper.py",
+      "syntax_valid": true,
+      "error_message": ""
+    }
+  ],
+  "total_tools": 53,
+  "summary": {
+    "agent_scripts_count": 1,
+    "prompt_files_count": 1,
+    "generated_tool_files_count": 7,
+    "all_scripts_valid": true,
+    "all_tools_valid": true,
+    "all_prompts_valid": true
+  }
+}

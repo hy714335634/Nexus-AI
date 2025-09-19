@@ -146,12 +146,12 @@ if __name__ == "__main__":
             magician_agent = mgician.build_magician_agent()
             result = run_magician_agent(magician_agent, args.input)
             print(f"📋 Agent 响应:\n{result}")
-            magician_agent.get_magician_description()
+            mgician.get_magician_description()
         else:
             mgician = Magician(args.input)
             magician_agent = mgician.build_magician_agent()
             interactive_mode(magician_agent,args.input)
-            magician_agent.get_magician_description()
+            mgician.get_magician_description()
         
     else:
         # 默认情况，显示帮助信息
