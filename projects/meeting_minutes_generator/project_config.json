@@ -1,0 +1,138 @@
+{
+  "project_name": "meeting_minutes_generator",
+  "validation_timestamp": "2025-09-22T18:10:10.806102+00:00",
+  "overall_status": "success",
+  "agent_scripts": [
+    {
+      "script_path": "agents/generated_agents/meeting_minutes_generator/meeting_minutes_generator.py",
+      "syntax_valid": true,
+      "dependencies": [
+        "os",
+        "json",
+        "argparse",
+        "typing",
+        "utils.agent_factory",
+        "strands.telemetry",
+        "re"
+      ],
+      "execution_params": [],
+      "argparse_params": [
+        {
+          "name": "-v",
+          "type": "str",
+          "description": "视频文件路径",
+          "required": true,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "-t",
+          "type": "str",
+          "description": "会议标题",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "-d",
+          "type": "str",
+          "description": "会议日期",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "-p",
+          "type": "str",
+          "description": "参会人员，用逗号分隔",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "-l",
+          "type": "str",
+          "description": "语言代码，默认为中文(zh-CN)",
+          "required": false,
+          "default": "zh-CN",
+          "action": null
+        },
+        {
+          "name": "-f",
+          "type": "str",
+          "description": "纪要格式类型",
+          "required": false,
+          "default": "standard",
+          "action": null
+        },
+        {
+          "name": "-o",
+          "type": "str",
+          "description": "输出目录路径",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "-i",
+          "type": "str",
+          "description": "交互模式，直接与Agent对话",
+          "required": false,
+          "default": null,
+          "action": "store_true"
+        }
+      ],
+      "error_message": ""
+    }
+  ],
+  "prompt_files": [
+    {
+      "prompt_path": "generated_agents_prompts/meeting_minutes_generator/meeting_minutes_generator.yaml",
+      "tool_count": 7,
+      "valid": true,
+      "error_message": "",
+      "metadata": {
+        "tags": [
+          "meeting_minutes",
+          "video_processing",
+          "audio_transcription",
+          "content_generation",
+          "document_processing"
+        ],
+        "supported_models": [
+          "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
+        ],
+        "tools_dependencies": [
+          "generated_tools/meeting_minutes_generator/video_processing_tools/extract_audio_from_video",
+          "generated_tools/meeting_minutes_generator/video_processing_tools/transcribe_audio",
+          "generated_tools/meeting_minutes_generator/video_processing_tools/generate_meeting_minutes",
+          "generated_tools/meeting_minutes_generator/video_processing_tools/process_video_to_minutes",
+          "generated_tools/meeting_minutes_generator/video_processing_tools/validate_video_file",
+          "strands_tools/file_read",
+          "strands_tools/current_time"
+        ]
+      },
+      "agent_info": {
+        "name": "meeting_minutes_generator",
+        "description": "视频会议纪要生成专家，处理视频文件，提取音频，转换为文本，生成标准会议纪要",
+        "category": "content_generation"
+      }
+    }
+  ],
+  "generated_tools": [
+    {
+      "tool_path": "generated_tools/meeting_minutes_generator/video_processing_tools.py",
+      "syntax_valid": true,
+      "error_message": ""
+    }
+  ],
+  "total_tools": 7,
+  "summary": {
+    "agent_scripts_count": 1,
+    "prompt_files_count": 1,
+    "generated_tool_files_count": 1,
+    "all_scripts_valid": true,
+    "all_tools_valid": true,
+    "all_prompts_valid": true
+  }
+}

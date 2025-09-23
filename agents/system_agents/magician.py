@@ -133,7 +133,6 @@ if __name__ == "__main__":
             print(f"🎯 用户输入: {args.input}")
             magician_agent = get_magician_agent(agent_path)
             result = run_magician_agent(magician_agent, args.input if args.input else "请介绍一下你自己，告诉我你有哪些能力，以及你有哪些工具可供使用")
-            print(f"📋 Agent 响应:\n{result}")
         else:
             print(f"❌ 未找到路径为 '{agent_path}' 的代理模板")
             print("可用的代理路径:")
@@ -144,15 +143,13 @@ if __name__ == "__main__":
         if not args.interactive:
             mgician = Magician(args.input)
             magician_agent = mgician.build_magician_agent()
-            result = run_magician_agent(magician_agent, args.input)
-            print(f"📋 Agent 响应:\n{result}")
             mgician.get_magician_description()
+            result = run_magician_agent(magician_agent, args.input)
         else:
             mgician = Magician(args.input)
             magician_agent = mgician.build_magician_agent()
-            interactive_mode(magician_agent,args.input)
             mgician.get_magician_description()
-        
+            interactive_mode(magician_agent,args.input)
     else:
         # 默认情况，显示帮助信息
         parser.print_help()

@@ -125,7 +125,31 @@ agent:
         
         ## 工具依赖
         - **完整性**：tools_dependencies中需要包含所有需要用到的工具
-        - **正确性**：tools_dependencies中工具路径需要符合要求，可能包含以下三类，示例：
+        - **正确性**：tools_dependencies中工具路径需要符合要求，可能包含以下三类，
+        示例：
+          "strands_tools": {
+                "format": "strands_tools/{tool_name}",
+                "examples": [
+                    "strands_tools/calculator",
+                    "strands_tools/file_read",
+                    "strands_tools/python_repl",
+                    "strands_tools/current_time"
+                ]
+            },
+            "system_tools": {
+                "format": "tools/system_tools/{category}/{script_name}/{function_name}",
+                "examples": [
+                    "tools/system_tools/agent_build_workflow/project_manager/get_project_status",
+                    "tools/system_tools/agent_build_workflow/tool_template_provider/list_all_tools"
+                ]
+            },
+            "generated_tools": {
+                "format": f"tools/generated_tools/{project_name}/{{script_name}}/{{function_name}}",
+                "examples": [
+                    f"tools/generated_tools/{project_name}/data_processor/process_data",
+                    f"tools/generated_tools/{project_name}/api_client/make_request"
+                ]
+            }
            - Strands系统工具直接指定路径，如"strands_tools/current_time"
            - 生成工具，假设脚本名为get_web_result.py，则正确路径为"generated_tools/common/get_web_result/http_client"
            - 系统工具，假设脚本名为agent_template_provider.py，则正确路径为"system_tools/agent_build_workflow/agent_template_provider/get_all_templates"

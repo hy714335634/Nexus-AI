@@ -14,7 +14,6 @@ strands_telemetry.setup_otlp_exporter()
 class Magician:
     __magician_agent_path = "prompts/system_agents_prompts/magician_workflow/magician_orchestrator.yaml"
     
-    # Agent缓存，避免重复创建相同的Agent
     _agent_cache = {}
     
     def __init__(self, user_input):
@@ -41,21 +40,67 @@ class Magician:
         # 要尽可能易读而不是json内容
         print("🎯 正在获取Magician描述")
         print("当前支持团队类型为:",self.orchestration_result.orchestration_type)
-        print("当前支持团队数量为:",len(self.orchestration_result.orchestration_result.agents))
+        # 根据编排类型获取不同的信息
         if self.orchestration_result.orchestration_type == "agent":
-            print("当前支持团队为:",self.orchestration_result.orchestration_result.agent.agent_name)
+            print("当前支持团队数量为: 1")
+            print("当前支持团队为:", self.orchestration_result.orchestration_result.get("selected_agent", {}).get("agent_name", "未知"))
         elif self.orchestration_result.orchestration_type == "graph":
-            print("当前支持团队关系为:",self.orchestration_result.orchestration_result.connections.source)
-            print("当前支持团队关系为:",self.orchestration_result.orchestration_result.connections.target)
-            print("当前支持团队关系为:",self.orchestration_result.orchestration_result.connections.edge_type)
-            print("当前支持团队关系为:",self.orchestration_result.orchestration_result.connections.condition)
-            print("当前支持团队关系为:",self.orchestration_result.orchestration_result.connections.source_agent.agent_name)
-            print("当前支持团队关系为:",self.orchestration_result.orchestration_result.connections.target_agent.agent_name)
+            # 首先尝试从graph_config获取（新格式）
+            graph_config = self.orchestration_result.orchestration_result.get("graph_config", {})
+            if graph_config:
+                nodes = graph_config.get("nodes", [])
+                edges = graph_config.get("edges", [])
+            else:
+                # 如果没有找到，尝试从graph_structure获取（旧格式）
+                graph_structure = self.orchestration_result.orchestration_result.get("graph_structure", {})
+                nodes = graph_structure.get("nodes", [])
+                edges = graph_structure.get("edges", [])
+            
+            print("当前支持团队数量为:", len(nodes))
+            print("当前支持团队节点:")
+            for node in nodes:
+                if isinstance(node, dict):
+                    # 新格式：节点有id和agent字段
+                    if "agent" in node:
+                        node_id = node.get("id", "未知")
+                        agent_name = node.get("agent", {}).get("agent_name", "未知")
+                        print(f"  - {node_id}: {agent_name}")
+                    # 旧格式：节点有node_id和agent_info字段
+                    else:
+                        node_id = node.get("node_id", "未知")
+                        agent_name = node.get("agent_info", {}).get("agent_name", "未知")
+                        print(f"  - {node_id}: {agent_name}")
+                else:
+                    print(f"  - {node.node_id}: {node.agent_info.agent_name}")
+            
+            print("当前支持团队关系:")
+            for edge in edges:
+                if isinstance(edge, dict):
+                    # 新格式：边有from和to字段
+                    if "from" in edge and "to" in edge:
+                        source = edge.get("from", "未知")
+                        target = edge.get("to", "未知")
+                        condition = edge.get("condition", "")
+                        print(f"  - {source} -> {target}" + (f" (条件: {condition})" if condition else ""))
+                    # 旧格式：边有source和target字段
+                    else:
+                        source = edge.get("source", "未知")
+                        target = edge.get("target", "未知")
+                        edge_type = edge.get("edge_type", "sequential")
+                        print(f"  - {source} -> {target} ({edge_type})")
+                else:
+                    print(f"  - {edge.source} -> {edge.target} ({edge.edge_type})")
         elif self.orchestration_result.orchestration_type == "swarm":
-            print("当前支持团队角色为:",self.orchestration_result.orchestration_result.swarm_roles.role)
-            print("当前支持团队入口点为:",self.orchestration_result.orchestration_result.swarm_roles.agent.agent_name)
-            print("当前支持团队通信模式为:",self.orchestration_result.orchestration_result.swarm_roles.communication_pattern)
-            print("当前支持团队优先级为:",self.orchestration_result.orchestration_result.swarm_roles.priority)
+            swarm_structure = self.orchestration_result.orchestration_result.get("swarm_structure", {})
+            agents = swarm_structure.get("agents", [])
+            print("当前支持团队数量为:", len(agents))
+            print("当前支持团队角色:")
+            for agent in agents:
+                if isinstance(agent, dict):
+                    print(f"  - {agent.get('agent_id', '未知')}: {agent.get('role', '未知')} (优先级: {agent.get('priority', 1)})")
+                else:
+                    print(f"  - {agent.agent_id}: {agent.role} (优先级: {agent.priority})")
+            print("当前支持团队通信模式为:", swarm_structure.get("communication_pattern", "未知"))
 
     def build_magician_agent(self):
         print(f"🎯 正在构建Agent")
@@ -63,8 +108,9 @@ class Magician:
             AgentOrchestrationResult,
             f"生成编排配置"
         )
-        self.magician_agent = self.dynamic_build_magician_agent(self.orchestration_result)
-        return self.magician_agent
+        # 保存编排结果，然后构建对应的Agent/Graph/Swarm
+        built_agent = self.dynamic_build_magician_agent(self.orchestration_result)
+        return built_agent
 
     def get_magician_agent(self, template_path, nocallback=False, custom_params=None):
         """
@@ -222,8 +268,19 @@ class Magician:
                 orchestration_data = orchestration_data.dict()
             
             # 尝试从新的数据结构中获取nodes和connections
-            agents = orchestration_data.get("agents", [])
-            connections = orchestration_data.get("connections", [])
+            agents = []
+            connections = []
+            
+            # 首先尝试从graph_config获取（新格式）
+            graph_config = orchestration_data.get("graph_config")
+            if graph_config:
+                agents = graph_config.get("nodes", [])
+                connections = graph_config.get("edges", [])
+            
+            # 如果没有找到，尝试从旧格式获取
+            if not agents:
+                agents = orchestration_data.get("agents", [])
+                connections = orchestration_data.get("connections", [])
             
             # 如果没有找到agents，尝试从nodes获取
             if not agents:
@@ -326,6 +383,59 @@ class Magician:
             # 构建图
             graph = builder.build()
             print("✅ Graph构建完成")
+            
+            # 更新orchestration_result，添加graph_config信息以便get_magician_description使用
+            if not hasattr(self, 'orchestration_result'):
+                self.orchestration_result = orchestration_result
+            
+            # 构建graph_config信息
+            graph_config = {
+                "nodes": [],
+                "edges": []
+            }
+            
+            # 添加节点信息
+            for node_data in agents:
+                node_id = node_data.get("node_id") or node_data.get("id")
+                agent_info = node_data.get("agent_info") or node_data.get("agent") or node_data
+                
+                graph_config["nodes"].append({
+                    "id": node_id,
+                    "agent": {
+                        "agent_name": agent_info.get("agent_name", "未知"),
+                        "template_path": agent_info.get("template_path", "未知"),
+                        "description": agent_info.get("description", "未知")
+                    }
+                })
+            
+            # 添加边信息
+            for connection in connections:
+                source = None
+                target = None
+                
+                if "from" in connection and "to" in connection:
+                    from_data = connection.get("from", {})
+                    to_data = connection.get("to", {})
+                    source = from_data.get("agent_id") if isinstance(from_data, dict) else from_data
+                    target = to_data.get("agent_id") if isinstance(to_data, dict) else to_data
+                elif "source" in connection and "target" in connection:
+                    source = connection.get("source")
+                    target = connection.get("target")
+                elif "from" in connection:
+                    source = connection.get("from")
+                    target = connection.get("to")
+                
+                if source and target:
+                    graph_config["edges"].append({
+                        "from": source,
+                        "to": target,
+                        "condition": connection.get("condition", "")
+                    })
+            
+            # 更新orchestration_result
+            if not self.orchestration_result.orchestration_result:
+                self.orchestration_result.orchestration_result = {}
+            self.orchestration_result.orchestration_result["graph_config"] = graph_config
             
             return graph
             

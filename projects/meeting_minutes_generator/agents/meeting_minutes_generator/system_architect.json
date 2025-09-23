@@ -1,0 +1,240 @@
+{
+  "system_design": {
+    "design_overview": {
+      "project_name": "meeting_minutes_generator",
+      "version": "1.0",
+      "date": "2025-09-22",
+      "design_scope": "设计一个能够处理视频会议文件，提取音频内容，转换为文本，并自动生成标准会议纪要的单Agent系统",
+      "design_principles": [
+        "模块化设计，将视频处理、音频提取、语音转文本和纪要生成功能解耦",
+        "可扩展性设计，支持未来增加更多视频格式和语言支持",
+        "用户友好性，提供简单直观的交互界面",
+        "错误处理完善，对各种异常情况提供明确反馈",
+        "安全性考虑，确保用户上传的视频和生成的文档安全"
+      ],
+      "key_decisions": [
+        "采用单Agent架构，因为整个处理流程是线性的，从视频处理到纪要生成是连贯过程",
+        "使用外部工具进行视频处理和语音识别，而非自行实现",
+        "基于document_processor_agent模板进行开发，并添加视频处理和音频转文本功能",
+        "使用AWS Transcribe服务进行语音转文本处理，提供高准确率",
+        "纪要生成使用LLM进行内容分析和结构化，确保专业格式"
+      ],
+      "workflow_type": "single_agent",
+      "recommended_templates": ["document_processor_agent", "content_generator_agent"]
+    },
+    "architecture": {
+      "system_context": "系统接收用户上传的视频会议文件，通过视频处理模块提取音频，再通过语音识别服务将音频转换为文本，最后使用LLM分析文本内容并生成标准格式的会议纪要。整个过程在单个Agent内完成，通过集成多个专业工具实现功能。",
+      "agent_topology": "单Agent架构，内部集成多个功能模块（视频处理、音频提取、语音转文本、文本分析、纪要生成）",
+      "interaction_model": "用户通过上传视频文件并提供基本会议信息（如会议标题、日期、参与者等）启动处理流程，Agent完成全部处理后返回生成的会议纪要，用户可以查看、编辑和导出最终结果",
+      "technology_stack": {
+        "sdk": "Strands SDK",
+        "runtime": "Local",
+        "integrations": [
+          "FFmpeg用于视频处理和音频提取",
+          "AWS Transcribe用于语音转文本",
+          "AWS Bedrock用于文本分析和纪要生成",
+          "Python文档处理库用于格式化输出"
+        ]
+      }
+    },
+    "agents": [
+      {
+        "name": "meeting_minutes_generator",
+        "purpose": "处理视频会议文件并生成标准格式的会议纪要",
+        "responsibilities": [
+          "接收和验证视频文件",
+          "提取视频中的音频内容",
+          "将音频转换为文本",
+          "分析文本内容，识别会议结构和关键信息",
+          "生成符合企业标准的会议纪要",
+          "提供纪要编辑和导出功能"
+        ],
+        "interfaces": {
+          "inputs": [
+            "视频文件路径（支持MP4、AVI、MOV等格式）",
+            "会议基本信息（可选，包括标题、日期、参与者等）",
+            "纪要格式偏好（可选）"
+          ],
+          "outputs": [
+            "结构化的会议纪要（包含会议主题、日期、参与者、讨论要点、决策和行动项）",
+            "处理状态和进度反馈",
+            "错误信息和建议（如适用）"
+          ]
+        },
+        "dependencies": [
+          "FFmpeg库用于视频和音频处理",
+          "AWS Transcribe API用于语音转文本",
+          "AWS Bedrock API用于文本分析和生成",
+          "文档格式化库用于输出标准文档"
+        ],
+        "implementation_notes": [
+          "基于document_processor_agent模板开发，添加视频处理和音频转文本功能",
+          "视频处理和音频提取使用Python的FFmpeg包装器",
+          "语音转文本使用AWS Transcribe服务，支持说话人分离",
+          "会议纪要生成使用AWS Bedrock API，通过提示工程确保标准格式",
+          "提供进度反馈机制，处理大型视频文件时尤为重要",
+          "实现临时文件安全管理，确保处理完成后删除敏感数据"
+        ],
+        "recommended_template": "document_processor_agent"
+      }
+    ],
+    "data_models": [
+      {
+        "name": "VideoFile",
+        "schema": "包含视频文件路径、格式、大小、时长等基本信息",
+        "validation_rules": [
+          "必须是支持的视频格式（MP4、AVI、MOV等）",
+          "文件大小不超过系统限制（建议10GB）",
+          "视频时长不超过系统限制（建议3小时）"
+        ],
+        "relationships": ["一个VideoFile生成一个AudioFile"]
+      },
+      {
+        "name": "AudioFile",
+        "schema": "包含从视频提取的音频文件路径、格式、大小、时长等信息",
+        "validation_rules": [
+          "音频质量必须满足语音识别的最低要求",
+          "音频时长与视频时长匹配"
+        ],
+        "relationships": ["一个AudioFile生成一个TranscriptText"]
+      },
+      {
+        "name": "TranscriptText",
+        "schema": "包含语音转文本的结果，包括文本内容、时间戳、说话人标识等",
+        "validation_rules": [
+          "文本内容不能为空",
+          "时间戳必须有效",
+          "说话人标识应尽可能准确"
+        ],
+        "relationships": ["一个TranscriptText生成一个MeetingMinutes"]
+      },
+      {
+        "name": "MeetingMinutes",
+        "schema": "包含会议纪要的结构化内容，包括会议信息、讨论要点、决策、行动项等",
+        "validation_rules": [
+          "必须包含会议基本信息（标题、日期、时间）",
+          "必须包含至少一个讨论要点",
+          "行动项必须包含责任人和截止日期（如有）"
+        ],
+        "relationships": ["可以导出为多种文档格式（PDF、DOCX、TXT）"]
+      }
+    ],
+    "interaction_flows": [
+      {
+        "name": "视频处理和纪要生成流程",
+        "description": "从用户上传视频到生成会议纪要的完整流程",
+        "steps": [
+          {
+            "step": "接收视频文件",
+            "agent": "meeting_minutes_generator",
+            "action": "验证视频文件格式和大小",
+            "data": "VideoFile对象"
+          },
+          {
+            "step": "提取音频",
+            "agent": "meeting_minutes_generator",
+            "action": "从视频中提取音频轨道",
+            "data": "AudioFile对象"
+          },
+          {
+            "step": "语音转文本",
+            "agent": "meeting_minutes_generator",
+            "action": "将音频内容转换为文本，包括说话人分离",
+            "data": "TranscriptText对象"
+          },
+          {
+            "step": "文本分析",
+            "agent": "meeting_minutes_generator",
+            "action": "分析转录文本，识别会议结构和关键信息",
+            "data": "结构化的会议内容"
+          },
+          {
+            "step": "纪要生成",
+            "agent": "meeting_minutes_generator",
+            "action": "根据分析结果生成标准格式的会议纪要",
+            "data": "MeetingMinutes对象"
+          },
+          {
+            "step": "纪要展示",
+            "agent": "meeting_minutes_generator",
+            "action": "向用户展示生成的会议纪要",
+            "data": "格式化的会议纪要"
+          },
+          {
+            "step": "纪要编辑",
+            "agent": "meeting_minutes_generator",
+            "action": "允许用户编辑和修正会议纪要",
+            "data": "用户编辑后的MeetingMinutes对象"
+          },
+          {
+            "step": "纪要导出",
+            "agent": "meeting_minutes_generator",
+            "action": "将最终会议纪要导出为用户选择的格式",
+            "data": "导出的文档文件"
+          }
+        ]
+      },
+      {
+        "name": "错误处理流程",
+        "description": "处理各种可能的错误情况",
+        "steps": [
+          {
+            "step": "文件格式错误",
+            "agent": "meeting_minutes_generator",
+            "action": "检测到不支持的视频格式",
+            "data": "错误信息和支持的格式列表"
+          },
+          {
+            "step": "音频提取失败",
+            "agent": "meeting_minutes_generator",
+            "action": "无法从视频中提取有效音频",
+            "data": "错误信息和可能的原因"
+          },
+          {
+            "step": "语音识别质量低",
+            "agent": "meeting_minutes_generator",
+            "action": "检测到语音识别质量不佳",
+            "data": "警告信息和可能影响纪要质量的提示"
+          },
+          {
+            "step": "处理超时",
+            "agent": "meeting_minutes_generator",
+            "action": "处理时间超过预期",
+            "data": "超时通知和处理建议"
+          }
+        ]
+      }
+    ],
+    "security_considerations": [
+      "所有上传的视频文件和生成的文档应仅对授权用户可见",
+      "处理完成后应安全删除临时文件和中间数据",
+      "用户数据传输应使用加密连接",
+      "敏感会议内容应有适当的访问控制机制",
+      "系统应记录关键操作的审计日志"
+    ],
+    "error_handling": [
+      "对不支持的视频格式提供明确错误信息和支持格式列表",
+      "音频提取失败时提供可能的原因和解决建议",
+      "语音识别质量低时提供警告和可能的改进建议",
+      "处理大型文件时提供进度反馈，避免用户误认为系统崩溃",
+      "网络服务调用失败时实现重试机制",
+      "所有错误应记录详细日志，便于故障排除"
+    ],
+    "performance_considerations": [
+      "视频处理时间不应超过视频时长的50%",
+      "语音转文字的准确率应达到90%以上",
+      "系统应能处理最长3小时的会议视频",
+      "对于大型视频文件，考虑分段处理以提高效率",
+      "实现处理进度的实时反馈",
+      "考虑使用缓存机制，避免重复处理相同的视频文件"
+    ],
+    "monitoring_strategy": [
+      "记录关键处理步骤的执行时间和结果",
+      "监控外部服务（如AWS Transcribe）的调用状态和响应时间",
+      "跟踪系统资源使用情况，特别是处理大型视频时",
+      "收集用户反馈，特别是关于纪要质量的评价",
+      "实现错误报告机制，便于持续改进系统"
+    ]
+  },
+  "design_rationale": "本设计采用单Agent架构，主要基于以下考虑：1）整个处理流程是线性的，从视频处理到纪要生成是一个连贯的过程，不需要多个专业角色协作；2）单Agent架构简化了系统复杂度和部署难度；3）用户交互更直接，无需在多个Agent间切换。\n\n技术选择方面，我们推荐使用document_processor_agent作为基础模板，因为它具备完善的文档处理能力，适合处理转录文本并生成结构化输出。同时，我们需要扩展该模板，添加视频处理和音频转文本功能。对于视频处理，我们选择FFmpeg库，因为它功能强大且支持多种视频格式；对于语音转文本，我们选择AWS Transcribe服务，因为它提供高准确率的语音识别和说话人分离功能。\n\n系统设计遵循模块化原则，将视频处理、音频提取、语音转文本和纪要生成功能解耦，这有助于未来扩展（如添加更多视频格式支持或多语言支持）。同时，我们注重错误处理和用户反馈，确保系统在各种情况下都能提供明确的状态信息和建议。\n\n安全性方面，我们确保临时文件的安全管理，处理完成后删除敏感数据，并实现适当的访问控制机制。性能方面，我们设定了明确的性能目标，如视频处理时间不超过视频时长的50%，语音识别准确率达到90%以上等。\n\n总体而言，这个设计平衡了功能需求、技术可行性和用户体验，为视频会议纪要生成提供了一个完整、高效的解决方案。"
+}
