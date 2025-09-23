@@ -47,6 +47,8 @@ class WorkflowSummary:
     stages: List[StageMetrics]
     tool_usage_summary: Dict[str, int]
     cost_estimation: Dict[str, Any]
+    project_config_summary: Optional[Dict[str, Any]] = None
+    total_tools: int = 0
 
 
 class WorkflowReportGenerator:
@@ -61,7 +63,41 @@ class WorkflowReportGenerator:
             "agent_developer_manager"
         ]
     
-    def parse_workflow_result(self, graph_result: Any) -> WorkflowSummary:
+    def _load_project_config(self, project_dir: str) -> tuple[Optional[Dict[str, Any]], int]:
+        """
+        从项目目录中加载project_config.json文件
+        
+        Args:
+            project_dir: 项目目录路径
+            
+        Returns:
+            tuple: (project_config_summary, total_tools)
+        """
+        try:
+            config_path = os.path.join(project_dir, "project_config.json")
+            
+            if not os.path.exists(config_path):
+                print(f"⚠️ 项目配置文件不存在: {config_path}")
+                return None, 0
+            
+            with open(config_path, 'r', encoding='utf-8') as f:
+                config_data = json.load(f)
+            
+            # 提取summary和total_tools信息
+            summary = config_data.get('summary', {})
+            total_tools = config_data.get('total_tools', 0)
+            
+            print(f"🔍 成功加载项目配置: {config_path}")
+            print(f"🔍 项目配置摘要: {summary}")
+            print(f"🔍 总工具数量: {total_tools}")
+            
+            return summary, total_tools
+            
+        except Exception as e:
+            print(f"⚠️ 加载项目配置文件失败: {e}")
+            return None, 0
+    
+    def parse_workflow_result(self, graph_result: Any, project_dir: str = None) -> WorkflowSummary:
         """解析GraphResult对象"""
         try:
             print(f"🔍 开始解析工作流结果，类型: {type(graph_result)}")
@@ -150,6 +186,9 @@ class WorkflowReportGenerator:
             # 成本估算
             cost_estimation = self._estimate_costs(total_input_tokens, total_output_tokens)
             
+            # 加载项目配置信息
+            project_config_summary, total_tools = self._load_project_config(project_dir) if project_dir else (None, 0)
+            
             return WorkflowSummary(
                 project_name=project_name,
                 workflow_start_time=workflow_start_time,
@@ -162,7 +201,9 @@ class WorkflowReportGenerator:
                 failed_stages=failed_stages,
                 stages=stages,
                 tool_usage_summary=tool_usage_summary,
-                cost_estimation=cost_estimation
+                cost_estimation=cost_estimation,
+                project_config_summary=project_config_summary,
+                total_tools=total_tools
             )
             
         except Exception as e:
@@ -623,7 +664,9 @@ class WorkflowReportGenerator:
                 "pricing_model": "Claude 3.7 Sonnet",
                 "input_rate_per_1k": 0.003,
                 "output_rate_per_1k": 0.015
-            }
+            },
+            project_config_summary=None,
+            total_tools=0
         )
     
     def generate_markdown_report(self, summary: WorkflowSummary, output_path: str) -> str:
@@ -662,6 +705,32 @@ class WorkflowReportGenerator:
             f"- **总输出Token**: {self._format_tokens(summary.total_output_tokens)}",
             f"- **总工具调用次数**: {summary.total_tool_calls}",
             "",
+        ]
+        
+        # 添加项目配置信息
+        if summary.project_config_summary or summary.total_tools > 0:
+            report_lines.extend([
+                "## 📋 项目配置信息",
+                "",
+            ])
+            
+            if summary.total_tools > 0:
+                report_lines.append(f"- **项目总工具数量**: {summary.total_tools}")
+            
+            if summary.project_config_summary:
+                config_summary = summary.project_config_summary
+                report_lines.extend([
+                    f"- **智能体脚本数量**: {config_summary.get('agent_scripts_count', 0)}",
+                    f"- **提示文件数量**: {config_summary.get('prompt_files_count', 0)}",
+                    f"- **生成工具文件数量**: {config_summary.get('generated_tool_files_count', 0)}",
+                    f"- **所有脚本有效**: {'✅ 是' if config_summary.get('all_scripts_valid', False) else '❌ 否'}",
+                    f"- **所有工具有效**: {'✅ 是' if config_summary.get('all_tools_valid', False) else '❌ 否'}",
+                    f"- **所有提示有效**: {'✅ 是' if config_summary.get('all_prompts_valid', False) else '❌ 否'}",
+                ])
+            
+            report_lines.append("")
+        
+        report_lines.extend([
             "## 💰 成本估算",
             "",
             f"- **输入成本**: ${summary.cost_estimation.get('input_cost_usd', 0):.6f} USD",
@@ -675,7 +744,7 @@ class WorkflowReportGenerator:
             "",
             "| 阶段名称 | 状态 | 执行时间(秒) | 输入Token | 输出Token | 工具调用次数 | 效率评分 |",
             "|---------|------|-------------|-----------|-----------|-------------|----------|"
-        ]
+        ])
         
         # 添加各阶段详情
         for stage in summary.stages:
@@ -802,8 +871,7 @@ class WorkflowReportGenerator:
         
         return "\n".join(report_lines)
 
-
-def generate_workflow_summary_report(graph_result: Any, 
+def generate_workflow_summary_report_bk(graph_result: Any, 
                                    default_project_root_path: str) -> str:
     """
     生成工作流总结报告的主函数
@@ -832,6 +900,50 @@ def generate_workflow_summary_report(graph_result: Any,
         # 在projects/<project_name>下生成报告
         project_dir = os.path.join(project_root, summary.project_name)
         output_path = os.path.join(project_dir, "workflow_summary_report.md")
+        
+        # 生成报告
+        report_path = generator.generate_markdown_report(summary, output_path)
+        
+        return report_path
+        
+    except Exception as e:
+        print(f"❌ 生成工作流总结报告失败: {e}")
+        return ""
+
+
+def generate_workflow_summary_report(graph_result: Any, 
+                                   default_project_root_path: str) -> str:
+    """
+    生成工作流总结报告的主函数
+    
+    Args:
+        graph_result: GraphResult对象
+        default_project_root_path: 项目根路径
+    
+    Returns:
+        生成的报告文件路径
+    """
+    try:
+        # 创建报告生成器
+        generator = WorkflowReportGenerator()
+        
+        # 确定输出路径
+        if default_project_root_path.startswith('/projects/'):
+            # 如果是相对路径，转换为绝对路径
+            project_root = os.path.join(os.getcwd(), default_project_root_path.lstrip('/'))
+        else:
+            project_root = default_project_root_path
+        
+        # 先解析工作流结果获取项目名称
+        temp_summary = generator.parse_workflow_result(graph_result)
+        project_name = temp_summary.project_name
+        
+        # 在projects/<project_name>下生成报告
+        project_dir = os.path.join(project_root, project_name)
+        output_path = os.path.join(project_dir, "workflow_summary_report.md")
+        
+        # 重新解析工作流结果，这次包含项目目录信息
+        summary = generator.parse_workflow_result(graph_result, project_dir)
         
         # 生成报告
         report_path = generator.generate_markdown_report(summary, output_path)

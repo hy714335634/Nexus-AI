@@ -1,0 +1,6 @@
+project:
+  created_date: '2025-09-22T17:47:46.986285+00:00'
+  description: 一个能够从视频会议中提取音频，转换为文本，并生成标准会议纪要的智能体
+  name: meeting_minutes_generator
+  updated_date: '2025-09-22T17:47:53.728530+00:00'
+  version: 1.0.0

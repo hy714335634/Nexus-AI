@@ -261,39 +261,6 @@ templates:
       - "cache_management"
       - "template_support"
 
-  # AWS架构生成器Agent模板 - 云架构设计专家
-  aws_architecture_generator:
-    name: "AWS架构生成器"
-    description: "单Agent模板，专业的AWS解决方案架构师，能够根据自然语言需求描述生成专业的AWS云架构图，包括正确的AWS服务选择、组件关系和安全配置。集成AWS服务知识库、架构图生成器、架构验证器等工具，支持需求解析、服务映射、架构设计、架构验证、架构图生成等功能。适用于云架构设计、AWS服务规划、技术架构咨询等场景"
-    agent_dependencies: []
-    tools_dependencies:
-      - "strands_tools/current_time"
-      - "generated_tools/aws_architecture_generator/aws_service_knowledge_base/aws_service_info"
-      - "generated_tools/aws_architecture_generator/aws_service_knowledge_base/aws_service_search"
-      - "generated_tools/aws_architecture_generator/aws_service_knowledge_base/aws_service_mapping"
-      - "generated_tools/aws_architecture_generator/aws_service_knowledge_base/aws_architecture_pattern"
-      - "generated_tools/aws_architecture_generator/aws_service_knowledge_base/aws_service_compatibility"
-      - "generated_tools/aws_architecture_generator/architecture_diagram_generator/generate_architecture_diagram"
-      - "generated_tools/aws_architecture_generator/architecture_diagram_generator/create_architecture_description"
-      - "generated_tools/aws_architecture_generator/architecture_diagram_generator/extract_architecture_from_text"
-      - "generated_tools/aws_architecture_generator/architecture_diagram_generator/get_aws_service_icons"
-      - "generated_tools/aws_architecture_generator/architecture_validator/validate_architecture"
-      - "generated_tools/aws_architecture_generator/architecture_validator/validate_service_configuration"
-      - "generated_tools/aws_architecture_generator/architecture_validator/check_service_compatibility"
-      - "generated_tools/aws_architecture_generator/architecture_validator/validate_against_well_architected"
-      - "generated_tools/aws_architecture_generator/architecture_validator/check_architecture_pattern_compliance"
-    path: "agents/generated_agents/aws_architecture_generator/aws_architecture_generator.py"
-    prompt_template: "prompts/generated_agents_prompts/aws_architecture_generator/aws_architecture_generator"
-    tags:
-      - "single_agent"
-      - "aws_architecture"
-      - "cloud_design"
-      - "infrastructure"
-      - "diagram_generation"
-      - "service_mapping"
-      - "architecture_validation"
-      - "well_architected"
-
   # AWS定价Agent模板 - 云成本咨询专家
   aws_pricing_agent:
     name: "AWS定价专家"

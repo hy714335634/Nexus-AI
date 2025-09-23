@@ -1,0 +1,171 @@
+{
+  "agent_design": {
+    "design_overview": {
+      "project_name": "meeting_minutes_generator",
+      "version": "1.0",
+      "date": "2025-09-22",
+      "design_scope": "设计一个能够处理视频会议文件，提取音频内容，转换为文本，并自动生成标准会议纪要的智能体",
+      "design_goals": [
+        "创建一个单一智能体，能够处理完整的视频会议纪要生成流程",
+        "确保智能体能够处理主流视频格式并提取音频",
+        "实现高质量的语音转文本功能",
+        "生成符合企业标准的结构化会议纪要",
+        "提供友好的用户交互和错误处理机制"
+      ],
+      "key_design_decisions": [
+        {
+          "decision": "采用单一智能体架构",
+          "rationale": "整个处理流程是线性的，从视频处理到纪要生成是连贯过程，不需要多个专业角色协作",
+          "alternatives": ["多智能体协作架构"],
+          "consequences": ["简化系统复杂度和部署难度", "用户交互更直接", "可能限制未来某些高度专业化功能的扩展"]
+        },
+        {
+          "decision": "基于document_processor_agent模板进行开发",
+          "rationale": "该模板提供了完善的文档处理能力，适合处理转录文本并生成结构化输出",
+          "alternatives": ["content_generator_agent模板", "自定义智能体架构"],
+          "consequences": ["加速开发过程", "利用现有的文本处理和分析功能", "需要扩展以支持视频和音频处理"]
+        },
+        {
+          "decision": "使用外部工具进行视频处理和语音识别",
+          "rationale": "专业工具提供更高的准确性和效率，避免重复开发复杂功能",
+          "alternatives": ["完全自主开发视频和音频处理功能"],
+          "consequences": ["提高处理质量", "减少开发时间", "引入外部依赖"]
+        },
+        {
+          "decision": "使用AWS Transcribe进行语音转文本",
+          "rationale": "AWS Transcribe提供高准确率的语音识别和说话人分离功能，与AWS Bedrock生态系统兼容",
+          "alternatives": ["其他语音识别服务", "开源语音识别库"],
+          "consequences": ["高质量的转录结果", "说话人分离功能", "需要AWS账户和配置"]
+        }
+      ]
+    },
+    "agents": [
+      {
+        "agent_id": "meeting_minutes_generator",
+        "name": "meeting_minutes_generator",
+        "role": "视频会议纪要生成专家",
+        "purpose": "处理视频会议文件，提取音频，转换为文本，并生成标准格式的会议纪要",
+        "personality": {
+          "traits": ["专业", "高效", "细致", "有条理", "服务导向"],
+          "communication_style": "清晰、简洁、专业",
+          "tone": "正式但友好，注重实用性和准确性"
+        },
+        "capabilities": {
+          "core_functions": [
+            "视频文件处理和验证",
+            "音频提取和处理",
+            "语音转文本转换",
+            "会议内容分析和结构化",
+            "标准会议纪要生成",
+            "纪要编辑和导出"
+          ],
+          "specialized_skills": [
+            "多种视频格式支持（MP4、AVI、MOV等）",
+            "说话人分离识别",
+            "关键信息和决策点提取",
+            "行动项和责任人识别",
+            "标准化会议纪要格式化"
+          ],
+          "limitations": [
+            "不支持实时会议记录",
+            "初期仅支持中文会议内容",
+            "不进行视频内容的视觉分析",
+            "不自动识别会议参与者身份",
+            "不提供会议纪要的自动分发功能"
+          ],
+          "tools_required": [
+            "FFmpeg用于视频处理和音频提取",
+            "AWS Transcribe用于语音转文本",
+            "AWS Bedrock用于文本分析和纪要生成",
+            "文本分析工具用于内容结构化",
+            "文档格式化工具用于标准化输出"
+          ]
+        },
+        "knowledge_domain": {
+          "primary_domains": [
+            "视频和音频处理",
+            "语音识别技术",
+            "会议结构和内容组织",
+            "企业会议纪要标准"
+          ],
+          "expertise_level": "专家级",
+          "knowledge_sources": [
+            "内置会议纪要模板和格式标准",
+            "语音识别和文本处理最佳实践",
+            "用户提供的会议背景信息"
+          ],
+          "update_frequency": "随系统更新和用户反馈进行定期更新"
+        },
+        "interaction_patterns": {
+          "communication_style": "基于任务的交互，引导用户提供必要信息并展示处理进度",
+          "conversation_flow": "任务导向型，包括文件上传、处理进度反馈、结果展示和编辑选项",
+          "error_responses": [
+            "文件格式不支持时提供明确错误信息和支持的格式列表",
+            "音频质量问题时提供警告和可能的影响",
+            "处理超时时提供状态更新和选项",
+            "语音识别质量低时提供警告和可能的改进建议"
+          ]
+        },
+        "constraints": [
+          "处理文件大小限制（建议不超过10GB）",
+          "视频时长限制（建议不超过3小时）",
+          "需要清晰的音频质量以确保转录准确性",
+          "依赖外部服务的可用性（AWS Transcribe、AWS Bedrock）",
+          "处理时间与视频长度和复杂度成正比"
+        ],
+        "evaluation_criteria": [
+          "视频处理成功率（目标：90%以上）",
+          "语音转文本准确率（目标：90%以上）",
+          "会议纪要关键信息捕获率（目标：80%以上）",
+          "用户编辑需求减少程度（目标：减少70%以上）",
+          "用户满意度评分（目标：4/5以上）"
+        ],
+        "model_requirements": {
+          "model_name": "us.anthropic.claude-3-7-sonnet-20250219-v1:0",
+          "minimum_capabilities": [
+            "高质量文本理解和生成",
+            "结构化信息提取",
+            "上下文理解和总结能力",
+            "指令遵循能力"
+          ],
+          "rationale": "Claude 3.7 Sonnet提供了优秀的文本理解和生成能力，能够准确提取会议中的关键信息并生成高质量的会议纪要"
+        },
+        "memory_configuration": {
+          "memory_type": "会话级临时记忆",
+          "retention_policy": "处理完成后删除敏感数据，保留处理结果和用户偏好",
+          "retrieval_strategy": "基于当前会话的直接检索，无需长期记忆"
+        }
+      }
+    ],
+    "agent_relationships": [
+      {
+        "source_agent": "meeting_minutes_generator",
+        "target_agent": "meeting_minutes_generator",
+        "relationship_type": "自我协调",
+        "interaction_protocol": "内部模块化流程",
+        "data_exchange": [
+          "视频文件元数据",
+          "提取的音频数据",
+          "转录文本",
+          "结构化会议内容",
+          "生成的会议纪要"
+        ]
+      }
+    ],
+    "system_integration": {
+      "entry_point": "用户上传视频文件并提供基本会议信息",
+      "exit_points": [
+        "展示生成的会议纪要",
+        "提供纪要编辑界面",
+        "导出最终会议纪要文档"
+      ],
+      "external_interfaces": [
+        "FFmpeg用于视频处理和音频提取",
+        "AWS Transcribe API用于语音转文本",
+        "AWS Bedrock API用于文本分析和生成",
+        "文件存储系统用于临时文件管理",
+        "文档格式化工具用于输出标准文档"
+      ]
+    }
+  }
+}
