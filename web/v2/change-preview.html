@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus-AI Platform - 变更预览</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        
+        .header h1 {
+            color: #667eea;
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .header p {
+            color: #666;
+            font-size: 1.1rem;
+        }
+        
+        .preview-content {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .section-title {
+            font-size: 1.3rem;
+            color: #667eea;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .version-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .version-card {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 1.5rem;
+            text-align: center;
+            border: 2px solid transparent;
+            transition: all 0.3s;
+        }
+        
+        .version-card.current {
+            border-color: #4caf50;
+            background: rgba(76, 175, 80, 0.1);
+        }
+        
+        .version-card.new {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+        }
+        
+        .version-number {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        
+        .version-card.current .version-number {
+            color: #4caf50;
+        }
+        
+        .version-card.new .version-number {
+            color: #667eea;
+        }
+        
+        .version-date {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .changes-list {
+            margin-bottom: 2rem;
+        }
+        
+        .change-item {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            margin: 0.5rem 0;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+            transition: all 0.3s;
+        }
+        
+        .change-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .change-item.add {
+            border-left-color: #4caf50;
+            background: rgba(76, 175, 80, 0.05);
+        }
+        
+        .change-item.modify {
+            border-left-color: #ff9800;
+            background: rgba(255, 152, 0, 0.05);
+        }
+        
+        .change-item.remove {
+            border-left-color: #f44336;
+            background: rgba(244, 67, 54, 0.05);
+        }
+        
+        .change-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 1rem;
+            color: white;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+        
+        .change-item.add .change-icon {
+            background: #4caf50;
+        }
+        
+        .change-item.modify .change-icon {
+            background: #ff9800;
+        }
+        
+        .change-item.remove .change-icon {
+            background: #f44336;
+        }
+        
+        .change-content {
+            flex: 1;
+        }
+        
+        .change-component {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 0.3rem;
+        }
+        
+        .change-description {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .impact-analysis {
+            background: #e3f2fd;
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .impact-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+        
+        .impact-item {
+            background: white;
+            border-radius: 10px;
+            padding: 1rem;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+        
+        .impact-label {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 0.5rem;
+        }
+        
+        .impact-value {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .risk-assessment {
+            background: rgba(255, 152, 0, 0.1);
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .risk-level {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        
+        .risk-level.low {
+            background: rgba(76, 175, 80, 0.2);
+            color: #4caf50;
+        }
+        
+        .risk-level.medium {
+            background: rgba(255, 152, 0, 0.2);
+            color: #ff9800;
+        }
+        
+        .risk-level.high {
+            background: rgba(244, 67, 54, 0.2);
+            color: #f44336;
+        }
+        
+        .timeline {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .timeline-item {
+            display: flex;
+            align-items: center;
+            padding: 0.8rem;
+            margin: 0.5rem 0;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+        
+        .timeline-step {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #667eea;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 1rem;
+            flex-shrink: 0;
+        }
+        
+        .timeline-content {
+            flex: 1;
+        }
+        
+        .timeline-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 0.3rem;
+        }
+        
+        .timeline-duration {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 2rem;
+        }
+        
+        .btn {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #333;
+            border: 1px solid #ddd;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .close-btn {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #999;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+        
+        .close-btn:hover {
+            background: rgba(0, 0, 0, 0.1);
+            color: #333;
+        }
+        
+        /* 动画效果 */
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .slide-in {
+            animation: slideIn 0.5s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(-20px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <button class="close-btn" onclick="closePreview()">&times;</button>
+        
+        <div class="header fade-in">
+            <h1>🔍 变更预览</h1>
+            <p>Agent迭代优化变更详情预览</p>
+        </div>
+        
+        <div class="preview-content fade-in">
+            <h2 class="section-title">📊 版本信息</h2>
+            <div class="version-info">
+                <div class="version-card current">
+                    <div class="version-number" id="currentVersion">v1.2.0</div>
+                    <div class="version-date">当前版本</div>
+                </div>
+                <div class="version-card new">
+                    <div class="version-number" id="newVersion">v1.3.0</div>
+                    <div class="version-date">更新后版本</div>
+                </div>
+            </div>
+            
+            <h2 class="section-title">🔄 变更列表</h2>
+            <div class="changes-list" id="changesList">
+                <!-- 变更项将通过JavaScript动态生成 -->
+            </div>
+            
+            <h2 class="section-title">📈 影响分析</h2>
+            <div class="impact-analysis">
+                <div class="impact-grid">
+                    <div class="impact-item">
+                        <div class="impact-label">预计更新时间</div>
+                        <div class="impact-value" id="estimatedTime">45-60分钟</div>
+                    </div>
+                    <div class="impact-item">
+                        <div class="impact-label">风险等级</div>
+                        <div class="impact-value" id="riskLevel">低</div>
+                    </div>
+                    <div class="impact-item">
+                        <div class="impact-label">影响组件</div>
+                        <div class="impact-value" id="affectedComponents">4个</div>
+                    </div>
+                    <div class="impact-item">
+                        <div class="impact-label">新增功能</div>
+                        <div class="impact-value" id="newFeatures">2个</div>
+                    </div>
+                </div>
+            </div>
+            
+            <h2 class="section-title">⚠️ 风险评估</h2>
+            <div class="risk-assessment">
+                <div class="risk-level" id="riskLevelBadge">低风险</div>
+                <p>本次更新采用增量更新策略，对现有功能影响最小。新增功能以插件化方式集成，不会影响现有Agent的正常运行。</p>
+            </div>
+            
+            <h2 class="section-title">⏱️ 更新时间线</h2>
+            <div class="timeline">
+                <div class="timeline-item slide-in">
+                    <div class="timeline-step">1</div>
+                    <div class="timeline-content">
+                        <div class="timeline-title">需求分析</div>
+                        <div class="timeline-duration">预计 5-10分钟</div>
+                    </div>
+                </div>
+                <div class="timeline-item slide-in">
+                    <div class="timeline-step">2</div>
+                    <div class="timeline-content">
+                        <div class="timeline-title">组件开发</div>
+                        <div class="timeline-duration">预计 20-30分钟</div>
+                    </div>
+                </div>
+                <div class="timeline-item slide-in">
+                    <div class="timeline-step">3</div>
+                    <div class="timeline-content">
+                        <div class="timeline-title">集成测试</div>
+                        <div class="timeline-duration">预计 10-15分钟</div>
+                    </div>
+                </div>
+                <div class="timeline-item slide-in">
+                    <div class="timeline-step">4</div>
+                    <div class="timeline-content">
+                        <div class="timeline-title">部署发布</div>
+                        <div class="timeline-duration">预计 5-10分钟</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="actions">
+            <button class="btn btn-secondary" onclick="exportPreview()">📤 导出预览</button>
+            <button class="btn btn-secondary" onclick="goBack()">← 返回</button>
+            <button class="btn btn-primary" onclick="confirmUpdate()">✅ 确认更新</button>
+        </div>
+    </div>
+
+    <script>
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            loadPreviewData();
+            animateElements();
+        });
+
+        // 加载预览数据
+        function loadPreviewData() {
+            const previewData = localStorage.getItem('changePreview');
+            if (previewData) {
+                const data = JSON.parse(previewData);
+                
+                // 更新版本信息
+                document.getElementById('currentVersion').textContent = data.currentVersion;
+                document.getElementById('newVersion').textContent = data.newVersion;
+                
+                // 更新影响分析
+                document.getElementById('estimatedTime').textContent = data.estimatedTime;
+                document.getElementById('riskLevel').textContent = data.riskLevel;
+                document.getElementById('affectedComponents').textContent = data.changes.length + '个';
+                
+                // 计算新增功能数量
+                const newFeatures = data.changes.filter(change => change.type === 'add').length;
+                document.getElementById('newFeatures').textContent = newFeatures + '个';
+                
+                // 更新风险等级徽章
+                const riskBadge = document.getElementById('riskLevelBadge');
+                riskBadge.textContent = data.riskLevel + '风险';
+                riskBadge.className = `risk-level ${data.riskLevel === '低' ? 'low' : data.riskLevel === '中' ? 'medium' : 'high'}`;
+                
+                // 渲染变更列表
+                renderChanges(data.changes);
+            } else {
+                // 默认数据
+                renderDefaultChanges();
+            }
+        }
+
+        // 渲染变更列表
+        function renderChanges(changes) {
+            const changesList = document.getElementById('changesList');
+            changesList.innerHTML = changes.map(change => `
+                <div class="change-item ${change.type}">
+                    <div class="change-icon">
+                        ${change.type === 'add' ? '+' : change.type === 'modify' ? 'M' : '-'}
+                    </div>
+                    <div class="change-content">
+                        <div class="change-component">${change.component}</div>
+                        <div class="change-description">${change.description}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 渲染默认变更列表
+        function renderDefaultChanges() {
+            const defaultChanges = [
+                {
+                    type: 'add',
+                    component: '紧急升级Agent',
+                    description: '新增产品安全问题自动升级功能'
+                },
+                {
+                    type: 'add',
+                    component: '风险评估Agent',
+                    description: '新增产品召回风险评估报告生成'
+                },
+                {
+                    type: 'modify',
+                    component: '投诉分类Agent',
+                    description: '增强安全风险识别能力'
+                },
+                {
+                    type: 'modify',
+                    component: '记忆管理系统',
+                    description: '改进多轮对话上下文保持'
+                }
+            ];
+            renderChanges(defaultChanges);
+        }
+
+        // 动画效果
+        function animateElements() {
+            const elements = document.querySelectorAll('.change-item, .timeline-item');
+            elements.forEach((element, index) => {
+                setTimeout(() => {
+                    element.style.opacity = '0';
+                    element.style.transform = 'translateY(20px)';
+                    element.style.transition = 'all 0.5s ease';
+                    
+                    setTimeout(() => {
+                        element.style.opacity = '1';
+                        element.style.transform = 'translateY(0)';
+                    }, 100);
+                }, index * 100);
+            });
+        }
+
+        // 关闭预览
+        function closePreview() {
+            window.close();
+        }
+
+        // 返回
+        function goBack() {
+            window.close();
+        }
+
+        // 导出预览
+        function exportPreview() {
+            const previewData = localStorage.getItem('changePreview');
+            if (previewData) {
+                const data = JSON.parse(previewData);
+                
+                const exportContent = `
+变更预览报告
+================
+
+版本信息:
+- 当前版本: ${data.currentVersion}
+- 更新后版本: ${data.newVersion}
+- 预计更新时间: ${data.estimatedTime}
+- 风险等级: ${data.riskLevel}
+
+变更列表:
+${data.changes.map((change, index) => 
+    `${index + 1}. [${change.type.toUpperCase()}] ${change.component}: ${change.description}`
+).join('\n')}
+
+风险评估:
+本次更新采用${data.riskLevel}风险策略，对现有功能影响最小。
+
+生成时间: ${new Date().toLocaleString('zh-CN')}
+                `;
+                
+                const blob = new Blob([exportContent], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `change-preview-${new Date().toISOString().split('T')[0]}.txt`;
+                a.click();
+                URL.revokeObjectURL(url);
+                
+                showNotification('预览报告已导出', 'success');
+            } else {
+                showNotification('没有可导出的数据', 'error');
+            }
+        }
+
+        // 确认更新
+        function confirmUpdate() {
+            if (confirm('确定要开始更新吗？这将启动Agent的迭代优化流程。')) {
+                showNotification('正在启动更新流程...', 'info');
+                
+                // 创建更新任务
+                const updateTask = {
+                    id: 'update_' + Date.now(),
+                    agentId: 'customer_complaint_agent',
+                    status: 'running',
+                    startTime: new Date().toISOString(),
+                    progress: 0,
+                    previewData: localStorage.getItem('changePreview')
+                };
+                
+                // 保存更新任务
+                localStorage.setItem('currentUpdateTask', JSON.stringify(updateTask));
+                
+                setTimeout(() => {
+                    showNotification('更新任务已创建，正在跳转到构建模块...', 'success');
+                    setTimeout(() => {
+                        window.close();
+                        // 这里可以跳转到构建模块
+                        if (window.opener) {
+                            window.opener.location.href = '01.AgentBuildModule.html';
+                        }
+                    }, 2000);
+                }, 1500);
+            }
+        }
+
+        // 显示通知
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <span>${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'}</span>
+                    <span>${message}</span>
+                </div>
+            `;
+            
+            // 添加通知样式
+            if (!document.querySelector('.notification')) {
+                const style = document.createElement('style');
+                style.textContent = `
+                    .notification {
+                        position: fixed;
+                        top: 20px;
+                        right: 20px;
+                        background: white;
+                        border-radius: 10px;
+                        padding: 1rem 1.5rem;
+                        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                        z-index: 3000;
+                        animation: slideIn 0.3s ease-out;
+                        max-width: 300px;
+                    }
+                    .notification.success { border-left: 4px solid #4caf50; }
+                    .notification.error { border-left: 4px solid #f44336; }
+                    .notification.info { border-left: 4px solid #2196f3; }
+                    @keyframes slideIn {
+                        from { transform: translateX(100%); opacity: 0; }
+                        to { transform: translateX(0); opacity: 1; }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease-in';
+                setTimeout(() => {
+                    if (document.body.contains(notification)) {
+                        document.body.removeChild(notification);
+                    }
+                }, 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>工具详情 - Nexus-AI Platform</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .tool-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+        
+        .tool-subtitle {
+            color: #666;
+            font-size: 1.1rem;
+        }
+        
+        .tool-status {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-top: 1rem;
+        }
+        
+        .status-active {
+            background: #e8f5e8;
+            color: #4caf50;
+        }
+        
+        .status-building {
+            background: #fff3e0;
+            color: #ff9800;
+        }
+        
+        .status-error {
+            background: #ffebee;
+            color: #f44336;
+        }
+        
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .panel-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .metric-card {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 1.5rem;
+            text-align: center;
+        }
+        
+        .metric-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+        
+        .metric-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .chart-container {
+            height: 300px;
+            margin-top: 1rem;
+        }
+        
+        .info-list {
+            list-style: none;
+        }
+        
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.8rem 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .info-item:last-child {
+            border-bottom: none;
+        }
+        
+        .info-label {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .info-value {
+            color: #666;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+        
+        .btn {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #333;
+            border: 1px solid #ddd;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .btn-primary:hover {
+            background: #5a6fd8;
+        }
+        
+        .btn-secondary:hover {
+            background: #e9e9e9;
+        }
+        
+        .full-width {
+            grid-column: 1 / -1;
+        }
+        
+        .recent-logs {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .log-entry {
+            padding: 0.8rem;
+            margin: 0.5rem 0;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .log-timestamp {
+            font-size: 0.8rem;
+            color: #666;
+        }
+        
+        .log-message {
+            margin-top: 0.3rem;
+            color: #333;
+        }
+        
+        @media (max-width: 768px) {
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="tool-title">🔧 智能数据分析工具</h1>
+            <p class="tool-subtitle">用于处理和分析大规模数据集的AI驱动工具</p>
+            <span class="tool-status status-active">运行中</span>
+        </div>
+        
+        <div class="content-grid">
+            <!-- 性能指标 -->
+            <div class="panel">
+                <div class="panel-title">
+                    <span>📊</span>
+                    性能指标
+                </div>
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-value">1,247</div>
+                        <div class="metric-label">总调用次数</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">98.5%</div>
+                        <div class="metric-label">成功率</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">45ms</div>
+                        <div class="metric-label">平均响应时间</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">2.3GB</div>
+                        <div class="metric-label">处理数据量</div>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="performanceChart"></canvas>
+                </div>
+            </div>
+            
+            <!-- 工具信息 -->
+            <div class="panel">
+                <div class="panel-title">
+                    <span>ℹ️</span>
+                    工具信息
+                </div>
+                <ul class="info-list">
+                    <li class="info-item">
+                        <span class="info-label">工具ID</span>
+                        <span class="info-value">data-analysis-v2.1</span>
+                    </li>
+                    <li class="info-item">
+                        <span class="info-label">版本</span>
+                        <span class="info-value">v2.1.0</span>
+                    </li>
+                    <li class="info-item">
+                        <span class="info-label">创建时间</span>
+                        <span class="info-value">2024-01-15</span>
+                    </li>
+                    <li class="info-item">
+                        <span class="info-label">最后更新</span>
+                        <span class="info-value">2024-01-20</span>
+                    </li>
+                    <li class="info-item">
+                        <span class="info-label">创建者</span>
+                        <span class="info-value">张三</span>
+                    </li>
+                    <li class="info-item">
+                        <span class="info-label">分类</span>
+                        <span class="info-value">数据分析</span>
+                    </li>
+                    <li class="info-item">
+                        <span class="info-label">依赖</span>
+                        <span class="info-value">pandas, numpy, scikit-learn</span>
+                    </li>
+                    <li class="info-item">
+                        <span class="info-label">许可证</span>
+                        <span class="info-value">MIT</span>
+                    </li>
+                </ul>
+            </div>
+            
+            <!-- 功能描述 -->
+            <div class="panel full-width">
+                <div class="panel-title">
+                    <span>📝</span>
+                    功能描述
+                </div>
+                <p style="line-height: 1.6; color: #666; margin-bottom: 1rem;">
+                    智能数据分析工具是一个基于AI的数据处理平台，能够自动识别数据模式、执行统计分析、生成可视化报告。
+                    支持多种数据格式，包括CSV、JSON、Excel等，并提供实时数据处理能力。
+                </p>
+                <h4 style="color: #667eea; margin-bottom: 0.5rem;">主要功能：</h4>
+                <ul style="color: #666; line-height: 1.6; padding-left: 1.5rem;">
+                    <li>自动数据清洗和预处理</li>
+                    <li>智能统计分析</li>
+                    <li>机器学习模型训练</li>
+                    <li>数据可视化生成</li>
+                    <li>实时数据监控</li>
+                    <li>报告自动生成</li>
+                </ul>
+            </div>
+            
+            <!-- 最近日志 -->
+            <div class="panel full-width">
+                <div class="panel-title">
+                    <span>📋</span>
+                    最近日志
+                </div>
+                <div class="recent-logs">
+                    <div class="log-entry">
+                        <div class="log-timestamp">2024-01-20 14:30:15</div>
+                        <div class="log-message">成功处理数据集 analysis_2024_01.csv，包含10,000条记录</div>
+                    </div>
+                    <div class="log-entry">
+                        <div class="log-timestamp">2024-01-20 14:25:32</div>
+                        <div class="log-message">生成分析报告 report_analysis_2024_01.pdf</div>
+                    </div>
+                    <div class="log-entry">
+                        <div class="log-timestamp">2024-01-20 14:20:18</div>
+                        <div class="log-message">执行机器学习模型训练，准确率达到94.2%</div>
+                    </div>
+                    <div class="log-entry">
+                        <div class="log-timestamp">2024-01-20 14:15:45</div>
+                        <div class="log-message">数据清洗完成，移除了156条异常记录</div>
+                    </div>
+                    <div class="log-entry">
+                        <div class="log-timestamp">2024-01-20 14:10:22</div>
+                        <div class="log-message">开始处理新的数据集请求</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="action-buttons">
+            <button class="btn btn-primary" onclick="configureTool()">配置工具</button>
+            <button class="btn btn-secondary" onclick="testTool()">测试工具</button>
+            <button class="btn btn-secondary" onclick="viewLogs()">查看完整日志</button>
+            <button class="btn btn-secondary" onclick="exportData()">导出数据</button>
+            <button class="btn btn-secondary" onclick="closeWindow()">关闭</button>
+        </div>
+    </div>
+
+    <script>
+        // 初始化性能图表
+        function initPerformanceChart() {
+            const ctx = document.getElementById('performanceChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00'],
+                    datasets: [{
+                        label: '调用次数',
+                        data: [120, 80, 150, 180, 160, 140],
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        tension: 0.4
+                    }, {
+                        label: '响应时间(ms)',
+                        data: [50, 45, 55, 48, 52, 45],
+                        borderColor: '#4caf50',
+                        backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                        tension: 0.4,
+                        yAxisID: 'y1'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            grid: {
+                                drawOnChartArea: false,
+                            },
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 配置工具
+        function configureTool() {
+            showNotification('正在打开工具配置页面...', 'info');
+            setTimeout(() => {
+                window.open('tool-config.html?id=data-analysis-v2.1', '_blank', 'width=1000,height=700');
+            }, 500);
+        }
+        
+        // 测试工具
+        function testTool() {
+            showNotification('正在执行工具测试...', 'info');
+            setTimeout(() => {
+                showNotification('工具测试完成，所有功能正常！', 'success');
+            }, 2000);
+        }
+        
+        // 查看完整日志
+        function viewLogs() {
+            showNotification('正在打开完整日志页面...', 'info');
+            setTimeout(() => {
+                window.open('tool-logs.html?id=data-analysis-v2.1', '_blank', 'width=1200,height=800');
+            }, 500);
+        }
+        
+        // 导出数据
+        function exportData() {
+            showNotification('正在导出工具数据...', 'info');
+            setTimeout(() => {
+                showNotification('数据导出完成！', 'success');
+            }, 1500);
+        }
+        
+        // 关闭窗口
+        function closeWindow() {
+            window.close();
+        }
+        
+        // 显示通知
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <span>${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'}</span>
+                    <span>${message}</span>
+                </div>
+            `;
+            
+            // 添加通知样式
+            if (!document.querySelector('.notification')) {
+                const style = document.createElement('style');
+                style.textContent = `
+                    .notification {
+                        position: fixed;
+                        top: 20px;
+                        right: 20px;
+                        background: white;
+                        border-radius: 10px;
+                        padding: 1rem 1.5rem;
+                        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                        z-index: 3000;
+                        animation: slideIn 0.3s ease-out;
+                        max-width: 300px;
+                    }
+                    .notification.success { border-left: 4px solid #4caf50; }
+                    .notification.error { border-left: 4px solid #f44336; }
+                    .notification.info { border-left: 4px solid #2196f3; }
+                    @keyframes slideIn {
+                        from { transform: translateX(100%); opacity: 0; }
+                        to { transform: translateX(0); opacity: 1; }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease-in';
+                setTimeout(() => {
+                    if (document.body.contains(notification)) {
+                        document.body.removeChild(notification);
+                    }
+                }, 300);
+            }, 3000);
+        }
+        
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            initPerformanceChart();
+        });
+    </script>
+</body>
+</html>

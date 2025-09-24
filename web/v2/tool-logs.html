@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>工具日志 - Nexus-AI Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .logs-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+        
+        .logs-subtitle {
+            color: #666;
+            font-size: 1.1rem;
+        }
+        
+        .logs-controls {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .controls-row {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .filter-group {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+        
+        .filter-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+        }
+        
+        .filter-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .filter-btn:hover {
+            background: #f0f0f0;
+        }
+        
+        .filter-btn.active:hover {
+            background: #5a6fd8;
+        }
+        
+        .search-box {
+            padding: 0.5rem 1rem;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            width: 200px;
+        }
+        
+        .search-box:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 0.5rem;
+            margin-left: auto;
+        }
+        
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #333;
+            border: 1px solid #ddd;
+        }
+        
+        .btn:hover {
+            transform: translateY(-1px);
+        }
+        
+        .logs-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .logs-list {
+            background: #1e1e1e;
+            border-radius: 10px;
+            padding: 1rem;
+            height: 500px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+        
+        .log-entry {
+            margin-bottom: 0.5rem;
+            padding: 0.3rem 0;
+            border-radius: 3px;
+            padding-left: 0.5rem;
+            transition: background-color 0.3s;
+        }
+        
+        .log-entry:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .log-entry.info {
+            border-left: 3px solid #4fc3f7;
+        }
+        
+        .log-entry.warning {
+            border-left: 3px solid #ffb74d;
+        }
+        
+        .log-entry.error {
+            border-left: 3px solid #f44336;
+        }
+        
+        .log-entry.success {
+            border-left: 3px solid #4caf50;
+        }
+        
+        .log-timestamp {
+            color: #888;
+        }
+        
+        .log-level {
+            font-weight: bold;
+            margin: 0 0.5rem;
+        }
+        
+        .log-level.info { color: #4fc3f7; }
+        .log-level.warning { color: #ffb74d; }
+        .log-level.error { color: #f44336; }
+        .log-level.success { color: #4caf50; }
+        
+        .log-message {
+            color: #e0e0e0;
+        }
+        
+        .log-source {
+            color: #888;
+            font-size: 0.8rem;
+            margin-left: 1rem;
+        }
+        
+        .stats-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+        
+        .stat-card {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 1.5rem;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        @media (max-width: 768px) {
+            .controls-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .action-buttons {
+                margin-left: 0;
+                justify-content: center;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="logs-title">📋 工具日志</h1>
+            <p class="logs-subtitle">智能数据分析工具 - 运行日志和错误信息</p>
+        </div>
+        
+        <!-- 统计面板 -->
+        <div class="stats-panel">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value">1,247</div>
+                    <div class="stat-label">总日志数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">23</div>
+                    <div class="stat-label">错误日志</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">156</div>
+                    <div class="stat-label">警告日志</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">98.2%</div>
+                    <div class="stat-label">成功率</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 日志控制 -->
+        <div class="logs-controls">
+            <div class="controls-row">
+                <div class="filter-group">
+                    <span style="font-weight: 600; margin-right: 0.5rem;">级别:</span>
+                    <button class="filter-btn active" onclick="filterLogs('all')">全部</button>
+                    <button class="filter-btn" onclick="filterLogs('info')">信息</button>
+                    <button class="filter-btn" onclick="filterLogs('warning')">警告</button>
+                    <button class="filter-btn" onclick="filterLogs('error')">错误</button>
+                    <button class="filter-btn" onclick="filterLogs('success')">成功</button>
+                </div>
+                
+                <input type="text" class="search-box" placeholder="搜索日志..." onkeyup="searchLogs(this.value)">
+                
+                <div class="action-buttons">
+                    <button class="btn btn-primary" onclick="refreshLogs()">刷新</button>
+                    <button class="btn btn-secondary" onclick="exportLogs()">导出</button>
+                    <button class="btn btn-secondary" onclick="clearLogs()">清空</button>
+                    <button class="btn btn-secondary" onclick="closeWindow()">关闭</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 日志列表 -->
+        <div class="logs-container">
+            <div class="logs-list" id="logsList">
+                <!-- 日志条目将通过JavaScript动态生成 -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 日志数据
+        const logData = [
+            { timestamp: '2024-01-20 14:30:15', level: 'info', message: '开始处理数据集 analysis_2024_01.csv', source: 'data_processor' },
+            { timestamp: '2024-01-20 14:30:12', level: 'success', message: '数据清洗完成，移除了156条异常记录', source: 'data_cleaner' },
+            { timestamp: '2024-01-20 14:30:08', level: 'warning', message: '检测到数据格式不一致，已自动调整', source: 'format_detector' },
+            { timestamp: '2024-01-20 14:30:05', level: 'info', message: '执行机器学习模型训练', source: 'ml_trainer' },
+            { timestamp: '2024-01-20 14:30:02', level: 'success', message: '模型训练完成，准确率达到94.2%', source: 'ml_trainer' },
+            { timestamp: '2024-01-20 14:29:58', level: 'info', message: '生成分析报告 report_analysis_2024_01.pdf', source: 'report_generator' },
+            { timestamp: '2024-01-20 14:29:55', level: 'success', message: '报告生成完成', source: 'report_generator' },
+            { timestamp: '2024-01-20 14:29:52', level: 'warning', message: '内存使用率达到85%，建议优化', source: 'memory_monitor' },
+            { timestamp: '2024-01-20 14:29:48', level: 'error', message: '数据库连接超时，正在重试...', source: 'db_connector' },
+            { timestamp: '2024-01-20 14:29:45', level: 'success', message: '数据库连接恢复', source: 'db_connector' },
+            { timestamp: '2024-01-20 14:29:42', level: 'info', message: '开始数据验证', source: 'data_validator' },
+            { timestamp: '2024-01-20 14:29:38', level: 'success', message: '数据验证通过', source: 'data_validator' },
+            { timestamp: '2024-01-20 14:29:35', level: 'info', message: '启动缓存清理任务', source: 'cache_manager' },
+            { timestamp: '2024-01-20 14:29:32', level: 'success', message: '缓存清理完成，释放了2.3GB空间', source: 'cache_manager' },
+            { timestamp: '2024-01-20 14:29:28', level: 'warning', message: '检测到异常数据模式', source: 'pattern_detector' },
+            { timestamp: '2024-01-20 14:29:25', level: 'info', message: '执行异常处理流程', source: 'anomaly_handler' },
+            { timestamp: '2024-01-20 14:29:22', level: 'success', message: '异常处理完成', source: 'anomaly_handler' },
+            { timestamp: '2024-01-20 14:29:18', level: 'info', message: '开始性能优化', source: 'performance_optimizer' },
+            { timestamp: '2024-01-20 14:29:15', level: 'success', message: '性能优化完成，响应时间提升15%', source: 'performance_optimizer' },
+            { timestamp: '2024-01-20 14:29:12', level: 'info', message: '工具运行正常，所有功能可用', source: 'system_monitor' }
+        ];
+        
+        let currentFilter = 'all';
+        let filteredLogs = [...logData];
+        
+        // 渲染日志
+        function renderLogs() {
+            const container = document.getElementById('logsList');
+            container.innerHTML = '';
+            
+            filteredLogs.forEach(log => {
+                const entry = document.createElement('div');
+                entry.className = `log-entry ${log.level}`;
+                entry.innerHTML = `
+                    <span class="log-timestamp">${log.timestamp}</span>
+                    <span class="log-level ${log.level}">[${log.level.toUpperCase()}]</span>
+                    <span class="log-message">${log.message}</span>
+                    <span class="log-source">[${log.source}]</span>
+                `;
+                container.appendChild(entry);
+            });
+            
+            // 滚动到底部
+            container.scrollTop = container.scrollHeight;
+        }
+        
+        // 过滤日志
+        function filterLogs(level) {
+            currentFilter = level;
+            
+            // 更新按钮状态
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // 过滤日志
+            if (level === 'all') {
+                filteredLogs = [...logData];
+            } else {
+                filteredLogs = logData.filter(log => log.level === level);
+            }
+            
+            renderLogs();
+        }
+        
+        // 搜索日志
+        function searchLogs(query) {
+            if (!query.trim()) {
+                if (currentFilter === 'all') {
+                    filteredLogs = [...logData];
+                } else {
+                    filteredLogs = logData.filter(log => log.level === currentFilter);
+                }
+            } else {
+                filteredLogs = logData.filter(log => 
+                    log.message.toLowerCase().includes(query.toLowerCase()) ||
+                    log.source.toLowerCase().includes(query.toLowerCase())
+                );
+            }
+            renderLogs();
+        }
+        
+        // 刷新日志
+        function refreshLogs() {
+            showNotification('正在刷新日志...', 'info');
+            setTimeout(() => {
+                // 模拟添加新日志
+                const newLog = {
+                    timestamp: new Date().toLocaleString(),
+                    level: ['info', 'success', 'warning', 'error'][Math.floor(Math.random() * 4)],
+                    message: '系统状态检查完成',
+                    source: 'system_monitor'
+                };
+                logData.unshift(newLog);
+                filteredLogs.unshift(newLog);
+                renderLogs();
+                showNotification('日志已刷新', 'success');
+            }, 1000);
+        }
+        
+        // 导出日志
+        function exportLogs() {
+            const logsText = filteredLogs.map(log => 
+                `${log.timestamp} [${log.level.toUpperCase()}] ${log.message} [${log.source}]`
+            ).join('\n');
+            
+            const blob = new Blob([logsText], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `tool_logs_${new Date().toISOString().split('T')[0]}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            showNotification('日志导出完成', 'success');
+        }
+        
+        // 清空日志
+        function clearLogs() {
+            if (confirm('确定要清空所有日志吗？')) {
+                logData.length = 0;
+                filteredLogs.length = 0;
+                renderLogs();
+                showNotification('日志已清空', 'success');
+            }
+        }
+        
+        // 关闭窗口
+        function closeWindow() {
+            window.close();
+        }
+        
+        // 显示通知
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <span>${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'}</span>
+                    <span>${message}</span>
+                </div>
+            `;
+            
+            // 添加通知样式
+            if (!document.querySelector('.notification')) {
+                const style = document.createElement('style');
+                style.textContent = `
+                    .notification {
+                        position: fixed;
+                        top: 20px;
+                        right: 20px;
+                        background: white;
+                        border-radius: 10px;
+                        padding: 1rem 1.5rem;
+                        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                        z-index: 3000;
+                        animation: slideIn 0.3s ease-out;
+                        max-width: 300px;
+                    }
+                    .notification.success { border-left: 4px solid #4caf50; }
+                    .notification.error { border-left: 4px solid #f44336; }
+                    .notification.info { border-left: 4px solid #2196f3; }
+                    @keyframes slideIn {
+                        from { transform: translateX(100%); opacity: 0; }
+                        to { transform: translateX(0); opacity: 1; }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease-in';
+                setTimeout(() => {
+                    if (document.body.contains(notification)) {
+                        document.body.removeChild(notification);
+                    }
+                }, 300);
+            }, 3000);
+        }
+        
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            renderLogs();
+        });
+    </script>
+</body>
+</html>

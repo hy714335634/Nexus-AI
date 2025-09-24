@@ -1,0 +1,1112 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus-AI Platform - 构建进度</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #667eea;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .build-header {
+            text-align: center;
+            color: white;
+            margin-bottom: 2rem;
+        }
+        
+        .build-header h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .requirement-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .requirement-card h3 {
+            color: #667eea;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .progress-overview {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            color: white;
+        }
+        
+        .progress-info {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 1rem;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .progress-steps {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .step {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            margin: 0.5rem 0;
+            border-radius: 10px;
+            position: relative;
+        }
+        
+        .step.completed {
+            background: #e8f5e8;
+            border-left: 4px solid #4caf50;
+        }
+        
+        .step.current {
+            background: #fff3e0;
+            border-left: 4px solid #ff9800;
+            box-shadow: 0 0 15px rgba(255, 152, 0, 0.3);
+        }
+        
+        .step.pending {
+            background: #f5f5f5;
+            border-left: 4px solid #e0e0e0;
+        }
+        
+        .step-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 1rem;
+            font-weight: bold;
+            color: white;
+        }
+        
+        .step.completed .step-icon {
+            background: #4caf50;
+        }
+        
+        .step.current .step-icon {
+            background: #ff9800;
+        }
+        
+        .step.pending .step-icon {
+            background: #bdbdbd;
+        }
+        
+        .step-content {
+            flex: 1;
+        }
+        
+        .step-title {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        
+        .step-detail {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .current-work {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .current-work h3 {
+            color: #667eea;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .work-details {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-top: 1rem;
+        }
+        
+        .resource-item {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem;
+            margin: 0.5rem 0;
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 8px;
+        }
+        
+        .notifications {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 1.5rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .notification-item {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem;
+            margin: 0.5rem 0;
+            border-left: 3px solid #667eea;
+            background: rgba(102, 126, 234, 0.05);
+        }
+        
+        .actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #333;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #ff9800;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 0.5rem;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* 加载覆盖层 */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+        
+        .loading-content {
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+        
+        .loading-spinner-large {
+            width: 60px;
+            height: 60px;
+            border: 6px solid #f3f3f3;
+            border-top: 6px solid #ff9800;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        
+        .loading-text {
+            color: #667eea;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+        
+        /* 通知样式 */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            border-radius: 10px;
+            padding: 1rem 1.5rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 3000;
+            animation: slideIn 0.3s ease-out;
+            max-width: 300px;
+        }
+        
+        .notification.success {
+            border-left: 4px solid #4caf50;
+        }
+        
+        .notification.error {
+            border-left: 4px solid #f44336;
+        }
+        
+        .notification.info {
+            border-left: 4px solid #2196f3;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes slideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+        
+        /* 模态框样式 */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1500;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            max-width: 800px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #667eea;
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #999;
+        }
+        
+        .modal-close:hover {
+            color: #333;
+        }
+        
+        .modal-body {
+            margin-bottom: 1.5rem;
+        }
+        
+        .modal-footer {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+        }
+        
+        .btn-modal {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .btn-modal-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        .btn-modal-secondary {
+            background: #f5f5f5;
+            color: #333;
+            border: 1px solid #ddd;
+        }
+        
+        .btn-modal:hover {
+            transform: translateY(-2px);
+        }
+        
+        /* 日志样式 */
+        .log-entry {
+            padding: 0.8rem;
+            margin: 0.5rem 0;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            border-left: 4px solid #667eea;
+            background: rgba(102, 126, 234, 0.05);
+        }
+        
+        .log-entry.error {
+            border-left-color: #f44336;
+            background: rgba(244, 67, 54, 0.05);
+        }
+        
+        .log-entry.warning {
+            border-left-color: #ff9800;
+            background: rgba(255, 152, 0, 0.05);
+        }
+        
+        .log-entry.success {
+            border-left-color: #4caf50;
+            background: rgba(76, 175, 80, 0.05);
+        }
+        
+        .log-timestamp {
+            color: #666;
+            font-size: 0.8rem;
+        }
+        
+        .log-message {
+            margin-top: 0.3rem;
+        }
+        
+        /* 进度条样式 */
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 1rem 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+        
+        /* 控制按钮样式 */
+        .control-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .btn-control {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+        }
+        
+        .btn-control:hover {
+            transform: translateY(-2px);
+        }
+        
+        .btn-pause {
+            background: #ff9800;
+            color: white;
+        }
+        
+        .btn-resume {
+            background: #4caf50;
+            color: white;
+        }
+        
+        .btn-stop {
+            background: #f44336;
+            color: white;
+        }
+        
+        .btn-restart {
+            background: #2196f3;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">🤖 Nexus-AI Platform > 构建进度</div>
+        <div class="user-info">
+            <span>张强 [企业业务部门]</span>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="build-header">
+            <h1>🎯 正在构建：客户投诉智能处理系统</h1>
+        </div>
+
+        <div class="requirement-card">
+            <h3>💭 用户需求</h3>
+            <p>我需要一个客服代理，能够自动处理客户投诉，根据问题严重程度分配给不同的专家，并自动生成处理报告</p>
+        </div>
+
+        <div class="progress-overview">
+            <div class="progress-info">
+                <div style="font-size: 1.2rem; font-weight: 600;">第3/8步</div>
+                <div>构建进度</div>
+            </div>
+            <div class="progress-info">
+                <div style="font-size: 1.2rem; font-weight: 600;">25分钟</div>
+                <div>⏱️ 预计完成</div>
+            </div>
+        </div>
+
+        <div class="progress-steps">
+            <div class="step completed">
+                <div class="step-icon">✅</div>
+                <div class="step-content">
+                    <div class="step-title">1. 需求整理</div>
+                    <div class="step-detail">已完成 - 2分钟</div>
+                </div>
+            </div>
+            
+            <div class="step completed">
+                <div class="step-icon">✅</div>
+                <div class="step-content">
+                    <div class="step-title">2. 需求分析</div>
+                    <div class="step-detail">已完成 - 3分钟</div>
+                </div>
+            </div>
+            
+            <div class="step current">
+                <div class="step-icon">🔄</div>
+                <div class="step-content">
+                    <div class="step-title">3. 功能设计</div>
+                    <div class="step-detail">进行中 - 已用时5分钟</div>
+                </div>
+            </div>
+            
+            <div class="step pending">
+                <div class="step-icon">⏳</div>
+                <div class="step-content">
+                    <div class="step-title">4. Agent定义</div>
+                    <div class="step-detail">等待中</div>
+                </div>
+            </div>
+            
+            <div class="step pending">
+                <div class="step-icon">⏳</div>
+                <div class="step-content">
+                    <div class="step-title">5. 提示词工程</div>
+                    <div class="step-detail">等待中</div>
+                </div>
+            </div>
+            
+            <div class="step pending">
+                <div class="step-icon">⏳</div>
+                <div class="step-content">
+                    <div class="step-title">6. Agent开发</div>
+                    <div class="step-detail">等待中</div>
+                </div>
+            </div>
+            
+            <div class="step pending">
+                <div class="step-icon">⏳</div>
+                <div class="step-content">
+                    <div class="step-title">7. 工具开发</div>
+                    <div class="step-detail">等待中</div>
+                </div>
+            </div>
+            
+            <div class="step pending">
+                <div class="step-icon">⏳</div>
+                <div class="step-content">
+                    <div class="step-title">8. 部署测试</div>
+                    <div class="step-detail">等待中</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="current-work">
+            <h3>🧠 当前阶段：功能设计</h3>
+            
+            <div style="display: flex; align-items: center; margin-bottom: 1rem;">
+                <div class="spinner"></div>
+                <span>🤖 功能设计Agent正在工作...</span>
+            </div>
+            
+            <div class="work-details">
+                <h4>📊 已识别核心功能模块：</h4>
+                <ul style="margin-left: 2rem; margin-top: 0.5rem;">
+                    <li>投诉分类Agent - 自动识别投诉类型和严重级别</li>
+                    <li>专家路由Agent - 根据投诉类型分配合适的处理专家</li>
+                    <li>报告生成Agent - 自动生成标准化处理报告</li>
+                    <li>状态跟踪Agent - 监控处理进度和客户满意度</li>
+                </ul>
+                
+                <h4 style="margin-top: 1.5rem;">🔗 检测到可复用资源：</h4>
+                <div class="resource-item">
+                    <span>• 现有Agent: "文本分类器v2.1" - 匹配度85%</span>
+                </div>
+                <div class="resource-item">
+                    <span>• 现有工具: "报告模板生成器" - 匹配度92%</span>
+                </div>
+            </div>
+            
+            <div class="actions">
+                <button class="btn btn-primary" onclick="showDetailedLogs()">查看详细日志</button>
+                <button class="btn btn-secondary" onclick="pauseBuild()">暂停构建</button>
+            </div>
+            
+            <div class="control-buttons">
+                <button class="btn-control btn-pause" onclick="pauseBuild()" id="pauseBtn">⏸️ 暂停</button>
+                <button class="btn-control btn-resume" onclick="resumeBuild()" id="resumeBtn" style="display: none;">▶️ 继续</button>
+                <button class="btn-control btn-stop" onclick="stopBuild()">⏹️ 停止</button>
+                <button class="btn-control btn-restart" onclick="restartBuild()">🔄 重新开始</button>
+            </div>
+            
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill" style="width: 37.5%;"></div>
+            </div>
+            <div style="text-align: center; margin-top: 0.5rem; color: #666;">
+                构建进度: <span id="progressText">37.5%</span> (第3/8步)
+            </div>
+        </div>
+
+        <div class="notifications">
+            <h3>🔔 实时通知</h3>
+            <div class="notification-item">
+                <span>15:23 - 功能设计Agent开始分析系统架构...</span>
+            </div>
+            <div class="notification-item">
+                <span>15:21 - 需求分析完成，识别出4个核心业务流程</span>
+            </div>
+            <div class="notification-item">
+                <span>15:18 - 需求整理完成，提取12个关键需求点</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 加载覆盖层 -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="loading-spinner-large"></div>
+            <div class="loading-text" id="loadingText">正在处理...</div>
+        </div>
+    </div>
+
+    <!-- 详细日志模态框 -->
+    <div class="modal" id="logModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">📋 构建详细日志</div>
+                <button class="modal-close" onclick="closeModal('logModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="logContainer">
+                    <!-- 日志内容将通过JavaScript动态生成 -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-modal btn-modal-secondary" onclick="exportLogs()">导出日志</button>
+                <button class="btn-modal btn-modal-primary" onclick="closeModal('logModal')">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 构建完成模态框 -->
+    <div class="modal" id="completeModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">🎉 构建完成</div>
+                <button class="modal-close" onclick="closeModal('completeModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="text-align: center; margin: 2rem 0;">
+                    <div style="font-size: 4rem; margin-bottom: 1rem;">🎉</div>
+                    <h3 style="color: #4caf50; margin-bottom: 1rem;">Agent构建成功！</h3>
+                    <p style="color: #666; margin-bottom: 2rem;">
+                        您的"客户投诉智能处理系统"已经成功构建完成，现在可以开始使用了。
+                    </p>
+                    
+                    <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 10px; margin: 1.5rem 0;">
+                        <h4 style="color: #667eea; margin-bottom: 1rem;">📊 构建摘要</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; text-align: left;">
+                            <div><strong>构建时间:</strong> 28分钟</div>
+                            <div><strong>生成Agent:</strong> 4个</div>
+                            <div><strong>生成工具:</strong> 6个</div>
+                            <div><strong>代码行数:</strong> 1,247行</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-modal btn-modal-secondary" onclick="closeModal('completeModal')">稍后查看</button>
+                <button class="btn-modal btn-modal-primary" onclick="goToManagement()">立即管理</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 构建状态管理
+        let buildState = {
+            isRunning: true,
+            isPaused: false,
+            currentStep: 3,
+            totalSteps: 8,
+            startTime: new Date(),
+            logs: []
+        };
+
+        // 页面加载完成后的初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 检查是否有保存的构建状态
+            const savedState = localStorage.getItem('buildState');
+            if (savedState) {
+                buildState = { ...buildState, ...JSON.parse(savedState) };
+            }
+            
+            // 检查是否有保存的需求
+            const savedRequirement = localStorage.getItem('currentRequirement');
+            if (savedRequirement) {
+                updateRequirementDisplay(savedRequirement);
+            }
+            
+            // 初始化构建进度
+            updateProgress();
+            updateStepStatus();
+            
+            // 开始模拟构建过程
+            if (buildState.isRunning && !buildState.isPaused) {
+                startBuildSimulation();
+            }
+            
+            // 添加初始日志
+            addLog('info', '构建系统已启动', '系统初始化完成');
+            addLog('success', '需求分析完成', '识别出4个核心业务流程');
+            addLog('success', '需求整理完成', '提取12个关键需求点');
+            addLog('info', '功能设计Agent开始工作', '正在分析系统架构...');
+        });
+
+        // 更新需求显示
+        function updateRequirementDisplay(requirement) {
+            const requirementCard = document.querySelector('.requirement-card p');
+            if (requirementCard) {
+                requirementCard.textContent = requirement;
+            }
+        }
+
+        // 更新进度
+        function updateProgress() {
+            const progress = (buildState.currentStep / buildState.totalSteps) * 100;
+            document.getElementById('progressFill').style.width = progress + '%';
+            document.getElementById('progressText').textContent = progress.toFixed(1) + '%';
+            
+            // 更新进度概览
+            const progressInfo = document.querySelectorAll('.progress-info');
+            if (progressInfo[0]) {
+                progressInfo[0].querySelector('div').textContent = `第${buildState.currentStep}/${buildState.totalSteps}步`;
+            }
+        }
+
+        // 更新步骤状态
+        function updateStepStatus() {
+            const steps = document.querySelectorAll('.step');
+            steps.forEach((step, index) => {
+                step.classList.remove('completed', 'current', 'pending');
+                
+                if (index < buildState.currentStep) {
+                    step.classList.add('completed');
+                } else if (index === buildState.currentStep - 1) {
+                    step.classList.add('current');
+                } else {
+                    step.classList.add('pending');
+                }
+            });
+        }
+
+        // 开始构建模拟
+        function startBuildSimulation() {
+            if (!buildState.isRunning || buildState.isPaused) return;
+            
+            const stepInterval = setInterval(() => {
+                if (!buildState.isRunning || buildState.isPaused) {
+                    clearInterval(stepInterval);
+                    return;
+                }
+                
+                if (buildState.currentStep < buildState.totalSteps) {
+                    buildState.currentStep++;
+                    updateProgress();
+                    updateStepStatus();
+                    
+                    // 添加步骤完成日志
+                    const stepNames = [
+                        '需求整理', '需求分析', '功能设计', 'Agent定义', 
+                        '提示词工程', 'Agent开发', '工具开发', '部署测试'
+                    ];
+                    
+                    addLog('success', `步骤${buildState.currentStep}完成`, stepNames[buildState.currentStep - 1] + '已完成');
+                    
+                    // 更新当前工作内容
+                    updateCurrentWork();
+                    
+                    // 检查是否完成
+                    if (buildState.currentStep === buildState.totalSteps) {
+                        clearInterval(stepInterval);
+                        buildState.isRunning = false;
+                        showBuildComplete();
+                    }
+                }
+            }, 15000); // 每15秒完成一个步骤
+        }
+
+        // 更新当前工作内容
+        function updateCurrentWork() {
+            const workDetails = document.querySelector('.work-details');
+            if (!workDetails) return;
+            
+            const stepContents = {
+                4: {
+                    title: 'Agent定义',
+                    content: '正在定义Agent的角色、能力和交互方式...',
+                    details: [
+                        '投诉分类Agent - 定义分类规则和严重级别判断',
+                        '专家路由Agent - 设计专家匹配算法',
+                        '报告生成Agent - 定义报告模板和生成逻辑',
+                        '状态跟踪Agent - 设计进度监控机制'
+                    ]
+                },
+                5: {
+                    title: '提示词工程',
+                    content: '正在优化Agent的提示词和对话模板...',
+                    details: [
+                        '优化分类Agent的提示词',
+                        '设计专家路由的决策逻辑',
+                        '完善报告生成的模板',
+                        '优化状态跟踪的监控提示'
+                    ]
+                },
+                6: {
+                    title: 'Agent开发',
+                    content: '正在开发Agent的核心功能...',
+                    details: [
+                        '实现投诉分类算法',
+                        '开发专家匹配逻辑',
+                        '构建报告生成引擎',
+                        '实现状态跟踪系统'
+                    ]
+                },
+                7: {
+                    title: '工具开发',
+                    content: '正在开发支持工具和集成接口...',
+                    details: [
+                        '开发数据库连接工具',
+                        '实现邮件发送工具',
+                        '构建文件处理工具',
+                        '开发API集成工具'
+                    ]
+                },
+                8: {
+                    title: '部署测试',
+                    content: '正在部署和测试系统...',
+                    details: [
+                        '部署到测试环境',
+                        '执行功能测试',
+                        '性能压力测试',
+                        '用户验收测试'
+                    ]
+                }
+            };
+            
+            const currentContent = stepContents[buildState.currentStep];
+            if (currentContent) {
+                const titleElement = workDetails.querySelector('h4');
+                if (titleElement) {
+                    titleElement.textContent = `📊 当前阶段：${currentContent.title}`;
+                }
+                
+                const detailsList = workDetails.querySelector('ul');
+                if (detailsList) {
+                    detailsList.innerHTML = currentContent.details.map(detail => 
+                        `<li>${detail}</li>`
+                    ).join('');
+                }
+            }
+        }
+
+        // 暂停构建
+        function pauseBuild() {
+            buildState.isPaused = true;
+            buildState.isRunning = false;
+            
+            document.getElementById('pauseBtn').style.display = 'none';
+            document.getElementById('resumeBtn').style.display = 'inline-block';
+            
+            addLog('warning', '构建已暂停', '用户手动暂停了构建过程');
+            showNotification('构建已暂停', 'warning');
+        }
+
+        // 继续构建
+        function resumeBuild() {
+            buildState.isPaused = false;
+            buildState.isRunning = true;
+            
+            document.getElementById('pauseBtn').style.display = 'inline-block';
+            document.getElementById('resumeBtn').style.display = 'none';
+            
+            addLog('info', '构建已恢复', '用户恢复了构建过程');
+            showNotification('构建已恢复', 'success');
+            
+            startBuildSimulation();
+        }
+
+        // 停止构建
+        function stopBuild() {
+            if (confirm('确定要停止构建吗？这将取消当前的构建任务。')) {
+                buildState.isRunning = false;
+                buildState.isPaused = false;
+                
+                addLog('error', '构建已停止', '用户手动停止了构建过程');
+                showNotification('构建已停止', 'error');
+                
+                // 跳转回首页
+                setTimeout(() => {
+                    window.location.href = '00.homepage_overview.html';
+                }, 2000);
+            }
+        }
+
+        // 重新开始构建
+        function restartBuild() {
+            if (confirm('确定要重新开始构建吗？这将重置所有进度。')) {
+                buildState = {
+                    isRunning: true,
+                    isPaused: false,
+                    currentStep: 1,
+                    totalSteps: 8,
+                    startTime: new Date(),
+                    logs: []
+                };
+                
+                updateProgress();
+                updateStepStatus();
+                
+                document.getElementById('pauseBtn').style.display = 'inline-block';
+                document.getElementById('resumeBtn').style.display = 'none';
+                
+                addLog('info', '构建已重新开始', '用户重新启动了构建过程');
+                showNotification('构建已重新开始', 'success');
+                
+                startBuildSimulation();
+            }
+        }
+
+        // 显示详细日志
+        function showDetailedLogs() {
+            document.getElementById('logModal').style.display = 'flex';
+            renderLogs();
+        }
+
+        // 渲染日志
+        function renderLogs() {
+            const logContainer = document.getElementById('logContainer');
+            logContainer.innerHTML = buildState.logs.map(log => `
+                <div class="log-entry ${log.type}">
+                    <div class="log-timestamp">${log.timestamp}</div>
+                    <div class="log-message">${log.message}</div>
+                </div>
+            `).join('');
+            
+            // 滚动到底部
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        // 添加日志
+        function addLog(type, title, message) {
+            const log = {
+                type: type,
+                title: title,
+                message: message,
+                timestamp: new Date().toLocaleTimeString('zh-CN')
+            };
+            
+            buildState.logs.push(log);
+            
+            // 更新通知区域
+            updateNotifications(log);
+        }
+
+        // 更新通知区域
+        function updateNotifications(log) {
+            const notificationsContainer = document.querySelector('.notifications');
+            if (!notificationsContainer) return;
+            
+            const notificationItems = notificationsContainer.querySelectorAll('.notification-item');
+            if (notificationItems.length > 0) {
+                // 移除最旧的通知
+                notificationItems[notificationItems.length - 1].remove();
+            }
+            
+            // 添加新通知
+            const newNotification = document.createElement('div');
+            newNotification.className = 'notification-item';
+            newNotification.innerHTML = `<span>${log.timestamp} - ${log.message}</span>`;
+            
+            notificationsContainer.insertBefore(newNotification, notificationsContainer.firstChild);
+        }
+
+        // 显示构建完成
+        function showBuildComplete() {
+            addLog('success', '构建完成', '所有步骤已完成，Agent已成功部署');
+            showNotification('🎉 Agent构建完成！', 'success');
+            
+            setTimeout(() => {
+                document.getElementById('completeModal').style.display = 'flex';
+            }, 2000);
+        }
+
+        // 导出日志
+        function exportLogs() {
+            const logText = buildState.logs.map(log => 
+                `[${log.timestamp}] ${log.title}: ${log.message}`
+            ).join('\n');
+            
+            const blob = new Blob([logText], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `build-log-${new Date().toISOString().split('T')[0]}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            showNotification('日志已导出', 'success');
+        }
+
+        // 跳转到管理页面
+        function goToManagement() {
+            closeModal('completeModal');
+            window.location.href = '02.AgentManagement.html';
+        }
+
+        // 关闭模态框
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        // 显示通知
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <span>${type === 'success' ? '✅' : type === 'error' ? '❌' : type === 'warning' ? '⚠️' : 'ℹ️'}</span>
+                    <span>${message}</span>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease-in';
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 300);
+            }, 3000);
+        }
+
+        // 保存构建状态
+        function saveBuildState() {
+            localStorage.setItem('buildState', JSON.stringify(buildState));
+        }
+
+        // 定期保存状态
+        setInterval(saveBuildState, 5000);
+
+        // 页面卸载时保存状态
+        window.addEventListener('beforeunload', saveBuildState);
+
+        // 点击模态框外部关闭
+        window.onclick = function(event) {
+            const modals = document.querySelectorAll('.modal');
+            modals.forEach(modal => {
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,1114 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus-AI Platform - 代码审查</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2rem;
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+        
+        .header p {
+            color: #666;
+            font-size: 1.1rem;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .code-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .panel-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .file-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .file-tab {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #666;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s;
+        }
+        
+        .file-tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+        
+        .file-tab:hover {
+            color: #667eea;
+        }
+        
+        .code-editor {
+            background: #1e1e1e;
+            border-radius: 10px;
+            padding: 1rem;
+            height: 500px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+            position: relative;
+        }
+        
+        .code-line {
+            display: flex;
+            margin-bottom: 0.3rem;
+            padding: 0.2rem 0;
+        }
+        
+        .line-number {
+            width: 40px;
+            color: #888;
+            text-align: right;
+            margin-right: 1rem;
+            user-select: none;
+        }
+        
+        .line-content {
+            flex: 1;
+            color: #e0e0e0;
+        }
+        
+        .line-content.error {
+            background: rgba(244, 67, 54, 0.2);
+            border-left: 3px solid #f44336;
+            padding-left: 0.5rem;
+        }
+        
+        .line-content.warning {
+            background: rgba(255, 152, 0, 0.2);
+            border-left: 3px solid #ff9800;
+            padding-left: 0.5rem;
+        }
+        
+        .line-content.info {
+            background: rgba(33, 150, 243, 0.2);
+            border-left: 3px solid #2196f3;
+            padding-left: 0.5rem;
+        }
+        
+        .code-keyword { color: #569cd6; }
+        .code-string { color: #ce9178; }
+        .code-comment { color: #6a9955; }
+        .code-function { color: #dcdcaa; }
+        .code-variable { color: #9cdcfe; }
+        
+        .code-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+        
+        .btn {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #5a6fd8;
+            transform: translateY(-1px);
+        }
+        
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #333;
+            border: 1px solid #ddd;
+        }
+        
+        .btn-secondary:hover {
+            background: #e9e9e9;
+            transform: translateY(-1px);
+        }
+        
+        .btn-success {
+            background: #4caf50;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #45a049;
+            transform: translateY(-1px);
+        }
+        
+        .btn-warning {
+            background: #ff9800;
+            color: white;
+        }
+        
+        .btn-warning:hover {
+            background: #f57c00;
+            transform: translateY(-1px);
+        }
+        
+        .issues-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .issue-item {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            border-left: 4px solid #667eea;
+            transition: transform 0.3s;
+        }
+        
+        .issue-item:hover {
+            transform: translateX(5px);
+        }
+        
+        .issue-item.error {
+            border-left-color: #f44336;
+            background: rgba(244, 67, 54, 0.05);
+        }
+        
+        .issue-item.warning {
+            border-left-color: #ff9800;
+            background: rgba(255, 152, 0, 0.05);
+        }
+        
+        .issue-item.info {
+            border-left-color: #2196f3;
+            background: rgba(33, 150, 243, 0.05);
+        }
+        
+        .issue-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.8rem;
+        }
+        
+        .issue-title {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .issue-severity {
+            padding: 0.3rem 0.8rem;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        
+        .severity-high {
+            background: #f44336;
+            color: white;
+        }
+        
+        .severity-medium {
+            background: #ff9800;
+            color: white;
+        }
+        
+        .severity-low {
+            background: #4caf50;
+            color: white;
+        }
+        
+        .issue-description {
+            color: #666;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            margin-bottom: 1rem;
+        }
+        
+        .issue-location {
+            font-size: 0.8rem;
+            color: #999;
+            margin-bottom: 1rem;
+        }
+        
+        .issue-suggestion {
+            background: rgba(76, 175, 80, 0.1);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .suggestion-title {
+            font-weight: 600;
+            color: #4caf50;
+            margin-bottom: 0.5rem;
+        }
+        
+        .suggestion-code {
+            background: #1e1e1e;
+            color: #e0e0e0;
+            padding: 0.8rem;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+            margin-top: 0.5rem;
+        }
+        
+        .issue-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .btn-small {
+            padding: 0.5rem 1rem;
+            font-size: 0.8rem;
+        }
+        
+        .metrics-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .metric-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 1rem;
+            text-align: center;
+        }
+        
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 0.3rem;
+        }
+        
+        .metric-label {
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        .fix-suggestions {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .suggestion-item {
+            background: rgba(76, 175, 80, 0.1);
+            border-left: 4px solid #4caf50;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .suggestion-title {
+            font-weight: 600;
+            color: #4caf50;
+            margin-bottom: 0.5rem;
+        }
+        
+        .suggestion-description {
+            color: #666;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            margin-bottom: 0.8rem;
+        }
+        
+        .suggestion-priority {
+            font-size: 0.8rem;
+            color: #999;
+        }
+        
+        /* 加载动画 */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+        
+        .loading-content {
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+        
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .loading-text {
+            color: #667eea;
+            font-weight: 600;
+        }
+        
+        /* 通知样式 */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            border-radius: 10px;
+            padding: 1rem 1.5rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 3000;
+            animation: slideIn 0.3s ease-out;
+            max-width: 300px;
+        }
+        
+        .notification.success {
+            border-left: 4px solid #4caf50;
+        }
+        
+        .notification.error {
+            border-left: 4px solid #f44336;
+        }
+        
+        .notification.info {
+            border-left: 4px solid #2196f3;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes slideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .metrics-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .file-tabs {
+                flex-wrap: wrap;
+            }
+            
+            .code-actions {
+                flex-direction: column;
+            }
+            
+            .issue-actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 页面头部 -->
+        <div class="header">
+            <h1>🔍 代码审查与问题诊断</h1>
+            <p>基于日志分析结果，审查Agent代码并识别问题根源</p>
+        </div>
+
+        <!-- 指标概览 -->
+        <div class="metrics-section">
+            <h2 class="panel-title">
+                <span>📊</span>
+                代码质量指标
+            </h2>
+            
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-value">1,247</div>
+                    <div class="metric-label">代码行数</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">3</div>
+                    <div class="metric-label">严重问题</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">8</div>
+                    <div class="metric-label">警告</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">85%</div>
+                    <div class="metric-label">代码覆盖率</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 主要内容区域 -->
+        <div class="main-content">
+            <!-- 代码查看面板 -->
+            <div class="code-panel">
+                <h2 class="panel-title">
+                    <span>💻</span>
+                    Agent代码审查
+                </h2>
+                
+                <div class="file-tabs">
+                    <button class="file-tab active" onclick="switchFile('email_service')">email_service.py</button>
+                    <button class="file-tab" onclick="switchFile('agent_core')">agent_core.py</button>
+                    <button class="file-tab" onclick="switchFile('api_handler')">api_handler.py</button>
+                    <button class="file-tab" onclick="switchFile('config')">config.py</button>
+                </div>
+                
+                <div class="code-editor" id="codeEditor">
+                    <!-- 代码内容将通过JavaScript动态生成 -->
+                </div>
+                
+                <div class="code-actions">
+                    <button class="btn btn-primary" onclick="applyFix()">🔧 应用修复</button>
+                    <button class="btn btn-secondary" onclick="exportCode()">📥 导出代码</button>
+                    <button class="btn btn-success" onclick="runTests()">🧪 运行测试</button>
+                </div>
+            </div>
+
+            <!-- 问题列表面板 -->
+            <div class="issues-panel">
+                <h2 class="panel-title">
+                    <span>🚨</span>
+                    发现的问题
+                </h2>
+                
+                <div class="issue-item error">
+                    <div class="issue-header">
+                        <div class="issue-title">SMTP连接超时处理不当</div>
+                        <div class="issue-severity severity-high">严重</div>
+                    </div>
+                    <div class="issue-description">
+                        在email_service.py的第45行，SMTP连接超时后没有适当的重试机制和错误处理。
+                        这导致邮件发送失败时用户无法收到通知。
+                    </div>
+                    <div class="issue-location">
+                        📍 文件: email_service.py | 行: 45-52 | 函数: send_notification_email()
+                    </div>
+                    <div class="issue-suggestion">
+                        <div class="suggestion-title">💡 修复建议</div>
+                        <div>添加重试机制和更好的错误处理：</div>
+                        <div class="suggestion-code">
+def send_notification_email(self, recipient, subject, body):
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            # 发送邮件逻辑
+            return self._send_email(recipient, subject, body)
+        except SMTPException as e:
+            if attempt == max_retries - 1:
+                logger.error(f"邮件发送失败: {e}")
+                # 发送到备用通知渠道
+                self._send_fallback_notification(recipient, subject, body)
+            else:
+                time.sleep(2 ** attempt)  # 指数退避
+                        </div>
+                    </div>
+                    <div class="issue-actions">
+                        <button class="btn btn-small btn-primary" onclick="applySpecificFix('smtp_timeout')">应用修复</button>
+                        <button class="btn btn-small btn-secondary" onclick="viewDetails('smtp_timeout')">查看详情</button>
+                    </div>
+                </div>
+                
+                <div class="issue-item warning">
+                    <div class="issue-header">
+                        <div class="issue-title">API响应时间过长</div>
+                        <div class="issue-severity severity-medium">中等</div>
+                    </div>
+                    <div class="issue-description">
+                        在agent_core.py的第123行，数据库查询没有使用索引，导致响应时间过长。
+                        建议优化查询语句或添加适当的索引。
+                    </div>
+                    <div class="issue-location">
+                        📍 文件: agent_core.py | 行: 123-130 | 函数: process_complaint()
+                    </div>
+                    <div class="issue-suggestion">
+                        <div class="suggestion-title">💡 修复建议</div>
+                        <div>优化数据库查询，添加缓存机制：</div>
+                        <div class="suggestion-code">
+def process_complaint(self, complaint_data):
+    # 使用缓存避免重复查询
+    cache_key = f"complaint_{complaint_data['id']}"
+    cached_result = self.cache.get(cache_key)
+    if cached_result:
+        return cached_result
+    
+    # 优化查询语句
+    result = self.db.query(
+        "SELECT * FROM complaints WHERE id = %s AND status = 'active'",
+        (complaint_data['id'],)
+    )
+    self.cache.set(cache_key, result, timeout=300)
+    return result
+                        </div>
+                    </div>
+                    <div class="issue-actions">
+                        <button class="btn btn-small btn-primary" onclick="applySpecificFix('api_performance')">应用修复</button>
+                        <button class="btn btn-small btn-secondary" onclick="viewDetails('api_performance')">查看详情</button>
+                    </div>
+                </div>
+                
+                <div class="issue-item info">
+                    <div class="issue-header">
+                        <div class="issue-title">缺少输入验证</div>
+                        <div class="issue-severity severity-low">轻微</div>
+                    </div>
+                    <div class="issue-description">
+                        在api_handler.py的第78行，用户输入没有进行充分的验证，
+                        可能导致安全漏洞或数据处理错误。
+                    </div>
+                    <div class="issue-location">
+                        📍 文件: api_handler.py | 行: 78-85 | 函数: handle_user_input()
+                    </div>
+                    <div class="issue-suggestion">
+                        <div class="suggestion-title">💡 修复建议</div>
+                        <div>添加输入验证和清理：</div>
+                        <div class="suggestion-code">
+def handle_user_input(self, user_input):
+    # 验证输入长度
+    if len(user_input) > 1000:
+        raise ValueError("输入内容过长")
+    
+    # 清理HTML标签
+    cleaned_input = html.escape(user_input.strip())
+    
+    # 验证内容格式
+    if not cleaned_input:
+        raise ValueError("输入内容不能为空")
+    
+    return cleaned_input
+                        </div>
+                    </div>
+                    <div class="issue-actions">
+                        <button class="btn btn-small btn-primary" onclick="applySpecificFix('input_validation')">应用修复</button>
+                        <button class="btn btn-small btn-secondary" onclick="viewDetails('input_validation')">查看详情</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 修复建议 -->
+        <div class="fix-suggestions">
+            <h2 class="panel-title">
+                <span>💡</span>
+                自动修复建议
+            </h2>
+            
+            <div class="suggestion-item">
+                <div class="suggestion-title">1. 邮件服务重试机制</div>
+                <div class="suggestion-description">
+                    为邮件服务添加指数退避重试机制，提高邮件发送成功率。
+                    同时添加备用通知渠道，确保用户能够收到重要通知。
+                </div>
+                <div class="suggestion-priority">
+                    优先级: 高 | 预计修复时间: 30分钟 | 影响范围: 邮件通知功能
+                </div>
+            </div>
+            
+            <div class="suggestion-item">
+                <div class="suggestion-title">2. 数据库查询优化</div>
+                <div class="suggestion-description">
+                    优化数据库查询语句，添加适当的索引，并实现缓存机制
+                    以提高API响应速度和系统整体性能。
+                </div>
+                <div class="suggestion-priority">
+                    优先级: 中 | 预计修复时间: 1小时 | 影响范围: API性能
+                </div>
+            </div>
+            
+            <div class="suggestion-item">
+                <div class="suggestion-title">3. 输入验证增强</div>
+                <div class="suggestion-description">
+                    为所有用户输入添加验证和清理机制，防止安全漏洞
+                    和数据处理错误，提高系统安全性。
+                </div>
+                <div class="suggestion-priority">
+                    优先级: 中 | 预计修复时间: 45分钟 | 影响范围: 安全性
+                </div>
+            </div>
+            
+            <div class="action-buttons">
+                <button class="btn btn-primary" onclick="applyAllFixes()">🚀 应用所有修复</button>
+                <button class="btn btn-secondary" onclick="scheduleFixes()">⏰ 安排修复</button>
+                <button class="btn btn-success" onclick="openFixExecution()">🔧 执行修复</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 加载覆盖层 -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <div class="loading-text" id="loadingText">正在处理...</div>
+        </div>
+    </div>
+
+    <script>
+        // 代码文件数据
+        const codeFiles = {
+            'email_service': {
+                name: 'email_service.py',
+                content: `import smtplib
+import logging
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
+class EmailService:
+    def __init__(self, smtp_server, smtp_port, username, password):
+        self.smtp_server = smtp_server
+        self.smtp_port = smtp_port
+        self.username = username
+        self.password = password
+        self.logger = logging.getLogger(__name__)
+    
+    def send_notification_email(self, recipient, subject, body):
+        try:
+            # 创建邮件消息
+            msg = MIMEMultipart()
+            msg['From'] = self.username
+            msg['To'] = recipient
+            msg['Subject'] = subject
+            
+            # 添加邮件正文
+            msg.attach(MIMEText(body, 'plain'))
+            
+            # 连接SMTP服务器
+            server = smtplib.SMTP(self.smtp_server, self.smtp_port)
+            server.starttls()
+            server.login(self.username, self.password)
+            
+            # 发送邮件
+            text = msg.as_string()
+            server.sendmail(self.username, recipient, text)
+            server.quit()
+            
+            self.logger.info(f"邮件发送成功: {recipient}")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"邮件发送失败: {e}")
+            return False
+    
+    def send_bulk_emails(self, recipients, subject, body):
+        results = []
+        for recipient in recipients:
+            result = self.send_notification_email(recipient, subject, body)
+            results.append({'recipient': recipient, 'success': result})
+        return results`
+            },
+            'agent_core': {
+                name: 'agent_core.py',
+                content: `import json
+import time
+from datetime import datetime
+from database import Database
+
+class AgentCore:
+    def __init__(self, config):
+        self.config = config
+        self.db = Database(config['database'])
+        self.cache = {}
+    
+    def process_complaint(self, complaint_data):
+        # 处理客户投诉
+        complaint_id = complaint_data.get('id')
+        
+        # 查询投诉详情
+        complaint = self.db.query(
+            "SELECT * FROM complaints WHERE id = %s",
+            (complaint_id,)
+        )
+        
+        if not complaint:
+            return {'error': '投诉不存在'}
+        
+        # 分析投诉内容
+        analysis_result = self.analyze_complaint(complaint_data)
+        
+        # 生成处理建议
+        suggestions = self.generate_suggestions(analysis_result)
+        
+        # 更新投诉状态
+        self.db.update(
+            "UPDATE complaints SET status = 'processing', updated_at = %s WHERE id = %s",
+            (datetime.now(), complaint_id)
+        )
+        
+        return {
+            'complaint_id': complaint_id,
+            'analysis': analysis_result,
+            'suggestions': suggestions,
+            'status': 'processing'
+        }
+    
+    def analyze_complaint(self, complaint_data):
+        # 分析投诉内容
+        content = complaint_data.get('content', '')
+        
+        # 简单的关键词分析
+        keywords = ['退款', '退货', '质量问题', '服务态度']
+        found_keywords = [kw for kw in keywords if kw in content]
+        
+        return {
+            'keywords': found_keywords,
+            'sentiment': 'negative',
+            'category': 'service_issue'
+        }
+    
+    def generate_suggestions(self, analysis):
+        # 生成处理建议
+        suggestions = []
+        
+        if '退款' in analysis.get('keywords', []):
+            suggestions.append('建议联系财务部门处理退款')
+        
+        if '质量问题' in analysis.get('keywords', []):
+            suggestions.append('建议联系质量部门调查')
+        
+        return suggestions`
+            },
+            'api_handler': {
+                name: 'api_handler.py',
+                content: `from flask import Flask, request, jsonify
+import json
+from agent_core import AgentCore
+
+app = Flask(__name__)
+agent_core = AgentCore(config)
+
+@app.route('/api/complaint', methods=['POST'])
+def handle_complaint():
+    try:
+        data = request.get_json()
+        
+        # 处理用户输入
+        user_input = data.get('message', '')
+        
+        # 调用Agent核心处理
+        result = agent_core.process_complaint({
+            'id': data.get('complaint_id'),
+            'content': user_input,
+            'user_id': data.get('user_id')
+        })
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/status', methods=['GET'])
+def get_status():
+    return jsonify({'status': 'running', 'timestamp': time.time()})
+
+if __name__ == '__main__':
+    app.run(debug=True)`
+            },
+            'config': {
+                name: 'config.py',
+                content: `import os
+
+class Config:
+    # 数据库配置
+    DATABASE_URL = os.getenv('DATABASE_URL', 'sqlite:///agent.db')
+    
+    # 邮件配置
+    SMTP_SERVER = os.getenv('SMTP_SERVER', 'smtp.gmail.com')
+    SMTP_PORT = int(os.getenv('SMTP_PORT', 587))
+    SMTP_USERNAME = os.getenv('SMTP_USERNAME', '')
+    SMTP_PASSWORD = os.getenv('SMTP_PASSWORD', '')
+    
+    # API配置
+    API_HOST = os.getenv('API_HOST', '0.0.0.0')
+    API_PORT = int(os.getenv('API_PORT', 5000))
+    
+    # 日志配置
+    LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
+    LOG_FILE = os.getenv('LOG_FILE', 'agent.log')
+    
+    # 缓存配置
+    CACHE_TTL = int(os.getenv('CACHE_TTL', 300))
+    CACHE_SIZE = int(os.getenv('CACHE_SIZE', 1000))`
+            }
+        };
+
+        let currentFile = 'email_service';
+
+        // 初始化页面
+        document.addEventListener('DOMContentLoaded', function() {
+            renderCode(currentFile);
+        });
+
+        // 切换文件
+        function switchFile(fileName) {
+            currentFile = fileName;
+            
+            // 更新标签状态
+            document.querySelectorAll('.file-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // 渲染代码
+            renderCode(fileName);
+        }
+
+        // 渲染代码
+        function renderCode(fileName) {
+            const codeEditor = document.getElementById('codeEditor');
+            const file = codeFiles[fileName];
+            
+            if (!file) return;
+            
+            const lines = file.content.split('\n');
+            codeEditor.innerHTML = lines.map((line, index) => {
+                const lineNumber = index + 1;
+                let lineClass = '';
+                
+                // 根据文件名和行号添加问题标记
+                if (fileName === 'email_service' && lineNumber >= 45 && lineNumber <= 52) {
+                    lineClass = 'error';
+                } else if (fileName === 'agent_core' && lineNumber >= 123 && lineNumber <= 130) {
+                    lineClass = 'warning';
+                } else if (fileName === 'api_handler' && lineNumber >= 78 && lineNumber <= 85) {
+                    lineClass = 'info';
+                }
+                
+                return `
+                    <div class="code-line">
+                        <div class="line-number">${lineNumber}</div>
+                        <div class="line-content ${lineClass}">${highlightCode(line)}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 代码高亮
+        function highlightCode(line) {
+            return line
+                .replace(/\b(def|class|import|from|if|else|elif|for|while|try|except|finally|with|as|return|yield|lambda|and|or|not|in|is|True|False|None)\b/g, '<span class="code-keyword">$1</span>')
+                .replace(/(["'])((?:\\.|(?!\1)[^\\])*?)\1/g, '<span class="code-string">$1$2$1</span>')
+                .replace(/#.*$/g, '<span class="code-comment">$&</span>')
+                .replace(/\b([a-zA-Z_][a-zA-Z0-9_]*)\s*\(/g, '<span class="code-function">$1</span>(')
+                .replace(/\b([a-zA-Z_][a-zA-Z0-9_]*)\s*=/g, '<span class="code-variable">$1</span> =');
+        }
+
+        // 应用修复
+        function applyFix() {
+            showLoading('正在应用修复...');
+            
+            setTimeout(() => {
+                hideLoading();
+                showNotification('修复已应用！', 'success');
+                
+                // 重新渲染代码
+                renderCode(currentFile);
+            }, 2000);
+        }
+
+        // 应用特定修复
+        function applySpecificFix(fixType) {
+            showLoading(`正在应用${fixType}修复...`);
+            
+            setTimeout(() => {
+                hideLoading();
+                showNotification(`${fixType}修复已应用！`, 'success');
+            }, 1500);
+        }
+
+        // 查看详情
+        function viewDetails(issueType) {
+            const details = {
+                'smtp_timeout': 'SMTP连接超时问题详情：\n- 问题位置：email_service.py:45\n- 影响：邮件发送失败\n- 建议：添加重试机制',
+                'api_performance': 'API性能问题详情：\n- 问题位置：agent_core.py:123\n- 影响：响应时间过长\n- 建议：优化数据库查询',
+                'input_validation': '输入验证问题详情：\n- 问题位置：api_handler.py:78\n- 影响：安全漏洞\n- 建议：添加输入验证'
+            };
+            
+            alert(details[issueType] || '暂无详细信息');
+        }
+
+        // 导出代码
+        function exportCode() {
+            const file = codeFiles[currentFile];
+            const blob = new Blob([file.content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = file.name;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            showNotification('代码已导出', 'success');
+        }
+
+        // 运行测试
+        function runTests() {
+            showLoading('正在运行测试...');
+            
+            setTimeout(() => {
+                hideLoading();
+                showNotification('测试完成！', 'success');
+                
+                // 显示测试结果
+                setTimeout(() => {
+                    alert('测试结果：\n- 通过：15个测试\n- 失败：2个测试\n- 跳过：1个测试\n\n失败的测试与邮件服务相关');
+                }, 1000);
+            }, 3000);
+        }
+
+        // 应用所有修复
+        function applyAllFixes() {
+            showLoading('正在应用所有修复...');
+            
+            setTimeout(() => {
+                hideLoading();
+                showNotification('所有修复已应用！', 'success');
+                
+                // 跳转到修复执行页面
+                setTimeout(() => {
+                    window.open('troubleshoot-fix.html', '_blank', 'width=1200,height=800');
+                }, 1000);
+            }, 3000);
+        }
+
+        // 安排修复
+        function scheduleFixes() {
+            const scheduleTime = prompt('请输入修复时间 (例如: 2024-01-15 14:00):');
+            if (scheduleTime) {
+                showNotification(`修复已安排在: ${scheduleTime}`, 'success');
+            }
+        }
+
+        // 打开修复执行页面
+        function openFixExecution() {
+            window.open('troubleshoot-fix.html', '_blank', 'width=1200,height=800');
+        }
+
+        // 显示加载
+        function showLoading(text = '正在处理...') {
+            document.getElementById('loadingText').textContent = text;
+            document.getElementById('loadingOverlay').style.display = 'flex';
+        }
+
+        // 隐藏加载
+        function hideLoading() {
+            document.getElementById('loadingOverlay').style.display = 'none';
+        }
+
+        // 显示通知
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <span>${type === 'success' ? '✅' : type === 'error' ? '❌' : type === 'warning' ? '⚠️' : 'ℹ️'}</span>
+                    <span>${message}</span>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease-in';
+                setTimeout(() => {
+                    if (document.body.contains(notification)) {
+                        document.body.removeChild(notification);
+                    }
+                }, 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

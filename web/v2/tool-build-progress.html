@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>工具构建进度 - Nexus-AI Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .build-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+        
+        .build-subtitle {
+            color: #666;
+            font-size: 1.1rem;
+        }
+        
+        .build-status {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-top: 1rem;
+        }
+        
+        .status-building {
+            background: #fff3e0;
+            color: #ff9800;
+        }
+        
+        .status-completed {
+            background: #e8f5e8;
+            color: #4caf50;
+        }
+        
+        .status-failed {
+            background: #ffebee;
+            color: #f44336;
+        }
+        
+        .progress-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .progress-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border-radius: 10px;
+            transition: width 0.5s ease;
+            position: relative;
+        }
+        
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        .progress-text {
+            text-align: center;
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 1rem;
+        }
+        
+        .build-steps {
+            list-style: none;
+        }
+        
+        .build-step {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            margin: 0.5rem 0;
+            background: #f8f9fa;
+            border-radius: 10px;
+            transition: all 0.3s;
+        }
+        
+        .build-step.completed {
+            background: #e8f5e8;
+            border-left: 4px solid #4caf50;
+        }
+        
+        .build-step.current {
+            background: #fff3e0;
+            border-left: 4px solid #ff9800;
+        }
+        
+        .build-step.failed {
+            background: #ffebee;
+            border-left: 4px solid #f44336;
+        }
+        
+        .step-icon {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 1rem;
+            font-weight: bold;
+            color: white;
+        }
+        
+        .step-icon.completed {
+            background: #4caf50;
+        }
+        
+        .step-icon.current {
+            background: #ff9800;
+        }
+        
+        .step-icon.failed {
+            background: #f44336;
+        }
+        
+        .step-icon.pending {
+            background: #e0e0e0;
+            color: #666;
+        }
+        
+        .step-content {
+            flex: 1;
+        }
+        
+        .step-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 0.3rem;
+        }
+        
+        .step-description {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .step-time {
+            color: #888;
+            font-size: 0.8rem;
+            margin-left: 1rem;
+        }
+        
+        .build-logs {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .logs-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .logs-container {
+            background: #1e1e1e;
+            border-radius: 10px;
+            padding: 1rem;
+            height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+        
+        .log-entry {
+            margin-bottom: 0.3rem;
+            padding: 0.2rem 0;
+            color: #e0e0e0;
+        }
+        
+        .log-entry.info {
+            color: #4fc3f7;
+        }
+        
+        .log-entry.success {
+            color: #4caf50;
+        }
+        
+        .log-entry.warning {
+            color: #ffb74d;
+        }
+        
+        .log-entry.error {
+            color: #f44336;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+        
+        .btn {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #333;
+            border: 1px solid #ddd;
+        }
+        
+        .btn-danger {
+            background: #f44336;
+            color: white;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .btn-primary:hover {
+            background: #5a6fd8;
+        }
+        
+        .btn-secondary:hover {
+            background: #e9e9e9;
+        }
+        
+        .btn-danger:hover {
+            background: #d32f2f;
+        }
+        
+        @media (max-width: 768px) {
+            .action-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="build-title">🔨 工具构建进度</h1>
+            <p class="build-subtitle">智能数据分析工具 v2.1.0</p>
+            <span class="build-status status-building">构建中</span>
+        </div>
+        
+        <!-- 进度面板 -->
+        <div class="progress-panel">
+            <div class="progress-title">
+                <span>📊</span>
+                构建进度
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill" style="width: 65%"></div>
+            </div>
+            <div class="progress-text" id="progressText">65% - 正在执行代码编译</div>
+        </div>
+        
+        <!-- 构建步骤 -->
+        <div class="progress-panel">
+            <div class="progress-title">
+                <span>📋</span>
+                构建步骤
+            </div>
+            <ul class="build-steps">
+                <li class="build-step completed">
+                    <div class="step-icon completed">✓</div>
+                    <div class="step-content">
+                        <div class="step-title">环境准备</div>
+                        <div class="step-description">检查依赖项和运行环境</div>
+                    </div>
+                    <div class="step-time">2分钟</div>
+                </li>
+                <li class="build-step completed">
+                    <div class="step-icon completed">✓</div>
+                    <div class="step-content">
+                        <div class="step-title">代码下载</div>
+                        <div class="step-description">从代码仓库下载最新代码</div>
+                    </div>
+                    <div class="step-time">1分钟</div>
+                </li>
+                <li class="build-step completed">
+                    <div class="step-icon completed">✓</div>
+                    <div class="step-content">
+                        <div class="step-title">依赖安装</div>
+                        <div class="step-description">安装所需的依赖包</div>
+                    </div>
+                    <div class="step-time">3分钟</div>
+                </li>
+                <li class="build-step current">
+                    <div class="step-icon current">⟳</div>
+                    <div class="step-content">
+                        <div class="step-title">代码编译</div>
+                        <div class="step-description">编译源代码和生成可执行文件</div>
+                    </div>
+                    <div class="step-time">进行中...</div>
+                </li>
+                <li class="build-step">
+                    <div class="step-icon pending">4</div>
+                    <div class="step-content">
+                        <div class="step-title">单元测试</div>
+                        <div class="step-description">运行单元测试验证功能</div>
+                    </div>
+                    <div class="step-time">等待中</div>
+                </li>
+                <li class="build-step">
+                    <div class="step-icon pending">5</div>
+                    <div class="step-content">
+                        <div class="step-title">集成测试</div>
+                        <div class="step-description">运行集成测试验证整体功能</div>
+                    </div>
+                    <div class="step-time">等待中</div>
+                </li>
+                <li class="build-step">
+                    <div class="step-icon pending">6</div>
+                    <div class="step-content">
+                        <div class="step-title">部署准备</div>
+                        <div class="step-description">准备部署包和配置文件</div>
+                    </div>
+                    <div class="step-time">等待中</div>
+                </li>
+                <li class="build-step">
+                    <div class="step-icon pending">7</div>
+                    <div class="step-content">
+                        <div class="step-title">部署完成</div>
+                        <div class="step-description">工具部署完成，可以开始使用</div>
+                    </div>
+                    <div class="step-time">等待中</div>
+                </li>
+            </ul>
+        </div>
+        
+        <!-- 构建日志 -->
+        <div class="build-logs">
+            <div class="logs-title">
+                <span>📝</span>
+                构建日志
+            </div>
+            <div class="logs-container" id="logsContainer">
+                <div class="log-entry info">[14:30:15] 开始构建智能数据分析工具 v2.1.0</div>
+                <div class="log-entry success">[14:30:17] 环境检查完成，所有依赖项已满足</div>
+                <div class="log-entry info">[14:30:18] 开始下载源代码...</div>
+                <div class="log-entry success">[14:30:19] 源代码下载完成 (2.3MB)</div>
+                <div class="log-entry info">[14:30:20] 开始安装依赖包...</div>
+                <div class="log-entry info">[14:30:23] 安装 pandas v1.5.3</div>
+                <div class="log-entry info">[14:30:24] 安装 numpy v1.24.0</div>
+                <div class="log-entry info">[14:30:25] 安装 scikit-learn v1.2.0</div>
+                <div class="log-entry success">[14:30:26] 依赖包安装完成</div>
+                <div class="log-entry info">[14:30:27] 开始代码编译...</div>
+                <div class="log-entry info">[14:30:28] 编译数据处理模块...</div>
+                <div class="log-entry info">[14:30:29] 编译机器学习模块...</div>
+                <div class="log-entry warning">[14:30:30] 警告: 检测到未使用的导入语句</div>
+                <div class="log-entry info">[14:30:31] 编译报告生成模块...</div>
+                <div class="log-entry info">[14:30:32] 正在优化代码...</div>
+            </div>
+        </div>
+        
+        <div class="action-buttons">
+            <button class="btn btn-primary" onclick="refreshProgress()">刷新进度</button>
+            <button class="btn btn-secondary" onclick="viewFullLogs()">查看完整日志</button>
+            <button class="btn btn-danger" onclick="cancelBuild()">取消构建</button>
+            <button class="btn btn-secondary" onclick="closeWindow()">关闭</button>
+        </div>
+    </div>
+
+    <script>
+        let currentStep = 3;
+        let progress = 65;
+        let isBuilding = true;
+        
+        // 模拟构建进度更新
+        function updateProgress() {
+            if (!isBuilding) return;
+            
+            // 模拟进度增加
+            if (progress < 100) {
+                progress += Math.random() * 5;
+                if (progress > 100) progress = 100;
+                
+                document.getElementById('progressFill').style.width = progress + '%';
+                document.getElementById('progressText').textContent = 
+                    Math.round(progress) + '% - ' + getProgressText(Math.round(progress));
+                
+                // 检查是否需要进入下一步
+                if (progress >= 80 && currentStep === 3) {
+                    completeCurrentStep();
+                }
+            } else {
+                completeBuild();
+            }
+        }
+        
+        // 完成当前步骤
+        function completeCurrentStep() {
+            const currentStepElement = document.querySelector('.build-step.current');
+            if (currentStepElement) {
+                currentStepElement.classList.remove('current');
+                currentStepElement.classList.add('completed');
+                
+                const icon = currentStepElement.querySelector('.step-icon');
+                icon.textContent = '✓';
+                icon.classList.remove('current');
+                icon.classList.add('completed');
+                
+                const time = currentStepElement.querySelector('.step-time');
+                time.textContent = '完成';
+            }
+            
+            // 进入下一步
+            currentStep++;
+            const nextStepElement = document.querySelector(`.build-step:nth-child(${currentStep + 1})`);
+            if (nextStepElement) {
+                nextStepElement.classList.add('current');
+                const icon = nextStepElement.querySelector('.step-icon');
+                icon.textContent = '⟳';
+                icon.classList.remove('pending');
+                icon.classList.add('current');
+                const time = nextStepElement.querySelector('.step-time');
+                time.textContent = '进行中...';
+            }
+        }
+        
+        // 完成构建
+        function completeBuild() {
+            isBuilding = false;
+            document.querySelector('.build-status').textContent = '构建完成';
+            document.querySelector('.build-status').className = 'build-status status-completed';
+            
+            // 完成所有剩余步骤
+            document.querySelectorAll('.build-step').forEach(step => {
+                if (step.classList.contains('current')) {
+                    step.classList.remove('current');
+                    step.classList.add('completed');
+                    const icon = step.querySelector('.step-icon');
+                    icon.textContent = '✓';
+                    icon.classList.remove('current');
+                    icon.classList.add('completed');
+                    const time = step.querySelector('.step-time');
+                    time.textContent = '完成';
+                }
+            });
+            
+            showNotification('工具构建完成！', 'success');
+        }
+        
+        // 获取进度文本
+        function getProgressText(progress) {
+            if (progress < 20) return '环境准备中...';
+            if (progress < 40) return '代码下载中...';
+            if (progress < 60) return '依赖安装中...';
+            if (progress < 80) return '代码编译中...';
+            if (progress < 90) return '单元测试中...';
+            if (progress < 95) return '集成测试中...';
+            if (progress < 100) return '部署准备中...';
+            return '构建完成';
+        }
+        
+        // 刷新进度
+        function refreshProgress() {
+            showNotification('正在刷新构建进度...', 'info');
+            setTimeout(() => {
+                showNotification('进度已更新', 'success');
+            }, 1000);
+        }
+        
+        // 查看完整日志
+        function viewFullLogs() {
+            showNotification('正在打开完整构建日志...', 'info');
+            setTimeout(() => {
+                window.open('tool-logs.html?id=data-analysis-v2.1', '_blank', 'width=1200,height=800');
+            }, 500);
+        }
+        
+        // 取消构建
+        function cancelBuild() {
+            if (confirm('确定要取消当前构建吗？')) {
+                isBuilding = false;
+                document.querySelector('.build-status').textContent = '构建已取消';
+                document.querySelector('.build-status').className = 'build-status status-failed';
+                showNotification('构建已取消', 'info');
+            }
+        }
+        
+        // 关闭窗口
+        function closeWindow() {
+            window.close();
+        }
+        
+        // 显示通知
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <span>${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'}</span>
+                    <span>${message}</span>
+                </div>
+            `;
+            
+            // 添加通知样式
+            if (!document.querySelector('.notification')) {
+                const style = document.createElement('style');
+                style.textContent = `
+                    .notification {
+                        position: fixed;
+                        top: 20px;
+                        right: 20px;
+                        background: white;
+                        border-radius: 10px;
+                        padding: 1rem 1.5rem;
+                        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                        z-index: 3000;
+                        animation: slideIn 0.3s ease-out;
+                        max-width: 300px;
+                    }
+                    .notification.success { border-left: 4px solid #4caf50; }
+                    .notification.error { border-left: 4px solid #f44336; }
+                    .notification.info { border-left: 4px solid #2196f3; }
+                    @keyframes slideIn {
+                        from { transform: translateX(100%); opacity: 0; }
+                        to { transform: translateX(0); opacity: 1; }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease-in';
+                setTimeout(() => {
+                    if (document.body.contains(notification)) {
+                        document.body.removeChild(notification);
+                    }
+                }, 300);
+            }, 3000);
+        }
+        
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 每2秒更新一次进度
+            setInterval(updateProgress, 2000);
+        });
+    </script>
+</body>
+</html>
