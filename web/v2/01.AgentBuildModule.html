@@ -1,0 +1,1269 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus-AI Platform - Agent构建模块</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .app-container {
+            display: flex;
+            height: 100vh;
+        }
+        
+        /* 左侧导航栏 */
+        .sidebar {
+            width: 280px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: 2px 0 20px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+        
+        .sidebar-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid #e0e0e0;
+            background: rgba(102, 126, 234, 0.1);
+        }
+        
+        .logo {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #667eea;
+            text-align: center;
+        }
+        
+        .nav-modules {
+            flex: 1;
+            padding: 1rem 0;
+        }
+        
+        .nav-section {
+            margin-bottom: 1.5rem;
+        }
+        
+        .nav-section-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #999;
+            padding: 0 1.5rem;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 0.8rem 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            border-left: 4px solid transparent;
+            position: relative;
+        }
+        
+        .nav-item:hover {
+            background: rgba(102, 126, 234, 0.1);
+            border-left-color: #667eea;
+        }
+        
+        .nav-item.active {
+            background: rgba(102, 126, 234, 0.15);
+            border-left-color: #667eea;
+            color: #667eea;
+        }
+        
+        .nav-item.active::before {
+            content: '';
+            position: absolute;
+            right: 1rem;
+            width: 8px;
+            height: 8px;
+            background: #667eea;
+            border-radius: 50%;
+        }
+        
+        .nav-icon {
+            margin-right: 0.8rem;
+            font-size: 1.2rem;
+            width: 20px;
+            text-align: center;
+        }
+        
+        .nav-text {
+            font-weight: 500;
+            flex: 1;
+        }
+        
+        .nav-badge {
+            background: #ff4444;
+            color: white;
+            font-size: 0.7rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 10px;
+            font-weight: 600;
+            margin-left: 0.5rem;
+        }
+        
+        .nav-status {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-left: 0.5rem;
+        }
+        
+        .status-online { background: #4caf50; }
+        .status-building { background: #ff9800; }
+        .status-offline { background: #e0e0e0; }
+        
+        /* 主内容区域 */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        .page-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #667eea;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .content-area {
+            flex: 1;
+            padding: 2rem;
+            overflow-y: auto;
+        }
+        
+        /* 构建模块样式 */
+        .module-header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        
+        .header-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #667eea;
+        }
+        
+        .header-actions {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .btn {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #333;
+            border: 1px solid #ddd;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+        }
+        
+        .stat-card {
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 15px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: transform 0.3s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        /* 工作流信息卡片 */
+        .workflow-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .workflow-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        
+        .workflow-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #667eea;
+        }
+        
+        .workflow-version {
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+            padding: 0.5rem 1rem;
+            border-radius: 15px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+        
+        .workflow-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .info-item {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 1rem;
+        }
+        
+        .info-label {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 0.5rem;
+        }
+        
+        .info-value {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .workflow-features {
+            margin-bottom: 2rem;
+        }
+        
+        .features-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 1rem;
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+        
+        .feature-item {
+            background: rgba(76, 175, 80, 0.1);
+            color: #4caf50;
+            padding: 0.8rem;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: 500;
+        }
+        
+        /* 构建进度卡片 */
+        .build-progress-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        
+        .progress-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #667eea;
+        }
+        
+        .progress-actions {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .build-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .build-item {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 1.5rem;
+            border-left: 4px solid #667eea;
+            transition: all 0.3s;
+        }
+        
+        .build-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .build-item.building {
+            border-left-color: #ff9800;
+            background: rgba(255, 152, 0, 0.05);
+        }
+        
+        .build-item.completed {
+            border-left-color: #4caf50;
+            background: rgba(76, 175, 80, 0.05);
+        }
+        
+        .build-item.failed {
+            border-left-color: #f44336;
+            background: rgba(244, 67, 54, 0.05);
+        }
+        
+        .build-header-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+        
+        .build-name {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+        
+        .build-meta {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        .build-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 600;
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+        
+        .status-building { background: #ff9800; }
+        .status-completed { background: #4caf50; }
+        .status-failed { background: #f44336; }
+        
+        .build-progress {
+            margin-bottom: 1rem;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 0.5rem;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+        
+        .progress-text {
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        .build-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .detail-item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+        }
+        
+        .detail-label {
+            color: #999;
+        }
+        
+        .detail-value {
+            color: #333;
+            font-weight: 600;
+        }
+        
+        .build-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .btn-small {
+            padding: 0.4rem 0.8rem;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.3s;
+        }
+        
+        .btn-small:hover {
+            transform: translateY(-1px);
+        }
+        
+        /* 搜索和过滤 */
+        .search-filter-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .search-bar {
+            width: 100%;
+            padding: 1rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            font-size: 1rem;
+            margin-bottom: 1rem;
+            transition: border-color 0.3s;
+        }
+        
+        .search-bar:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .filter-tabs {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        
+        .filter-tab {
+            padding: 0.6rem 1.2rem;
+            border: 2px solid #e0e0e0;
+            background: white;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+        }
+        
+        .filter-tab.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 60px;
+            }
+            
+            .nav-text, .nav-badge {
+                display: none;
+            }
+            
+            .nav-icon {
+                margin-right: 0;
+            }
+            
+            .sidebar-header {
+                padding: 1rem;
+            }
+            
+            .logo {
+                font-size: 1.5rem;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .workflow-info {
+                grid-template-columns: 1fr;
+            }
+            
+            .features-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        /* 通知样式 */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            border-radius: 10px;
+            padding: 1rem 1.5rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 3000;
+            animation: slideIn 0.3s ease-out;
+            max-width: 300px;
+        }
+        
+        .notification.success {
+            border-left: 4px solid #4caf50;
+        }
+        
+        .notification.error {
+            border-left: 4px solid #f44336;
+        }
+        
+        .notification.info {
+            border-left: 4px solid #2196f3;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes slideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- 左侧导航栏 -->
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">🤖 Nexus-AI</div>
+            </div>
+            
+            <div class="nav-modules">
+                <!-- 核心模块 -->
+                <div class="nav-section">
+                    <div class="nav-section-title">核心模块</div>
+                    
+                    <div class="nav-item" onclick="navigateTo('homepage')">
+                        <span class="nav-icon">🏠</span>
+                        <span class="nav-text">首页概览</span>
+                        <span class="nav-status status-online"></span>
+                    </div>
+                    
+                    <div class="nav-item active" onclick="navigateTo('build')">
+                        <span class="nav-icon">🔨</span>
+                        <span class="nav-text">构建模块</span>
+                        <span class="nav-badge">5</span>
+                        <span class="nav-status status-building"></span>
+                    </div>
+                    
+                    <div class="nav-item" onclick="navigateTo('management')">
+                        <span class="nav-icon">⚙️</span>
+                        <span class="nav-text">管理模块</span>
+                        <span class="nav-status status-online"></span>
+                    </div>
+                    
+                    <div class="nav-item" onclick="navigateTo('iteration')">
+                        <span class="nav-icon">🔄</span>
+                        <span class="nav-text">迭代模块</span>
+                        <span class="nav-badge">1</span>
+                        <span class="nav-status status-online"></span>
+                    </div>
+                    
+                    <div class="nav-item" onclick="navigateTo('troubleshoot')">
+                        <span class="nav-icon">🐛</span>
+                        <span class="nav-text">问题排查</span>
+                        <span class="nav-status status-online"></span>
+                    </div>
+                    
+                    <div class="nav-item" onclick="navigateTo('operations')">
+                        <span class="nav-icon">🔧</span>
+                        <span class="nav-text">运维管理</span>
+                        <span class="nav-status status-online"></span>
+                    </div>
+                    
+                    <div class="nav-item" onclick="navigateTo('monitoring')">
+                        <span class="nav-icon">📊</span>
+                        <span class="nav-text">监控中心</span>
+                        <span class="nav-badge">2</span>
+                        <span class="nav-status status-online"></span>
+                    </div>
+                    
+                    <div class="nav-item" onclick="navigateTo('tools')">
+                        <span class="nav-icon">🛠️</span>
+                        <span class="nav-text">工具&MCP</span>
+                        <span class="nav-status status-online"></span>
+                    </div>
+                </div>
+                
+                <!-- 系统功能 -->
+                <div class="nav-section">
+                    <div class="nav-section-title">系统功能</div>
+                    
+                    <div class="nav-item" onclick="navigateTo('agent-library')">
+                        <span class="nav-icon">🤖</span>
+                        <span class="nav-text">Agent库</span>
+                        <span class="nav-status status-online"></span>
+                    </div>
+                    
+                    <div class="nav-item" onclick="navigateTo('multi-agent')">
+                        <span class="nav-icon">🔗</span>
+                        <span class="nav-text">多Agent编排</span>
+                        <span class="nav-status status-online"></span>
+                    </div>
+                    
+                    <div class="nav-item" onclick="navigateTo('evolution')">
+                        <span class="nav-icon">🔄</span>
+                        <span class="nav-text">自举式进化</span>
+                        <span class="nav-badge">Beta</span>
+                        <span class="nav-status status-building"></span>
+                    </div>
+                    
+                    <div class="nav-item" onclick="navigateTo('analytics')">
+                        <span class="nav-icon">📈</span>
+                        <span class="nav-text">系统分析</span>
+                        <span class="nav-status status-online"></span>
+                    </div>
+                </div>
+                
+                <!-- 用户管理 -->
+                <div class="nav-section">
+                    <div class="nav-section-title">用户管理</div>
+                    
+                    <div class="nav-item" onclick="navigateTo('profile')">
+                        <span class="nav-icon">👤</span>
+                        <span class="nav-text">个人中心</span>
+                        <span class="nav-status status-online"></span>
+                    </div>
+                    
+                    <div class="nav-item" onclick="navigateTo('team')">
+                        <span class="nav-icon">👥</span>
+                        <span class="nav-text">团队管理</span>
+                        <span class="nav-status status-online"></span>
+                    </div>
+                    
+                    <div class="nav-item" onclick="navigateTo('help')">
+                        <span class="nav-icon">📚</span>
+                        <span class="nav-text">帮助文档</span>
+                        <span class="nav-status status-online"></span>
+                    </div>
+                    
+                    <div class="nav-item" onclick="navigateTo('settings')">
+                        <span class="nav-icon">⚙️</span>
+                        <span class="nav-text">系统设置</span>
+                        <span class="nav-status status-online"></span>
+                    </div>
+                </div>
+            </div>
+        </nav>
+        
+        <!-- 主内容区域 -->
+        <main class="main-content">
+            <div class="header">
+                <div class="page-title">Agent构建模块</div>
+                <div class="user-info">
+                    <span>张强[企业业务部门]</span>
+                    <img src="https://via.placeholder.com/40" alt="用户头像" style="border-radius: 50%; width: 40px; height: 40px;">
+                </div>
+            </div>
+            
+            <div class="content-area">
+                <!-- 模块概览 -->
+                <div class="module-header">
+                    <div class="header-content">
+                        <div class="header-title">🔨 Agent构建模块</div>
+                        <div class="header-actions">
+                            <button class="btn btn-secondary" onclick="viewBuildHistory()">📋 构建历史</button>
+                            <button class="btn btn-secondary" onclick="viewWorkflowConfig()">⚙️ 工作流配置</button>
+                            <button class="btn btn-primary" onclick="startNewBuild()">➕ 新建构建</button>
+                        </div>
+                    </div>
+                    
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-number">127</div>
+                            <div class="stat-label">总构建任务</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">5</div>
+                            <div class="stat-label">进行中</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">118</div>
+                            <div class="stat-label">已完成</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">4</div>
+                            <div class="stat-label">失败</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">2.8小时</div>
+                            <div class="stat-label">平均构建时间</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">96.8%</div>
+                            <div class="stat-label">成功率</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 工作流信息 -->
+                <div class="workflow-card">
+                    <div class="workflow-header">
+                        <div class="workflow-title">🚀 Agent Build Workflow</div>
+                        <div class="workflow-version">v2.1.0</div>
+                    </div>
+                    
+                    <div class="workflow-info">
+                        <div class="info-item">
+                            <div class="info-label">工作流描述</div>
+                            <div class="info-value">智能Agent构建流水线，支持从需求分析到部署的全流程自动化</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">包含Agent数量</div>
+                            <div class="info-value">10个专业Agent</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">支持特性</div>
+                            <div class="info-value">多语言、多框架、云原生部署</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">监控状态</div>
+                            <div class="info-value">✅ 正常运行</div>
+                        </div>
+                    </div>
+                    
+                    <div class="workflow-features">
+                        <div class="features-title">🔧 工作流特性</div>
+                        <div class="features-grid">
+                            <div class="feature-item">编排与调度</div>
+                            <div class="feature-item">需求分析</div>
+                            <div class="feature-item">架构设计</div>
+                            <div class="feature-item">Agent设计</div>
+                            <div class="feature-item">Agent开发</div>
+                            <div class="feature-item">工具开发</div>
+                            <div class="feature-item">测试验证</div>
+                            <div class="feature-item">部署发布</div>
+                            <div class="feature-item">监控运维</div>
+                            <div class="feature-item">文档生成</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 搜索和过滤 -->
+                <div class="search-filter-section">
+                    <input type="text" class="search-bar" placeholder="🔍 搜索构建任务名称、创建人、Agent类型..." id="searchInput">
+                    
+                    <div class="filter-tabs">
+                        <div class="filter-tab active" data-filter="all">全部任务</div>
+                        <div class="filter-tab" data-filter="building">构建中</div>
+                        <div class="filter-tab" data-filter="completed">已完成</div>
+                        <div class="filter-tab" data-filter="failed">失败</div>
+                        <div class="filter-tab" data-filter="customer">客户服务</div>
+                        <div class="filter-tab" data-filter="analysis">数据分析</div>
+                        <div class="filter-tab" data-filter="automation">自动化</div>
+                        <div class="filter-tab" data-filter="integration">集成工具</div>
+                    </div>
+                </div>
+
+                <!-- 构建进度 -->
+                <div class="build-progress-card">
+                    <div class="progress-header">
+                        <div class="progress-title">📊 构建进度监控</div>
+                        <div class="progress-actions">
+                            <button class="btn btn-secondary" onclick="refreshProgress()">🔄 刷新</button>
+                            <button class="btn btn-secondary" onclick="exportProgress()">📤 导出</button>
+                        </div>
+                    </div>
+                    
+                    <div class="build-list" id="buildList">
+                        <!-- 构建任务将通过JavaScript动态生成 -->
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // 构建任务数据
+        const buildTasks = [
+            {
+                id: 'build_001',
+                name: '客户投诉处理Agent',
+                creator: '张强',
+                originalInput: '我需要一个客服代理，能够自动处理客户投诉，根据问题严重程度分配给不同的专家，并自动生成处理报告',
+                version: 'v2.1.0',
+                status: 'building',
+                progress: 65,
+                startTime: '2025-01-27 14:30:00',
+                estimatedTime: '25分钟',
+                currentStep: 'Agent开发',
+                totalSteps: 10,
+                category: 'customer',
+                agentCount: 4,
+                toolsCount: 6,
+                codeLines: 1247
+            },
+            {
+                id: 'build_002',
+                name: '销售数据分析Agent',
+                creator: '李工程师',
+                originalInput: '构建一个销售数据分析Agent，能够分析销售数据，生成洞察报告，并提供销售策略建议',
+                version: 'v1.8.3',
+                status: 'building',
+                progress: 35,
+                startTime: '2025-01-27 15:15:00',
+                estimatedTime: '30分钟',
+                currentStep: '架构设计',
+                totalSteps: 10,
+                category: 'analysis',
+                agentCount: 3,
+                toolsCount: 4,
+                codeLines: 892
+            },
+            {
+                id: 'build_003',
+                name: '库存管理Agent',
+                creator: '王分析师',
+                originalInput: '开发一个智能库存管理Agent，能够监控库存水平，预测缺货风险，并自动生成补货建议',
+                version: 'v2.0.0',
+                status: 'completed',
+                progress: 100,
+                startTime: '2025-01-27 13:00:00',
+                estimatedTime: '28分钟',
+                currentStep: '部署发布',
+                totalSteps: 10,
+                category: 'automation',
+                agentCount: 2,
+                toolsCount: 5,
+                codeLines: 567
+            },
+            {
+                id: 'build_004',
+                name: '邮件通知Agent',
+                creator: '陈开发',
+                originalInput: '创建一个邮件通知Agent，支持模板化邮件发送，批量处理，并集成反垃圾邮件功能',
+                version: 'v2.3.0',
+                status: 'building',
+                progress: 80,
+                startTime: '2025-01-27 16:00:00',
+                estimatedTime: '20分钟',
+                currentStep: '测试验证',
+                totalSteps: 10,
+                category: 'integration',
+                agentCount: 1,
+                toolsCount: 3,
+                codeLines: 3421
+            },
+            {
+                id: 'build_005',
+                name: '文档处理Agent',
+                creator: '刘运维',
+                originalInput: '构建一个文档处理Agent，能够处理PDF、Word、Excel等格式，提取关键信息并结构化存储',
+                version: 'v1.9.4',
+                status: 'failed',
+                progress: 45,
+                startTime: '2025-01-27 12:30:00',
+                estimatedTime: '35分钟',
+                currentStep: '工具开发',
+                totalSteps: 10,
+                category: 'automation',
+                agentCount: 2,
+                toolsCount: 4,
+                codeLines: 0,
+                errorMessage: '工具开发阶段遇到依赖冲突'
+            }
+        ];
+
+        let currentFilter = 'all';
+        let currentSearch = '';
+
+        // 初始化页面
+        document.addEventListener('DOMContentLoaded', function() {
+            renderBuildTasks();
+            setupEventListeners();
+            startProgressUpdates();
+        });
+
+        // 设置事件监听器
+        function setupEventListeners() {
+            // 搜索功能
+            document.getElementById('searchInput').addEventListener('input', function(e) {
+                currentSearch = e.target.value.toLowerCase();
+                renderBuildTasks();
+            });
+
+            // 过滤标签
+            document.querySelectorAll('.filter-tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    currentFilter = this.dataset.filter;
+                    renderBuildTasks();
+                });
+            });
+        }
+
+        // 渲染构建任务列表
+        function renderBuildTasks() {
+            const buildList = document.getElementById('buildList');
+            const filteredTasks = buildTasks.filter(task => {
+                const matchesSearch = !currentSearch || 
+                    task.name.toLowerCase().includes(currentSearch) ||
+                    task.creator.toLowerCase().includes(currentSearch) ||
+                    task.originalInput.toLowerCase().includes(currentSearch);
+                
+                const matchesFilter = currentFilter === 'all' || 
+                    task.status === currentFilter ||
+                    task.category === currentFilter;
+                
+                return matchesSearch && matchesFilter;
+            });
+
+            buildList.innerHTML = filteredTasks.map(task => `
+                <div class="build-item ${task.status}">
+                    <div class="build-header-info">
+                        <div>
+                            <div class="build-name">${task.name}</div>
+                            <div class="build-meta">
+                                <span>创建人: ${task.creator}</span>
+                                <span>版本: ${task.version}</span>
+                                <span>开始时间: ${task.startTime}</span>
+                            </div>
+                        </div>
+                        <div class="build-status">
+                            <div class="status-dot status-${task.status}"></div>
+                            <span>${getStatusText(task.status)}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="build-progress">
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${task.progress}%"></div>
+                        </div>
+                        <div class="progress-text">
+                            进度: ${task.progress}% (${task.currentStep} - ${task.progress}/10步骤)
+                        </div>
+                    </div>
+                    
+                    <div class="build-details">
+                        <div class="detail-item">
+                            <span class="detail-label">原始需求:</span>
+                            <span class="detail-value">${task.originalInput.substring(0, 50)}...</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">预计完成:</span>
+                            <span class="detail-value">${task.estimatedTime}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">生成Agent:</span>
+                            <span class="detail-value">${task.agentCount}个</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">生成工具:</span>
+                            <span class="detail-value">${task.toolsCount}个</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">代码行数:</span>
+                            <span class="detail-value">${task.codeLines.toLocaleString()}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">当前步骤:</span>
+                            <span class="detail-value">${task.currentStep}</span>
+                        </div>
+                    </div>
+                    
+                    ${task.status === 'failed' ? `
+                        <div style="background: rgba(244, 67, 54, 0.1); color: #f44336; padding: 0.8rem; border-radius: 8px; margin-bottom: 1rem;">
+                            <strong>错误信息:</strong> ${task.errorMessage}
+                        </div>
+                    ` : ''}
+                    
+                    <div class="build-actions">
+                        <button class="btn-small btn-primary" onclick="viewBuildDetail('${task.id}')">查看详情</button>
+                        <button class="btn-small btn-secondary" onclick="viewBuildLogs('${task.id}')">查看日志</button>
+                        ${task.status === 'building' ? `
+                            <button class="btn-small btn-secondary" onclick="pauseBuild('${task.id}')">暂停</button>
+                        ` : ''}
+                        ${task.status === 'failed' ? `
+                            <button class="btn-small btn-primary" onclick="retryBuild('${task.id}')">重试</button>
+                        ` : ''}
+                        ${task.status === 'completed' ? `
+                            <button class="btn-small btn-primary" onclick="deployBuild('${task.id}')">部署</button>
+                        ` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 获取状态文本
+        function getStatusText(status) {
+            const statusMap = {
+                'building': '构建中',
+                'completed': '已完成',
+                'failed': '失败'
+            };
+            return statusMap[status] || status;
+        }
+
+        // 开始进度更新
+        function startProgressUpdates() {
+            setInterval(() => {
+                // 模拟进度更新
+                buildTasks.forEach(task => {
+                    if (task.status === 'building' && task.progress < 100) {
+                        task.progress += Math.random() * 2;
+                        if (task.progress >= 100) {
+                            task.progress = 100;
+                            task.status = 'completed';
+                            task.currentStep = '部署发布';
+                            showNotification(`构建任务 "${task.name}" 已完成！`, 'success');
+                        }
+                    }
+                });
+                renderBuildTasks();
+            }, 5000);
+        }
+
+        // 功能函数
+        function viewBuildDetail(buildId) {
+            const task = buildTasks.find(t => t.id === buildId);
+            showNotification(`正在打开构建任务 "${task.name}" 的详情页面...`, 'info');
+            setTimeout(() => {
+                window.open(`01.AgentBuild.html?id=${buildId}`, '_blank', 'width=1000,height=700');
+            }, 1000);
+        }
+
+        function viewBuildLogs(buildId) {
+            const task = buildTasks.find(t => t.id === buildId);
+            showNotification(`正在打开构建任务 "${task.name}" 的日志...`, 'info');
+            setTimeout(() => {
+                window.open(`build-logs.html?id=${buildId}`, '_blank', 'width=800,height=600');
+            }, 1000);
+        }
+
+        function pauseBuild(buildId) {
+            const task = buildTasks.find(t => t.id === buildId);
+            if (confirm(`确定要暂停构建任务 "${task.name}" 吗？`)) {
+                task.status = 'paused';
+                showNotification(`构建任务 "${task.name}" 已暂停`, 'warning');
+                renderBuildTasks();
+            }
+        }
+
+        function retryBuild(buildId) {
+            const task = buildTasks.find(t => t.id === buildId);
+            if (confirm(`确定要重试构建任务 "${task.name}" 吗？`)) {
+                task.status = 'building';
+                task.progress = 0;
+                task.currentStep = '需求分析';
+                showNotification(`构建任务 "${task.name}" 已重新开始`, 'success');
+                renderBuildTasks();
+            }
+        }
+
+        function deployBuild(buildId) {
+            const task = buildTasks.find(t => t.id === buildId);
+            showNotification(`正在部署构建任务 "${task.name}"...`, 'info');
+            setTimeout(() => {
+                showNotification(`构建任务 "${task.name}" 部署成功！`, 'success');
+            }, 2000);
+        }
+
+        function startNewBuild() {
+            showNotification('正在跳转到新建构建页面...', 'info');
+            setTimeout(() => {
+                window.location.href = '00.homepage_overview.html';
+            }, 1000);
+        }
+
+        function viewBuildHistory() {
+            showNotification('正在打开构建历史页面...', 'info');
+            setTimeout(() => {
+                window.open('build-history.html', '_blank', 'width=1200,height=800');
+            }, 1000);
+        }
+
+        function viewWorkflowConfig() {
+            showNotification('正在打开工作流配置页面...', 'info');
+            setTimeout(() => {
+                window.open('workflow-config.html', '_blank', 'width=1000,height=700');
+            }, 1000);
+        }
+
+        function refreshProgress() {
+            showNotification('正在刷新构建进度...', 'info');
+            setTimeout(() => {
+                renderBuildTasks();
+                showNotification('构建进度已刷新', 'success');
+            }, 1000);
+        }
+
+        function exportProgress() {
+            const exportData = buildTasks.map(task => ({
+                任务名称: task.name,
+                创建人: task.creator,
+                状态: getStatusText(task.status),
+                进度: `${task.progress}%`,
+                开始时间: task.startTime,
+                预计完成: task.estimatedTime,
+                当前步骤: task.currentStep,
+                生成Agent: `${task.agentCount}个`,
+                生成工具: `${task.toolsCount}个`,
+                代码行数: task.codeLines
+            }));
+            
+            const csvContent = "data:text/csv;charset=utf-8," 
+                + "任务名称,创建人,状态,进度,开始时间,预计完成,当前步骤,生成Agent,生成工具,代码行数\n"
+                + exportData.map(row => Object.values(row).join(',')).join('\n');
+            
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `build-progress-${new Date().toISOString().split('T')[0]}.csv`);
+            link.click();
+            
+            showNotification('构建进度已导出', 'success');
+        }
+
+        // 统一导航功能
+        function navigateTo(page) {
+            const pageMap = {
+                'homepage': '00.homepage_overview.html',
+                'build': '01.AgentBuildModule.html',
+                'management': '02.AgentManagement.html',
+                'iteration': '04.PFR.html',
+                'troubleshoot': 'troubleshoot.html',
+                'operations': '06.AgentOps.html',
+                'monitoring': '06.AgentOps.html',
+                'tools': '03.Tools&MCP.html',
+                'agent-library': 'agent-library.html',
+                'multi-agent': 'agent-graph-view.html',
+                'evolution': 'evolution.html',
+                'analytics': 'analytics.html',
+                'profile': 'profile.html',
+                'team': 'team.html',
+                'help': 'help.html',
+                'settings': 'settings.html'
+            };
+            
+            if (pageMap[page]) {
+                window.location.href = pageMap[page];
+            } else {
+                showNotification('页面开发中，敬请期待！', 'info');
+            }
+        }
+
+        // 显示通知
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <span>${type === 'success' ? '✅' : type === 'error' ? '❌' : type === 'warning' ? '⚠️' : 'ℹ️'}</span>
+                    <span>${message}</span>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease-in';
+                setTimeout(() => {
+                    if (document.body.contains(notification)) {
+                        document.body.removeChild(notification);
+                    }
+                }, 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

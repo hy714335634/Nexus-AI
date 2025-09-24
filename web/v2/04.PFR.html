@@ -1,0 +1,1564 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus-AI Platform - 迭代优化 (PFR)</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .app-container { display: flex; height: 100vh; }
+        
+        .sidebar {
+            width: 280px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: 2px 0 20px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+        
+        .sidebar-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid #e0e0e0;
+            background: rgba(102, 126, 234, 0.1);
+        }
+        
+        .logo {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #667eea;
+            text-align: center;
+        }
+        
+        .nav-modules {
+            flex: 1;
+            padding: 1rem 0;
+        }
+        
+        .nav-section {
+            margin-bottom: 1.5rem;
+        }
+        
+        .nav-section-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #999;
+            padding: 0 1.5rem;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 0.8rem 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            border-left: 4px solid transparent;
+            position: relative;
+        }
+        
+        .nav-item:hover {
+            background: rgba(102, 126, 234, 0.1);
+            border-left-color: #667eea;
+        }
+        
+        .nav-item.active {
+            background: rgba(102, 126, 234, 0.15);
+            border-left-color: #667eea;
+            color: #667eea;
+        }
+        
+        .nav-item.active::before {
+            content: '';
+            position: absolute;
+            right: 1rem;
+            width: 8px;
+            height: 8px;
+            background: #667eea;
+            border-radius: 50%;
+        }
+        
+        .nav-icon {
+            margin-right: 0.8rem;
+            font-size: 1.2rem;
+            width: 20px;
+            text-align: center;
+        }
+        
+        .nav-text {
+            font-weight: 500;
+            flex: 1;
+        }
+        
+        .nav-badge {
+            background: #ff4444;
+            color: white;
+            border-radius: 10px;
+            padding: 0.2rem 0.5rem;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+        
+        .nav-badge.success {
+            background: #4caf50;
+        }
+        
+        .nav-badge.warning {
+            background: #ff9800;
+        }
+        
+        .main-content {
+            flex: 1;
+            padding: 2rem;
+            overflow-y: auto;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .agent-selector {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .current-agent {
+            background: linear-gradient(45deg, #4caf50, #8bc34a);
+            color: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .agent-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .info-item {
+            text-align: center;
+        }
+        
+        .info-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            margin-bottom: 0.3rem;
+        }
+        
+        .info-value {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+        
+        .feedback-input {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .input-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .input-label {
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+        
+        .feedback-textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 1rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 15px;
+            font-size: 1rem;
+            resize: vertical;
+            transition: border-color 0.3s;
+        }
+        
+        .feedback-textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .feedback-type {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .type-option {
+            padding: 0.6rem 1.2rem;
+            border: 2px solid #e0e0e0;
+            background: white;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .type-option.selected {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .analysis-results {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .analysis-section {
+            margin-bottom: 2rem;
+        }
+        
+        .section-title {
+            font-size: 1.3rem;
+            color: #667eea;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .impact-analysis {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .impact-item {
+            display: flex;
+            align-items: center;
+            padding: 0.8rem;
+            margin: 0.5rem 0;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+        
+        .impact-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 1rem;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .impact-modify { background: #ff9800; }
+        .impact-add { background: #4caf50; }
+        .impact-remove { background: #f44336; }
+        
+        .impact-content {
+            flex: 1;
+        }
+        
+        .impact-title {
+            font-weight: 600;
+            margin-bottom: 0.3rem;
+        }
+        
+        .impact-desc {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .reuse-analysis {
+            background: #e3f2fd;
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .reuse-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem;
+            margin: 0.5rem 0;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+        
+        .reuse-info {
+            flex: 1;
+        }
+        
+        .reuse-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 0.3rem;
+        }
+        
+        .reuse-match {
+            color: #667eea;
+            font-size: 0.9rem;
+        }
+        
+        .match-score {
+            padding: 0.3rem 0.8rem;
+            background: #667eea;
+            color: white;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        
+        .strategy-options {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .strategy-card {
+            border: 2px solid #e0e0e0;
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .strategy-card:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+        
+        .strategy-card.selected {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+        }
+        
+        .strategy-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .strategy-radio {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid #667eea;
+            margin-right: 1rem;
+            position: relative;
+        }
+        
+        .strategy-card.selected .strategy-radio::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 10px;
+            height: 10px;
+            background: #667eea;
+            border-radius: 50%;
+        }
+        
+        .strategy-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .strategy-time {
+            margin-left: auto;
+            padding: 0.3rem 0.8rem;
+            background: #f0f0f0;
+            border-radius: 15px;
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        .strategy-description {
+            color: #666;
+            line-height: 1.5;
+            margin-bottom: 1rem;
+        }
+        
+        .strategy-features {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        
+        .feature-tag {
+            padding: 0.3rem 0.8rem;
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+            border-radius: 15px;
+            font-size: 0.8rem;
+        }
+        
+        .version-history {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .version-timeline {
+            position: relative;
+            padding-left: 2rem;
+        }
+        
+        .version-timeline::before {
+            content: '';
+            position: absolute;
+            left: 1rem;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #e0e0e0;
+        }
+        
+        .version-item {
+            position: relative;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+        
+        .version-item::before {
+            content: '';
+            position: absolute;
+            left: -1.5rem;
+            top: 1.5rem;
+            width: 12px;
+            height: 12px;
+            background: #667eea;
+            border-radius: 50%;
+            border: 3px solid white;
+        }
+        
+        .version-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+        
+        .version-number {
+            font-weight: 600;
+            color: #667eea;
+        }
+        
+        .version-date {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .version-changes {
+            color: #333;
+            line-height: 1.5;
+        }
+        
+        .btn {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #333;
+        }
+        
+        .btn:hover { transform: translateY(-2px); }
+        
+        /* 统计概览样式 */
+        .stats-overview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-2px);
+        }
+        
+        .stat-icon {
+            font-size: 2rem;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border-radius: 15px;
+            color: white;
+        }
+        
+        .stat-content {
+            flex: 1;
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 0.3rem;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        /* Agent网格样式 */
+        .agent-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+        
+        .agent-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 1.5rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+        
+        .agent-card:hover {
+            transform: translateY(-2px);
+            border-color: #667eea;
+        }
+        
+        .agent-card.selected {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+        }
+        
+        .agent-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+        
+        .agent-name {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .agent-status {
+            padding: 0.3rem 0.8rem;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        
+        .status-healthy {
+            background: #e8f5e8;
+            color: #4caf50;
+        }
+        
+        .status-warning {
+            background: #fff3e0;
+            color: #ff9800;
+        }
+        
+        .status-error {
+            background: #ffebee;
+            color: #f44336;
+        }
+        
+        .agent-metrics {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .metric-item {
+            text-align: center;
+        }
+        
+        .metric-value {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #667eea;
+        }
+        
+        .metric-label {
+            font-size: 0.8rem;
+            color: #666;
+        }
+        
+        .agent-actions {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: center;
+        }
+        
+        .action-btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .action-btn.primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .action-btn.secondary {
+            background: #f5f5f5;
+            color: #333;
+        }
+        
+        .action-btn:hover {
+            transform: translateY(-1px);
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">🤖 Nexus-AI Platform</div>
+            </div>
+            <div class="nav-modules">
+                <div class="nav-section">
+                    <div class="nav-section-title">核心模块</div>
+                    <div class="nav-item" onclick="navigateTo('homepage')">
+                        <span class="nav-icon">🏠</span>
+                        <span class="nav-text">首页概览</span>
+                        <span class="nav-status status-online"></span>
+                    </div>
+                    <div class="nav-item" onclick="navigateTo('build')">
+                        <span class="nav-icon">🔨</span>
+                        <span class="nav-text">构建模块</span>
+                        <span class="nav-badge success">5</span>
+                    </div>
+                    <div class="nav-item" onclick="navigateTo('management')">
+                        <span class="nav-icon">⚙️</span>
+                        <span class="nav-text">管理模块</span>
+                        <span class="nav-badge">127</span>
+                    </div>
+                    <div class="nav-item active" onclick="navigateTo('iteration')">
+                        <span class="nav-icon">🔄</span>
+                        <span class="nav-text">迭代模块</span>
+                        <span class="nav-badge warning">2</span>
+                    </div>
+                    <div class="nav-item" onclick="navigateTo('troubleshoot')">
+                        <span class="nav-icon">🐛</span>
+                        <span class="nav-text">问题排查</span>
+                    </div>
+                    <div class="nav-item" onclick="navigateTo('operations')">
+                        <span class="nav-icon">🔧</span>
+                        <span class="nav-text">运维管理</span>
+                        <span class="nav-badge success">正常</span>
+                    </div>
+                    <div class="nav-item" onclick="navigateTo('monitoring')">
+                        <span class="nav-icon">📊</span>
+                        <span class="nav-text">监控中心</span>
+                    </div>
+                    <div class="nav-item" onclick="navigateTo('tools')">
+                        <span class="nav-icon">🛠️</span>
+                        <span class="nav-text">工具&MCP</span>
+                        <span class="nav-badge">45</span>
+                    </div>
+                </div>
+                <div class="nav-section">
+                    <div class="nav-section-title">系统功能</div>
+                    <div class="nav-item">
+                        <span class="nav-icon">🎯</span>
+                        <span class="nav-text">自举式进化</span>
+                    </div>
+                    <div class="nav-item">
+                        <span class="nav-icon">📈</span>
+                        <span class="nav-text">性能分析</span>
+                    </div>
+                    <div class="nav-item">
+                        <span class="nav-icon">🔒</span>
+                        <span class="nav-text">安全审计</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="header">
+                <h1>🔄 迭代优化管理 (PFR)</h1>
+                <p>基于反馈的AI代理持续优化和功能迭代管理平台</p>
+            </div>
+
+            <!-- 统计概览 -->
+            <div class="stats-overview">
+                <div class="stat-card">
+                    <div class="stat-icon">📊</div>
+                    <div class="stat-content">
+                        <div class="stat-value">24</div>
+                        <div class="stat-label">活跃Agent</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">🔄</div>
+                    <div class="stat-content">
+                        <div class="stat-value">8</div>
+                        <div class="stat-label">进行中迭代</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">✅</div>
+                    <div class="stat-content">
+                        <div class="stat-value">156</div>
+                        <div class="stat-label">已完成迭代</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">📈</div>
+                    <div class="stat-content">
+                        <div class="stat-value">94.2%</div>
+                        <div class="stat-label">平均成功率</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Agent选择器 -->
+            <div class="agent-selector">
+                <h2 style="color: #667eea; margin-bottom: 1rem;">选择要优化的Agent</h2>
+                
+                <div class="agent-grid" id="agentGrid">
+                    <!-- Agent卡片将通过JavaScript动态生成 -->
+                </div>
+            </div>
+
+            <div class="feedback-input">
+                <h2 style="color: #667eea; margin-bottom: 1.5rem;">📝 提出改进需求</h2>
+                
+                <div class="input-group">
+                    <label class="input-label">反馈类型</label>
+                    <div class="feedback-type">
+                        <div class="type-option selected" onclick="selectFeedbackType('enhancement')">功能增强</div>
+                        <div class="type-option" onclick="selectFeedbackType('performance')">性能优化</div>
+                        <div class="type-option" onclick="selectFeedbackType('bugfix')">Bug修复</div>
+                        <div class="type-option" onclick="selectFeedbackType('ux')">用户体验</div>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label">详细描述您的改进建议</label>
+                    <textarea class="feedback-textarea" placeholder="我希望增加一个功能：当投诉涉及产品安全问题时，能够自动升级为紧急处理，并立即通知产品安全部门和法务部门。同时，希望能够自动生成产品召回风险评估报告，并集成到现有的报告生成流程中。
+
+另外，我注意到系统在处理复杂的多轮对话时，有时会丢失上下文信息，希望能够改进记忆管理机制。">我希望增加一个功能：当投诉涉及产品安全问题时，能够自动升级为紧急处理，并立即通知产品安全部门和法务部门。同时，希望能够自动生成产品召回风险评估报告，并集成到现有的报告生成流程中。
+
+另外，我注意到系统在处理复杂的多轮对话时，有时会丢失上下文信息，希望能够改进记忆管理机制。</textarea>
+                </div>
+
+                <div style="text-align: center;">
+                    <button class="btn btn-primary" onclick="analyzeFeedback()">🔍 智能分析需求</button>
+                </div>
+            </div>
+
+            <div class="analysis-results">
+                <h2 style="color: #667eea; margin-bottom: 2rem;">🧠 智能分析结果</h2>
+
+                <div class="analysis-section">
+                    <h3 class="section-title">📋 变更影响分析</h3>
+                    
+                    <div class="impact-analysis">
+                        <div class="impact-item">
+                            <div class="impact-icon impact-modify">M</div>
+                            <div class="impact-content">
+                                <div class="impact-title">需要修改：投诉分类Agent</div>
+                                <div class="impact-desc">增加产品安全风险识别能力，扩展分类规则库</div>
+                            </div>
+                        </div>
+
+                        <div class="impact-item">
+                            <div class="impact-icon impact-add">+</div>
+                            <div class="impact-content">
+                                <div class="impact-title">需要新增：紧急升级Agent</div>
+                                <div class="impact-desc">处理安全问题的自动升级和通知流程</div>
+                            </div>
+                        </div>
+
+                        <div class="impact-item">
+                            <div class="impact-icon impact-add">+</div>
+                            <div class="impact-content">
+                                <div class="impact-title">需要新增：风险评估Agent</div>
+                                <div class="impact-desc">生成产品召回风险评估报告</div>
+                            </div>
+                        </div>
+
+                        <div class="impact-item">
+                            <div class="impact-icon impact-modify">M</div>
+                            <div class="impact-content">
+                                <div class="impact-title">需要优化：记忆管理系统</div>
+                                <div class="impact-desc">改进上下文保持和多轮对话处理能力</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="analysis-section">
+                    <h3 class="section-title">🔗 资产复用分析</h3>
+                    
+                    <div class="reuse-analysis">
+                        <div class="reuse-item">
+                            <div class="reuse-info">
+                                <div class="reuse-name">现有工具: "部门通知服务v2.1"</div>
+                                <div class="reuse-match">可直接复用于安全部门和法务部门通知</div>
+                            </div>
+                            <div class="match-score">95% 匹配</div>
+                        </div>
+
+                        <div class="reuse-item">
+                            <div class="reuse-info">
+                                <div class="reuse-name">现有Agent: "风险评估模板v1.8"</div>
+                                <div class="reuse-name">需要适配产品召回场景的特定逻辑</div>
+                            </div>
+                            <div class="match-score">78% 匹配</div>
+                        </div>
+
+                        <div class="reuse-item">
+                            <div class="reuse-info">
+                                <div class="reuse-name">现有组件: "上下文管理器v3.0"</div>
+                                <div class="reuse-match">可用于改进记忆管理系统</div>
+                            </div>
+                            <div class="match-score">88% 匹配</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="strategy-options">
+                <h2 style="color: #667eea; margin-bottom: 2rem;">🎯 更新策略选择</h2>
+
+                <div class="strategy-card selected" onclick="selectStrategy('incremental')">
+                    <div class="strategy-header">
+                        <div class="strategy-radio"></div>
+                        <div class="strategy-title">增量更新 (推荐)</div>
+                        <div class="strategy-time">⏱️ 预计 45-60分钟</div>
+                    </div>
+                    <div class="strategy-description">
+                        在现有架构基础上增加新功能模块，保持现有功能完全不变。向后兼容，无需重新训练现有Agent，采用插件化方式集成新功能。
+                    </div>
+                    <div class="strategy-features">
+                        <div class="feature-tag">向后兼容</div>
+                        <div class="feature-tag">零停机时间</div>
+                        <div class="feature-tag">风险最低</div>
+                        <div class="feature-tag">快速部署</div>
+                    </div>
+                </div>
+
+                <div class="strategy-card" onclick="selectStrategy('refactor')">
+                    <div class="strategy-header">
+                        <div class="strategy-radio"></div>
+                        <div class="strategy-title">重构优化</div>
+                        <div class="strategy-time">⏱️ 预计 2-3小时</div>
+                    </div>
+                    <div class="strategy-description">
+                        重新设计核心分类逻辑和记忆管理机制，提升整体性能和扩展性。可能影响现有功能的稳定性，需要完整的回归测试。
+                    </div>
+                    <div class="strategy-features">
+                        <div class="feature-tag">性能提升</div>
+                        <div class="feature-tag">架构优化</div>
+                        <div class="feature-tag">长期收益</div>
+                        <div class="feature-tag">需要测试</div>
+                    </div>
+                </div>
+
+                <div class="strategy-card" onclick="selectStrategy('hybrid')">
+                    <div class="strategy-header">
+                        <div class="strategy-radio"></div>
+                        <div class="strategy-title">混合方案</div>
+                        <div class="strategy-time">⏱️ 预计 1.5-2小时</div>
+                    </div>
+                    <div class="strategy-description">
+                        核心功能采用增量更新，记忆管理系统进行部分重构优化。平衡了开发效率和系统性能，适中的风险水平。
+                    </div>
+                    <div class="strategy-features">
+                        <div class="feature-tag">平衡方案</div>
+                        <div class="feature-tag">适中风险</div>
+                        <div class="feature-tag">渐进改进</div>
+                        <div class="feature-tag">灵活部署</div>
+                    </div>
+                </div>
+
+                <div style="text-align: center; margin-top: 2rem;">
+                    <button class="btn btn-secondary" onclick="saveStrategy()">💾 保存方案</button>
+                    <button class="btn btn-primary" onclick="startUpdate()">🚀 开始更新</button>
+                    <button class="btn btn-secondary" onclick="previewChanges()">🧪 预览变更</button>
+                </div>
+            </div>
+
+            <div class="version-history">
+                <h2 style="color: #667eea; margin-bottom: 2rem;">📈 版本历史</h2>
+
+                <div class="version-timeline">
+                    <div class="version-item" onclick="viewVersionDetail('v1.2.0')">
+                        <div class="version-header">
+                            <div class="version-number">v1.2.0 (当前版本)</div>
+                            <div class="version-date">2025-07-25</div>
+                        </div>
+                        <div class="version-changes">
+                            增加客户满意度自动调查功能，优化报告生成模板，修复多轮对话中的记忆丢失问题
+                        </div>
+                    </div>
+
+                    <div class="version-item" onclick="viewVersionDetail('v1.1.0')">
+                        <div class="version-header">
+                            <div class="version-number">v1.1.0</div>
+                            <div class="version-date">2025-07-20</div>
+                        </div>
+                        <div class="version-changes">
+                            集成智能工单系统，支持自动分配专家，添加处理进度实时通知功能
+                        </div>
+                    </div>
+
+                    <div class="version-item" onclick="viewVersionDetail('v1.0.0')">
+                        <div class="version-header">
+                            <div class="version-number">v1.0.0</div>
+                            <div class="version-date">2025-07-15</div>
+                        </div>
+                        <div class="version-changes">
+                            初始版本发布，包含基础投诉分类、专家路由、报告生成和状态跟踪功能
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 统一导航功能
+        function navigateTo(page) {
+            const pageMap = {
+                'homepage': '00.homepage_overview.html',
+                'build': '01.AgentBuildModule.html',
+                'management': '02.AgentManagement.html',
+                'iteration': '04.PFR.html',
+                'troubleshoot': 'troubleshoot.html',
+                'operations': '06.AgentOps.html',
+                'monitoring': '06.AgentOps.html',
+                'tools': '03.Tools&MCP.html',
+                'agent-library': 'agent-library.html',
+                'multi-agent': 'agent-graph-view.html',
+                'evolution': 'evolution.html',
+                'analytics': 'analytics.html',
+                'profile': 'profile.html',
+                'team': 'team.html',
+                'help': 'help.html',
+                'settings': 'settings.html'
+            };
+            
+            if (pageMap[page]) {
+                window.location.href = pageMap[page];
+            } else {
+                showNotification('页面开发中，敬请期待！', 'info');
+            }
+        }
+
+        // 显示通知
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <span>${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'}</span>
+                    <span>${message}</span>
+                </div>
+            `;
+            
+            // 添加通知样式
+            if (!document.querySelector('.notification')) {
+                const style = document.createElement('style');
+                style.textContent = `
+                    .notification {
+                        position: fixed;
+                        top: 20px;
+                        right: 20px;
+                        background: white;
+                        border-radius: 10px;
+                        padding: 1rem 1.5rem;
+                        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                        z-index: 3000;
+                        animation: slideIn 0.3s ease-out;
+                        max-width: 300px;
+                    }
+                    .notification.success { border-left: 4px solid #4caf50; }
+                    .notification.error { border-left: 4px solid #f44336; }
+                    .notification.info { border-left: 4px solid #2196f3; }
+                    @keyframes slideIn {
+                        from { transform: translateX(100%); opacity: 0; }
+                        to { transform: translateX(0); opacity: 1; }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease-in';
+                setTimeout(() => {
+                    if (document.body.contains(notification)) {
+                        document.body.removeChild(notification);
+                    }
+                }, 300);
+            }, 3000);
+        }
+
+        // 页面加载完成后的初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 检查是否有保存的Agent信息
+            const savedAgentInfo = localStorage.getItem('currentAgent');
+            if (savedAgentInfo) {
+                const agentInfo = JSON.parse(savedAgentInfo);
+                updateAgentDisplay(agentInfo);
+            }
+        });
+
+        // 更新Agent显示信息
+        function updateAgentDisplay(agentInfo) {
+            // 这里可以根据传入的Agent信息更新页面显示
+            console.log('更新Agent信息:', agentInfo);
+        }
+
+        // 反馈类型选择
+        let selectedFeedbackType = 'enhancement';
+        function selectFeedbackType(type) {
+            selectedFeedbackType = type;
+            
+            // 更新UI
+            document.querySelectorAll('.type-option').forEach(option => {
+                option.classList.remove('selected');
+            });
+            event.target.classList.add('selected');
+            
+            showNotification(`已选择反馈类型: ${getFeedbackTypeText(type)}`, 'success');
+        }
+
+        function getFeedbackTypeText(type) {
+            const typeMap = {
+                'enhancement': '功能增强',
+                'performance': '性能优化',
+                'bugfix': 'Bug修复',
+                'ux': '用户体验'
+            };
+            return typeMap[type] || type;
+        }
+
+        // 智能分析需求
+        function analyzeFeedback() {
+            const feedbackText = document.querySelector('.feedback-textarea').value.trim();
+            
+            if (!feedbackText) {
+                showNotification('请先输入您的改进建议', 'error');
+                return;
+            }
+            
+            showNotification('正在分析您的需求...', 'info');
+            
+            // 模拟分析过程
+            setTimeout(() => {
+                showNotification('需求分析完成！', 'success');
+                
+                // 滚动到分析结果区域
+                document.querySelector('.analysis-results').scrollIntoView({ 
+                    behavior: 'smooth' 
+                });
+                
+                // 添加分析动画效果
+                animateAnalysisResults();
+            }, 2000);
+        }
+
+        // 分析结果动画
+        function animateAnalysisResults() {
+            const impactItems = document.querySelectorAll('.impact-item');
+            const reuseItems = document.querySelectorAll('.reuse-item');
+            
+            impactItems.forEach((item, index) => {
+                setTimeout(() => {
+                    item.style.opacity = '0';
+                    item.style.transform = 'translateY(20px)';
+                    item.style.transition = 'all 0.5s ease';
+                    
+                    setTimeout(() => {
+                        item.style.opacity = '1';
+                        item.style.transform = 'translateY(0)';
+                    }, 100);
+                }, index * 200);
+            });
+            
+            setTimeout(() => {
+                reuseItems.forEach((item, index) => {
+                    setTimeout(() => {
+                        item.style.opacity = '0';
+                        item.style.transform = 'translateX(-20px)';
+                        item.style.transition = 'all 0.5s ease';
+                        
+                        setTimeout(() => {
+                            item.style.opacity = '1';
+                            item.style.transform = 'translateX(0)';
+                        }, 100);
+                    }, index * 200);
+                });
+            }, impactItems.length * 200);
+        }
+
+        // 策略选择
+        let selectedStrategy = 'incremental';
+        function selectStrategy(strategy) {
+            selectedStrategy = strategy;
+            
+            // 更新UI
+            document.querySelectorAll('.strategy-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            event.target.classList.add('selected');
+            
+            const strategyNames = {
+                'incremental': '增量更新',
+                'refactor': '重构优化',
+                'hybrid': '混合方案'
+            };
+            
+            showNotification(`已选择策略: ${strategyNames[strategy]}`, 'success');
+        }
+
+        // 保存方案
+        function saveStrategy() {
+            const feedbackText = document.querySelector('.feedback-textarea').value.trim();
+            
+            if (!feedbackText) {
+                showNotification('请先输入改进建议', 'error');
+                return;
+            }
+            
+            const strategyData = {
+                feedbackType: selectedFeedbackType,
+                feedbackText: feedbackText,
+                strategy: selectedStrategy,
+                timestamp: new Date().toISOString(),
+                agentId: 'customer_complaint_agent'
+            };
+            
+            // 保存到localStorage
+            localStorage.setItem('pfrStrategy', JSON.stringify(strategyData));
+            
+            showNotification('方案已保存到本地', 'success');
+        }
+
+        // 开始更新
+        function startUpdate() {
+            const feedbackText = document.querySelector('.feedback-textarea').value.trim();
+            
+            if (!feedbackText) {
+                showNotification('请先输入改进建议', 'error');
+                return;
+            }
+            
+            if (!selectedStrategy) {
+                showNotification('请先选择更新策略', 'error');
+                return;
+            }
+            
+            if (confirm('确定要开始更新吗？这将启动Agent的迭代优化流程。')) {
+                showNotification('正在启动更新流程...', 'info');
+                
+                // 创建更新任务
+                const updateTask = {
+                    id: 'update_' + Date.now(),
+                    agentId: 'customer_complaint_agent',
+                    strategy: selectedStrategy,
+                    feedbackType: selectedFeedbackType,
+                    feedbackText: feedbackText,
+                    status: 'running',
+                    startTime: new Date().toISOString(),
+                    progress: 0
+                };
+                
+                // 保存更新任务
+                localStorage.setItem('currentUpdateTask', JSON.stringify(updateTask));
+                
+                setTimeout(() => {
+                    showNotification('更新任务已创建，正在跳转到构建模块...', 'success');
+                    setTimeout(() => {
+                        navigateTo('build');
+                    }, 2000);
+                }, 1500);
+            }
+        }
+
+        // 预览变更
+        function previewChanges() {
+            const feedbackText = document.querySelector('.feedback-textarea').value.trim();
+            
+            if (!feedbackText) {
+                showNotification('请先输入改进建议', 'error');
+                return;
+            }
+            
+            showNotification('正在生成变更预览...', 'info');
+            
+            setTimeout(() => {
+                // 创建预览数据
+                const previewData = {
+                    agentId: 'customer_complaint_agent',
+                    currentVersion: 'v1.2.0',
+                    newVersion: 'v1.3.0',
+                    changes: [
+                        {
+                            type: 'add',
+                            component: '紧急升级Agent',
+                            description: '新增产品安全问题自动升级功能'
+                        },
+                        {
+                            type: 'add',
+                            component: '风险评估Agent',
+                            description: '新增产品召回风险评估报告生成'
+                        },
+                        {
+                            type: 'modify',
+                            component: '投诉分类Agent',
+                            description: '增强安全风险识别能力'
+                        },
+                        {
+                            type: 'modify',
+                            component: '记忆管理系统',
+                            description: '改进多轮对话上下文保持'
+                        }
+                    ],
+                    estimatedTime: selectedStrategy === 'incremental' ? '45-60分钟' : 
+                                 selectedStrategy === 'refactor' ? '2-3小时' : '1.5-2小时',
+                    riskLevel: selectedStrategy === 'incremental' ? '低' : 
+                              selectedStrategy === 'refactor' ? '高' : '中'
+                };
+                
+                // 保存预览数据
+                localStorage.setItem('changePreview', JSON.stringify(previewData));
+                
+                showNotification('变更预览已生成', 'success');
+                
+                // 打开预览窗口
+                setTimeout(() => {
+                    window.open('change-preview.html', '_blank', 'width=1000,height=700');
+                }, 1000);
+            }, 2000);
+        }
+
+        // 查看版本详情
+        function viewVersionDetail(version) {
+            showNotification(`正在打开版本 ${version} 的详细信息...`, 'info');
+            
+            setTimeout(() => {
+                const versionData = {
+                    version: version,
+                    releaseDate: version === 'v1.2.0' ? '2025-07-25' : 
+                               version === 'v1.1.0' ? '2025-07-20' : '2025-07-15',
+                    changes: version === 'v1.2.0' ? [
+                        '增加客户满意度自动调查功能',
+                        '优化报告生成模板',
+                        '修复多轮对话中的记忆丢失问题'
+                    ] : version === 'v1.1.0' ? [
+                        '集成智能工单系统',
+                        '支持自动分配专家',
+                        '添加处理进度实时通知功能'
+                    ] : [
+                        '初始版本发布',
+                        '包含基础投诉分类功能',
+                        '专家路由功能',
+                        '报告生成功能',
+                        '状态跟踪功能'
+                    ],
+                    performance: {
+                        responseTime: version === 'v1.2.0' ? '1.2s' : 
+                                     version === 'v1.1.0' ? '1.5s' : '2.1s',
+                        successRate: version === 'v1.2.0' ? '96.8%' : 
+                                     version === 'v1.1.0' ? '94.2%' : '89.5%',
+                        userSatisfaction: version === 'v1.2.0' ? '4.8/5' : 
+                                         version === 'v1.1.0' ? '4.5/5' : '4.2/5'
+                    }
+                };
+                
+                localStorage.setItem('versionDetail', JSON.stringify(versionData));
+                window.open('version-detail.html', '_blank', 'width=800,height=600');
+            }, 1000);
+        }
+
+        // 页面加载完成后的初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 检查是否有保存的Agent信息
+            const savedAgentInfo = localStorage.getItem('currentAgent');
+            if (savedAgentInfo) {
+                const agentInfo = JSON.parse(savedAgentInfo);
+                updateAgentDisplay(agentInfo);
+            }
+            
+            // 检查是否有保存的策略
+            const savedStrategy = localStorage.getItem('pfrStrategy');
+            if (savedStrategy) {
+                const strategy = JSON.parse(savedStrategy);
+                // 恢复策略选择
+                selectStrategy(strategy.strategy);
+                // 恢复反馈类型
+                selectFeedbackType(strategy.feedbackType);
+                // 恢复反馈文本
+                document.querySelector('.feedback-textarea').value = strategy.feedbackText;
+            }
+            
+            // 添加版本历史悬停效果
+            document.querySelectorAll('.version-item').forEach(item => {
+                item.style.cursor = 'pointer';
+                item.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateX(5px)';
+                    this.style.transition = 'transform 0.3s ease';
+                });
+                item.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateX(0)';
+                });
+            });
+            
+            // 初始化Agent网格
+            initAgentGrid();
+        });
+        
+        // Agent数据
+        const agentsData = [
+            {
+                id: 'customer_complaint_agent',
+                name: '客户投诉智能处理系统',
+                status: 'healthy',
+                version: 'v1.2.0',
+                requests: 1247,
+                successRate: '96.8%',
+                lastUpdate: '2025-07-25',
+                category: '客服'
+            },
+            {
+                id: 'sales_lead_agent',
+                name: '销售线索管理Agent',
+                status: 'healthy',
+                version: 'v2.1.0',
+                requests: 892,
+                successRate: '94.2%',
+                lastUpdate: '2025-07-24',
+                category: '销售'
+            },
+            {
+                id: 'report_generator_agent',
+                name: '智能报告生成器',
+                status: 'warning',
+                version: 'v1.5.0',
+                requests: 456,
+                successRate: '89.5%',
+                lastUpdate: '2025-07-23',
+                category: '分析'
+            },
+            {
+                id: 'email_notification_agent',
+                name: '邮件通知Agent',
+                status: 'healthy',
+                version: 'v1.8.0',
+                requests: 2134,
+                successRate: '98.1%',
+                lastUpdate: '2025-07-25',
+                category: '通信'
+            },
+            {
+                id: 'data_processor_agent',
+                name: '数据处理Agent',
+                status: 'error',
+                version: 'v1.3.0',
+                requests: 0,
+                successRate: '0%',
+                lastUpdate: '2025-07-20',
+                category: '数据'
+            },
+            {
+                id: 'analytics_agent',
+                name: '数据分析Agent',
+                status: 'healthy',
+                version: 'v2.0.0',
+                requests: 678,
+                successRate: '95.3%',
+                lastUpdate: '2025-07-25',
+                category: '分析'
+            }
+        ];
+        
+        let selectedAgent = null;
+        
+        // 初始化Agent网格
+        function initAgentGrid() {
+            const container = document.getElementById('agentGrid');
+            container.innerHTML = '';
+            
+            agentsData.forEach(agent => {
+                const card = document.createElement('div');
+                card.className = 'agent-card';
+                card.onclick = () => selectAgent(agent.id);
+                
+                card.innerHTML = `
+                    <div class="agent-header">
+                        <div class="agent-name">${agent.name}</div>
+                        <div class="agent-status status-${agent.status}">${getStatusText(agent.status)}</div>
+                    </div>
+                    <div class="agent-metrics">
+                        <div class="metric-item">
+                            <div class="metric-value">${agent.version}</div>
+                            <div class="metric-label">版本</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-value">${agent.requests}</div>
+                            <div class="metric-label">请求数</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-value">${agent.successRate}</div>
+                            <div class="metric-label">成功率</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-value">${agent.category}</div>
+                            <div class="metric-label">分类</div>
+                        </div>
+                    </div>
+                    <div class="agent-actions">
+                        <button class="action-btn primary" onclick="event.stopPropagation(); startIteration('${agent.id}')">开始迭代</button>
+                        <button class="action-btn secondary" onclick="event.stopPropagation(); viewHistory('${agent.id}')">查看历史</button>
+                    </div>
+                `;
+                
+                container.appendChild(card);
+            });
+        }
+        
+        // 获取状态文本
+        function getStatusText(status) {
+            const statusMap = {
+                'healthy': '健康',
+                'warning': '警告',
+                'error': '错误'
+            };
+            return statusMap[status] || status;
+        }
+        
+        // 选择Agent
+        function selectAgent(agentId) {
+            selectedAgent = agentId;
+            
+            // 更新UI
+            document.querySelectorAll('.agent-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            event.currentTarget.classList.add('selected');
+            
+            const agent = agentsData.find(a => a.id === agentId);
+            showNotification(`已选择Agent: ${agent.name}`, 'success');
+            
+            // 保存选择的Agent
+            localStorage.setItem('selectedAgent', JSON.stringify(agent));
+        }
+        
+        // 开始迭代
+        function startIteration(agentId) {
+            const agent = agentsData.find(a => a.id === agentId);
+            
+            if (confirm(`确定要为 ${agent.name} 开始新的迭代优化吗？`)) {
+                showNotification('正在跳转到迭代详情页面...', 'info');
+                
+                // 保存Agent信息
+                localStorage.setItem('currentAgent', JSON.stringify(agent));
+                
+                setTimeout(() => {
+                    // 跳转到迭代详情页面
+                    window.location.href = 'pfr-iteration-detail.html';
+                }, 1500);
+            }
+        }
+        
+        // 查看历史
+        function viewHistory(agentId) {
+            const agent = agentsData.find(a => a.id === agentId);
+            
+            showNotification(`正在打开 ${agent.name} 的迭代历史...`, 'info');
+            
+            setTimeout(() => {
+                // 保存Agent信息
+                localStorage.setItem('currentAgent', JSON.stringify(agent));
+                
+                // 跳转到历史页面
+                window.open('pfr-history.html', '_blank', 'width=1200,height=800');
+            }, 1000);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,1279 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus-AI Platform - Agent关系图</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .graph-container {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .graph-header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #667eea;
+        }
+        
+        .header-actions {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+        
+        .selected-info {
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+        
+        .btn {
+            padding: 0.6rem 1.2rem;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #333;
+            border: 1px solid #ddd;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .graph-content {
+            flex: 1;
+            display: flex;
+            position: relative;
+        }
+        
+        .graph-sidebar {
+            width: 300px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: 2px 0 20px rgba(0, 0, 0, 0.1);
+            padding: 1.5rem;
+            overflow-y: auto;
+        }
+        
+        .sidebar-section {
+            margin-bottom: 2rem;
+        }
+        
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .agent-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .agent-item {
+            display: flex;
+            align-items: center;
+            padding: 0.8rem;
+            background: #f8f9fa;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border-left: 4px solid transparent;
+        }
+        
+        .agent-item:hover {
+            background: rgba(102, 126, 234, 0.1);
+            border-left-color: #667eea;
+        }
+        
+        .agent-item.selected {
+            background: rgba(76, 175, 80, 0.25);
+            border-left-color: #4caf50;
+            box-shadow: 0 2px 8px rgba(76, 175, 80, 0.4);
+            transform: translateX(4px);
+            position: relative;
+        }
+        
+        .agent-item.selected::before {
+            content: '✓';
+            position: absolute;
+            right: 0.8rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #4caf50;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+        
+        .agent-checkbox {
+            margin-right: 0.8rem;
+            width: 18px;
+            height: 18px;
+            accent-color: #4caf50;
+            cursor: pointer;
+        }
+        
+        .agent-checkbox:checked {
+            transform: scale(1.1);
+        }
+        
+        .agent-info {
+            flex: 1;
+        }
+        
+        .agent-name {
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 0.2rem;
+        }
+        
+        .agent-category {
+            font-size: 0.8rem;
+            color: #666;
+        }
+        
+        .agent-status {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-left: 0.5rem;
+        }
+        
+        .status-running { background: #4caf50; }
+        .status-building { background: #ff9800; }
+        .status-offline { background: #e0e0e0; }
+        
+        .graph-main {
+            flex: 1;
+            position: relative;
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        .graph-svg {
+            width: 100%;
+            height: 100%;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            background: #fafafa;
+        }
+        
+        .graph-controls {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 1rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .layout-controls,
+        .view-controls,
+        .config-controls {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .action-buttons,
+        .category-buttons {
+            display: flex;
+            gap: 0.5rem;
+            margin: 0.5rem 0;
+        }
+        
+        .category-buttons {
+            flex-wrap: wrap;
+        }
+        
+        .control-button {
+            padding: 0.5rem 1rem;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+        }
+        
+        .control-button:hover {
+            background: #667eea;
+            color: white;
+        }
+        
+        .control-button.active {
+            background: #667eea;
+            color: white;
+        }
+        
+        .graph-legend {
+            position: absolute;
+            bottom: 2rem;
+            right: 2rem;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 10px;
+            padding: 1rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .legend-title {
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 0.3rem 0;
+            font-size: 0.9rem;
+        }
+        
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+        }
+        
+        .legend-text {
+            color: #333;
+        }
+        
+        /* 统计信息面板 */
+        .stats-panel {
+            position: absolute;
+            bottom: 2rem;
+            left: 2rem;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 10px;
+            padding: 1rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            min-width: 200px;
+        }
+        
+        .stats-title {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #667eea;
+        }
+        
+        .stats-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 0.3rem 0;
+        }
+        
+        .stats-label {
+            font-size: 0.9rem;
+            color: #333;
+        }
+        
+        .stats-value {
+            font-weight: 600;
+            color: #667eea;
+        }
+        
+        .tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 0.8rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            pointer-events: none;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s;
+            max-width: 250px;
+        }
+        
+        .tooltip.show {
+            opacity: 1;
+        }
+        
+        .tooltip-title {
+            font-weight: 600;
+            margin-bottom: 0.3rem;
+        }
+        
+        .tooltip-content {
+            font-size: 0.8rem;
+            opacity: 0.9;
+        }
+        
+        .dialog-panel {
+            position: absolute;
+            bottom: 1rem;
+            right: 1rem;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 1.5rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            min-width: 300px;
+            display: none;
+        }
+        
+        .dialog-panel.show {
+            display: block;
+        }
+        
+        .dialog-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 1rem;
+        }
+        
+        .dialog-input {
+            width: 100%;
+            min-height: 80px;
+            padding: 1rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 15px;
+            font-size: 1rem;
+            resize: vertical;
+            margin-bottom: 1rem;
+            font-family: inherit;
+        }
+        
+        .dialog-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .dialog-actions {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: flex-end;
+        }
+        
+        .btn-small {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .btn-small:hover {
+            transform: translateY(-1px);
+        }
+        
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+        
+        .loading-content {
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+        
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .loading-text {
+            color: #667eea;
+            font-weight: 600;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .graph-content {
+                flex-direction: column;
+            }
+            
+            .graph-sidebar {
+                width: 100%;
+                height: 200px;
+            }
+            
+            .graph-controls {
+                position: relative;
+                top: auto;
+                right: auto;
+                margin: 1rem;
+            }
+            
+            .graph-legend {
+                position: relative;
+                bottom: auto;
+                right: auto;
+                margin: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="graph-container">
+        <!-- 头部 -->
+        <div class="graph-header">
+            <div class="header-title">🔗 Agent关系图可视化</div>
+            <div class="header-actions">
+                <div class="selected-info">
+                    已选择 <span id="selectedCount">0</span> 个Agent
+                </div>
+                <div class="action-buttons">
+                    <button class="btn btn-secondary" onclick="selectAllAgents()">全选</button>
+                    <button class="btn btn-secondary" onclick="invertSelection()">反选</button>
+                    <button class="btn btn-secondary" onclick="clearSelection()">清空</button>
+                    <button class="btn btn-primary" onclick="startDialog()">开始对话</button>
+                </div>
+                <div class="category-buttons">
+                    <button class="btn-small btn-secondary" onclick="selectByCategory('客户服务')">客户服务</button>
+                    <button class="btn-small btn-secondary" onclick="selectByCategory('数据分析')">数据分析</button>
+                    <button class="btn-small btn-secondary" onclick="selectByCategory('销售管理')">销售管理</button>
+                    <button class="btn-small btn-secondary" onclick="selectByCategory('自动化')">自动化</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 主要内容 -->
+        <div class="graph-content">
+            <!-- 侧边栏 -->
+            <div class="graph-sidebar">
+                <div class="sidebar-section">
+                    <div class="section-title">
+                        🤖 可用Agent
+                    </div>
+                    <div class="agent-list" id="agentList">
+                        <!-- Agent列表将通过JavaScript生成 -->
+                    </div>
+                </div>
+                
+                <div class="sidebar-section">
+                    <div class="section-title">
+                        📊 关系统计
+                    </div>
+                    <div id="relationshipStats">
+                        <div style="font-size: 0.9rem; color: #666;">
+                            <div>总Agent数: <span id="totalAgents">0</span></div>
+                            <div>选中Agent: <span id="selectedAgentsCount">0</span></div>
+                            <div>关系连接: <span id="relationshipCount">0</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 图形区域 -->
+            <div class="graph-main">
+                <svg class="graph-svg" id="graphSvg"></svg>
+                
+                <!-- 图形控制 -->
+                <div class="graph-controls">
+                    <div class="layout-controls">
+                        <button class="control-button active" onclick="toggleLayout('force')">力导向布局</button>
+                        <button class="control-button" onclick="toggleLayout('hierarchical')">层次布局</button>
+                        <button class="control-button" onclick="toggleLayout('circular')">圆形布局</button>
+                    </div>
+                    <div class="view-controls">
+                        <button class="control-button" onclick="resetZoom()">重置缩放</button>
+                        <button class="control-button" onclick="toggleLabels()">切换标签</button>
+                        <button class="control-button" onclick="exportNetwork()">导出图片</button>
+                        <button class="control-button" onclick="refreshNetwork()">刷新数据</button>
+                    </div>
+                    <div class="config-controls">
+                        <button class="control-button" onclick="saveNetworkConfig()">保存配置</button>
+                        <button class="control-button" onclick="loadNetworkConfig()">加载配置</button>
+                        <button class="control-button" onclick="resetNetworkConfig()">重置配置</button>
+                    </div>
+                </div>
+                
+                <!-- 图例 -->
+                <div class="graph-legend">
+                    <div class="legend-title">节点类型</div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #667eea;"></div>
+                        <div class="legend-text">Agent</div>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #4caf50;"></div>
+                        <div class="legend-text">Tool</div>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #ff9800;"></div>
+                        <div class="legend-text">MCP</div>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #e91e63;"></div>
+                        <div class="legend-text">Supervisor</div>
+                    </div>
+                </div>
+                
+                <!-- 统计信息面板 -->
+                <div class="stats-panel">
+                    <div class="stats-title">网络统计</div>
+                    <div class="stats-item">
+                        <div class="stats-label">Agent数量:</div>
+                        <div class="stats-value" id="statsAgentCount">8</div>
+                    </div>
+                    <div class="stats-item">
+                        <div class="stats-label">Tool数量:</div>
+                        <div class="stats-value" id="statsToolCount">6</div>
+                    </div>
+                    <div class="stats-item">
+                        <div class="stats-label">MCP数量:</div>
+                        <div class="stats-value" id="statsMcpCount">6</div>
+                    </div>
+                    <div class="stats-item">
+                        <div class="stats-label">活跃连接:</div>
+                        <div class="stats-value" id="statsActiveLinks">18</div>
+                    </div>
+                    <div class="stats-item">
+                        <div class="stats-label">选中Agent:</div>
+                        <div class="stats-value" id="statsSelectedAgents">0</div>
+                    </div>
+                </div>
+                
+                <!-- 对话面板 -->
+                <div class="dialog-panel" id="dialogPanel">
+                    <div class="dialog-title">💬 多Agent对话</div>
+                    <textarea class="dialog-input" id="dialogInput" placeholder="输入您的问题或任务描述..."></textarea>
+                    <div class="dialog-actions">
+                        <button class="btn-small btn-secondary" onclick="closeDialog()">取消</button>
+                        <button class="btn-small btn-primary" onclick="sendToAgents()">发送</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 工具提示 -->
+    <div class="tooltip" id="tooltip"></div>
+
+    <!-- 加载覆盖层 -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">正在初始化Agent关系图...</div>
+        </div>
+    </div>
+
+    <script>
+        // 网络图数据 - 包含Agent、工具、MCP等
+        const networkData = {
+            nodes: [
+                // Supervisor Agents
+                { id: 'build_supervisor', name: '构建Supervisor', type: 'supervisor', status: 'running' },
+                { id: 'manage_supervisor', name: '管理Supervisor', type: 'supervisor', status: 'running' },
+                { id: 'iterate_supervisor', name: '迭代Supervisor', type: 'supervisor', status: 'running' },
+                
+                // Agents
+                { id: 'customer_complaint_agent', name: '客户投诉处理Agent', type: 'agent', status: 'running' },
+                { id: 'data_analysis_agent', name: '数据分析Agent', type: 'agent', status: 'running' },
+                { id: 'sales_lead_agent', name: '销售线索分析Agent', type: 'agent', status: 'building' },
+                { id: 'report_generator_agent', name: '报表生成Agent', type: 'agent', status: 'running' },
+                { id: 'email_notification_agent', name: '邮件通知Agent', type: 'agent', status: 'running' },
+                { id: 'document_processor_agent', name: '文档处理Agent', type: 'agent', status: 'offline' },
+                { id: 'inventory_manager_agent', name: '库存管理Agent', type: 'agent', status: 'running' },
+                { id: 'quality_control_agent', name: '质量控制Agent', type: 'agent', status: 'running' },
+                
+                // Tools
+                { id: 'text_classifier', name: '文本分类器', type: 'tool', status: 'running' },
+                { id: 'report_generator_tool', name: '报告生成器', type: 'tool', status: 'running' },
+                { id: 'code_sandbox', name: '代码沙盒', type: 'tool', status: 'running' },
+                { id: 'browser_agent', name: '浏览器代理', type: 'tool', status: 'running' },
+                { id: 'email_service', name: '邮件服务', type: 'tool', status: 'running' },
+                { id: 'document_parser', name: '文档解析器', type: 'tool', status: 'running' },
+                
+                // MCP
+                { id: 'git_mcp', name: 'Git MCP', type: 'mcp', status: 'running' },
+                { id: 'db_mcp', name: 'Database MCP', type: 'mcp', status: 'running' },
+                { id: 'slack_mcp', name: 'Slack MCP', type: 'mcp', status: 'running' },
+                { id: 'email_mcp', name: 'Email MCP', type: 'mcp', status: 'running' },
+                { id: 'aws_mcp', name: 'AWS MCP', type: 'mcp', status: 'running' },
+                { id: 'api_mcp', name: 'API MCP', type: 'mcp', status: 'running' }
+            ],
+            links: [
+                // Supervisor to Agent connections
+                { source: 'build_supervisor', target: 'customer_complaint_agent', type: 'control' },
+                { source: 'build_supervisor', target: 'data_analysis_agent', type: 'control' },
+                { source: 'manage_supervisor', target: 'report_generator_agent', type: 'control' },
+                { source: 'manage_supervisor', target: 'email_notification_agent', type: 'control' },
+                { source: 'iterate_supervisor', target: 'sales_lead_agent', type: 'control' },
+                { source: 'iterate_supervisor', target: 'document_processor_agent', type: 'control' },
+                
+                // Agent to Agent connections
+                { source: 'customer_complaint_agent', target: 'data_analysis_agent', type: 'data' },
+                { source: 'data_analysis_agent', target: 'report_generator_agent', type: 'data' },
+                { source: 'sales_lead_agent', target: 'data_analysis_agent', type: 'data' },
+                { source: 'report_generator_agent', target: 'email_notification_agent', type: 'data' },
+                
+                // Agent to Tool connections
+                { source: 'customer_complaint_agent', target: 'text_classifier', type: 'call' },
+                { source: 'data_analysis_agent', target: 'report_generator_tool', type: 'call' },
+                { source: 'report_generator_agent', target: 'report_generator_tool', type: 'call' },
+                { source: 'email_notification_agent', target: 'email_service', type: 'call' },
+                { source: 'document_processor_agent', target: 'document_parser', type: 'call' },
+                { source: 'quality_control_agent', target: 'document_parser', type: 'call' },
+                
+                // Tool to MCP connections
+                { source: 'code_sandbox', target: 'git_mcp', type: 'integration' },
+                { source: 'report_generator_tool', target: 'db_mcp', type: 'integration' },
+                { source: 'text_classifier', target: 'slack_mcp', type: 'integration' },
+                { source: 'email_service', target: 'email_mcp', type: 'integration' },
+                { source: 'browser_agent', target: 'aws_mcp', type: 'integration' },
+                { source: 'document_parser', target: 'api_mcp', type: 'integration' }
+            ]
+        };
+
+        let selectedAgents = new Set();
+        let currentLayout = 'force';
+        let showLabels = true;
+        let simulation;
+        let svg, g, nodes, links, labels;
+
+        // 初始化页面
+        document.addEventListener('DOMContentLoaded', function() {
+            // 获取URL参数
+            const urlParams = new URLSearchParams(window.location.search);
+            const agentIds = urlParams.get('agents');
+            
+            if (agentIds) {
+                agentIds.split(',').forEach(id => {
+                    selectedAgents.add(id);
+                });
+            }
+            
+            initGraph();
+            renderAgentList();
+            updateStats();
+        });
+
+        // 初始化图形
+        function initGraph() {
+            svg = d3.select('#graphSvg');
+            const width = svg.node().getBoundingClientRect().width;
+            const height = svg.node().getBoundingClientRect().height;
+            
+            svg.selectAll('*').remove();
+            
+            // 设置缩放
+            const zoom = d3.zoom()
+                .scaleExtent([0.1, 4])
+                .on('zoom', (event) => {
+                    g.attr('transform', event.transform);
+                });
+            
+            svg.call(zoom);
+            
+            // 创建力导向图
+            simulation = d3.forceSimulation(networkData.nodes)
+                .force('link', d3.forceLink(networkData.links).id(d => d.id).distance(100))
+                .force('charge', d3.forceManyBody().strength(-300))
+                .force('center', d3.forceCenter(width / 2, height / 2))
+                .force('collision', d3.forceCollide().radius(30));
+            
+            // 绘制连接线
+            links = svg.append('g')
+                .selectAll('line')
+                .data(networkData.links)
+                .enter().append('line')
+                .attr('class', 'link')
+                .style('stroke', '#999')
+                .style('stroke-width', 2)
+                .style('stroke-opacity', 0.6);
+            
+            // 绘制节点
+            nodes = svg.append('g')
+                .selectAll('circle')
+                .data(networkData.nodes)
+                .enter().append('circle')
+                .attr('class', d => `node ${d.type}`)
+                .attr('r', d => d.type === 'supervisor' ? 25 : 20)
+                .style('fill', d => {
+                    if (selectedAgents.has(d.id)) {
+                        return '#667eea';
+                    }
+                    switch(d.type) {
+                        case 'agent': return '#667eea';
+                        case 'tool': return '#4caf50';
+                        case 'mcp': return '#ff9800';
+                        case 'supervisor': return '#e91e63';
+                        default: return '#e0e0e0';
+                    }
+                })
+                .style('stroke', d => {
+                    if (selectedAgents.has(d.id)) {
+                        return '#4a56d8';
+                    }
+                    switch(d.type) {
+                        case 'agent': return '#4a56d8';
+                        case 'tool': return '#2e7d32';
+                        case 'mcp': return '#e65100';
+                        case 'supervisor': return '#ad1457';
+                        default: return '#bdbdbd';
+                    }
+                })
+                .style('stroke-width', 2)
+                .call(d3.drag()
+                    .on('start', dragstarted)
+                    .on('drag', dragged)
+                    .on('end', dragended))
+                .on('click', function(event, d) {
+                    if (d.type === 'agent') {
+                        toggleAgentSelection(d.id);
+                    }
+                })
+                .on('mouseover', function(event, d) {
+                    showTooltip(event, d);
+                })
+                .on('mouseout', function() {
+                    hideTooltip();
+                });
+            
+            // 绘制标签
+            labels = svg.append('g')
+                .selectAll('text')
+                .data(networkData.nodes)
+                .enter().append('text')
+                .attr('class', 'node-label')
+                .text(d => d.name)
+                .style('font-size', '12px')
+                .style('text-anchor', 'middle')
+                .style('pointer-events', 'none')
+                .attr('dy', -30);
+            
+            // 模拟器tick事件
+            simulation.on('tick', ticked);
+            
+            // 隐藏加载覆盖层
+            setTimeout(() => {
+                document.getElementById('loadingOverlay').style.display = 'none';
+            }, 1000);
+        }
+
+        // 更新图形
+        function ticked() {
+            links
+                .attr('x1', d => d.source.x)
+                .attr('y1', d => d.source.y)
+                .attr('x2', d => d.target.x)
+                .attr('y2', d => d.target.y);
+            
+            nodes
+                .attr('cx', d => d.x)
+                .attr('cy', d => d.y);
+            
+            labels
+                .attr('x', d => d.x)
+                .attr('y', d => d.y);
+        }
+
+        // 拖拽事件
+        function dragstarted(event, d) {
+            if (!event.active) simulation.alphaTarget(0.3).restart();
+            d.fx = d.x;
+            d.fy = d.y;
+        }
+
+        function dragged(event, d) {
+            d.fx = event.x;
+            d.fy = event.y;
+        }
+
+        function dragended(event, d) {
+            if (!event.active) simulation.alphaTarget(0);
+            d.fx = null;
+            d.fy = null;
+        }
+
+        // 渲染Agent列表
+        function renderAgentList() {
+            const agentList = document.getElementById('agentList');
+            const agentNodes = networkData.nodes.filter(node => node.type === 'agent');
+            agentList.innerHTML = agentNodes.map(agent => `
+                <div class="agent-item ${selectedAgents.has(agent.id) ? 'selected' : ''}" data-agent-id="${agent.id}">
+                    <input type="checkbox" class="agent-checkbox" ${selectedAgents.has(agent.id) ? 'checked' : ''} 
+                           onchange="toggleAgentSelection('${agent.id}')">
+                    <div class="agent-info">
+                        <div class="agent-name">${agent.name}</div>
+                        <div class="agent-category">${getAgentCategory(agent.id)}</div>
+                    </div>
+                    <div class="agent-status status-${agent.status}"></div>
+                </div>
+            `).join('');
+        }
+        
+        // 获取Agent类别
+        function getAgentCategory(agentId) {
+            const categoryMap = {
+                'customer_complaint_agent': '客户服务',
+                'data_analysis_agent': '数据分析',
+                'sales_lead_agent': '销售管理',
+                'report_generator_agent': '自动化',
+                'email_notification_agent': '集成工具',
+                'document_processor_agent': '自动化',
+                'inventory_manager_agent': '供应链',
+                'quality_control_agent': '质量管理'
+            };
+            return categoryMap[agentId] || '其他';
+        }
+
+        // 切换Agent选择
+        function toggleAgentSelection(agentId) {
+            if (selectedAgents.has(agentId)) {
+                selectedAgents.delete(agentId);
+            } else {
+                selectedAgents.add(agentId);
+            }
+            
+            updateSelection();
+            updateStats();
+        }
+
+        // 更新选择状态
+        function updateSelection() {
+            // 更新节点颜色
+            nodes.style('fill', d => selectedAgents.has(d.id) ? '#667eea' : '#e0e0e0')
+                 .style('stroke', d => selectedAgents.has(d.id) ? '#4a56d8' : '#bdbdbd');
+            
+            // 更新列表选择状态
+            document.querySelectorAll('.agent-item').forEach(item => {
+                const agentId = item.dataset.agentId;
+                if (selectedAgents.has(agentId)) {
+                    item.classList.add('selected');
+                    item.querySelector('.agent-checkbox').checked = true;
+                } else {
+                    item.classList.remove('selected');
+                    item.querySelector('.agent-checkbox').checked = false;
+                }
+            });
+            
+            // 更新选中数量
+            document.getElementById('selectedCount').textContent = selectedAgents.size;
+        }
+
+        // 更新统计信息
+        function updateStats() {
+            const agentNodes = networkData.nodes.filter(node => node.type === 'agent');
+            const toolNodes = networkData.nodes.filter(node => node.type === 'tool');
+            const mcpNodes = networkData.nodes.filter(node => node.type === 'mcp');
+            
+            // 更新侧边栏统计
+            document.getElementById('totalAgents').textContent = agentNodes.length;
+            document.getElementById('selectedAgentsCount').textContent = selectedAgents.size;
+            
+            // 计算关系数量
+            let relationshipCount = 0;
+            networkData.links.forEach(link => {
+                if (selectedAgents.has(link.source.id) || selectedAgents.has(link.target.id)) {
+                    relationshipCount++;
+                }
+            });
+            document.getElementById('relationshipCount').textContent = relationshipCount;
+            
+            // 更新统计面板
+            document.getElementById('statsAgentCount').textContent = agentNodes.length;
+            document.getElementById('statsToolCount').textContent = toolNodes.length;
+            document.getElementById('statsMcpCount').textContent = mcpNodes.length;
+            document.getElementById('statsActiveLinks').textContent = networkData.links.length;
+            document.getElementById('statsSelectedAgents').textContent = selectedAgents.size;
+        }
+
+        // 清空选择
+        function clearSelection() {
+            selectedAgents.clear();
+            updateSelection();
+            updateStats();
+        }
+
+        // 切换布局
+        function toggleLayout(layout) {
+            currentLayout = layout;
+            
+            // 更新按钮状态
+            document.querySelectorAll('.control-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // 重新应用布局
+            if (layout === 'force') {
+                simulation.force('charge', d3.forceManyBody().strength(-300));
+            } else if (layout === 'hierarchical') {
+                simulation.force('charge', d3.forceManyBody().strength(-100));
+            } else if (layout === 'circular') {
+                simulation.force('charge', d3.forceManyBody().strength(-200));
+            }
+            
+            simulation.alpha(0.3).restart();
+        }
+
+        // 重置缩放
+        function resetZoom() {
+            svg.transition().duration(750).call(
+                d3.zoom().transform,
+                d3.zoomIdentity
+            );
+        }
+
+        // 切换标签显示
+        function toggleLabels() {
+            showLabels = !showLabels;
+            labels.style('display', showLabels ? 'block' : 'none');
+        }
+
+        // 显示工具提示
+        function showTooltip(event, d) {
+            const tooltip = document.getElementById('tooltip');
+            const typeText = getTypeText(d.type);
+            const categoryText = d.type === 'agent' ? getAgentCategory(d.id) : typeText;
+            
+            tooltip.innerHTML = `
+                <div class="tooltip-title">${d.name}</div>
+                <div class="tooltip-content">
+                    类型: ${typeText}<br>
+                    类别: ${categoryText}<br>
+                    状态: ${getStatusText(d.status)}
+                </div>
+            `;
+            tooltip.style.left = (event.pageX + 10) + 'px';
+            tooltip.style.top = (event.pageY - 10) + 'px';
+            tooltip.classList.add('show');
+        }
+        
+        // 获取类型文本
+        function getTypeText(type) {
+            const typeMap = {
+                'agent': 'Agent',
+                'tool': '工具',
+                'mcp': 'MCP',
+                'supervisor': 'Supervisor'
+            };
+            return typeMap[type] || type;
+        }
+
+        // 隐藏工具提示
+        function hideTooltip() {
+            document.getElementById('tooltip').classList.remove('show');
+        }
+
+        // 获取状态文本
+        function getStatusText(status) {
+            const statusMap = {
+                'running': '运行中',
+                'building': '构建中',
+                'offline': '离线'
+            };
+            return statusMap[status] || status;
+        }
+
+        // 开始对话
+        function startDialog() {
+            if (selectedAgents.size === 0) {
+                alert('请先选择要对话的Agent');
+                return;
+            }
+            
+            document.getElementById('dialogPanel').classList.add('show');
+            document.getElementById('dialogInput').focus();
+        }
+
+        // 关闭对话面板
+        function closeDialog() {
+            document.getElementById('dialogPanel').classList.remove('show');
+            document.getElementById('dialogInput').value = '';
+        }
+
+        // 发送到Agent
+        function sendToAgents() {
+            const input = document.getElementById('dialogInput');
+            const message = input.value.trim();
+            
+            if (!message) {
+                alert('请输入消息内容');
+                return;
+            }
+            
+            if (selectedAgents.size === 0) {
+                alert('请先选择要对话的Agent');
+                return;
+            }
+            
+            // 显示加载覆盖层
+            document.getElementById('loadingOverlay').style.display = 'flex';
+            document.querySelector('.loading-text').textContent = '正在发送消息到选中的Agent...';
+            
+            // 模拟发送过程
+            setTimeout(() => {
+                document.getElementById('loadingOverlay').style.display = 'none';
+                closeDialog();
+                
+                // 打开多Agent对话窗口
+                const agentIds = Array.from(selectedAgents);
+                const agentIdsParam = agentIds.join(',');
+                window.open(`agent-graph-dialog.html?agents=${agentIdsParam}`, '_blank', 'width=1200,height=800');
+            }, 2000);
+        }
+
+        // 导出网络图
+        function exportNetwork() {
+            const svg = document.querySelector('.graph-svg');
+            const svgData = new XMLSerializer().serializeToString(svg);
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const img = new Image();
+            
+            canvas.width = svg.clientWidth;
+            canvas.height = svg.clientHeight;
+            
+            img.onload = function() {
+                ctx.drawImage(img, 0, 0);
+                const pngFile = canvas.toDataURL('image/png');
+                const downloadLink = document.createElement('a');
+                downloadLink.download = `agent-network-${new Date().toISOString().split('T')[0]}.png`;
+                downloadLink.href = pngFile;
+                downloadLink.click();
+            };
+            
+            img.src = 'data:image/svg+xml;base64,' + btoa(svgData);
+        }
+
+        // 刷新网络数据
+        function refreshNetwork() {
+            document.getElementById('loadingOverlay').style.display = 'flex';
+            document.querySelector('.loading-text').textContent = '正在刷新网络数据...';
+            
+            setTimeout(() => {
+                // 重新初始化图形
+                initGraph();
+                updateStats();
+                document.getElementById('loadingOverlay').style.display = 'none';
+                
+                // 显示成功消息
+                showNotification('网络数据已刷新', 'success');
+            }, 1500);
+        }
+
+        // 显示通知
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `notification notification-${type}`;
+            notification.innerHTML = `
+                <div class="notification-content">
+                    <span class="notification-icon">${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'}</span>
+                    <span class="notification-text">${message}</span>
+                </div>
+            `;
+            
+            // 添加通知样式
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${type === 'success' ? '#4caf50' : type === 'error' ? '#f44336' : '#2196f3'};
+                color: white;
+                padding: 1rem 1.5rem;
+                border-radius: 10px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                z-index: 3000;
+                animation: slideIn 0.3s ease-out;
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease-in';
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 300);
+            }, 3000);
+        }
+
+        // 全选Agent
+        function selectAllAgents() {
+            const agentNodes = networkData.nodes.filter(node => node.type === 'agent');
+            agentNodes.forEach(agent => {
+                selectedAgents.add(agent.id);
+            });
+            updateSelection();
+            updateStats();
+            showNotification(`已选择所有 ${agentNodes.length} 个Agent`, 'success');
+        }
+
+        // 反选Agent
+        function invertSelection() {
+            const agentNodes = networkData.nodes.filter(node => node.type === 'agent');
+            agentNodes.forEach(agent => {
+                if (selectedAgents.has(agent.id)) {
+                    selectedAgents.delete(agent.id);
+                } else {
+                    selectedAgents.add(agent.id);
+                }
+            });
+            updateSelection();
+            updateStats();
+            showNotification('已反选Agent', 'success');
+        }
+
+        // 按类别选择Agent
+        function selectByCategory(category) {
+            const agentNodes = networkData.nodes.filter(node => node.type === 'agent');
+            const categoryAgents = agentNodes.filter(agent => getAgentCategory(agent.id) === category);
+            
+            categoryAgents.forEach(agent => {
+                selectedAgents.add(agent.id);
+            });
+            
+            updateSelection();
+            updateStats();
+            showNotification(`已选择 ${categoryAgents.length} 个${category}类Agent`, 'success');
+        }
+
+        // 保存网络配置
+        function saveNetworkConfig() {
+            const config = {
+                selectedAgents: Array.from(selectedAgents),
+                currentLayout: currentLayout,
+                showLabels: showLabels,
+                timestamp: new Date().toISOString()
+            };
+            
+            localStorage.setItem('agentNetworkConfig', JSON.stringify(config));
+            showNotification('网络配置已保存', 'success');
+        }
+
+        // 加载网络配置
+        function loadNetworkConfig() {
+            const savedConfig = localStorage.getItem('agentNetworkConfig');
+            if (savedConfig) {
+                const config = JSON.parse(savedConfig);
+                
+                // 恢复选中的Agent
+                selectedAgents.clear();
+                config.selectedAgents.forEach(agentId => {
+                    selectedAgents.add(agentId);
+                });
+                
+                // 恢复布局设置
+                if (config.currentLayout) {
+                    toggleLayout(config.currentLayout);
+                }
+                
+                // 恢复标签显示
+                if (config.showLabels !== undefined) {
+                    showLabels = config.showLabels;
+                    labels.style('display', showLabels ? 'block' : 'none');
+                }
+                
+                updateSelection();
+                updateStats();
+                showNotification('网络配置已加载', 'success');
+            } else {
+                showNotification('没有找到保存的配置', 'error');
+            }
+        }
+
+        // 重置网络配置
+        function resetNetworkConfig() {
+            if (confirm('确定要重置所有网络配置吗？这将清除所有选择和历史设置。')) {
+                localStorage.removeItem('agentNetworkConfig');
+                selectedAgents.clear();
+                currentLayout = 'force';
+                showLabels = true;
+                
+                // 重新初始化
+                initGraph();
+                updateSelection();
+                updateStats();
+                showNotification('网络配置已重置', 'success');
+            }
+        }
+
+        // 添加CSS动画
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>
