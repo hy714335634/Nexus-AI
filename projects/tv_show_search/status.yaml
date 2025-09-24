@@ -1,0 +1,55 @@
+project_info:
+- agents:
+  - created_date: '2025-09-24T12:55:11.562659+00:00'
+    description: 智能体：requirements_analyzer
+    last_updated: '2025-09-24T13:06:30.181877+00:00'
+    name: requirements_analyzer
+    pipeline:
+    - description: 需求分析阶段 - 分析用户需求，定义功能规格
+      doc_path: projects/tv_show_search/agents/requirements_analyzer/requirements_analyzer.json
+      stage: requirements_analyzer
+      status: true
+      updated_date: '2025-09-24T12:55:11.562667+00:00'
+    - description: 系统架构设计阶段 - 设计系统架构和技术方案
+      doc_path: projects/tv_show_search/agents/requirements_analyzer/system_architect.json
+      stage: system_architect
+      status: true
+      updated_date: '2025-09-24T12:56:30.443545+00:00'
+    - description: Agent设计阶段 - 设计智能体结构和交互模式
+      doc_path: projects/tv_show_search/agents/requirements_analyzer/agent_designer.json
+      stage: agent_designer
+      status: true
+      updated_date: '2025-09-24T12:57:57.060142+00:00'
+    - agent_artifact_path:
+      - projects/tv_show_search/prompts/tv_show_search_agent_prompt.txt
+      description: 提示词工程阶段 - 设计和优化提示词模板
+      doc_path: ''
+      stage: prompt_engineer
+      status: true
+      updated_date: '2025-09-24T13:04:22.201700+00:00'
+    - agent_artifact_path:
+      - projects/tv_show_search/tools/tv_show_api.py
+      description: 工具开发阶段 - 开发必要的工具和函数
+      doc_path: ''
+      stage: tools_developer
+      status: true
+      updated_date: '2025-09-24T13:03:32.498465+00:00'
+    - agent_artifact_path:
+      - projects/tv_show_search/agents/tv_show_search_agent.py
+      description: Agent代码开发阶段 - 实现智能体代码
+      doc_path: ''
+      stage: agent_code_developer
+      status: true
+      updated_date: '2025-09-24T13:05:31.240157+00:00'
+    - description: Agent开发管理阶段 - 管理和协调开发流程
+      doc_path: ''
+      stage: agent_developer_manager
+      status: true
+      updated_date: '2025-09-24T13:06:30.181880+00:00'
+  description: 一个帮助用户搜索电视节目的智能体，可以根据用户需求查找相关电视节目信息
+  last_updated: '2025-09-24T13:06:30.181873+00:00'
+  name: tv_show_search
+  progress:
+  - completed: 7
+    total: 7
+  version: 1.0.0

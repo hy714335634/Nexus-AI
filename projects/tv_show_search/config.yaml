@@ -1,0 +1,6 @@
+project:
+  created_date: '2025-09-24T12:53:55.101820+00:00'
+  description: 一个帮助用户搜索电视节目的智能体，可以根据用户需求查找相关电视节目信息
+  name: tv_show_search
+  updated_date: '2025-09-24T12:54:02.685944+00:00'
+  version: 1.0.0
