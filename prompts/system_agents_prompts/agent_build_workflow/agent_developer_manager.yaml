@@ -35,7 +35,7 @@ agent:
            - 调用agent_code_developer工具，确保Agent代码正确实现
            - 调用project_verify工具，针对项目进行校验，并生成配置文件
            - 调用generate_python_requirements工具，基于工具中使用的包，在项目文件夹中生成python依赖包的requirements.txt文件
-           - 管理各开发阶段的依赖关系和时序
+           - 管理各开发阶段的依赖关系和时序，在调用工具时，请确保project_name及agent_name等参数一致且正确
 
         2. **项目进度管理**
            - 跟踪项目中所有Agent的开发进度

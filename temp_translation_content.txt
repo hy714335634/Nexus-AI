@@ -1,0 +1,71 @@
+1. CLINICAL TRIAL PROTOCOL
+2. A Phase III, Randomized, Double-Blind, Placebo-Controlled Study to Evaluate the Efficacy and Safety of Novel ACE Inhibitor in Patients with Chronic Heart Failure
+3. Protocol Number: CV-2024-001
+4. Version: 2.1
+5. Date: September 24, 2024
+6. 1. BACKGROUND AND RATIONALE
+7. Chronic heart failure (CHF) is a complex clinical syndrome characterized by structural or functional impairment of ventricular filling or ejection of blood. The prevalence of CHF continues to rise, affecting approximately 6.2 million adults in the United States alone. Despite advances in pharmacological therapy, mortality rates remain high, with 5-year survival rates ranging from 25% to 50% depending on disease severity.
+8. Angiotensin-converting enzyme (ACE) inhibitors have been established as first-line therapy for CHF due to their proven benefits in reducing mortality and morbidity. However, current ACE inhibitors are associated with certain limitations, including dry cough (affecting 5-20% of patients) and angioedema (rare but potentially life-threatening).
+9. The novel ACE inhibitor under investigation (CV-2024-001) has demonstrated superior selectivity for ACE over other metalloproteases in preclinical studies, potentially reducing adverse effects while maintaining therapeutic efficacy. This compound has shown promising results in Phase I and Phase II trials, demonstrating good tolerability and preliminary efficacy signals.
+10. 2. STUDY OBJECTIVES
+11. 2.1 Primary Objective
+12. To evaluate the efficacy of CV-2024-001 compared to placebo in reducing the composite endpoint of cardiovascular death or heart failure hospitalization in patients with chronic heart failure with reduced ejection fraction (HFrEF).
+13. 2.2 Secondary Objectives
+14. • To assess the effect of CV-2024-001 on all-cause mortality
+15. • To evaluate changes in left ventricular ejection fraction (LVEF) from baseline
+16. • To assess quality of life using the Kansas City Cardiomyopathy Questionnaire (KCCQ)
+17. • To evaluate safety and tolerability profile
+18. 3. STUDY DESIGN
+19. This is a multicenter, randomized, double-blind, placebo-controlled, parallel-group study. Eligible patients will be randomized in a 1:1 ratio to receive either CV-2024-001 or matching placebo.
+20. 3.1 Study Population
+21. The study will enroll approximately 2,500 patients with chronic heart failure with reduced ejection fraction (LVEF ≤40%) who are symptomatic despite optimal medical therapy.
+22. 3.2 Inclusion Criteria
+23. • Age ≥18 years
+24. • Chronic heart failure with LVEF ≤40% confirmed by echocardiography within 6 months
+25. • NYHA Class II-IV symptoms
+26. • Stable medical therapy for ≥4 weeks
+27. • Written informed consent
+28. 3.3 Exclusion Criteria
+29. • Acute myocardial infarction (AMI) within 30 days
+30. • Severe renal impairment (eGFR <30 mL/min/1.73m²)
+31. • Hyperkalemia (serum K+ >5.5 mEq/L)
+32. • Known hypersensitivity to ACE inhibitors
+33. • Pregnancy or breastfeeding
+34. 4. STUDY MEDICATION
+35. CV-2024-001 will be administered orally once daily. The starting dose will be 5 mg, with titration to 10 mg after 2 weeks if tolerated. Patients will continue on their optimized background therapy throughout the study.
+36. 5. STUDY PROCEDURES
+37. Patients will be followed for a minimum of 24 months. Study visits will occur at baseline, 2 weeks, 1 month, 3 months, 6 months, 12 months, 18 months, and 24 months, with additional visits as clinically indicated.
+38. At each visit, the following assessments will be performed:
+39. • Physical examination and vital signs
+40. • Laboratory tests (CBC, CMP, BNP, NT-proBNP)
+41. • Echocardiography (at baseline, 6 months, 12 months, and 24 months)
+42. • Quality of life questionnaires
+43. • Adverse event assessment
+44. 6. STATISTICAL ANALYSIS
+45. The primary analysis will be performed using the intention-to-treat (ITT) population. The primary endpoint will be analyzed using a Cox proportional hazards model, with treatment group as a covariate and stratified by baseline LVEF (<30% vs ≥30%) and NYHA class (II vs III-IV).
+46. A sample size of 2,500 patients (1,250 per group) will provide 90% power to detect a 20% relative risk reduction in the primary endpoint, assuming a 2-year event rate of 25% in the placebo group and a two-sided alpha of 0.05.
+47. 7. SAFETY CONSIDERATIONS
+48. Safety monitoring will include regular assessment of adverse events, laboratory abnormalities, and vital signs. An independent Data Safety Monitoring Board (DSMB) will review safety data at pre-specified intervals.
+49. Special attention will be paid to the following potential adverse events:
+50. • Hypotension
+51. • Hyperkalemia
+52. • Angioedema
+53. • Dry cough
+54. • Renal dysfunction
+55. 8. REGULATORY CONSIDERATIONS
+56. This study will be conducted in accordance with the International Council for Harmonisation of Technical Requirements for Pharmaceuticals for Human Use (ICH) Good Clinical Practice (GCP) guidelines, the Declaration of Helsinki, and applicable local regulations.
+57. The protocol has been approved by the appropriate Institutional Review Boards (IRBs) and regulatory authorities. All patients must provide written informed consent before participation.
+58. 9. CONCLUSION
+59. This Phase III study will provide definitive evidence regarding the efficacy and safety of CV-2024-001 in patients with chronic heart failure. The results will support regulatory submissions and clinical practice guidelines for the treatment of this debilitating condition.
+60. For further information, please contact:
+61. Dr. Sarah Johnson, MD
+62. Principal Investigator
+63. Cardiovascular Research Institute
+64. Email: sarah.johnson@cri.edu
+65. Phone: +1-555-123-4567
+66. TABLE:
+Parameter | Baseline | Target
+LVEF (%) | ≤40 | ≥45
+BNP (pg/mL) | ≥400 | <200
+NYHA Class | II-IV | I-II
+eGFR (mL/min/1.73m²) | ≥30 | ≥60

@@ -6,6 +6,7 @@
 import os
 import time
 import uuid
+from time import sleep
 import json
 from typing import Any
 from strands.multiagent import GraphBuilder,Swarm
@@ -17,9 +18,6 @@ from strands.session.file_session_manager import FileSessionManager
 from agents.system_agents.agent_build_workflow.requirements_analyzer_agent import requirements_analyzer
 from agents.system_agents.agent_build_workflow.system_architect_agent import system_architect
 from agents.system_agents.agent_build_workflow.agent_designer_agent import agent_designer
-from agents.system_agents.agent_build_workflow.prompt_engineer_agent import prompt_engineer
-from agents.system_agents.agent_build_workflow.tool_developer_agent import tool_developer
-from agents.system_agents.agent_build_workflow.agent_code_developer_agent import agent_code_developer
 from agents.system_agents.agent_build_workflow.agent_developer_manager_agent import agent_developer_manager
 from strands.telemetry import StrandsTelemetry
 from nexus_utils.workflow_report_generator import generate_workflow_summary_report
@@ -48,6 +46,7 @@ orchestrator = create_agent_from_prompt_template(
 # 创建意图分析 agent
 intent_analyzer = create_agent_from_prompt_template(
     agent_name="system_agents_prompts/agent_build_workflow/agent_intent_analyzer",
+    nocallback=True,
     **agent_params
 )
 
@@ -60,17 +59,19 @@ def analyze_user_intent(user_input: str):
     
     try:
         # 使用意图分析 agent
-        result = intent_analyzer.structured_output(
+        intent_result = intent_analyzer(f"用户输入：{user_input}")
+        intent_structured_result = intent_analyzer.structured_output(
             IntentRecognitionResult,
-            f"用户输入：{user_input}"
+            "进行意图识别"
         )
+        print(f"\n{'='*80}")
+        print(f"📊 意图类型:\t{intent_structured_result.intent_type}")
+        print(f"📊 提到的项目:\t{intent_structured_result.mentioned_project_name}")
+        print(f"📊 项目存在:\t{intent_structured_result.project_exists}")
+        print(f"📊 处理建议:\t{intent_structured_result.orchestrator_guidance}")
+        print(f"{'='*80}\n")
         
-        print(f"📊 意图类型:\t{result.intent_type}")
-        print(f"📊 提到的项目:\t{result.mentioned_project_name}")
-        print(f"📊 项目存在:\t{result.project_exists}")
-        print(f"📊 处理建议:\t{result.orchestrator_guidance}")
-        
-        return result
+        return intent_structured_result
         
     except Exception as e:
         print(f"❌ 意图分析失败: {e}")
@@ -92,6 +93,7 @@ def create_build_workflow():
     print(f"🏗️  [WORKFLOW] 创建工作流")
     print(f"{'='*80}")
 
+
     builder = GraphBuilder()
     
     # 添加节点
@@ -100,10 +102,6 @@ def create_build_workflow():
     builder.add_node(requirements_analyzer, "requirements_analyzer")
     builder.add_node(system_architect, "system_architect")
     builder.add_node(agent_designer, "agent_designer")
-    # builder.add_node(developer_swarm, "developer_swarm")
-    # builder.add_node(prompt_engineer, "prompt_engineer")
-    # builder.add_node(tool_developer, "tool_developer")
-    # builder.add_node(agent_code_developer, "agent_code_developer")
     builder.add_node(agent_developer_manager, "agent_developer_manager")
     
     # 添加边 - 定义工作流顺序
@@ -112,12 +110,6 @@ def create_build_workflow():
     builder.add_edge("requirements_analyzer", "system_architect")
     builder.add_edge("system_architect", "agent_designer")
     builder.add_edge("agent_designer", "agent_developer_manager")
-    # builder.add_edge("orchestrator", "agent_developer_manager")
-    # builder.add_edge("developer_swarm", "agent_developer_manager")
-    # builder.add_edge("agent_designer", "tool_developer")
-    # builder.add_edge("tool_developer", "prompt_engineer")
-    # builder.add_edge("prompt_engineer", "agent_code_developer")
-    # builder.add_edge("agent_code_developer", "agent_developer_manager")
     
     # 构建图
     graph = builder.build()
@@ -133,9 +125,9 @@ def run_workflow(user_input: str, session_id="default"):
 
     # 第一步：分析用户意图
     print(f"🔍 [STEP 1] 分析用户意图...", flush=True)
-    intent_result = analyze_user_intent(user_input)
-    print(f"✅ 意图分析完成: {str(intent_result)[:100]}...", flush=True)
+    intent_structured_result = analyze_user_intent(user_input)
 
+    sleep(120)
     # 创建工作流
     print(f"\n🏗️ [STEP 2] 创建构建工作流...", flush=True)
     workflow = create_build_workflow()
@@ -160,7 +152,10 @@ def run_workflow(user_input: str, session_id="default"):
         import time
         start_time = time.time()
 
-        result = workflow(str(intent_result))
+        result = workflow(
+            "意图识别结果:" + str(intent_structured_result) + "\n=======================\n" +
+            "用户原始输入:" + user_input
+        )
 
         end_time = time.time()
         execution_duration = end_time - start_time
@@ -193,7 +188,6 @@ def run_workflow(user_input: str, session_id="default"):
 
         return {
             "report_path": report_path,
-            "intent_analysis": intent_result,
             "workflow_result": result
         }
     except Exception as e:

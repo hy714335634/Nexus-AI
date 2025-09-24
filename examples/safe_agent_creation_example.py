@@ -11,9 +11,9 @@ import os
 # 添加项目根目录到Python路径
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from utils.safe_agent_factory import create_validated_agent, create_agent_with_fallback, batch_create_agents
-from utils.agent_validation import validate_agent_dependencies, validate_all_agents
-from utils.post_generation_processor import process_generated_agent
+from nexus_utils.safe_agent_factory import create_validated_agent, create_agent_with_fallback, batch_create_agents
+from nexus_utils.agent_validation import validate_agent_dependencies, validate_all_agents
+from nexus_utils.post_generation_processor import process_generated_agent
 
 
 def example_1_create_validated_agent():

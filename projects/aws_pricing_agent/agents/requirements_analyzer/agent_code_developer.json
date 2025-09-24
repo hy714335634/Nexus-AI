@@ -35,7 +35,7 @@
       "main_class": "AWSPricingAgentCLI",
       "entry_point": "run",
       "dependencies": [
-        "utils.agent_factory",
+        "nexus_utils.agent_factory",
         "strands.telemetry",
         "os",
         "json",
@@ -43,7 +43,7 @@
         "typing"
       ],
       "imports": [
-        "from utils.agent_factory import create_agent_from_prompt_template",
+        "from nexus_utils.agent_factory import create_agent_from_prompt_template",
         "from strands.telemetry import StrandsTelemetry",
         "import os",
         "import json",
@@ -292,7 +292,7 @@
         "AWS Bedrock模型访问权限"
       ],
       "runtime_dependencies": [
-        "utils.agent_factory",
+        "nexus_utils.agent_factory",
         "strands.telemetry",
         "boto3",
         "json",

@@ -24,7 +24,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Any, Tuple
 import argparse
 
-from utils.agent_factory import create_agent_from_prompt_template
+from nexus_utils.agent_factory import create_agent_from_prompt_template
 
 # 导入工具函数
 from tools.generated_tools.pdf_content_extractor.pdf_processing_tools import (

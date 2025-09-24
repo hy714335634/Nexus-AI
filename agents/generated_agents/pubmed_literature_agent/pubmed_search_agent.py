@@ -22,7 +22,7 @@ import os
 import json
 import logging
 from typing import List, Dict, Any, Optional
-from utils.agent_factory import create_agent_from_prompt_template
+from nexus_utils.agent_factory import create_agent_from_prompt_template
 from strands.telemetry import StrandsTelemetry
 
 # Configure logging

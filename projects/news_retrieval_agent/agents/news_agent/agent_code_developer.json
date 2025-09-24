@@ -35,7 +35,7 @@
       "main_class": "N/A (函数式实现)",
       "entry_point": "if __name__ == \"__main__\"",
       "dependencies": [
-        "utils.agent_factory",
+        "nexus_utils.agent_factory",
         "strands.telemetry",
         "os",
         "json",
@@ -43,7 +43,7 @@
         "argparse"
       ],
       "imports": [
-        "from utils.agent_factory import create_agent_from_prompt_template",
+        "from nexus_utils.agent_factory import create_agent_from_prompt_template",
         "from strands.telemetry import StrandsTelemetry",
         "import os",
         "import json",
@@ -257,7 +257,7 @@
         "BeautifulSoup"
       ],
       "runtime_dependencies": [
-        "utils.agent_factory",
+        "nexus_utils.agent_factory",
         "strands.telemetry",
         "自定义工具模块"
       ],
