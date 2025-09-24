@@ -6,11 +6,12 @@
 import os
 import time
 import uuid
+from time import sleep
 import json
 from typing import Any
 from strands.multiagent import GraphBuilder,Swarm
-from utils.agent_factory import create_agent_from_prompt_template
-from utils.structured_output_model.project_intent_recognition import IntentRecognitionResult
+from nexus_utils.agent_factory import create_agent_from_prompt_template
+from nexus_utils.structured_output_model.project_intent_recognition import IntentRecognitionResult
 from strands.session.file_session_manager import FileSessionManager
 
 # 导入其他 agents
@@ -19,7 +20,7 @@ from agents.system_agents.agent_build_workflow.system_architect_agent import sys
 from agents.system_agents.agent_build_workflow.agent_designer_agent import agent_designer
 from agents.system_agents.agent_build_workflow.agent_developer_manager_agent import agent_developer_manager
 from strands.telemetry import StrandsTelemetry
-from utils.workflow_report_generator import generate_workflow_summary_report
+from nexus_utils.workflow_report_generator import generate_workflow_summary_report
 
 os.environ["BYPASS_TOOL_CONSENT"] = "true"
 os.environ["OTEL_EXPORTER_OTLP_ENDPOINT"] = "http://localhost:4318"
@@ -126,6 +127,7 @@ def run_workflow(user_input: str, session_id="default"):
     print(f"🔍 [STEP 1] 分析用户意图...", flush=True)
     intent_structured_result = analyze_user_intent(user_input)
 
+    sleep(120)
     # 创建工作流
     print(f"\n🏗️ [STEP 2] 创建构建工作流...", flush=True)
     workflow = create_build_workflow()

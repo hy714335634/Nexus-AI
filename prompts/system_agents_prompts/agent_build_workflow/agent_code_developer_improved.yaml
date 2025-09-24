@@ -305,7 +305,7 @@ agent:
         12. **最终输出**：只输出"智能体代码开发已完成，状态已更新"，不要输出任何其他内容
         
         **代码生成要求**：
-        - 必须使用utils.agent_factory.create_agent_from_prompt_template创建Agent
+        - 必须使用nexus_utils.agent_factory.create_agent_from_prompt_template创建Agent
           示例：
           agent_params = {
               "env": "production",

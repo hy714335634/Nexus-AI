@@ -21,7 +21,7 @@ import re
 from typing import Optional, List, Dict
 from pathlib import Path
 from strands import tool
-from utils.config_loader import get_config
+from nexus_utils.config_loader import get_config
 
 
 def _get_template_directory() -> str:

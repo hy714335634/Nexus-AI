@@ -29,7 +29,7 @@ def validate_tool_path(tool_path: str) -> str:
     """
     try:
         # 导入验证函数
-        from utils.agent_factory import get_tool_by_path, get_tool_by_name
+        from nexus_utils.agent_factory import get_tool_by_path, get_tool_by_name
         
         result = {
             "tool_path": tool_path,

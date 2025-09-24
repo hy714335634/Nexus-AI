@@ -4,7 +4,7 @@ Agent 设计师 Agent - 使用 agent_factory 创建
 """
 
 import os
-from utils.agent_factory import create_agent_from_prompt_template
+from nexus_utils.agent_factory import create_agent_from_prompt_template
 
 # 设置环境变量
 os.environ["BYPASS_TOOL_CONSENT"] = "true"

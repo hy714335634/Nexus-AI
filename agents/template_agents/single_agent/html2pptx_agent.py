@@ -24,7 +24,7 @@ from pathlib import Path
 from typing import Dict, List, Any, Optional, Union, Tuple
 
 # 导入Strands SDK相关模块
-from utils.agent_factory import create_agent_from_prompt_template
+from nexus_utils.agent_factory import create_agent_from_prompt_template
 from strands.telemetry import StrandsTelemetry
 
 # 设置环境变量

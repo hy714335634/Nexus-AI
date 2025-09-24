@@ -1,0 +1,262 @@
+{
+  "system_design": {
+    "design_overview": {
+      "project_name": "clinicaltrials_search_agent",
+      "version": "1.0",
+      "date": "2025-09-23",
+      "design_scope": "设计一个专为临床开发人员打造的ClinicalTrials.gov检索Agent，能够执行智能检索策略规划、多次深度检索、结果分析与整合，并从临床开发人员视角呈现结果。",
+      "design_principles": [
+        "用户中心设计：以临床开发人员的需求和工作流程为中心",
+        "深度检索能力：支持多层次、多角度的检索策略",
+        "结果整合与分析：提供高质量的结果分析和整合",
+        "临床视角呈现：以临床开发人员熟悉的方式组织和呈现信息",
+        "API高效集成：高效且合规地集成clinicaltrials.gov API"
+      ],
+      "key_decisions": [
+        "采用单Agent架构，集成所有功能于一个Agent中",
+        "使用PubMed文献搜索专家模板作为基础架构",
+        "开发专用的ClinicalTrials.gov API工具集",
+        "实现检索策略规划和结果分析的专用模块",
+        "保留会话上下文以支持连续查询"
+      ],
+      "workflow_type": "single_agent",
+      "recommended_templates": ["pubmed_literature_agent"]
+    },
+    "architecture": {
+      "system_context": "系统作为临床开发人员与ClinicalTrials.gov数据库之间的智能中介，接收自然语言查询，规划检索策略，执行多次深度检索，分析和整合结果，并以临床视角呈现信息。系统不存储敏感医疗信息，所有数据检索都通过官方API实时进行。",
+      "agent_topology": "单Agent架构，包含查询理解、检索策略规划、API调用、结果分析与整合、临床视角呈现等核心功能模块。",
+      "interaction_model": "用户通过自然语言提出查询 → Agent理解并规划检索策略 → 执行多次深度检索 → 分析和整合结果 → 以临床视角呈现信息 → 用户可追问或提出新查询",
+      "technology_stack": {
+        "sdk": "Strands SDK",
+        "runtime": "Local",
+        "integrations": [
+          "ClinicalTrials.gov API",
+          "AWS Bedrock for AI inference",
+          "Python requests库用于API调用",
+          "Python数据处理库(pandas, numpy)"
+        ]
+      }
+    },
+    "agents": [
+      {
+        "name": "clinicaltrials_search_agent",
+        "purpose": "为临床开发人员提供智能化的ClinicalTrials.gov检索服务，包括检索策略规划、多次深度检索、结果分析与整合，并以临床视角呈现信息。",
+        "responsibilities": [
+          "理解用户的自然语言查询和临床术语",
+          "规划有效的检索策略",
+          "执行多次深度检索以获取全面信息",
+          "分析和整合检索结果，消除重复和冲突",
+          "以临床开发视角组织和呈现信息",
+          "维护会话上下文以支持连续查询"
+        ],
+        "interfaces": {
+          "inputs": [
+            "用户自然语言查询",
+            "可选的检索参数(日期范围、试验类型、排序方式等)",
+            "上下文相关的追问或新查询"
+          ],
+          "outputs": [
+            "检索策略说明",
+            "结构化的检索结果",
+            "结果分析和整合报告",
+            "临床视角的信息摘要",
+            "可能的后续检索建议"
+          ]
+        },
+        "dependencies": [
+          "ClinicalTrials.gov API",
+          "AWS Bedrock AI服务",
+          "Python数据处理库"
+        ],
+        "implementation_notes": [
+          "基于PubMed文献搜索专家模板进行改造",
+          "开发专用的ClinicalTrials.gov API工具集",
+          "实现检索策略规划和结果分析的专用模块",
+          "优化系统提示词以专注于临床试验数据",
+          "实现会话上下文管理以支持连续查询"
+        ],
+        "recommended_template": "pubmed_literature_agent"
+      }
+    ],
+    "data_models": [
+      {
+        "name": "UserQuery",
+        "schema": "包含用户原始查询文本、解析后的查询意图、关键临床术语、检索参数等",
+        "validation_rules": [
+          "查询文本不能为空",
+          "检索参数必须符合ClinicalTrials.gov API规范"
+        ],
+        "relationships": ["关联SearchStrategy和SearchResults"]
+      },
+      {
+        "name": "SearchStrategy",
+        "schema": "包含检索策略ID、策略描述、查询条件组合、API调用参数等",
+        "validation_rules": [
+          "查询条件必须符合ClinicalTrials.gov API规范",
+          "API调用参数必须有效"
+        ],
+        "relationships": ["关联UserQuery和SearchResults"]
+      },
+      {
+        "name": "SearchResults",
+        "schema": "包含检索结果ID、关联的检索策略、原始API响应、解析后的试验数据等",
+        "validation_rules": [
+          "必须包含有效的检索策略ID",
+          "试验数据结构必须完整"
+        ],
+        "relationships": ["关联SearchStrategy和AnalysisReport"]
+      },
+      {
+        "name": "AnalysisReport",
+        "schema": "包含分析报告ID、关联的检索结果、整合后的试验数据、临床视角分析、摘要等",
+        "validation_rules": [
+          "必须包含有效的检索结果ID",
+          "整合后的试验数据必须无重复"
+        ],
+        "relationships": ["关联SearchResults"]
+      },
+      {
+        "name": "SessionContext",
+        "schema": "包含会话ID、历史查询、历史结果引用、上下文状态等",
+        "validation_rules": [
+          "会话ID必须唯一",
+          "历史查询和结果必须有序存储"
+        ],
+        "relationships": ["关联UserQuery、SearchStrategy和AnalysisReport"]
+      }
+    ],
+    "interaction_flows": [
+      {
+        "name": "基本检索流程",
+        "description": "用户提交查询到获取结果的基本流程",
+        "steps": [
+          {
+            "step": "接收用户查询",
+            "agent": "clinicaltrials_search_agent",
+            "action": "解析用户自然语言查询",
+            "data": "UserQuery"
+          },
+          {
+            "step": "规划检索策略",
+            "agent": "clinicaltrials_search_agent",
+            "action": "分析查询意图并规划检索策略",
+            "data": "SearchStrategy"
+          },
+          {
+            "step": "执行初次检索",
+            "agent": "clinicaltrials_search_agent",
+            "action": "调用ClinicalTrials.gov API执行初次检索",
+            "data": "SearchResults"
+          },
+          {
+            "step": "评估检索结果",
+            "agent": "clinicaltrials_search_agent",
+            "action": "评估初次检索结果的完整性和相关性",
+            "data": "SearchResults"
+          },
+          {
+            "step": "执行深度检索",
+            "agent": "clinicaltrials_search_agent",
+            "action": "根据初次结果调整策略并执行补充检索",
+            "data": "SearchResults"
+          },
+          {
+            "step": "分析和整合结果",
+            "agent": "clinicaltrials_search_agent",
+            "action": "分析多次检索结果并整合信息",
+            "data": "AnalysisReport"
+          },
+          {
+            "step": "临床视角呈现",
+            "agent": "clinicaltrials_search_agent",
+            "action": "以临床开发视角组织和呈现信息",
+            "data": "AnalysisReport"
+          },
+          {
+            "step": "更新会话上下文",
+            "agent": "clinicaltrials_search_agent",
+            "action": "更新会话上下文以支持后续查询",
+            "data": "SessionContext"
+          }
+        ]
+      },
+      {
+        "name": "上下文相关查询流程",
+        "description": "用户基于之前结果提出追问的流程",
+        "steps": [
+          {
+            "step": "接收追问查询",
+            "agent": "clinicaltrials_search_agent",
+            "action": "解析追问并关联历史上下文",
+            "data": "UserQuery, SessionContext"
+          },
+          {
+            "step": "上下文理解",
+            "agent": "clinicaltrials_search_agent",
+            "action": "结合历史上下文理解当前查询意图",
+            "data": "UserQuery, SessionContext"
+          },
+          {
+            "step": "规划补充检索",
+            "agent": "clinicaltrials_search_agent",
+            "action": "基于新理解规划补充检索策略",
+            "data": "SearchStrategy"
+          },
+          {
+            "step": "执行补充检索",
+            "agent": "clinicaltrials_search_agent",
+            "action": "调用API执行补充检索",
+            "data": "SearchResults"
+          },
+          {
+            "step": "整合历史与新结果",
+            "agent": "clinicaltrials_search_agent",
+            "action": "整合历史结果和新检索结果",
+            "data": "AnalysisReport"
+          },
+          {
+            "step": "呈现综合信息",
+            "agent": "clinicaltrials_search_agent",
+            "action": "呈现整合后的综合信息",
+            "data": "AnalysisReport"
+          },
+          {
+            "step": "更新会话上下文",
+            "agent": "clinicaltrials_search_agent",
+            "action": "更新会话上下文以支持后续查询",
+            "data": "SessionContext"
+          }
+        ]
+      }
+    ],
+    "security_considerations": [
+      "不存储用户敏感医疗信息",
+      "所有API通信使用HTTPS加密",
+      "遵循ClinicalTrials.gov的API使用条款和限制",
+      "实现API调用频率限制以避免过度请求",
+      "确保用户查询和结果不包含个人身份信息"
+    ],
+    "error_handling": [
+      "API连接失败时提供明确错误信息并建议重试",
+      "查询格式错误时提供修正建议",
+      "检索结果为空时提供替代检索策略",
+      "API限流时实现指数退避重试策略",
+      "结果解析错误时提供部分可用信息并说明限制"
+    ],
+    "performance_considerations": [
+      "优化API调用以减少请求次数",
+      "实现结果缓存以提高连续查询性能",
+      "大型结果集采用分页处理以减少内存使用",
+      "长时间运行的检索提供进度更新",
+      "实现并行检索以提高多次检索效率"
+    ],
+    "monitoring_strategy": [
+      "记录API调用性能和成功率",
+      "跟踪用户查询理解准确率",
+      "监控检索结果相关性和完整性",
+      "记录系统响应时间和资源使用",
+      "实现错误日志和异常跟踪"
+    ]
+  },
+  "design_rationale": "本设计采用单Agent架构，因为所有功能围绕ClinicalTrials.gov的检索和结果整合，具有明确的功能边界和输入输出关系。虽然包含多次检索和结果整合等复杂功能，但这些可以在单个Agent内通过适当的模块化实现，无需引入多Agent复杂性。\n\n选择PubMed文献搜索专家模板作为基础是因为它已经具备了医学数据API集成和专业分析的核心功能，与当前需求高度匹配。主要工作将集中在API工具替换（从PubMed到ClinicalTrials.gov）和结果分析逻辑调整上，这样可以大大减少开发时间。\n\n设计特别强调了检索策略规划和结果分析整合这两个核心功能，因为这些是用户需求中最突出的部分。同时，设计考虑了ClinicalTrials.gov API的使用限制，实现了合理的错误处理和重试机制。\n\n会话上下文管理被纳入设计以支持连续查询和信息探索，这对临床开发人员的工作流程至关重要。临床视角的结果呈现也是设计的重点，确保信息以临床开发人员熟悉和有用的方式组织。\n\n总体而言，该设计平衡了功能完整性、开发效率和用户体验，为后续开发提供了清晰的架构蓝图。"
+}

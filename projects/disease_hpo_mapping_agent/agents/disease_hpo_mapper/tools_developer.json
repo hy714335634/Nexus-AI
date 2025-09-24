@@ -1,0 +1,400 @@
+{
+  "tool_development": {
+    "development_overview": {
+      "project_name": "disease_hpo_mapping_agent",
+      "version": "1.0",
+      "date": "2025-09-24",
+      "development_scope": "开发疾病-HPO映射智能体所需的工具，包括HPO数据库API客户端、医学术语标准化工具、字符串相似度计算工具和本地缓存管理工具",
+      "design_principles": [
+        "模块化设计，每个工具专注于单一职责",
+        "完善的错误处理和日志记录",
+        "支持中英文双语处理",
+        "高效的缓存机制减少API调用",
+        "灵活的相似度算法支持多种匹配策略"
+      ],
+      "key_decisions": [
+        "使用本地文件系统实现缓存机制，简化部署和维护",
+        "实现多种字符串相似度算法，适应不同匹配场景",
+        "医学术语标准化工具支持本地字典和API查询双重机制",
+        "HPO API客户端实现多级匹配策略，提高匹配成功率"
+      ]
+    },
+    "tools": [
+      {
+        "tool_name": "query_hpo_database",
+        "description": "查询HPO数据库获取疾病对应的HPO ID和相关信息",
+        "function_signature": "query_hpo_database(disease_name: str, language: str = \"en\", exact_match: bool = True) -> str",
+        "parameters": [
+          {
+            "name": "disease_name",
+            "type": "str",
+            "description": "疾病名称（中文或英文）",
+            "required": true
+          },
+          {
+            "name": "language",
+            "type": "str",
+            "description": "输入疾病名称的语言，可选值：'en'（英文）或'zh'（中文）",
+            "required": false
+          },
+          {
+            "name": "exact_match",
+            "type": "bool",
+            "description": "是否进行精确匹配，如果为False则进行模糊匹配",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的查询结果，包含疾病的HPO ID和相关信息",
+        "dependencies": ["requests", "json", "os", "time", "re", "logging"],
+        "implementation_notes": [
+          "实现了缓存机制，减少重复API调用",
+          "支持中英文疾病名称处理",
+          "实现了多级匹配策略：精确匹配→模糊匹配→关键词搜索→推理匹配",
+          "查询结果包含疾病的中英文名称、HPO ID和相关定义"
+        ],
+        "error_handling": [
+          "处理API请求失败的情况",
+          "处理缓存读写错误",
+          "处理无匹配结果的情况，提供备选方案"
+        ],
+        "usage_examples": [
+          "query_hpo_database(\"diabetes\", \"en\", True)",
+          "query_hpo_database(\"糖尿病\", \"zh\", False)"
+        ]
+      },
+      {
+        "tool_name": "search_hpo_by_keyword",
+        "description": "通过关键词搜索HPO数据库",
+        "function_signature": "search_hpo_by_keyword(keyword: str, max_results: int = 10) -> str",
+        "parameters": [
+          {
+            "name": "keyword",
+            "type": "str",
+            "description": "搜索关键词",
+            "required": true
+          },
+          {
+            "name": "max_results",
+            "type": "int",
+            "description": "最大返回结果数量",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的搜索结果",
+        "dependencies": ["requests", "json", "os", "time", "logging"],
+        "implementation_notes": [
+          "支持关键词搜索HPO数据库",
+          "结果按相关度排序",
+          "实现了缓存机制"
+        ],
+        "error_handling": [
+          "处理API请求失败的情况",
+          "处理缓存读写错误"
+        ],
+        "usage_examples": [
+          "search_hpo_by_keyword(\"diabetes\", 5)",
+          "search_hpo_by_keyword(\"心脏病\")"
+        ]
+      },
+      {
+        "tool_name": "standardize_medical_term",
+        "description": "将医学术语标准化为正式医学名称",
+        "function_signature": "standardize_medical_term(term: str, language: str = \"auto\", include_details: bool = False) -> str",
+        "parameters": [
+          {
+            "name": "term",
+            "type": "str",
+            "description": "需要标准化的医学术语或疾病描述",
+            "required": true
+          },
+          {
+            "name": "language",
+            "type": "str",
+            "description": "输入术语的语言，可选值：'en'（英文）、'zh'（中文）或'auto'（自动检测）",
+            "required": false
+          },
+          {
+            "name": "include_details",
+            "type": "bool",
+            "description": "是否包含详细信息，如定义、同义词等",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的标准化结果，包含标准化的医学术语",
+        "dependencies": ["json", "re", "os", "time", "requests", "logging"],
+        "implementation_notes": [
+          "支持自动语言检测",
+          "使用本地医学术语字典和API查询双重机制",
+          "支持模糊匹配和建议功能"
+        ],
+        "error_handling": [
+          "处理API请求失败的情况",
+          "处理无法标准化的情况，提供建议"
+        ],
+        "usage_examples": [
+          "standardize_medical_term(\"diabetes\", \"en\", True)",
+          "standardize_medical_term(\"糖尿病\", \"auto\", False)"
+        ]
+      },
+      {
+        "tool_name": "extract_medical_terms",
+        "description": "从文本中提取医学术语",
+        "function_signature": "extract_medical_terms(text: str, language: str = \"auto\") -> str",
+        "parameters": [
+          {
+            "name": "text",
+            "type": "str",
+            "description": "输入文本",
+            "required": true
+          },
+          {
+            "name": "language",
+            "type": "str",
+            "description": "文本语言，可选值：'en'（英文）、'zh'（中文）或'auto'（自动检测）",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的提取结果，包含提取的医学术语列表",
+        "dependencies": ["json", "re", "os", "logging"],
+        "implementation_notes": [
+          "支持中英文文本处理",
+          "提取的术语会自动标准化",
+          "结果按置信度排序"
+        ],
+        "error_handling": [
+          "处理文本处理错误",
+          "处理标准化失败的情况"
+        ],
+        "usage_examples": [
+          "extract_medical_terms(\"患者有糖尿病和高血压病史\", \"zh\")",
+          "extract_medical_terms(\"The patient has a history of diabetes and hypertension\")"
+        ]
+      },
+      {
+        "tool_name": "calculate_multi_algorithm_similarity",
+        "description": "使用多种算法计算两个字符串的相似度并返回综合评分",
+        "function_signature": "calculate_multi_algorithm_similarity(string1: str, string2: str, case_sensitive: bool = False) -> str",
+        "parameters": [
+          {
+            "name": "string1",
+            "type": "str",
+            "description": "第一个字符串",
+            "required": true
+          },
+          {
+            "name": "string2",
+            "type": "str",
+            "description": "第二个字符串",
+            "required": true
+          },
+          {
+            "name": "case_sensitive",
+            "type": "bool",
+            "description": "是否区分大小写，默认为False",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的相似度计算结果，包含多种算法的相似度分数和综合评分",
+        "dependencies": ["json", "re", "math", "logging"],
+        "implementation_notes": [
+          "实现了多种相似度算法：Levenshtein、Jaccard、余弦、Jaro-Winkler",
+          "返回加权平均的综合评分"
+        ],
+        "error_handling": [
+          "处理计算错误",
+          "处理空字符串情况"
+        ],
+        "usage_examples": [
+          "calculate_multi_algorithm_similarity(\"diabetes\", \"diabetic\")",
+          "calculate_multi_algorithm_similarity(\"高血压\", \"高血压病\", False)"
+        ]
+      },
+      {
+        "tool_name": "find_best_match",
+        "description": "在候选字符串列表中找到与查询字符串最相似的匹配项",
+        "function_signature": "find_best_match(query: str, candidates: List[str], algorithm: str = \"combined\", case_sensitive: bool = False, threshold: float = 0.7) -> str",
+        "parameters": [
+          {
+            "name": "query",
+            "type": "str",
+            "description": "查询字符串",
+            "required": true
+          },
+          {
+            "name": "candidates",
+            "type": "List[str]",
+            "description": "候选字符串列表",
+            "required": true
+          },
+          {
+            "name": "algorithm",
+            "type": "str",
+            "description": "相似度算法，可选值：'levenshtein'、'jaccard'、'cosine'、'jaro_winkler'或'combined'",
+            "required": false
+          },
+          {
+            "name": "case_sensitive",
+            "type": "bool",
+            "description": "是否区分大小写，默认为False",
+            "required": false
+          },
+          {
+            "name": "threshold",
+            "type": "float",
+            "description": "相似度阈值，默认为0.7，低于此值的匹配将被过滤",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的匹配结果，包含最佳匹配和相似度分数",
+        "dependencies": ["json", "logging"],
+        "implementation_notes": [
+          "支持多种相似度算法",
+          "结果按相似度排序",
+          "可设置相似度阈值过滤结果"
+        ],
+        "error_handling": [
+          "处理空候选列表",
+          "处理无匹配结果的情况"
+        ],
+        "usage_examples": [
+          "find_best_match(\"diabetes\", [\"diabetic\", \"diabetes mellitus\", \"hypertension\"])",
+          "find_best_match(\"高血压\", [\"高血压病\", \"糖尿病\", \"心脏病\"], \"levenshtein\", False, 0.6)"
+        ]
+      },
+      {
+        "tool_name": "cache_data",
+        "description": "将数据缓存到本地文件系统",
+        "function_signature": "cache_data(key: str, data: str, expiration_hours: int = 720, cache_dir: str = None) -> str",
+        "parameters": [
+          {
+            "name": "key",
+            "type": "str",
+            "description": "缓存键名，用于标识缓存项",
+            "required": true
+          },
+          {
+            "name": "data",
+            "type": "str",
+            "description": "要缓存的数据（字符串格式）",
+            "required": true
+          },
+          {
+            "name": "expiration_hours",
+            "type": "int",
+            "description": "缓存过期时间（小时），默认为720小时（30天）",
+            "required": false
+          },
+          {
+            "name": "cache_dir",
+            "type": "str",
+            "description": "缓存目录路径，如果不提供则使用默认目录",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的缓存结果，包含缓存状态信息",
+        "dependencies": ["json", "os", "time", "hashlib", "logging"],
+        "implementation_notes": [
+          "使用本地文件系统存储缓存",
+          "支持自定义缓存目录和过期时间",
+          "缓存键会被安全处理为文件名"
+        ],
+        "error_handling": [
+          "处理文件写入错误",
+          "处理目录创建错误"
+        ],
+        "usage_examples": [
+          "cache_data(\"disease_diabetes\", json_data, 24)",
+          "cache_data(\"hpo_query_result\", result_json, 720, \"/custom/cache/dir\")"
+        ]
+      },
+      {
+        "tool_name": "get_cached_data",
+        "description": "从本地缓存中获取数据",
+        "function_signature": "get_cached_data(key: str, cache_dir: str = None) -> str",
+        "parameters": [
+          {
+            "name": "key",
+            "type": "str",
+            "description": "缓存键名",
+            "required": true
+          },
+          {
+            "name": "cache_dir",
+            "type": "str",
+            "description": "缓存目录路径，如果不提供则使用默认目录",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的缓存数据，如果缓存不存在或已过期则返回错误信息",
+        "dependencies": ["json", "os", "time", "logging"],
+        "implementation_notes": [
+          "检查缓存是否存在和是否过期",
+          "更新缓存访问时间"
+        ],
+        "error_handling": [
+          "处理缓存不存在的情况",
+          "处理缓存已过期的情况",
+          "处理文件读取错误"
+        ],
+        "usage_examples": [
+          "get_cached_data(\"disease_diabetes\")",
+          "get_cached_data(\"hpo_query_result\", \"/custom/cache/dir\")"
+        ]
+      }
+    ],
+    "code_quality": {
+      "code_standards": [
+        "遵循PEP 8编码规范",
+        "使用类型注解提高代码可读性",
+        "详细的文档字符串说明函数功能和参数",
+        "适当的日志记录，便于调试和监控",
+        "统一的错误处理机制"
+      ],
+      "testing_strategy": [
+        "单元测试覆盖核心功能",
+        "边界条件测试",
+        "错误处理测试",
+        "缓存机制测试"
+      ],
+      "performance_considerations": [
+        "使用缓存减少API调用",
+        "优化字符串相似度算法",
+        "避免不必要的数据转换",
+        "批量处理支持"
+      ],
+      "security_measures": [
+        "安全处理缓存键为文件名",
+        "不存储敏感个人信息",
+        "错误信息不暴露内部实现细节"
+      ]
+    },
+    "integration_details": {
+      "aws_services": [],
+      "external_libraries": [
+        "requests: 用于HTTP请求",
+        "json: 用于JSON数据处理",
+        "re: 用于正则表达式处理",
+        "hashlib: 用于生成哈希值",
+        "math: 用于数学计算"
+      ],
+      "api_endpoints": [
+        "HPO API: https://hpo.jax.org/api/hpo",
+        "UMLS API: https://uts-ws.nlm.nih.gov/rest/search/current",
+        "MESH API: https://id.nlm.nih.gov/mesh/lookup/descriptor"
+      ],
+      "data_formats": [
+        "JSON: 用于数据交换和缓存存储",
+        "字符串: 用于文本处理和相似度计算"
+      ]
+    },
+    "development_notes": "在开发过程中，我们重点关注了多语言支持和多级匹配策略的实现。由于HPO数据库API可能存在访问限制和延迟，我们实现了完善的本地缓存机制，大幅提高了常见疾病查询的响应速度。字符串相似度计算工具提供了多种算法，可以根据不同场景选择最适合的算法或使用综合评分。医学术语标准化工具结合了本地字典和API查询，既保证了高效性又保证了准确性。所有工具都实现了详细的错误处理和日志记录，便于问题排查。"
+  }
+}

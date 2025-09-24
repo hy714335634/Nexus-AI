@@ -1,0 +1,64 @@
+project_info:
+- agents:
+  - created_date: '2025-09-23T17:42:24.928877+00:00'
+    description: 智能体：clinicaltrials_search_agent
+    last_updated: '2025-09-23T18:04:36.417912+00:00'
+    name: clinicaltrials_search_agent
+    pipeline:
+    - description: 需求分析阶段 - 分析用户需求，定义功能规格
+      doc_path: projects/clinicaltrials_search_agent/agents/clinicaltrials_search_agent/requirements_analyzer.json
+      stage: requirements_analyzer
+      status: true
+      updated_date: '2025-09-23T17:43:52.793205+00:00'
+    - description: 系统架构设计阶段 - 设计系统架构和技术方案
+      doc_path: projects/clinicaltrials_search_agent/agents/clinicaltrials_search_agent/system_architect.json
+      stage: system_architect
+      status: true
+      updated_date: '2025-09-23T17:47:09.647099+00:00'
+    - description: Agent设计阶段 - 设计智能体结构和交互模式
+      doc_path: projects/clinicaltrials_search_agent/agents/clinicaltrials_search_agent/agent_designer.json
+      stage: agent_designer
+      status: true
+      updated_date: '2025-09-23T17:48:56.938539+00:00'
+    - agent_artifact_path:
+      - projects/clinicaltrials_search_agent/prompts/clinicaltrials_search_agent_prompt.txt
+      description: 提示词工程阶段 - 设计和优化提示词模板
+      doc_path: projects/clinicaltrials_search_agent/agents/clinicaltrials_search_agent/prompt_engineer.json
+      stage: prompt_engineer
+      status: true
+      updated_date: '2025-09-23T18:00:32.054481+00:00'
+    - agent_artifact_path:
+      - projects/clinicaltrials_search_agent/tools/clinical_trials_api_client.py
+      - projects/clinicaltrials_search_agent/tools/query_builder.py
+      - projects/clinicaltrials_search_agent/tools/results_parser.py
+      - projects/clinicaltrials_search_agent/tools/results_analyzer.py
+      - projects/clinicaltrials_search_agent/tools/results_integrator.py
+      - projects/clinicaltrials_search_agent/tools/clinical_report_generator.py
+      description: 工具开发阶段 - 开发必要的工具和函数
+      doc_path: projects/clinicaltrials_search_agent/agents/clinicaltrials_search_agent/tools_developer.json
+      stage: tools_developer
+      status: true
+      updated_date: '2025-09-23T17:55:22.780572+00:00'
+    - agent_artifact_path:
+      - projects/clinicaltrials_search_agent/agents/clinicaltrials_search_agent.py
+      - projects/clinicaltrials_search_agent/config/agent_config.py
+      - projects/clinicaltrials_search_agent/utils/session_manager.py
+      - projects/clinicaltrials_search_agent/utils/error_handler.py
+      - projects/clinicaltrials_search_agent/utils/logger.py
+      description: Agent代码开发阶段 - 实现智能体代码
+      doc_path: projects/clinicaltrials_search_agent/agents/clinicaltrials_search_agent/agent_code_developer.json
+      stage: agent_code_developer
+      status: true
+      updated_date: '2025-09-23T18:04:13.186721+00:00'
+    - description: Agent开发管理阶段 - 管理和协调开发流程
+      doc_path: projects/clinicaltrials_search_agent/agents/clinicaltrials_search_agent/agent_developer_manager.json
+      stage: agent_developer_manager
+      status: true
+      updated_date: '2025-09-23T18:04:36.417916+00:00'
+  description: 一个专为临床开发人员设计的智能检索Agent，能够自动检索clinicaltrials.gov的数据，支持多次深度检索并整合分析结果，确保检索内容全面、完整且正确。
+  last_updated: '2025-09-23T18:04:36.417896+00:00'
+  name: clinicaltrials_search_agent
+  progress:
+  - completed: 7
+    total: 7
+  version: 1.0.0

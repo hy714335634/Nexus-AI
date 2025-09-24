@@ -1,6 +1,6 @@
 from strands import tool
 import os
-from utils.agent_factory import create_agent_from_prompt_template
+from nexus_utils.agent_factory import create_agent_from_prompt_template
 
 # 设置环境变量
 os.environ["BYPASS_TOOL_CONSENT"] = "true"

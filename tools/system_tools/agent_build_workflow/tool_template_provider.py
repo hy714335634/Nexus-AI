@@ -24,7 +24,7 @@ import inspect
 from typing import Optional, List, Dict, Any
 from pathlib import Path
 from strands import tool
-from utils.config_loader import get_config
+from nexus_utils.config_loader import get_config
 
 
 def _get_tool_directories() -> Dict[str, str]:

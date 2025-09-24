@@ -1,0 +1,242 @@
+{
+  "prompt_design": {
+    "design_overview": {
+      "project_name": "clinicaltrials_search_agent",
+      "version": "1.0",
+      "date": "2025-09-23",
+      "design_scope": "为临床试验检索Agent设计提示词模板，使其能够理解临床术语，执行多次深度检索，分析整合结果，并以临床开发视角呈现信息。",
+      "design_principles": [
+        "角色一致性：提示词与临床试验检索专家的角色定位完全匹配",
+        "清晰性：指令明确、具体、易于理解",
+        "结构化：遵循标准化的提示词模板格式",
+        "可维护性：支持版本管理和迭代优化",
+        "可测试性：包含明确的输入输出规范"
+      ],
+      "key_decisions": [
+        "采用专业临床试验检索专家的角色定位",
+        "详细定义工作流程和输出格式",
+        "明确工具使用指南和约束限制",
+        "保持专业而友好的沟通风格",
+        "支持多种临床开发场景"
+      ]
+    },
+    "prompt_template": {
+      "name": "clinicaltrials_search_agent",
+      "description": "一个专为临床开发人员设计的智能检索Agent，能够自动检索clinicaltrials.gov的数据，支持多次深度检索并整合分析结果，确保检索内容全面、完整且正确。",
+      "category": "medical_research",
+      "version": "latest",
+      "status": "stable",
+      "created_date": "2025-09-23",
+      "author": "agent build workflow",
+      "file_path": "prompts/generated_agents_prompts/clinicaltrials_search_agent/clinicaltrials_search_agent.yaml",
+      "system_prompt_structure": [
+        {
+          "section": "角色与职责",
+          "purpose": "明确Agent的专业身份和核心职责",
+          "content_summary": "定义Agent作为临床试验检索专家的角色，列出六项核心职责：理解查询、规划策略、执行检索、分析整合、呈现信息、维护上下文"
+        },
+        {
+          "section": "专业知识领域",
+          "purpose": "确立Agent的知识边界和专业领域",
+          "content_summary": "列出Agent精通的五个领域：临床试验设计、药物开发流程、研究方法学、医学术语、数据标准"
+        },
+        {
+          "section": "工作流程",
+          "purpose": "提供清晰的步骤化执行指导",
+          "content_summary": "详细描述九步工作流程：查询理解、策略规划、初次检索、结果评估、深度检索、结果分析、结果整合、临床视角呈现、上下文维护"
+        },
+        {
+          "section": "输出格式",
+          "purpose": "定义精确的输出格式和结构要求",
+          "content_summary": "规定Markdown格式的五部分输出结构：检索概要、关键临床试验、整合分析、临床开发视角、检索细节"
+        },
+        {
+          "section": "工具使用指南",
+          "purpose": "明确工具使用方法和依赖关系",
+          "content_summary": "详细说明八个必要工具的使用方法：查询构建、临床试验搜索、获取试验详情、结果解析、结果分析、结果整合、报告生成、获取字段值"
+        },
+        {
+          "section": "约束和限制",
+          "purpose": "设定操作边界和限制条件",
+          "content_summary": "列出六项约束：不提供医疗建议、不替代临床判断、不修改数据、不存储大量数据、受API限制、仅基于公开信息"
+        },
+        {
+          "section": "错误处理",
+          "purpose": "包含异常情况的处理指导",
+          "content_summary": "规定五种错误情况的处理方法：API连接失败、查询格式错误、检索结果为空、API限流、结果解析错误"
+        },
+        {
+          "section": "沟通风格",
+          "purpose": "定义与用户交流的语言风格",
+          "content_summary": "规定五点沟通原则：使用熟悉术语、提供清晰说明、保持客观专业、避免技术术语、提供思路解释"
+        }
+      ],
+      "user_prompt_template": "简洁的用户提示模板，引导用户提供必要信息，包括五个核心需求：理解需求、设计策略、执行检索、分析整合、呈现信息",
+      "tools_dependencies": [
+        "strands_tools/http_request",
+        "strands_tools/current_time",
+        "strands_tools/calculator",
+        "strands_tools/think",
+        "generated_tools/clinicaltrials_search_agent/clinicaltrials_api_tools/analyze_clinical_trials_results",
+        "generated_tools/clinicaltrials_search_agent/clinicaltrials_api_tools/build_clinical_trials_query",
+        "generated_tools/clinicaltrials_search_agent/clinicaltrials_api_tools/clear_clinical_trials_cache",
+        "generated_tools/clinicaltrials_search_agent/clinicaltrials_api_tools/clinical_trials_get_study",
+        "generated_tools/clinicaltrials_search_agent/clinicaltrials_api_tools/clinical_trials_search",
+        "generated_tools/clinicaltrials_search_agent/clinicaltrials_api_tools/generate_clinical_report",
+        "generated_tools/clinicaltrials_search_agent/clinicaltrials_api_tools/get_clinical_trials_field_values",
+        "generated_tools/clinicaltrials_search_agent/clinicaltrials_api_tools/integrate_clinical_trials_results",
+        "generated_tools/clinicaltrials_search_agent/clinicaltrials_api_tools/parse_clinical_trials_results"
+      ],
+      "supported_models": [
+        "us.anthropic.claude-3-7-sonnet-20250219-v1:0",
+        "us.anthropic.claude-opus-4-20250514-v1:0"
+      ],
+      "tags": [
+        "clinical_trials",
+        "medical_research",
+        "drug_development",
+        "regulatory_strategy",
+        "competitive_intelligence"
+      ]
+    },
+    "design_considerations": {
+      "role_alignment": {
+        "description": "确保提示词与临床试验检索专家的角色定位一致",
+        "implementation": [
+          "明确定义Agent作为临床试验检索专家的身份",
+          "详细列出专业知识领域，包括临床试验设计、药物开发等",
+          "规定专业而友好的沟通风格，使用临床开发人员熟悉的术语",
+          "设置明确的约束，如不提供医疗建议、不替代临床判断等"
+        ]
+      },
+      "workflow_clarity": {
+        "description": "提供清晰的工作流程指导",
+        "implementation": [
+          "设计九步工作流程，从查询理解到上下文维护",
+          "每个步骤都有明确的目标和执行方法",
+          "强调深度检索和结果整合的重要性",
+          "包含结果评估和策略调整的反馈环节"
+        ]
+      },
+      "output_structure": {
+        "description": "定义精确的输出格式和结构",
+        "implementation": [
+          "规定Markdown格式的五部分输出结构",
+          "每部分都有明确的内容要求和组织方式",
+          "特别强调临床开发视角的呈现",
+          "包含检索细节部分，确保透明性和可复现性"
+        ]
+      },
+      "tool_integration": {
+        "description": "明确工具使用方法和依赖关系",
+        "implementation": [
+          "详细说明八个必要工具的使用方法",
+          "明确每个工具的输入输出关系",
+          "强调工具之间的协作流程",
+          "包含工具依赖列表，确保系统完整性"
+        ]
+      },
+      "error_handling": {
+        "description": "包含异常情况的处理指导",
+        "implementation": [
+          "规定五种常见错误情况的处理方法",
+          "提供具体的错误响应策略",
+          "包含替代方案和重试机制",
+          "确保系统在各种情况下的健壮性"
+        ]
+      }
+    },
+    "testing_and_evaluation": {
+      "test_scenarios": [
+        {
+          "scenario": "基本检索查询",
+          "description": "测试Agent对简单临床试验检索需求的处理能力",
+          "example_query": "查找2型糖尿病的3期临床试验",
+          "evaluation_criteria": [
+            "查询理解准确性",
+            "检索策略合理性",
+            "结果相关性",
+            "输出格式符合性"
+          ]
+        },
+        {
+          "scenario": "复杂条件组合",
+          "description": "测试Agent处理多条件组合查询的能力",
+          "example_query": "查找针对65岁以上老年人的阿尔茨海默病预防性干预的2-3期临床试验，排除已完成的试验",
+          "evaluation_criteria": [
+            "条件解析准确性",
+            "检索策略优化",
+            "结果筛选准确性",
+            "深度检索执行情况"
+          ]
+        },
+        {
+          "scenario": "上下文相关查询",
+          "description": "测试Agent维护会话上下文并处理追问的能力",
+          "example_query": "在上述结果中，哪些试验使用了生物标志物作为终点指标？",
+          "evaluation_criteria": [
+            "上下文理解准确性",
+            "补充检索策略",
+            "结果整合质量",
+            "回答针对性"
+          ]
+        },
+        {
+          "scenario": "临床开发视角分析",
+          "description": "测试Agent从临床开发视角分析结果的能力",
+          "example_query": "分析CAR-T疗法在实体瘤中的临床开发趋势",
+          "evaluation_criteria": [
+            "趋势识别准确性",
+            "开发阶段分析",
+            "竞争格局分析",
+            "临床视角呈现质量"
+          ]
+        },
+        {
+          "scenario": "错误处理",
+          "description": "测试Agent处理异常情况的能力",
+          "example_query": "查找XYZABC123（不存在的疾病）的临床试验",
+          "evaluation_criteria": [
+            "错误识别准确性",
+            "替代策略提供",
+            "用户指导清晰性",
+            "系统稳定性"
+          ]
+        }
+      ],
+      "evaluation_metrics": [
+        {
+          "metric": "查询理解准确率",
+          "description": "Agent正确理解用户查询意图的比例",
+          "target": "≥90%"
+        },
+        {
+          "metric": "检索结果相关性",
+          "description": "检索结果与用户需求的相关程度",
+          "target": "≥85%"
+        },
+        {
+          "metric": "检索深度",
+          "description": "Agent执行深度检索的能力",
+          "target": "平均≥2次补充检索/查询"
+        },
+        {
+          "metric": "结果整合质量",
+          "description": "整合结果的完整性、无重复性和一致性",
+          "target": "≥90%准确率"
+        },
+        {
+          "metric": "临床视角呈现",
+          "description": "结果呈现对临床开发决策的价值",
+          "target": "≥85%专家评分"
+        },
+        {
+          "metric": "错误处理有效性",
+          "description": "系统有效处理异常情况的能力",
+          "target": "≥95%稳定性"
+        }
+      ]
+    },
+    "design_rationale": "本提示词模板的设计基于临床开发人员在使用ClinicalTrials.gov检索时的实际需求和挑战。我们特别关注了以下几个方面：\n\n首先，明确定义了Agent的角色为临床试验检索专家，并详细列出了六项核心职责，这确保了Agent能够专注于临床试验检索这一特定任务，并以专业的身份与用户交互。\n\n其次，设计了详细的九步工作流程，特别强调了深度检索和结果整合的环节。这是因为临床试验检索通常需要多次迭代和优化，单次检索往往无法获取全面信息。工作流程的设计确保了Agent能够系统性地执行检索任务，而不是简单地调用API并返回结果。\n\n在输出格式方面，我们采用了五部分结构，特别强调了临床开发视角的呈现。这是因为临床开发人员需要的不仅是原始的试验数据，还需要从药物开发、监管要求、竞争格局等多个维度理解这些数据的意义。\n\n工具使用指南详细说明了八个必要工具的使用方法，这些工具覆盖了临床试验检索的完整流程，从查询构建到报告生成。明确的工具使用指南确保了Agent能够有效地利用这些工具，执行复杂的检索和分析任务。\n\n约束和限制部分明确了Agent的能力边界，避免了用户对Agent能力的误解和不合理期望。错误处理部分提供了五种常见错误情况的处理方法，增强了系统的健壮性和用户体验。\n\n沟通风格部分规定了Agent与用户交流的语言风格，确保了交流的专业性和友好性，使用临床开发人员熟悉的术语和概念，避免了过于技术性的API和编程术语。\n\n总体而言，这个提示词模板的设计充分考虑了临床开发人员的专业需求和工作流程，使Agent能够提供高质量的ClinicalTrials.gov检索服务，支持临床开发决策。"
+  }
+}

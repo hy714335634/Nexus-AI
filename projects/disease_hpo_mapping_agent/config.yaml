@@ -1,0 +1,6 @@
+project:
+  created_date: '2025-09-24T01:07:25.159187+00:00'
+  description: 一个能够从医生主诉中提取疾病名称并关联到HPO ID的智能体，具备自然语言理解、数据库检索和精确匹配能力
+  name: disease_hpo_mapping_agent
+  updated_date: '2025-09-24T01:07:28.783781+00:00'
+  version: 1.0.0

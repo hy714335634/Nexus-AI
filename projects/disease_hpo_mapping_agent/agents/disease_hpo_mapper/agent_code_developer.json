@@ -1,0 +1,324 @@
+{
+  "agent_code_development": {
+    "development_overview": {
+      "project_name": "disease_hpo_mapping_agent",
+      "version": "1.0",
+      "date": "2025-09-24",
+      "development_scope": "开发一个能够从医生主诉中提取疾病名称并关联到HPO ID的智能体，支持中英文双语处理、多级匹配策略和本地缓存机制",
+      "design_principles": [
+        "准确性优先：确保疾病名称提取和HPO ID映射的准确性",
+        "容错设计：能够处理不完整或非正式的疾病描述",
+        "多步骤推理：在直接匹配失败时采用多步骤推理策略",
+        "可扩展性：支持未来扩展更多医学数据库和功能",
+        "双语支持：完整支持中英文疾病名称的处理"
+      ],
+      "key_decisions": [
+        "采用API集成专家模板作为基础框架",
+        "使用Claude Opus模型进行自然语言理解和推理",
+        "实现多级匹配策略：精确匹配→模糊匹配→关键词搜索→推理匹配",
+        "集成自定义工具进行HPO数据库查询、医学术语标准化、相似度计算和缓存管理",
+        "提供批量处理功能以支持多条医生主诉的处理"
+      ]
+    },
+    "agent_implementation": {
+      "agent_name": "disease_hpo_mapper",
+      "file_path": "agents/generated_agents/disease_hpo_mapping_agent/disease_hpo_mapper.py",
+      "main_class": "N/A（函数式实现）",
+      "entry_point": "extract_and_map_diseases",
+      "dependencies": [
+        "utils.agent_factory",
+        "strands.telemetry",
+        "os",
+        "json",
+        "logging",
+        "typing"
+      ],
+      "imports": [
+        "from utils.agent_factory import create_agent_from_prompt_template",
+        "from strands.telemetry import StrandsTelemetry",
+        "import os",
+        "import json",
+        "import logging",
+        "from typing import Dict, List, Any, Optional, Union"
+      ]
+    },
+    "core_functions": [
+      {
+        "function_name": "extract_and_map_diseases",
+        "purpose": "从医生主诉中提取疾病名称并映射到HPO ID",
+        "parameters": [
+          {
+            "name": "medical_description",
+            "type": "str",
+            "description": "医生主诉文本",
+            "required": true
+          },
+          {
+            "name": "language",
+            "type": "str",
+            "description": "语言，可选值：'en'（英文）、'zh'（中文）或'auto'（自动检测）",
+            "required": false
+          },
+          {
+            "name": "threshold",
+            "type": "float",
+            "description": "匹配阈值，范围0-1",
+            "required": false
+          },
+          {
+            "name": "max_results",
+            "type": "int",
+            "description": "最大返回结果数",
+            "required": false
+          }
+        ],
+        "return_type": "Dict[str, Any]",
+        "return_description": "包含疾病-HPO映射结果的字典",
+        "implementation_notes": [
+          "构建结构化输入文本，包含医生主诉和参数信息",
+          "调用Agent处理输入并获取响应",
+          "尝试解析JSON响应，支持从Markdown代码块中提取JSON",
+          "包含完整的错误处理和日志记录"
+        ]
+      },
+      {
+        "function_name": "batch_process_medical_descriptions",
+        "purpose": "批量处理多条医生主诉",
+        "parameters": [
+          {
+            "name": "descriptions",
+            "type": "List[str]",
+            "description": "医生主诉文本列表",
+            "required": true
+          },
+          {
+            "name": "language",
+            "type": "str",
+            "description": "语言，可选值：'en'（英文）、'zh'（中文）或'auto'（自动检测）",
+            "required": false
+          },
+          {
+            "name": "threshold",
+            "type": "float",
+            "description": "匹配阈值，范围0-1",
+            "required": false
+          },
+          {
+            "name": "max_results",
+            "type": "int",
+            "description": "最大返回结果数",
+            "required": false
+          }
+        ],
+        "return_type": "Dict[str, Any]",
+        "return_description": "包含批量处理结果的字典",
+        "implementation_notes": [
+          "循环处理每条医生主诉",
+          "调用extract_and_map_diseases函数处理单条记录",
+          "收集所有处理结果并返回统一格式的结果字典",
+          "包含进度日志记录"
+        ]
+      },
+      {
+        "function_name": "search_disease_by_name",
+        "purpose": "根据疾病名称搜索相关的HPO ID",
+        "parameters": [
+          {
+            "name": "disease_name",
+            "type": "str",
+            "description": "疾病名称",
+            "required": true
+          },
+          {
+            "name": "language",
+            "type": "str",
+            "description": "语言，可选值：'en'（英文）、'zh'（中文）或'auto'（自动检测）",
+            "required": false
+          },
+          {
+            "name": "exact_match",
+            "type": "bool",
+            "description": "是否进行精确匹配",
+            "required": false
+          }
+        ],
+        "return_type": "Dict[str, Any]",
+        "return_description": "包含搜索结果的字典",
+        "implementation_notes": [
+          "构建结构化输入文本，包含疾病名称和搜索参数",
+          "调用Agent处理输入并获取响应",
+          "解析JSON响应并返回结果",
+          "包含完整的错误处理和日志记录"
+        ]
+      },
+      {
+        "function_name": "standardize_disease_term",
+        "purpose": "标准化疾病术语",
+        "parameters": [
+          {
+            "name": "term",
+            "type": "str",
+            "description": "需要标准化的疾病术语",
+            "required": true
+          },
+          {
+            "name": "language",
+            "type": "str",
+            "description": "语言，可选值：'en'（英文）、'zh'（中文）或'auto'（自动检测）",
+            "required": false
+          }
+        ],
+        "return_type": "Dict[str, Any]",
+        "return_description": "包含标准化结果的字典",
+        "implementation_notes": [
+          "构建结构化输入文本，包含疾病术语和语言参数",
+          "调用Agent处理输入并获取响应",
+          "解析JSON响应并返回结果",
+          "包含完整的错误处理和日志记录"
+        ]
+      },
+      {
+        "function_name": "extract_diseases_from_text",
+        "purpose": "从文本中提取疾病名称",
+        "parameters": [
+          {
+            "name": "text",
+            "type": "str",
+            "description": "输入文本",
+            "required": true
+          },
+          {
+            "name": "language",
+            "type": "str",
+            "description": "语言，可选值：'en'（英文）、'zh'（中文）或'auto'（自动检测）",
+            "required": false
+          }
+        ],
+        "return_type": "Dict[str, Any]",
+        "return_description": "包含提取结果的字典",
+        "implementation_notes": [
+          "构建结构化输入文本，包含原始文本和语言参数",
+          "调用Agent处理输入并获取响应",
+          "解析JSON响应并返回结果",
+          "包含完整的错误处理和日志记录"
+        ]
+      },
+      {
+        "function_name": "get_hpo_info_by_id",
+        "purpose": "根据HPO ID获取详细信息",
+        "parameters": [
+          {
+            "name": "hpo_id",
+            "type": "str",
+            "description": "HPO ID，格式如 \"HPO:0000123\"",
+            "required": true
+          }
+        ],
+        "return_type": "Dict[str, Any]",
+        "return_description": "包含HPO详细信息的字典",
+        "implementation_notes": [
+          "构建结构化输入文本，包含HPO ID",
+          "调用Agent处理输入并获取响应",
+          "解析JSON响应并返回结果",
+          "包含完整的错误处理和日志记录"
+        ]
+      }
+    ],
+    "tool_integration": {
+      "custom_tools": [
+        "hpo_database_client：查询HPO数据库的API客户端",
+        "medical_term_standardizer：医学术语标准化工具",
+        "string_similarity_calculator：字符串相似度计算工具",
+        "cache_manager：本地缓存管理工具"
+      ],
+      "system_tools": [
+        "strands_tools/current_time",
+        "strands_tools/calculator"
+      ],
+      "strands_tools": [
+        "StrandsTelemetry：用于遥测和监控",
+        "create_agent_from_prompt_template：用于创建Agent"
+      ],
+      "integration_notes": [
+        "所有工具通过提示词模板中的tools_dependencies集成",
+        "工具调用由Agent根据上下文自动选择",
+        "缓存工具用于减少对HPO数据库的重复查询",
+        "字符串相似度工具用于模糊匹配阶段",
+        "医学术语标准化工具用于处理非正式或不完整的疾病描述"
+      ]
+    },
+    "configuration": {
+      "environment_variables": [
+        "BYPASS_TOOL_CONSENT=true：绕过工具使用确认",
+        "OTEL_EXPORTER_OTLP_ENDPOINT：遥测数据导出端点"
+      ],
+      "model_configuration": {
+        "model_name": "default (Claude Opus)",
+        "max_tokens": 60000,
+        "temperature": 0.3,
+        "top_p": 0.8
+      },
+      "streaming_config": {
+        "enabled": true,
+        "chunk_size": 1024
+      }
+    },
+    "error_handling": {
+      "exception_types": [
+        "JSONDecodeError：JSON解析错误",
+        "Exception：通用异常"
+      ],
+      "error_responses": [
+        "结构化错误响应，包含success=False标志",
+        "详细的错误消息和原始输入",
+        "可选的原始响应（用于调试）"
+      ],
+      "recovery_strategies": [
+        "JSON解析失败时尝试从Markdown代码块中提取JSON",
+        "完整的try-except块确保函数不会崩溃",
+        "详细的日志记录便于故障排除"
+      ]
+    },
+    "testing": {
+      "test_cases": [
+        "中文疾病名称提取和映射",
+        "英文疾病名称提取和映射",
+        "非正式疾病描述的标准化和映射",
+        "处理不确定性表述和症状组合"
+      ],
+      "test_scenarios": [
+        "通过命令行参数测试各种功能",
+        "支持不同的操作模式：extract_and_map、search、standardize、extract、hpo_info",
+        "支持自定义匹配阈值和最大结果数"
+      ],
+      "validation_criteria": [
+        "正确解析Agent响应",
+        "正确处理错误情况",
+        "结果格式符合预期",
+        "支持中英文双语处理"
+      ]
+    },
+    "deployment": {
+      "deployment_requirements": [
+        "Python 3.13+",
+        "Strands SDK",
+        "AWS Bedrock（用于Claude模型）",
+        "必要的环境变量配置"
+      ],
+      "runtime_dependencies": [
+        "utils.agent_factory",
+        "strands.telemetry",
+        "json",
+        "logging",
+        "re（用于JSON提取）"
+      ],
+      "performance_considerations": [
+        "使用本地缓存减少API调用",
+        "批量处理功能提高效率",
+        "适当的日志级别配置",
+        "合理的max_tokens配置"
+      ]
+    },
+    "development_notes": "开发过程中重点关注了多级匹配策略的实现和错误处理机制。通过提供多个专用函数（如extract_and_map_diseases、search_disease_by_name、standardize_disease_term等）使API更加灵活和易用。命令行界面设计支持多种操作模式，便于测试和集成。为了提高系统的可靠性，实现了完善的错误处理和日志记录机制，确保即使在异常情况下也能提供有用的反馈。JSON响应解析支持从Markdown代码块中提取JSON，提高了与Agent交互的稳健性。"
+  }
+}

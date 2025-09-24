@@ -1,0 +1,170 @@
+{
+  "agent_design": {
+    "design_overview": {
+      "project_name": "disease_hpo_mapping_agent",
+      "version": "1.0",
+      "date": "2025-09-24",
+      "design_scope": "设计一个能够从医生主诉中提取疾病名称并关联到HPO ID的智能体",
+      "design_goals": [
+        "准确识别和提取医生主诉中的疾病名称",
+        "将非正式或不完整的疾病描述标准化为正式疾病名称",
+        "准确映射疾病名称到对应的HPO ID",
+        "在直接匹配失败时实现多级匹配和推理策略",
+        "支持中英文双语疾病名称处理"
+      ],
+      "key_design_decisions": [
+        {
+          "decision": "采用单Agent架构",
+          "rationale": "核心功能集中在疾病名称提取和HPO ID映射这一专业领域，不需要多角色协作",
+          "alternatives": ["多Agent协作架构"],
+          "consequences": ["简化系统复杂度", "便于维护和扩展", "减少通信开销"]
+        },
+        {
+          "decision": "基于API集成专家模板实现",
+          "rationale": "系统需要与外部HPO数据库API进行深度集成，该模板提供了完整的HTTP请求处理功能和数据格式转换工具",
+          "alternatives": ["通用问答Agent模板", "自定义Agent架构"],
+          "consequences": ["简化API集成开发", "利用现有模板加速开发", "确保API处理的可靠性"]
+        },
+        {
+          "decision": "实现多级匹配策略",
+          "rationale": "医生主诉中的疾病描述可能不规范或不完整，需要多种匹配策略来提高识别成功率",
+          "alternatives": ["仅使用单一匹配方法", "完全依赖LLM推理"],
+          "consequences": ["提高识别准确率", "能处理更复杂的疾病描述", "增加系统复杂度"]
+        },
+        {
+          "decision": "实现本地缓存机制",
+          "rationale": "减少对HPO数据库的重复查询，提高系统响应速度",
+          "alternatives": ["每次实时查询", "完全离线数据库"],
+          "consequences": ["提高常见疾病查询性能", "减少API调用次数", "需要定期更新缓存数据"]
+        }
+      ]
+    },
+    "agents": [
+      {
+        "agent_id": "disease_hpo_mapper_agent",
+        "name": "disease_hpo_mapper",
+        "role": "疾病-HPO映射专家",
+        "purpose": "从医生主诉中提取疾病名称，并将其准确映射到标准化的HPO ID",
+        "personality": {
+          "traits": ["专业", "精确", "有条理", "耐心", "助人"],
+          "communication_style": "专业、清晰、结构化，使用医学术语但能适当解释复杂概念",
+          "tone": "正式但友好，注重准确性和实用性"
+        },
+        "capabilities": {
+          "core_functions": [
+            "自然语言疾病名称提取",
+            "疾病名称标准化",
+            "HPO ID映射",
+            "权威数据库检索",
+            "模糊查询和关键字搜索",
+            "多步骤推理"
+          ],
+          "specialized_skills": [
+            "医学术语理解",
+            "中英文双语处理",
+            "相似度计算和排序",
+            "医学知识推理",
+            "结构化数据处理"
+          ],
+          "limitations": [
+            "不提供疾病诊断和治疗建议",
+            "不处理患者个人健康记录",
+            "不进行医学图像分析",
+            "依赖HPO数据库的完整性和准确性",
+            "对极为罕见或新发现疾病的识别可能受限"
+          ],
+          "tools_required": [
+            "HPO数据库API客户端",
+            "医学术语标准库",
+            "自然语言处理工具",
+            "字符串相似度计算工具",
+            "本地缓存管理工具",
+            "HTTP请求处理工具"
+          ]
+        },
+        "knowledge_domain": {
+          "primary_domains": [
+            "医学术语和疾病分类",
+            "人类表型本体论(HPO)",
+            "自然语言处理",
+            "医学数据标准化"
+          ],
+          "expertise_level": "专家级，具备专业医学术语理解和HPO映射知识",
+          "knowledge_sources": [
+            "HPO数据库",
+            "医学术语标准库",
+            "医学知识图谱",
+            "疾病分类系统"
+          ],
+          "update_frequency": "HPO数据库和医学术语库每月更新，确保与最新医学发现同步"
+        },
+        "interaction_patterns": {
+          "communication_style": "接收文本输入，返回结构化的疾病-HPO映射结果，包含详细的匹配信息和置信度",
+          "conversation_flow": "单轮问答为主，支持用户提供反馈和修正，可进行必要的澄清和确认",
+          "error_responses": [
+            "当无法识别疾病时，提供清晰的错误消息和可能的替代建议",
+            "当HPO数据库查询失败时，明确说明并提供备用方案",
+            "当输入不包含疾病描述时，友好提示用户提供相关信息"
+          ]
+        },
+        "constraints": [
+          "必须使用最新版本的HPO数据库",
+          "必须支持中英文双语操作",
+          "必须遵循医疗数据处理的隐私和安全标准",
+          "应能在不依赖外部网络的情况下基本运行（通过本地缓存）",
+          "响应时间不应超过3秒（对于单个疾病名称处理）"
+        ],
+        "evaluation_criteria": [
+          "疾病名称提取准确率（目标>90%）",
+          "HPO ID映射准确率（目标>85%）",
+          "非标准疾病描述处理成功率（目标>80%）",
+          "响应时间（目标<3秒）",
+          "用户满意度（目标>85%）"
+        ],
+        "model_requirements": {
+          "model_name": "Claude Opus",
+          "minimum_capabilities": [
+            "强大的自然语言理解能力",
+            "医学术语理解能力",
+            "多步骤推理能力",
+            "中英文双语处理能力"
+          ],
+          "rationale": "Claude Opus模型具有强大的自然语言理解和推理能力，能够处理复杂的医学术语和进行多步骤推理，适合处理疾病名称提取和标准化这类专业任务"
+        },
+        "memory_configuration": {
+          "memory_type": "混合记忆系统，包含短期会话记忆和长期知识缓存",
+          "retention_policy": "会话记忆在会话结束后清除，知识缓存定期更新以保持与HPO数据库同步",
+          "retrieval_strategy": "优先检索本地缓存，缓存未命中时查询HPO数据库，并更新缓存"
+        }
+      }
+    ],
+    "agent_relationships": [
+      {
+        "source_agent": "disease_hpo_mapper_agent",
+        "target_agent": "disease_hpo_mapper_agent",
+        "relationship_type": "自循环",
+        "interaction_protocol": "内部模块间通信",
+        "data_exchange": [
+          "疾病实体数据",
+          "HPO映射结果",
+          "处理状态信息",
+          "错误和异常信息"
+        ]
+      }
+    ],
+    "system_integration": {
+      "entry_point": "接收医生主诉文本输入的API端点",
+      "exit_points": [
+        "返回结构化疾病-HPO映射结果的API响应",
+        "错误处理和异常响应",
+        "健康检查端点"
+      ],
+      "external_interfaces": [
+        "HPO数据库API",
+        "医学术语标准库API",
+        "系统监控和日志接口",
+        "可选的用户反馈接口"
+      ]
+    }
+  }
+}
