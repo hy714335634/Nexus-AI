@@ -25,20 +25,20 @@
 
 ### Agent Factory System
 
-- **Agent Factory** (`utils/agent_factory.py`): Dynamic agent creation from prompt templates
-- **Prompt Manager** (`utils/prompts_manager.py`): YAML-based prompt template management with versioning
-- **MCP Manager** (`utils/mcp_manager.py`): MCP server configuration and client management
-- **Config Loader** (`utils/config_loader.py`): Centralized configuration management
+- **Agent Factory** (`nexus_utils./agent_factory.py`): Dynamic agent creation from prompt templates
+- **Prompt Manager** (`nexus_utils./prompts_manager.py`): YAML-based prompt template management with versioning
+- **MCP Manager** (`nexus_utils./mcp_manager.py`): MCP server configuration and client management
+- **Config Loader** (`nexus_utils./config_loader.py`): Centralized configuration management
 
 ### Multimodal Processing System
 
-- **Content Parsing Engine** (`utils/multimodal_processing/content_parsing_engine.py`): Unified content processing interface
-- **File Upload Manager** (`utils/multimodal_processing/file_upload_manager.py`): File upload and validation handling
-- **Image Processor** (`utils/multimodal_processing/image_processor.py`): Image content analysis and processing
-- **Document Processor** (`utils/multimodal_processing/document_processor.py`): Excel, Word, and text document processing
-- **S3 Storage Service** (`utils/multimodal_processing/s3_storage_service.py`): AWS S3 file storage management
-- **Multimodal Model Service** (`utils/multimodal_processing/multimodal_model_service.py`): AI model integration for content analysis
-- **Markdown Generator** (`utils/multimodal_processing/markdown_generator.py`): Structured markdown output generation
+- **Content Parsing Engine** (`nexus_utils./multimodal_processing/content_parsing_engine.py`): Unified content processing interface
+- **File Upload Manager** (`nexus_utils./multimodal_processing/file_upload_manager.py`): File upload and validation handling
+- **Image Processor** (`nexus_utils./multimodal_processing/image_processor.py`): Image content analysis and processing
+- **Document Processor** (`nexus_utils./multimodal_processing/document_processor.py`): Excel, Word, and text document processing
+- **S3 Storage Service** (`nexus_utils./multimodal_processing/s3_storage_service.py`): AWS S3 file storage management
+- **Multimodal Model Service** (`nexus_utils./multimodal_processing/multimodal_model_service.py`): AI model integration for content analysis
+- **Markdown Generator** (`nexus_utils./multimodal_processing/markdown_generator.py`): Structured markdown output generation
 
 ### Agent Types
 
@@ -66,7 +66,7 @@
 # Environment setup
 pip install uv                        # Install uv package manager
 uv pip install -r requirements.txt    # Install dependencies using uv
-source .venv/bin/activate             # Activate virtual environment (if using venv)
+source venv/bin/activate             # Activate virtual environment (if using venv)
 
 # Jaeger Setup (for tracing)
 docker run -d --name jaeger \
@@ -94,10 +94,10 @@ python -u agents/system_agents/agent_build_workflow/agent_build_workflow.py \
   -i "请创建一个Agent帮我完成AWS产品报价工作..." | tee logs/temp.log
 
 # Agent Factory Usage
-python -c "from utils.agent_factory import create_agent_from_prompt_template; agent = create_agent_from_prompt_template('system_agents_prompts/agent_build_workflow/orchestrator')"
+python -c "from nexus_utils..agent_factory import create_agent_from_prompt_template; agent = create_agent_from_prompt_template('system_agents_prompts/agent_build_workflow/orchestrator')"
 
 # Configuration Testing
-python -c "from utils.config_loader import get_config; config = get_config(); print('AWS配置:', config.get_aws_config())"
+python -c "from nexus_utils..config_loader import get_config; config = get_config(); print('AWS配置:', config.get_aws_config())"
 
 # System Agent Testing
 python agents/system_agents/magician.py  # Test magician agent
