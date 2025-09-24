@@ -12,7 +12,7 @@ import argparse
 from pathlib import Path
 from typing import Optional, Dict, Any, List, Union
 
-from utils.agent_factory import create_agent_from_prompt_template
+from nexus_utils.agent_factory import create_agent_from_prompt_template
 from strands.telemetry import StrandsTelemetry
 
 # 设置环境变量和遥测

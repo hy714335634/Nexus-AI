@@ -16,7 +16,7 @@
 import os
 import json
 from typing import List, Dict, Any, Optional
-from utils.agent_factory import create_agent_from_prompt_template
+from nexus_utils.agent_factory import create_agent_from_prompt_template
 from strands.telemetry import StrandsTelemetry
 
 # 设置环境变量
