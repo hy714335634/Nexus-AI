@@ -1,0 +1,320 @@
+{
+  "agent_code_development": {
+    "development_overview": {
+      "project_name": "aws_architecture_diagram_generator",
+      "version": "1.0",
+      "date": "2025-09-24",
+      "development_scope": "Development of an AWS Architecture Diagram Generator Agent that can understand natural language architecture requirements, map IT technology stacks to AWS services, validate architecture designs, and generate architecture diagrams in multiple formats (mermaid, markdown, drawio, PPT).",
+      "design_principles": [
+        "Single Agent Architecture: Consolidate all functionality within a single agent for better consistency and coordination",
+        "Modular Design: Implement a clean separation of concerns with distinct components for different functionalities",
+        "AWS Integration: Leverage AWS tools and services for real-time information and validation",
+        "Multi-format Output: Support various diagram formats to meet different user needs",
+        "User-friendly Interface: Provide an intuitive CLI with interactive mode support"
+      ],
+      "key_decisions": [
+        "Used the requirements_analyzer template as a base for the agent structure",
+        "Implemented a flexible command-line interface with support for multiple output formats",
+        "Added interactive mode for multi-turn conversations",
+        "Integrated error handling and validation for user inputs",
+        "Designed the agent to work with both file-based and direct text inputs"
+      ]
+    },
+    "agent_implementation": {
+      "agent_name": "aws_architect",
+      "file_path": "agents/generated_agents/aws_architecture_diagram_generator/aws_architect.py",
+      "main_class": "AWSArchitectCLI",
+      "entry_point": "main",
+      "dependencies": [
+        "nexus_utils.agent_factory or utils.agent_factory",
+        "strands.telemetry",
+        "argparse",
+        "logging",
+        "json",
+        "os",
+        "pathlib"
+      ],
+      "imports": [
+        "create_agent_from_prompt_template",
+        "StrandsTelemetry",
+        "argparse",
+        "logging",
+        "json",
+        "os",
+        "Path",
+        "Dict, List, Any, Optional, Union"
+      ]
+    },
+    "core_functions": [
+      {
+        "function_name": "create_agent_from_prompt_template",
+        "purpose": "Create the AWS Architect agent using the prompt template",
+        "parameters": [
+          {
+            "name": "agent_name",
+            "type": "str",
+            "description": "Path to the agent prompt template",
+            "required": true
+          },
+          {
+            "name": "**agent_params",
+            "type": "Dict",
+            "description": "Parameters for agent creation including environment, version, and model ID",
+            "required": true
+          }
+        ],
+        "return_type": "Agent",
+        "return_description": "Initialized AWS Architect agent",
+        "implementation_notes": ["Uses the agent factory to create an agent from the prompt template"]
+      },
+      {
+        "function_name": "AWSArchitectCLI._create_parser",
+        "purpose": "Create command line argument parser",
+        "parameters": [
+          {
+            "name": "self",
+            "type": "AWSArchitectCLI",
+            "description": "Instance of AWSArchitectCLI",
+            "required": true
+          }
+        ],
+        "return_type": "argparse.ArgumentParser",
+        "return_description": "Configured argument parser",
+        "implementation_notes": [
+          "Defines command-line arguments for requirements, file input, output formats, diagram title, template path, and interactive mode"
+        ]
+      },
+      {
+        "function_name": "AWSArchitectCLI._get_requirement",
+        "purpose": "Get architecture requirements from command line arguments or file",
+        "parameters": [
+          {
+            "name": "self",
+            "type": "AWSArchitectCLI",
+            "description": "Instance of AWSArchitectCLI",
+            "required": true
+          },
+          {
+            "name": "args",
+            "type": "Namespace",
+            "description": "Parsed command line arguments",
+            "required": true
+          }
+        ],
+        "return_type": "Optional[str]",
+        "return_description": "Architecture requirements text, or None if not provided",
+        "implementation_notes": [
+          "Prioritizes direct input over file input",
+          "Handles file reading errors",
+          "Prompts for input in interactive mode"
+        ]
+      },
+      {
+        "function_name": "AWSArchitectCLI._parse_output_formats",
+        "purpose": "Parse output formats from command line argument",
+        "parameters": [
+          {
+            "name": "self",
+            "type": "AWSArchitectCLI",
+            "description": "Instance of AWSArchitectCLI",
+            "required": true
+          },
+          {
+            "name": "formats_str",
+            "type": "str",
+            "description": "Comma-separated list of formats or 'all'",
+            "required": true
+          }
+        ],
+        "return_type": "List[str]",
+        "return_description": "List of valid output formats",
+        "implementation_notes": [
+          "Handles 'all' as a special case",
+          "Validates formats against a set of valid options",
+          "Warns about invalid formats"
+        ]
+      },
+      {
+        "function_name": "AWSArchitectCLI._run_interactive_mode",
+        "purpose": "Run interactive mode for multi-turn conversation",
+        "parameters": [
+          {
+            "name": "self",
+            "type": "AWSArchitectCLI",
+            "description": "Instance of AWSArchitectCLI",
+            "required": true
+          },
+          {
+            "name": "initial_requirement",
+            "type": "str",
+            "description": "Initial architecture requirements",
+            "required": true
+          }
+        ],
+        "return_type": "None",
+        "return_description": "No return value",
+        "implementation_notes": [
+          "Maintains conversation history",
+          "Handles user exit commands",
+          "Builds complete conversation context for each turn"
+        ]
+      },
+      {
+        "function_name": "AWSArchitectCLI._build_conversation_prompt",
+        "purpose": "Build complete prompt with conversation history",
+        "parameters": [
+          {
+            "name": "self",
+            "type": "AWSArchitectCLI",
+            "description": "Instance of AWSArchitectCLI",
+            "required": true
+          },
+          {
+            "name": "history",
+            "type": "List[Dict[str, str]]",
+            "description": "Conversation history",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "Complete prompt with conversation history",
+        "implementation_notes": [
+          "Formats conversation history as alternating User/AWS Architect messages",
+          "Preserves the full context for the agent"
+        ]
+      },
+      {
+        "function_name": "AWSArchitectCLI.run",
+        "purpose": "Run the AWS Architect CLI",
+        "parameters": [
+          {
+            "name": "self",
+            "type": "AWSArchitectCLI",
+            "description": "Instance of AWSArchitectCLI",
+            "required": true
+          }
+        ],
+        "return_type": "None",
+        "return_description": "No return value",
+        "implementation_notes": [
+          "Parses command line arguments",
+          "Gets architecture requirements",
+          "Processes output formats",
+          "Runs in interactive or single-response mode",
+          "Handles exceptions"
+        ]
+      }
+    ],
+    "tool_integration": {
+      "custom_tools": [
+        "aws_service_tools.map_tech_stack_to_aws",
+        "aws_service_tools.query_aws_service_info",
+        "aws_service_tools.validate_architecture",
+        "diagram_generator.generate_mermaid_diagram",
+        "diagram_generator.generate_markdown_diagram",
+        "diagram_generator.generate_drawio_diagram",
+        "ppt_generator_and_validator.generate_ppt_architecture",
+        "ppt_generator_and_validator.validate_aws_architecture"
+      ],
+      "system_tools": [
+        "strands_tools/use_aws",
+        "strands_tools/current_time",
+        "strands_tools/calculator",
+        "strands_tools/file_read"
+      ],
+      "strands_tools": [
+        "use_aws",
+        "current_time",
+        "calculator",
+        "file_read"
+      ],
+      "integration_notes": [
+        "Custom tools are integrated through the prompt template",
+        "System tools are accessed through the Strands SDK",
+        "The agent uses use_aws for real-time AWS service information",
+        "File reading is used for template and input file handling"
+      ]
+    },
+    "configuration": {
+      "environment_variables": [
+        "BYPASS_TOOL_CONSENT=true",
+        "OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318"
+      ],
+      "model_configuration": {
+        "model_name": "default",
+        "max_tokens": 60000,
+        "temperature": 0.3,
+        "top_p": 0.8
+      },
+      "streaming_config": {
+        "enabled": true,
+        "chunk_size": 1024
+      }
+    },
+    "error_handling": {
+      "exception_types": [
+        "FileNotFoundError",
+        "PermissionError",
+        "JSONDecodeError",
+        "ImportError",
+        "Exception"
+      ],
+      "error_responses": [
+        "File reading errors are caught and reported to the user",
+        "Import errors are handled with fallback import paths",
+        "General exceptions during agent execution are caught and reported"
+      ],
+      "recovery_strategies": [
+        "Validate user inputs before processing",
+        "Provide clear error messages with suggested actions",
+        "Fall back to alternative import paths when primary imports fail",
+        "Continue operation when non-critical components fail"
+      ]
+    },
+    "testing": {
+      "test_cases": [
+        "Basic architecture description input",
+        "File-based input",
+        "Multiple output format selection",
+        "Interactive mode conversation",
+        "Template-based PPT generation"
+      ],
+      "test_scenarios": [
+        "Simple web application architecture",
+        "Complex enterprise architecture with multiple VPCs",
+        "Serverless application architecture",
+        "Database-focused architecture",
+        "Hybrid architecture with on-premises components"
+      ],
+      "validation_criteria": [
+        "Correct understanding of architecture requirements",
+        "Accurate mapping of technology stack to AWS services",
+        "Valid architecture diagrams in requested formats",
+        "Proper validation of architecture against best practices",
+        "Coherent multi-turn conversation in interactive mode"
+      ]
+    },
+    "deployment": {
+      "deployment_requirements": [
+        "Python 3.13+",
+        "Strands SDK",
+        "AWS Bedrock access",
+        "AWS credentials for use_aws tool",
+        "Required Python packages (nexus_utils, strands, etc.)"
+      ],
+      "runtime_dependencies": [
+        "nexus_utils or utils package",
+        "strands package",
+        "AWS SDK for Python (boto3)",
+        "Standard Python libraries (argparse, json, logging, etc.)"
+      ],
+      "performance_considerations": [
+        "Agent response time depends on model inference speed",
+        "AWS API calls may introduce latency",
+        "Large architecture diagrams may require more processing time",
+        "Interactive mode maintains conversation context which grows with each turn"
+      ]
+    },
+    "development_notes": "The AWS Architecture Diagram Generator agent was developed based on the requirements_analyzer template, with customizations for architecture diagram generation. The agent integrates multiple custom tools for AWS service mapping, architecture validation, and diagram generation in various formats. The implementation follows a modular design with clear separation of concerns between the agent core, CLI interface, and tool integrations. The agent supports both direct text input and file-based input, with an interactive mode for multi-turn conversations. Error handling is implemented throughout the codebase to ensure robustness and user-friendly operation. The agent is designed to be extensible, allowing for future additions of new diagram formats or AWS services."
+  }
+}

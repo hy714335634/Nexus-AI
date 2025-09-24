@@ -1,0 +1,59 @@
+project_info:
+- agents:
+  - created_date: '2025-09-24T14:52:37.427979+00:00'
+    description: 智能体：medical_translator
+    last_updated: '2025-09-24T15:42:07.687496+00:00'
+    name: medical_translator
+    pipeline:
+    - description: 需求分析阶段 - 分析用户需求，定义功能规格
+      doc_path: agents/medical_translator/requirements_analyzer.json
+      stage: requirements_analyzer
+      status: true
+      updated_date: '2025-09-24T14:54:19.024497+00:00'
+    - description: 系统架构设计阶段 - 设计系统架构和技术方案
+      doc_path: agents/medical_translator/system_architect.json
+      stage: system_architect
+      status: true
+      updated_date: '2025-09-24T14:58:52.972600+00:00'
+    - description: Agent设计阶段 - 设计智能体结构和交互模式
+      doc_path: agents/medical_translator/agent_designer.json
+      stage: agent_designer
+      status: true
+      updated_date: '2025-09-24T15:01:01.635357+00:00'
+    - agent_artifact_path:
+      - prompts/generated_agents_prompts/medical_document_translation_agent/medical_translator.yaml
+      description: 提示词工程阶段 - 设计和优化提示词模板
+      doc_path: agents/medical_translator/prompt_engineer.json
+      stage: prompt_engineer
+      status: true
+      updated_date: '2025-09-24T15:29:45.663275+00:00'
+    - agent_artifact_path:
+      - tools/generated_tools/medical_document_translation_agent/docx_processor.py
+      - tools/generated_tools/medical_document_translation_agent/medical_glossary_manager.py
+      - tools/generated_tools/medical_document_translation_agent/translation_engine.py
+      - tools/generated_tools/medical_document_translation_agent/quality_controller.py
+      - tools/generated_tools/medical_document_translation_agent/batch_processor.py
+      description: 工具开发阶段 - 开发必要的工具和函数
+      doc_path: agents/medical_translator/tools_developer.json
+      stage: tools_developer
+      status: true
+      updated_date: '2025-09-24T15:22:19.791936+00:00'
+    - agent_artifact_path:
+      - generated_agents/medical_document_translation_agent/medical_translator.py
+      description: Agent代码开发阶段 - 实现智能体代码
+      doc_path: ''
+      stage: agent_code_developer
+      status: true
+      updated_date: '2025-09-24T15:39:34.574523+00:00'
+    - description: Agent开发管理阶段 - 管理和协调开发流程
+      doc_path: agents/medical_translator/agent_developer_manager.json
+      stage: agent_developer_manager
+      status: true
+      updated_date: '2025-09-24T15:42:07.687498+00:00'
+  description: 专业的医学文档翻译Agent，能够精准翻译医学专业文档，支持Word文档处理、医学词库管理、智能翻译、质量控制和良好用户体验
+  last_updated: '2025-09-24T15:42:07.687487+00:00'
+  name: medical_document_translation_agent
+  progress:
+  - completed: 7
+    total: 7
+  version: 1.0.0

@@ -1,0 +1,468 @@
+{
+  "tool_development": {
+    "development_overview": {
+      "project_name": "aws_architecture_diagram_generator",
+      "version": "1.0",
+      "date": "2025-09-24",
+      "development_scope": "开发AWS架构图生成器所需的工具，包括PPT生成和架构验证功能",
+      "design_principles": [
+        "模块化设计，便于维护和扩展",
+        "遵循AWS最佳实践和架构原则",
+        "提供丰富的验证和建议功能",
+        "支持多种输出格式和自定义模板"
+      ],
+      "key_decisions": [
+        "将工具功能分为三个主要模块：AWS服务工具、图表生成器和PPT生成与验证工具",
+        "使用Python标准库和boto3进行AWS服务集成",
+        "实现缓存机制减少重复API调用",
+        "提供详细的架构验证和最佳实践检查功能"
+      ]
+    },
+    "tools": [
+      {
+        "tool_name": "query_aws_service_info",
+        "description": "查询AWS服务信息，包括描述、功能和限制",
+        "function_signature": "query_aws_service_info(service_name: str, region: str = \"us-east-1\") -> str",
+        "parameters": [
+          {
+            "name": "service_name",
+            "type": "str",
+            "description": "AWS服务名称（例如EC2、S3、RDS）",
+            "required": true
+          },
+          {
+            "name": "region",
+            "type": "str",
+            "description": "AWS区域名称",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "包含服务信息的JSON字符串",
+        "dependencies": ["boto3", "json", "logging"],
+        "implementation_notes": [
+          "使用缓存减少重复API调用",
+          "实现回退机制，当API调用失败时使用内置信息"
+        ],
+        "error_handling": [
+          "捕获并记录API调用异常",
+          "提供有意义的错误信息"
+        ],
+        "usage_examples": [
+          "查询EC2服务信息：query_aws_service_info('EC2')"
+        ]
+      },
+      {
+        "tool_name": "map_tech_stack_to_aws",
+        "description": "将传统IT技术栈组件映射到对应的AWS服务",
+        "function_signature": "map_tech_stack_to_aws(tech_stack: List[str], include_alternatives: bool = True) -> str",
+        "parameters": [
+          {
+            "name": "tech_stack",
+            "type": "List[str]",
+            "description": "传统IT组件或技术列表",
+            "required": true
+          },
+          {
+            "name": "include_alternatives",
+            "type": "bool",
+            "description": "是否包含替代AWS服务",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "包含映射结果的JSON字符串",
+        "dependencies": ["json", "re", "logging"],
+        "implementation_notes": [
+          "使用缓存提高性能",
+          "支持部分匹配和模糊匹配",
+          "提供置信度评分"
+        ],
+        "error_handling": [
+          "处理空输入",
+          "处理未找到匹配的情况"
+        ],
+        "usage_examples": [
+          "映射技术栈：map_tech_stack_to_aws(['mysql', 'redis', 'nginx'])"
+        ]
+      },
+      {
+        "tool_name": "generate_mermaid_diagram",
+        "description": "生成AWS架构的Mermaid图表表示",
+        "function_signature": "generate_mermaid_diagram(architecture_components: List[Dict[str, Any]], diagram_title: str) -> str",
+        "parameters": [
+          {
+            "name": "architecture_components",
+            "type": "List[Dict[str, Any]]",
+            "description": "架构组件及其关系列表",
+            "required": true
+          },
+          {
+            "name": "diagram_title",
+            "type": "str",
+            "description": "图表标题",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "包含Mermaid图表代码的JSON字符串",
+        "dependencies": ["json", "logging"],
+        "implementation_notes": [
+          "支持VPC子图和嵌套组件",
+          "自动应用样式和颜色",
+          "优化连接线路径"
+        ],
+        "error_handling": [
+          "验证输入组件",
+          "处理空组件列表"
+        ],
+        "usage_examples": [
+          "生成架构图：generate_mermaid_diagram(components, '电商应用架构')"
+        ]
+      },
+      {
+        "tool_name": "generate_markdown_diagram",
+        "description": "生成AWS架构的Markdown表示",
+        "function_signature": "generate_markdown_diagram(architecture_components: List[Dict[str, Any]], diagram_title: str) -> str",
+        "parameters": [
+          {
+            "name": "architecture_components",
+            "type": "List[Dict[str, Any]]",
+            "description": "架构组件及其关系列表",
+            "required": true
+          },
+          {
+            "name": "diagram_title",
+            "type": "str",
+            "description": "图表标题",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "包含Markdown表示的JSON字符串",
+        "dependencies": ["json", "logging"],
+        "implementation_notes": [
+          "包含Mermaid图表代码",
+          "生成组件详情表格",
+          "按类型分组组件"
+        ],
+        "error_handling": [
+          "验证输入组件",
+          "处理空组件列表"
+        ],
+        "usage_examples": [
+          "生成Markdown文档：generate_markdown_diagram(components, '电商应用架构')"
+        ]
+      },
+      {
+        "tool_name": "generate_drawio_diagram",
+        "description": "生成AWS架构的draw.io图表XML表示",
+        "function_signature": "generate_drawio_diagram(architecture_components: List[Dict[str, Any]], diagram_title: str) -> str",
+        "parameters": [
+          {
+            "name": "architecture_components",
+            "type": "List[Dict[str, Any]]",
+            "description": "架构组件及其关系列表",
+            "required": true
+          },
+          {
+            "name": "diagram_title",
+            "type": "str",
+            "description": "图表标题",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "包含draw.io XML表示的JSON字符串",
+        "dependencies": ["json", "xml.etree.ElementTree", "hashlib", "datetime", "logging"],
+        "implementation_notes": [
+          "生成标准draw.io XML格式",
+          "包含AWS服务图标",
+          "自动布局组件"
+        ],
+        "error_handling": [
+          "验证输入组件",
+          "处理XML生成错误"
+        ],
+        "usage_examples": [
+          "生成draw.io图表：generate_drawio_diagram(components, '电商应用架构')"
+        ]
+      },
+      {
+        "tool_name": "generate_ppt_diagram",
+        "description": "基于架构组件生成PowerPoint演示图表",
+        "function_signature": "generate_ppt_diagram(architecture_components: List[Dict[str, Any]], template_path: Optional[str] = None, diagram_title: str = \"AWS Architecture Diagram\") -> str",
+        "parameters": [
+          {
+            "name": "architecture_components",
+            "type": "List[Dict[str, Any]]",
+            "description": "架构组件及其关系列表",
+            "required": true
+          },
+          {
+            "name": "template_path",
+            "type": "Optional[str]",
+            "description": "PowerPoint模板文件路径(.pptx)",
+            "required": false
+          },
+          {
+            "name": "diagram_title",
+            "type": "str",
+            "description": "图表标题",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "包含生成的PowerPoint文件信息的JSON字符串",
+        "dependencies": ["json", "logging"],
+        "implementation_notes": [
+          "模拟PPT生成过程",
+          "描述生成的幻灯片内容",
+          "提供使用说明"
+        ],
+        "error_handling": [
+          "验证输入组件",
+          "处理空组件列表"
+        ],
+        "usage_examples": [
+          "生成PPT：generate_ppt_diagram(components, None, '电商应用架构')"
+        ]
+      },
+      {
+        "tool_name": "validate_architecture",
+        "description": "验证AWS架构设计的最佳实践和常见问题",
+        "function_signature": "validate_architecture(architecture_components: List[Dict[str, Any]]) -> str",
+        "parameters": [
+          {
+            "name": "architecture_components",
+            "type": "List[Dict[str, Any]]",
+            "description": "架构组件及其关系列表",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "包含验证结果、建议和发现问题的JSON字符串",
+        "dependencies": ["json", "logging"],
+        "implementation_notes": [
+          "检查VPC使用情况",
+          "验证安全组和NACL",
+          "检查多可用区部署",
+          "验证数据库备份策略",
+          "检查监控服务"
+        ],
+        "error_handling": [
+          "验证输入组件",
+          "处理空组件列表"
+        ],
+        "usage_examples": [
+          "验证架构：validate_architecture(components)"
+        ]
+      },
+      {
+        "tool_name": "generate_ppt_architecture",
+        "description": "基于架构组件生成PowerPoint演示图表",
+        "function_signature": "generate_ppt_architecture(architecture_components: List[Dict[str, Any]], template_path: Optional[str] = None, diagram_title: str = \"AWS Architecture Diagram\") -> str",
+        "parameters": [
+          {
+            "name": "architecture_components",
+            "type": "List[Dict[str, Any]]",
+            "description": "架构组件及其关系列表",
+            "required": true
+          },
+          {
+            "name": "template_path",
+            "type": "Optional[str]",
+            "description": "PowerPoint模板文件路径(.pptx)",
+            "required": false
+          },
+          {
+            "name": "diagram_title",
+            "type": "str",
+            "description": "图表标题",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "包含生成的PowerPoint文件信息的JSON字符串",
+        "dependencies": ["json", "os", "tempfile", "pptx", "logging"],
+        "implementation_notes": [
+          "使用python-pptx库创建真实的PPT文件",
+          "支持自定义模板",
+          "自动布局组件和VPC",
+          "添加AWS服务图标和连接线"
+        ],
+        "error_handling": [
+          "验证输入组件",
+          "处理模板加载错误",
+          "处理图标获取失败"
+        ],
+        "usage_examples": [
+          "生成PPT：generate_ppt_architecture(components, 'template.pptx', '电商应用架构')"
+        ]
+      },
+      {
+        "tool_name": "validate_aws_architecture",
+        "description": "验证AWS架构设计的最佳实践和常见问题",
+        "function_signature": "validate_aws_architecture(architecture_components: List[Dict[str, Any]]) -> str",
+        "parameters": [
+          {
+            "name": "architecture_components",
+            "type": "List[Dict[str, Any]]",
+            "description": "架构组件及其关系列表",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "包含验证结果、建议和发现问题的JSON字符串",
+        "dependencies": ["json", "logging"],
+        "implementation_notes": [
+          "检查VPC使用情况和服务放置",
+          "验证安全组件",
+          "检查高可用性设计",
+          "验证数据库组件",
+          "检查监控和日志记录",
+          "验证内容分发优化",
+          "检查网络组件"
+        ],
+        "error_handling": [
+          "验证输入组件",
+          "处理空组件列表",
+          "提供不同严重级别的问题分类"
+        ],
+        "usage_examples": [
+          "验证架构：validate_aws_architecture(components)"
+        ]
+      },
+      {
+        "tool_name": "check_aws_best_practices",
+        "description": "根据特定类别检查AWS架构是否符合最佳实践",
+        "function_signature": "check_aws_best_practices(architecture_components: List[Dict[str, Any]], category: Optional[str] = None) -> str",
+        "parameters": [
+          {
+            "name": "architecture_components",
+            "type": "List[Dict[str, Any]]",
+            "description": "架构组件及其关系列表",
+            "required": true
+          },
+          {
+            "name": "category",
+            "type": "Optional[str]",
+            "description": "要检查的特定类别(security, reliability, performance, cost, operational_excellence)",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "包含最佳实践分析结果的JSON字符串",
+        "dependencies": ["json", "logging"],
+        "implementation_notes": [
+          "支持按类别筛选检查",
+          "提供已满足和未满足的最佳实践",
+          "提供具体建议和证据",
+          "生成整体评估"
+        ],
+        "error_handling": [
+          "验证输入组件",
+          "处理无效类别",
+          "处理空组件列表"
+        ],
+        "usage_examples": [
+          "检查安全最佳实践：check_aws_best_practices(components, 'security')",
+          "检查所有最佳实践：check_aws_best_practices(components)"
+        ]
+      },
+      {
+        "tool_name": "analyze_vpc_configuration",
+        "description": "分析VPC配置并验证服务在VPC内外的正确放置",
+        "function_signature": "analyze_vpc_configuration(architecture_components: List[Dict[str, Any]]) -> str",
+        "parameters": [
+          {
+            "name": "architecture_components",
+            "type": "List[Dict[str, Any]]",
+            "description": "架构组件及其关系列表",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "包含VPC配置分析的JSON字符串",
+        "dependencies": ["json", "logging"],
+        "implementation_notes": [
+          "分析每个VPC的详细配置",
+          "检查关键网络组件",
+          "分析子网配置",
+          "验证服务放置的正确性",
+          "提供针对性建议"
+        ],
+        "error_handling": [
+          "验证输入组件",
+          "处理无VPC的情况",
+          "处理空组件列表"
+        ],
+        "usage_examples": [
+          "分析VPC配置：analyze_vpc_configuration(components)"
+        ]
+      }
+    ],
+    "code_quality": {
+      "code_standards": [
+        "遵循PEP 8编码风格",
+        "使用类型注解提高代码可读性",
+        "提供详细的函数文档字符串",
+        "使用一致的命名约定",
+        "模块化设计，单一职责原则"
+      ],
+      "testing_strategy": [
+        "单元测试关键函数",
+        "集成测试验证工具链",
+        "边界条件测试",
+        "错误处理测试"
+      ],
+      "performance_considerations": [
+        "使用缓存减少重复API调用",
+        "优化大型架构图的布局算法",
+        "异步处理耗时操作",
+        "减少内存使用"
+      ],
+      "security_measures": [
+        "安全处理用户提供的模板文件",
+        "避免执行不安全的代码",
+        "验证输入参数",
+        "安全的AWS API调用"
+      ]
+    },
+    "integration_details": {
+      "aws_services": [
+        "AWS Service Catalog",
+        "EC2",
+        "S3",
+        "RDS",
+        "Lambda",
+        "DynamoDB",
+        "VPC",
+        "CloudFront",
+        "Route53",
+        "IAM",
+        "CloudWatch"
+      ],
+      "external_libraries": [
+        "boto3",
+        "python-pptx",
+        "xml.etree.ElementTree",
+        "hashlib",
+        "tempfile",
+        "pathlib"
+      ],
+      "api_endpoints": [
+        "AWS Service Catalog API",
+        "AWS服务信息查询API"
+      ],
+      "data_formats": [
+        "JSON",
+        "Mermaid图表代码",
+        "Markdown",
+        "XML (draw.io)",
+        "PPTX (PowerPoint)"
+      ]
+    },
+    "development_notes": "在工具开发过程中，我们决定将功能分为三个主要模块：AWS服务工具、图表生成器和PPT生成与验证工具。这种模块化设计使得代码更易于维护和扩展。我们特别注重架构验证功能，实现了多种检查机制，包括VPC配置分析、最佳实践检查和服务放置验证。对于PPT生成功能，我们实现了完整的PowerPoint文件创建流程，支持自定义模板和自动布局。此外，我们还添加了缓存机制来减少重复API调用，提高工具的性能和响应速度。"
+  }
+}

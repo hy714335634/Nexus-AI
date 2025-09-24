@@ -361,7 +361,7 @@ def validate_agent_file(file_path: str) -> str:
             return json.dumps(validation_results, ensure_ascii=False, indent=2)
         
         # 4. 检查必要的导入
-        has_agent_factory_import = "from utils.agent_factory import" in content
+        has_agent_factory_import = "from nexus_utils.agent_factory import" in content
         has_create_agent_import = "create_agent_from_prompt_template" in content
         
         validation_results["checks"]["has_agent_factory_import"] = has_agent_factory_import
@@ -370,7 +370,7 @@ def validate_agent_file(file_path: str) -> str:
         # 检查是否所有检查都通过
         missing_imports = []
         if not has_agent_factory_import:
-            missing_imports.append("utils.agent_factory")
+            missing_imports.append("nexus_utils.agent_factory")
         if not has_create_agent_import:
             missing_imports.append("create_agent_from_prompt_template")
         
@@ -380,7 +380,7 @@ def validate_agent_file(file_path: str) -> str:
                 "error_category": "MISSING_REQUIRED_IMPORTS",
                 "error_details": [f"缺少必要的导入: {', '.join(missing_imports)}"],
                 "suggestions": [
-                    "添加 'from utils.agent_factory import create_agent_from_prompt_template' 导入语句",
+                    "添加 'from nexus_utils.agent_factory import create_agent_from_prompt_template' 导入语句",
                     "确保使用 create_agent_from_prompt_template 函数创建代理",
                     "参考示例文件了解正确的导入格式"
                 ]
