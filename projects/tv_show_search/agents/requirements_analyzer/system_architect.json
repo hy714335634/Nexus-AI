@@ -1,0 +1,256 @@
+{
+  "system_design": {
+    "design_overview": {
+      "project_name": "tv_show_search",
+      "version": "1.0",
+      "date": "2025-09-24",
+      "design_scope": "设计一个电视节目搜索Agent，能够通过调用外部API获取和展示电视节目信息",
+      "design_principles": [
+        "简单性：保持架构简洁，减少复杂性",
+        "可靠性：确保搜索结果准确可靠",
+        "用户友好：提供清晰易懂的搜索体验",
+        "可扩展性：支持未来可能的功能扩展",
+        "容错性：优雅处理API错误和异常情况"
+      ],
+      "key_decisions": [
+        "采用单Agent架构设计，简化系统复杂度",
+        "使用外部电视节目数据API作为数据源",
+        "实现多种搜索方式（按名称、类型等）",
+        "提供详细的节目信息展示",
+        "实现基本的结果排序功能"
+      ],
+      "workflow_type": "single_agent",
+      "recommended_templates": ["web_search_agent", "api_query_agent", "information_retrieval_agent"]
+    },
+    "architecture": {
+      "system_context": "该系统是一个独立的电视节目搜索Agent，与用户直接交互，并通过外部API获取电视节目数据。系统不需要复杂的多Agent协作，一个Agent即可完成所有功能。",
+      "agent_topology": "单Agent架构，由一个核心Agent处理所有用户请求和数据检索",
+      "interaction_model": "用户通过自然语言与Agent交互，Agent解析用户意图，构建API查询，获取结果并格式化展示给用户",
+      "technology_stack": {
+        "sdk": "Strands SDK",
+        "runtime": "Local",
+        "integrations": ["电视节目数据API", "AWS Bedrock", "Python HTTP客户端"]
+      }
+    },
+    "agents": [
+      {
+        "name": "tv_show_search_agent",
+        "purpose": "帮助用户搜索和获取电视节目信息",
+        "responsibilities": [
+          "解析用户查询意图",
+          "构建API查询参数",
+          "调用外部电视节目数据API",
+          "处理和格式化搜索结果",
+          "展示电视节目详细信息",
+          "处理错误和异常情况",
+          "提供搜索建议"
+        ],
+        "interfaces": {
+          "inputs": [
+            "自然语言查询（节目名称、类型等）",
+            "排序偏好",
+            "结果数量限制",
+            "详情查询请求"
+          ],
+          "outputs": [
+            "电视节目列表（包含基本信息）",
+            "电视节目详情（包含完整信息）",
+            "搜索建议",
+            "错误和状态消息"
+          ]
+        },
+        "dependencies": ["电视节目数据API", "AWS Bedrock"],
+        "implementation_notes": [
+          "使用LLM解析用户意图和构建查询",
+          "实现API调用重试机制",
+          "缓存常见查询结果提高性能",
+          "实现模糊匹配算法提高搜索准确性"
+        ],
+        "recommended_template": "api_query_agent"
+      }
+    ],
+    "data_models": [
+      {
+        "name": "TVShowQuery",
+        "schema": "包含查询参数：节目名称（可选）、类型/类别（可选）、排序方式（可选）、结果数量（可选）",
+        "validation_rules": ["至少提供一个搜索条件", "排序方式必须是有效选项"],
+        "relationships": ["用于构建API请求"]
+      },
+      {
+        "name": "TVShowSummary",
+        "schema": "包含节目基本信息：ID、名称、类型、频道、播出时间（最近一次）",
+        "validation_rules": ["ID和名称不能为空"],
+        "relationships": ["用于展示搜索结果列表", "可转换为TVShowDetail"]
+      },
+      {
+        "name": "TVShowDetail",
+        "schema": "包含节目详细信息：ID、名称、类型、所有播出时间和频道、剧情简介、演员/主持人（如有）、季数/集数（如适用）",
+        "validation_rules": ["ID和名称不能为空", "至少包含一个播出时间"],
+        "relationships": ["由TVShowSummary扩展而来"]
+      },
+      {
+        "name": "SearchResult",
+        "schema": "包含搜索结果：TVShowSummary列表、总结果数、分页信息（如适用）、搜索建议（如有）",
+        "validation_rules": ["结果列表可以为空但必须存在"],
+        "relationships": ["包含多个TVShowSummary对象"]
+      }
+    ],
+    "interaction_flows": [
+      {
+        "name": "基本搜索流程",
+        "description": "用户通过节目名称搜索电视节目",
+        "steps": [
+          {
+            "step": "接收用户查询",
+            "agent": "tv_show_search_agent",
+            "action": "解析用户输入，提取搜索意图和参数",
+            "data": "用户自然语言输入"
+          },
+          {
+            "step": "构建API请求",
+            "agent": "tv_show_search_agent",
+            "action": "将用户意图转换为结构化查询参数",
+            "data": "TVShowQuery对象"
+          },
+          {
+            "step": "调用外部API",
+            "agent": "tv_show_search_agent",
+            "action": "发送HTTP请求到电视节目数据API",
+            "data": "API请求参数"
+          },
+          {
+            "step": "处理API响应",
+            "agent": "tv_show_search_agent",
+            "action": "解析API返回的数据，转换为内部数据模型",
+            "data": "API响应数据"
+          },
+          {
+            "step": "格式化结果",
+            "agent": "tv_show_search_agent",
+            "action": "将数据转换为用户友好的格式",
+            "data": "SearchResult对象"
+          },
+          {
+            "step": "返回结果给用户",
+            "agent": "tv_show_search_agent",
+            "action": "展示搜索结果，包括节目列表和基本信息",
+            "data": "格式化的搜索结果"
+          }
+        ]
+      },
+      {
+        "name": "节目详情查询流程",
+        "description": "用户查看特定电视节目的详细信息",
+        "steps": [
+          {
+            "step": "用户选择特定节目",
+            "agent": "tv_show_search_agent",
+            "action": "接收用户选择或详情查询请求",
+            "data": "节目ID或名称"
+          },
+          {
+            "step": "构建详情API请求",
+            "agent": "tv_show_search_agent",
+            "action": "准备节目详情查询参数",
+            "data": "节目ID或名称"
+          },
+          {
+            "step": "调用详情API",
+            "agent": "tv_show_search_agent",
+            "action": "发送HTTP请求获取节目详情",
+            "data": "API请求参数"
+          },
+          {
+            "step": "处理API响应",
+            "agent": "tv_show_search_agent",
+            "action": "解析API返回的详情数据",
+            "data": "API响应数据"
+          },
+          {
+            "step": "格式化详情",
+            "agent": "tv_show_search_agent",
+            "action": "将详情数据转换为用户友好的格式",
+            "data": "TVShowDetail对象"
+          },
+          {
+            "step": "返回详情给用户",
+            "agent": "tv_show_search_agent",
+            "action": "展示节目详细信息，包括播出时间、频道和剧情简介",
+            "data": "格式化的节目详情"
+          }
+        ]
+      },
+      {
+        "name": "类型搜索流程",
+        "description": "用户按节目类型搜索电视节目",
+        "steps": [
+          {
+            "step": "接收类型搜索请求",
+            "agent": "tv_show_search_agent",
+            "action": "解析用户输入，提取类型搜索意图",
+            "data": "用户自然语言输入"
+          },
+          {
+            "step": "构建类型搜索请求",
+            "agent": "tv_show_search_agent",
+            "action": "准备类型搜索参数",
+            "data": "TVShowQuery对象（包含类型参数）"
+          },
+          {
+            "step": "调用API",
+            "agent": "tv_show_search_agent",
+            "action": "发送HTTP请求查询特定类型节目",
+            "data": "API请求参数"
+          },
+          {
+            "step": "处理API响应",
+            "agent": "tv_show_search_agent",
+            "action": "解析API返回的类型搜索结果",
+            "data": "API响应数据"
+          },
+          {
+            "step": "格式化结果",
+            "agent": "tv_show_search_agent",
+            "action": "将结果转换为用户友好的格式",
+            "data": "SearchResult对象"
+          },
+          {
+            "step": "返回结果给用户",
+            "agent": "tv_show_search_agent",
+            "action": "展示特定类型的节目列表",
+            "data": "格式化的搜索结果"
+          }
+        ]
+      }
+    ],
+    "security_considerations": [
+      "保护API密钥和凭证",
+      "实现API调用频率限制",
+      "不存储用户个人信息",
+      "只在会话期间保留搜索历史",
+      "验证和清理用户输入，防止注入攻击"
+    ],
+    "error_handling": [
+      "API连接失败：提供友好错误消息并建议稍后重试",
+      "搜索结果为空：提供替代搜索建议",
+      "API响应格式错误：优雅降级，显示可用信息",
+      "请求超时：实现超时重试机制",
+      "输入解析错误：提供更明确的输入指导"
+    ],
+    "performance_considerations": [
+      "实现结果缓存机制，减少重复API调用",
+      "优化API请求参数，减少不必要的数据传输",
+      "实现分页机制，处理大量搜索结果",
+      "监控API响应时间，优化慢查询",
+      "预加载常见搜索结果"
+    ],
+    "monitoring_strategy": [
+      "记录API调用成功率和响应时间",
+      "监控搜索查询模式和热门搜索",
+      "跟踪错误率和错误类型分布",
+      "监控系统资源使用情况",
+      "实现用户反馈收集机制"
+    ]
+  },
+  "design_rationale": "本设计采用单Agent架构，主要考虑到项目需求相对简单明确，功能集中在电视节目信息的检索和展示。单Agent架构可以减少系统复杂度，简化开发和维护。系统核心依赖外部电视节目数据API，因此设计重点放在API调用的可靠性、错误处理和结果展示上。数据模型设计考虑了不同层次的信息需求，从搜索列表到详细信息的渐进式展示。交互流程设计涵盖了需求文档中的所有核心功能，包括名称搜索、类型搜索和详情查看。考虑到API可能的不稳定性，特别强化了错误处理和容错机制设计。推荐使用api_query_agent模板，该模板专为API调用和数据处理设计，非常适合本项目需求。"
+}
