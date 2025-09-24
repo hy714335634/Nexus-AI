@@ -1,0 +1,161 @@
+{
+  "project_name": "clinicaltrials_search_agent",
+  "validation_timestamp": "2025-09-23T18:04:22.285933+00:00",
+  "overall_status": "success",
+  "agent_scripts": [
+    {
+      "script_path": "agents/generated_agents/clinicaltrials_search_agent/clinicaltrials_search_agent.py",
+      "syntax_valid": true,
+      "dependencies": [
+        "os",
+        "json",
+        "logging",
+        "typing",
+        "utils.agent_factory",
+        "strands.telemetry",
+        "argparse"
+      ],
+      "execution_params": [],
+      "argparse_params": [
+        {
+          "name": "-q",
+          "type": "str",
+          "description": "Research question or clinical query",
+          "required": true,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "-n",
+          "type": "int",
+          "description": "Maximum number of results to return per search (default: 20)",
+          "required": false,
+          "default": 20,
+          "action": null
+        },
+        {
+          "name": "-d",
+          "type": "int",
+          "description": "Number of deep searches to perform (default: 2)",
+          "required": false,
+          "default": 2,
+          "action": null
+        },
+        {
+          "name": "--study_types",
+          "type": "str",
+          "description": "Comma-separated list of study types to filter by",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "--phases",
+          "type": "str",
+          "description": "Comma-separated list of trial phases to filter by",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "--status",
+          "type": "str",
+          "description": "Comma-separated list of trial status to filter by",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "--start_date",
+          "type": "str",
+          "description": "Start date for filtering results (YYYY-MM-DD)",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "--end_date",
+          "type": "str",
+          "description": "End date for filtering results (YYYY-MM-DD)",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "--report_type",
+          "type": "str",
+          "description": "Type of report to generate (default: summary)",
+          "required": false,
+          "default": "summary",
+          "action": null
+        },
+        {
+          "name": "--session",
+          "type": "str",
+          "description": "Start an interactive session for multiple queries",
+          "required": false,
+          "default": null,
+          "action": "store_true"
+        }
+      ],
+      "error_message": ""
+    }
+  ],
+  "prompt_files": [
+    {
+      "prompt_path": "generated_agents_prompts/clinicaltrials_search_agent/clinicaltrials_search_agent.yaml",
+      "tool_count": 13,
+      "valid": true,
+      "error_message": "",
+      "metadata": {
+        "tags": [
+          "clinical_trials",
+          "medical_research",
+          "drug_development",
+          "regulatory_strategy",
+          "competitive_intelligence"
+        ],
+        "supported_models": [
+          "us.anthropic.claude-3-7-sonnet-20250219-v1:0",
+          "us.anthropic.claude-opus-4-20250514-v1:0"
+        ],
+        "tools_dependencies": [
+          "strands_tools/http_request",
+          "strands_tools/current_time",
+          "strands_tools/calculator",
+          "strands_tools/think",
+          "generated_tools/clinicaltrials_search_agent/clinicaltrials_api_tools/analyze_clinical_trials_results",
+          "generated_tools/clinicaltrials_search_agent/clinicaltrials_api_tools/build_clinical_trials_query",
+          "generated_tools/clinicaltrials_search_agent/clinicaltrials_api_tools/clear_clinical_trials_cache",
+          "generated_tools/clinicaltrials_search_agent/clinicaltrials_api_tools/clinical_trials_get_study",
+          "generated_tools/clinicaltrials_search_agent/clinicaltrials_api_tools/clinical_trials_search",
+          "generated_tools/clinicaltrials_search_agent/clinicaltrials_api_tools/generate_clinical_report",
+          "generated_tools/clinicaltrials_search_agent/clinicaltrials_api_tools/get_clinical_trials_field_values",
+          "generated_tools/clinicaltrials_search_agent/clinicaltrials_api_tools/integrate_clinical_trials_results",
+          "generated_tools/clinicaltrials_search_agent/clinicaltrials_api_tools/parse_clinical_trials_results"
+        ]
+      },
+      "agent_info": {
+        "name": "clinicaltrials_search_agent",
+        "description": "一个专为临床开发人员设计的智能检索Agent，能够自动检索clinicaltrials.gov的数据，支持多次深度检索并整合分析结果，确保检索内容全面、完整且正确。",
+        "category": "medical_research"
+      }
+    }
+  ],
+  "generated_tools": [
+    {
+      "tool_path": "generated_tools/clinicaltrials_search_agent/clinicaltrials_api_tools.py",
+      "syntax_valid": true,
+      "error_message": ""
+    }
+  ],
+  "total_tools": 13,
+  "summary": {
+    "agent_scripts_count": 1,
+    "prompt_files_count": 1,
+    "generated_tool_files_count": 1,
+    "all_scripts_valid": true,
+    "all_tools_valid": true,
+    "all_prompts_valid": true
+  }
+}

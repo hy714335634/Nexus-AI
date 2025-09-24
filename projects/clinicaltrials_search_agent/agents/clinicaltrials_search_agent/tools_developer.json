@@ -1,0 +1,380 @@
+{
+  "tool_development": {
+    "development_overview": {
+      "project_name": "clinicaltrials_search_agent",
+      "version": "1.0",
+      "date": "2025-09-23",
+      "development_scope": "开发一套与ClinicalTrials.gov API交互的工具集，支持临床试验数据的检索、分析和整合，为临床开发人员提供全面、准确的信息",
+      "design_principles": [
+        "模块化设计，确保各工具功能独立且可组合",
+        "健壮的错误处理机制，应对API连接和数据解析异常",
+        "结果缓存机制，减少API调用并提高响应速度",
+        "临床视角的数据处理，符合临床开发人员的需求",
+        "遵循ClinicalTrials.gov API使用条款和限制"
+      ],
+      "key_decisions": [
+        "使用ClinicalTrialsAPIClient类作为基础API交互层，处理连接、重试和缓存",
+        "实现多个独立工具函数，分别负责查询构建、结果解析、分析和整合",
+        "添加临床报告生成工具，从临床开发视角呈现结果",
+        "实现自然语言查询解析功能，简化用户输入",
+        "采用JSON格式作为工具间数据交换格式"
+      ]
+    },
+    "tools": [
+      {
+        "tool_name": "clinical_trials_search",
+        "description": "使用ClinicalTrials.gov API搜索临床试验",
+        "function_signature": "clinical_trials_search(query: str, max_results: int = 20, fields: List[str] = None, use_cache: bool = True, **kwargs) -> str",
+        "parameters": [
+          {
+            "name": "query",
+            "type": "str",
+            "description": "搜索查询字符串(可包含条件、干预、赞助商等)",
+            "required": true
+          },
+          {
+            "name": "max_results",
+            "type": "int",
+            "description": "返回结果的最大数量",
+            "required": false
+          },
+          {
+            "name": "fields",
+            "type": "List[str]",
+            "description": "要包含在响应中的特定字段列表",
+            "required": false
+          },
+          {
+            "name": "use_cache",
+            "type": "bool",
+            "description": "是否使用缓存的响应",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "包含搜索结果的JSON字符串",
+        "dependencies": ["requests", "json", "time", "os", "datetime"],
+        "implementation_notes": [
+          "使用ClinicalTrialsAPIClient类处理API调用",
+          "支持缓存以减少API调用",
+          "实现错误处理和重试逻辑",
+          "返回结构化的JSON响应"
+        ],
+        "error_handling": [
+          "捕获并处理API连接异常",
+          "处理JSON解析错误",
+          "返回格式化的错误信息"
+        ],
+        "usage_examples": [
+          "搜索与'diabetes'相关的临床试验: clinical_trials_search('diabetes')",
+          "搜索处于特定阶段的试验: clinical_trials_search('cancer', phase='Phase 3')"
+        ]
+      },
+      {
+        "tool_name": "clinical_trials_get_study",
+        "description": "通过NCT ID获取特定临床试验的详细信息",
+        "function_signature": "clinical_trials_get_study(nct_id: str, use_cache: bool = True) -> str",
+        "parameters": [
+          {
+            "name": "nct_id",
+            "type": "str",
+            "description": "临床试验的NCT ID(例如NCT01234567)",
+            "required": true
+          },
+          {
+            "name": "use_cache",
+            "type": "bool",
+            "description": "是否使用缓存的响应",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "包含试验详细信息的JSON字符串",
+        "dependencies": ["requests", "json", "time", "os", "datetime"],
+        "implementation_notes": [
+          "直接调用ClinicalTrials.gov API的studies端点",
+          "支持缓存以减少API调用",
+          "返回完整的试验详细信息"
+        ],
+        "error_handling": [
+          "处理无效NCT ID",
+          "捕获API连接异常",
+          "返回格式化的错误信息"
+        ],
+        "usage_examples": [
+          "获取特定试验详情: clinical_trials_get_study('NCT03922321')"
+        ]
+      },
+      {
+        "tool_name": "build_clinical_trials_query",
+        "description": "从自然语言或结构化参数构建ClinicalTrials.gov API查询",
+        "function_signature": "build_clinical_trials_query(natural_language_query: str = None, structured_params: Dict[str, Any] = None) -> str",
+        "parameters": [
+          {
+            "name": "natural_language_query",
+            "type": "str",
+            "description": "搜索的自然语言描述",
+            "required": false
+          },
+          {
+            "name": "structured_params",
+            "type": "Dict[str, Any]",
+            "description": "结构化搜索参数字典",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "包含构建查询和参数的JSON字符串",
+        "dependencies": ["json", "datetime"],
+        "implementation_notes": [
+          "使用QueryBuilder类处理查询构建",
+          "支持从自然语言提取结构化参数",
+          "将参数映射到ClinicalTrials.gov API字段"
+        ],
+        "error_handling": [
+          "处理缺少参数的情况",
+          "捕获解析错误",
+          "返回格式化的错误信息"
+        ],
+        "usage_examples": [
+          "从自然语言构建查询: build_clinical_trials_query('Find phase 3 trials for diabetes')",
+          "从结构化参数构建查询: build_clinical_trials_query(structured_params={'condition': 'diabetes', 'phase': 'Phase 3'})"
+        ]
+      },
+      {
+        "tool_name": "parse_clinical_trials_results",
+        "description": "解析并提取ClinicalTrials.gov API结果中的关键信息",
+        "function_signature": "parse_clinical_trials_results(results_json: str) -> str",
+        "parameters": [
+          {
+            "name": "results_json",
+            "type": "str",
+            "description": "包含API结果的JSON字符串(来自clinical_trials_search)",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "包含解析和结构化结果的JSON字符串",
+        "dependencies": ["json", "datetime"],
+        "implementation_notes": [
+          "使用ResultsParser类处理结果解析",
+          "提取关键试验信息",
+          "简化复杂的API响应结构"
+        ],
+        "error_handling": [
+          "处理无效JSON输入",
+          "处理缺少字段的情况",
+          "返回格式化的错误信息"
+        ],
+        "usage_examples": [
+          "解析搜索结果: parse_clinical_trials_results(search_results_json)"
+        ]
+      },
+      {
+        "tool_name": "analyze_clinical_trials_results",
+        "description": "分析临床试验结果的相关性、重复和冲突",
+        "function_signature": "analyze_clinical_trials_results(parsed_results_json: str, query_terms: List[str] = None) -> str",
+        "parameters": [
+          {
+            "name": "parsed_results_json",
+            "type": "str",
+            "description": "包含解析结果的JSON字符串(来自parse_clinical_trials_results)",
+            "required": true
+          },
+          {
+            "name": "query_terms",
+            "type": "List[str]",
+            "description": "用于评估相关性的查询术语列表",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "包含分析结果的JSON字符串",
+        "dependencies": ["json", "datetime"],
+        "implementation_notes": [
+          "使用ResultsAnalyzer类处理结果分析",
+          "评估每个试验的相关性",
+          "识别潜在的重复和冲突",
+          "按相关性对结果排序"
+        ],
+        "error_handling": [
+          "处理无效JSON输入",
+          "处理空结果集",
+          "返回格式化的错误信息"
+        ],
+        "usage_examples": [
+          "分析解析结果: analyze_clinical_trials_results(parsed_results_json, ['diabetes', 'type 2'])"
+        ]
+      },
+      {
+        "tool_name": "integrate_clinical_trials_results",
+        "description": "将多个临床试验搜索结果整合为综合结果集",
+        "function_signature": "integrate_clinical_trials_results(result_json_list: List[str]) -> str",
+        "parameters": [
+          {
+            "name": "result_json_list",
+            "type": "List[str]",
+            "description": "包含分析结果的JSON字符串列表",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "包含整合结果的JSON字符串",
+        "dependencies": ["json", "datetime"],
+        "implementation_notes": [
+          "使用ResultsIntegrator类处理结果整合",
+          "合并多个结果集",
+          "消除重复试验",
+          "保留最高相关性分数",
+          "跟踪查询引用"
+        ],
+        "error_handling": [
+          "处理无效JSON输入",
+          "处理空结果列表",
+          "返回格式化的错误信息"
+        ],
+        "usage_examples": [
+          "整合多个搜索结果: integrate_clinical_trials_results([results_json1, results_json2])"
+        ]
+      },
+      {
+        "tool_name": "generate_clinical_report",
+        "description": "从整合的试验结果生成临床开发报告",
+        "function_signature": "generate_clinical_report(integrated_results_json: str, report_type: str = \"summary\") -> str",
+        "parameters": [
+          {
+            "name": "integrated_results_json",
+            "type": "str",
+            "description": "包含整合结果的JSON字符串",
+            "required": true
+          },
+          {
+            "name": "report_type",
+            "type": "str",
+            "description": "要生成的报告类型(\"summary\"或\"detailed\")",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "包含临床开发报告的JSON字符串",
+        "dependencies": ["json", "datetime"],
+        "implementation_notes": [
+          "使用ClinicalReportGenerator类生成报告",
+          "提供摘要和详细报告选项",
+          "从临床开发视角组织信息",
+          "包含关键试验数据和统计信息"
+        ],
+        "error_handling": [
+          "处理无效JSON输入",
+          "处理空结果集",
+          "返回格式化的错误信息"
+        ],
+        "usage_examples": [
+          "生成摘要报告: generate_clinical_report(integrated_results_json)",
+          "生成详细报告: generate_clinical_report(integrated_results_json, \"detailed\")"
+        ]
+      },
+      {
+        "tool_name": "get_clinical_trials_field_values",
+        "description": "获取ClinicalTrials.gov中特定字段的所有可能值",
+        "function_signature": "get_clinical_trials_field_values(field: str) -> str",
+        "parameters": [
+          {
+            "name": "field",
+            "type": "str",
+            "description": "要获取值的字段(例如\"Phase\", \"OverallStatus\", \"StudyType\")",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "包含指定字段所有可能值的JSON字符串",
+        "dependencies": ["requests", "json", "time", "os", "datetime"],
+        "implementation_notes": [
+          "调用ClinicalTrials.gov API的field_values端点",
+          "支持缓存以减少API调用",
+          "返回字段的所有可能值"
+        ],
+        "error_handling": [
+          "处理无效字段名",
+          "捕获API连接异常",
+          "返回格式化的错误信息"
+        ],
+        "usage_examples": [
+          "获取阶段字段值: get_clinical_trials_field_values('Phase')",
+          "获取状态字段值: get_clinical_trials_field_values('OverallStatus')"
+        ]
+      },
+      {
+        "tool_name": "clear_clinical_trials_cache",
+        "description": "清除ClinicalTrials.gov API响应缓存",
+        "function_signature": "clear_clinical_trials_cache() -> str",
+        "parameters": [],
+        "return_type": "str",
+        "return_description": "包含缓存清除结果的JSON字符串",
+        "dependencies": ["os", "json", "datetime"],
+        "implementation_notes": [
+          "删除缓存目录中的所有JSON文件",
+          "返回清除的文件数量"
+        ],
+        "error_handling": [
+          "处理缓存目录不存在的情况",
+          "处理文件删除错误",
+          "返回格式化的错误信息"
+        ],
+        "usage_examples": [
+          "清除缓存: clear_clinical_trials_cache()"
+        ]
+      }
+    ],
+    "code_quality": {
+      "code_standards": [
+        "遵循PEP 8编码规范",
+        "使用类型注解提高代码可读性",
+        "详细的文档字符串",
+        "模块化设计和单一职责原则",
+        "一致的错误处理和日志记录"
+      ],
+      "testing_strategy": [
+        "单元测试各工具函数",
+        "模拟API响应进行测试",
+        "边界条件测试",
+        "错误处理测试",
+        "集成测试验证工具链"
+      ],
+      "performance_considerations": [
+        "实现响应缓存以减少API调用",
+        "优化JSON解析和处理",
+        "限制大型结果集的内存使用",
+        "实现指数退避重试策略",
+        "定期清理过期缓存"
+      ],
+      "security_measures": [
+        "不存储敏感医疗信息",
+        "遵循ClinicalTrials.gov API使用条款",
+        "使用HTTPS进行API通信",
+        "验证和清理输入数据",
+        "限制API调用频率"
+      ]
+    },
+    "integration_details": {
+      "aws_services": [],
+      "external_libraries": [
+        "requests: 用于HTTP请求",
+        "json: 用于JSON处理",
+        "datetime: 用于时间戳和日期处理",
+        "os: 用于文件系统操作",
+        "hashlib: 用于生成缓存键"
+      ],
+      "api_endpoints": [
+        "https://clinicaltrials.gov/api/v2/studies: 搜索和获取试验信息",
+        "https://clinicaltrials.gov/api/v2/studies/{nct_id}: 获取特定试验详情",
+        "https://clinicaltrials.gov/api/v2/field_values/{field}: 获取字段可能值"
+      ],
+      "data_formats": [
+        "JSON: 用于API响应和工具间数据交换",
+        "字符串: 用于查询和结果表示"
+      ]
+    },
+    "development_notes": "在开发过程中，我们重点关注了工具的模块化设计和错误处理。ClinicalTrials.gov API有时响应较慢，因此实现了缓存机制和重试逻辑以提高可靠性。我们特别注意了从临床开发视角组织和呈现信息，确保工具输出对临床开发人员有实际价值。自然语言查询解析功能目前是基础实现，未来可以通过更高级的NLP技术增强。所有工具都设计为可组合的，支持构建复杂的检索和分析流程。"
+  }
+}

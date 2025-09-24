@@ -1,0 +1,294 @@
+{
+  "agent_code_development": {
+    "development_overview": {
+      "project_name": "clinicaltrials_search_agent",
+      "version": "1.0",
+      "date": "2025-09-23",
+      "development_scope": "Development of a specialized agent for searching, analyzing, and presenting ClinicalTrials.gov data with a clinical development perspective",
+      "design_principles": [
+        "Modular design for maintainability and extensibility",
+        "Comprehensive error handling for robustness",
+        "Session context management for continuous queries",
+        "Clinical development perspective in data presentation",
+        "Efficient API integration with caching mechanisms"
+      ],
+      "key_decisions": [
+        "Implemented a single agent architecture based on system design",
+        "Used the PubMed literature agent template as reference for structure",
+        "Created both stateless and session-based interfaces for flexibility",
+        "Integrated specialized ClinicalTrials.gov API tools",
+        "Implemented deep search capabilities with configurable depth"
+      ]
+    },
+    "agent_implementation": {
+      "agent_name": "clinicaltrials_search_agent",
+      "file_path": "agents/generated_agents/clinicaltrials_search_agent/clinicaltrials_search_agent.py",
+      "main_class": "ClinicalTrialsSearchSession",
+      "entry_point": "search_clinical_trials",
+      "dependencies": [
+        "utils.agent_factory",
+        "strands.telemetry",
+        "logging",
+        "os",
+        "json"
+      ],
+      "imports": [
+        "from utils.agent_factory import create_agent_from_prompt_template",
+        "from strands.telemetry import StrandsTelemetry",
+        "import os",
+        "import json",
+        "import logging",
+        "from typing import List, Dict, Any, Optional, Union"
+      ]
+    },
+    "core_functions": [
+      {
+        "function_name": "search_clinical_trials",
+        "purpose": "Stateless function to search ClinicalTrials.gov based on query and parameters",
+        "parameters": [
+          {
+            "name": "query",
+            "type": "str",
+            "description": "Natural language query or research question",
+            "required": true
+          },
+          {
+            "name": "max_results",
+            "type": "int",
+            "description": "Maximum number of results to return per search",
+            "required": false
+          },
+          {
+            "name": "search_depth",
+            "type": "int",
+            "description": "Number of deep searches to perform",
+            "required": false
+          },
+          {
+            "name": "study_types",
+            "type": "Optional[List[str]]",
+            "description": "Specific study types to filter by",
+            "required": false
+          },
+          {
+            "name": "phases",
+            "type": "Optional[List[str]]",
+            "description": "Specific trial phases to filter by",
+            "required": false
+          },
+          {
+            "name": "status",
+            "type": "Optional[List[str]]",
+            "description": "Trial status to filter by",
+            "required": false
+          },
+          {
+            "name": "date_range",
+            "type": "Optional[Dict[str, str]]",
+            "description": "Date range for filtering results",
+            "required": false
+          },
+          {
+            "name": "report_type",
+            "type": "str",
+            "description": "Type of report to generate - summary or detailed",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "Formatted response with search results, analysis, and clinical development perspective",
+        "implementation_notes": [
+          "Constructs input with parameters for the agent",
+          "Formats search parameters as a list for clarity",
+          "Processes the query through the agent with error handling",
+          "Returns formatted results or error message"
+        ]
+      },
+      {
+        "function_name": "ClinicalTrialsSearchSession.search",
+        "purpose": "Session-based method to search ClinicalTrials.gov while maintaining context",
+        "parameters": [
+          {
+            "name": "query",
+            "type": "str",
+            "description": "Natural language query or research question",
+            "required": true
+          },
+          {
+            "name": "max_results",
+            "type": "int",
+            "description": "Maximum number of results to return per search",
+            "required": false
+          },
+          {
+            "name": "search_depth",
+            "type": "int",
+            "description": "Number of deep searches to perform",
+            "required": false
+          },
+          {
+            "name": "study_types",
+            "type": "Optional[List[str]]",
+            "description": "Specific study types to filter by",
+            "required": false
+          },
+          {
+            "name": "phases",
+            "type": "Optional[List[str]]",
+            "description": "Specific trial phases to filter by",
+            "required": false
+          },
+          {
+            "name": "status",
+            "type": "Optional[List[str]]",
+            "description": "Trial status to filter by",
+            "required": false
+          },
+          {
+            "name": "date_range",
+            "type": "Optional[Dict[str, str]]",
+            "description": "Date range for filtering results",
+            "required": false
+          },
+          {
+            "name": "report_type",
+            "type": "str",
+            "description": "Type of report to generate - summary or detailed",
+            "required": false
+          },
+          {
+            "name": "clear_context",
+            "type": "bool",
+            "description": "Whether to clear previous context",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "Formatted response with search results, analysis, and clinical development perspective",
+        "implementation_notes": [
+          "Maintains session context between queries",
+          "Adds session history to the query for context",
+          "Stores query and result history",
+          "Supports context clearing for new topics"
+        ]
+      },
+      {
+        "function_name": "ClinicalTrialsSearchSession.get_session_summary",
+        "purpose": "Generate a summary of the current session, including all queries and key findings",
+        "parameters": [],
+        "return_type": "str",
+        "return_description": "Session summary",
+        "implementation_notes": [
+          "Compiles all session queries",
+          "Requests a comprehensive summary across all findings",
+          "Returns summary or error message"
+        ]
+      }
+    ],
+    "tool_integration": {
+      "custom_tools": [
+        "clinical_trials_api_client",
+        "query_builder",
+        "results_parser",
+        "results_analyzer",
+        "results_integrator",
+        "clinical_report_generator"
+      ],
+      "system_tools": [
+        "strands_tools/http_request",
+        "strands_tools/current_time",
+        "strands_tools/calculator",
+        "strands_tools/think"
+      ],
+      "strands_tools": [
+        "StrandsTelemetry"
+      ],
+      "integration_notes": [
+        "Tools are integrated via the prompt template",
+        "Agent leverages specialized ClinicalTrials.gov API tools",
+        "System tools provide supporting functionality",
+        "Telemetry is set up for monitoring and performance tracking"
+      ]
+    },
+    "configuration": {
+      "environment_variables": [
+        "BYPASS_TOOL_CONSENT",
+        "OTEL_EXPORTER_OTLP_ENDPOINT"
+      ],
+      "model_configuration": {
+        "model_name": "us.anthropic.claude-opus-4-20250514-v1:0",
+        "max_tokens": 60000,
+        "temperature": 0.3,
+        "top_p": 0.8
+      },
+      "streaming_config": {
+        "enabled": true,
+        "chunk_size": 1024
+      }
+    },
+    "error_handling": {
+      "exception_types": [
+        "General exceptions in API calls",
+        "JSON parsing errors",
+        "Connection errors",
+        "Keyboard interrupts in interactive mode"
+      ],
+      "error_responses": [
+        "Formatted error messages with exception details",
+        "Logging of errors with timestamp and context",
+        "Graceful handling of user interruptions"
+      ],
+      "recovery_strategies": [
+        "Returning partial results when possible",
+        "Providing clear error messages to guide users",
+        "Maintaining session state despite errors"
+      ]
+    },
+    "testing": {
+      "test_cases": [
+        "Basic search query with default parameters",
+        "Complex search with multiple filters",
+        "Session-based search with follow-up questions",
+        "Error handling with invalid parameters",
+        "Session summary generation"
+      ],
+      "test_scenarios": [
+        "Clinical trial search for specific conditions",
+        "Filtering by trial phases and status",
+        "Follow-up questions about specific trials",
+        "Comparing different treatment approaches",
+        "Analyzing trial trends over time"
+      ],
+      "validation_criteria": [
+        "Query understanding accuracy",
+        "Search strategy effectiveness",
+        "Results relevance and completeness",
+        "Clinical perspective quality",
+        "Session context maintenance"
+      ]
+    },
+    "deployment": {
+      "deployment_requirements": [
+        "Python 3.13+",
+        "Strands SDK",
+        "AWS Bedrock for model inference",
+        "Access to ClinicalTrials.gov API"
+      ],
+      "runtime_dependencies": [
+        "utils.agent_factory",
+        "strands.telemetry",
+        "logging",
+        "os",
+        "json",
+        "argparse"
+      ],
+      "performance_considerations": [
+        "API rate limiting compliance",
+        "Result caching for improved performance",
+        "Memory usage optimization for large result sets",
+        "Response time optimization"
+      ]
+    },
+    "development_notes": "The agent code development focused on creating a robust, user-friendly interface to the ClinicalTrials.gov API with advanced search and analysis capabilities. The design follows a modular approach with both stateless and session-based interfaces to accommodate different use cases. The stateless function is ideal for single queries or integration with other systems, while the session-based class provides a more interactive experience with context maintenance between queries.\n\nThe implementation leverages the PubMed literature agent template as a starting point but extends it with specialized features for clinical trial searches, including deep search capabilities, clinical development perspective, and session management. The agent integrates with custom tools developed specifically for ClinicalTrials.gov API interaction, query building, results parsing, analysis, integration, and clinical report generation.\n\nError handling is implemented throughout the code to ensure robustness, with detailed logging and user-friendly error messages. The command-line interface provides flexibility with numerous parameters and an interactive session mode for continuous exploration.\n\nThe agent is designed to be easily extensible for future enhancements, such as additional filtering options, more sophisticated analysis capabilities, or integration with other clinical data sources."
+  }
+}

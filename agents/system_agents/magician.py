@@ -6,10 +6,10 @@ import json
 import re
 
 from strands.tools.decorator import R
-from utils.agent_factory import create_agent_from_prompt_template
+from nexus_utils.agent_factory import create_agent_from_prompt_template
 from tools.system_tools.agent_build_workflow.prompt_template_provider import list_prompt_templates
 from strands.telemetry import StrandsTelemetry
-from utils.magician import Magician
+from nexus_utils.magician import Magician
 
 os.environ["BYPASS_TOOL_CONSENT"] = "true"
 os.environ["OTEL_EXPORTER_OTLP_ENDPOINT"] = "http://localhost:4318"

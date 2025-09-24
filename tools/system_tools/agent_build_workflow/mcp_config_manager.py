@@ -25,7 +25,7 @@ project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(_
 sys.path.append(project_root)
 
 from strands import tool
-from utils.mcp_manager import get_default_mcp_manager, MCPManagerError
+from nexus_utils.mcp_manager import get_default_mcp_manager, MCPManagerError
 
 
 @tool

@@ -9,8 +9,8 @@ import uuid
 import json
 from typing import Any
 from strands.multiagent import GraphBuilder,Swarm
-from utils.agent_factory import create_agent_from_prompt_template
-from utils.structured_output_model.project_intent_recognition import IntentRecognitionResult
+from nexus_utils.agent_factory import create_agent_from_prompt_template
+from nexus_utils.structured_output_model.project_intent_recognition import IntentRecognitionResult
 from strands.session.file_session_manager import FileSessionManager
 
 # 导入其他 agents
@@ -22,7 +22,7 @@ from agents.system_agents.agent_build_workflow.tool_developer_agent import tool_
 from agents.system_agents.agent_build_workflow.agent_code_developer_agent import agent_code_developer
 from agents.system_agents.agent_build_workflow.agent_developer_manager_agent import agent_developer_manager
 from strands.telemetry import StrandsTelemetry
-from utils.workflow_report_generator import generate_workflow_summary_report
+from nexus_utils.workflow_report_generator import generate_workflow_summary_report
 
 os.environ["BYPASS_TOOL_CONSENT"] = "true"
 os.environ["OTEL_EXPORTER_OTLP_ENDPOINT"] = "http://localhost:4318"

@@ -20,13 +20,13 @@ from typing import List, Dict, Any, Optional, Union
 from datetime import datetime
 
 from strands import tool
-from utils.multimodal_processing.models.data_models import FileMetadata, ParsedContent
-from utils.multimodal_processing.models.exceptions import MultimodalParserError, FileUploadError, StorageError
-from utils.multimodal_processing.file_upload_manager import FileUploadManager
-from utils.multimodal_processing.s3_storage_service import S3StorageService
-from utils.multimodal_processing.content_parsing_engine import ContentParsingEngine
-from utils.multimodal_processing.multimodal_model_service import MultimodalModelService
-from utils.config_loader import ConfigLoader
+from nexus_utils.multimodal_processing.models.data_models import FileMetadata, ParsedContent
+from nexus_utils.multimodal_processing.models.exceptions import MultimodalParserError, FileUploadError, StorageError
+from nexus_utils.multimodal_processing.file_upload_manager import FileUploadManager
+from nexus_utils.multimodal_processing.s3_storage_service import S3StorageService
+from nexus_utils.multimodal_processing.content_parsing_engine import ContentParsingEngine
+from nexus_utils.multimodal_processing.multimodal_model_service import MultimodalModelService
+from nexus_utils.config_loader import ConfigLoader
 
 
 # Initialize logger
