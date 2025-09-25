@@ -747,6 +747,66 @@ def extract_docx_structure(file_path: str) -> str:
 
 
 @tool
+def create_docx_from_text(content: str, output_path: str, title: str = "翻译文档") -> str:
+    """
+    从文本内容创建Word文档（简化版本）
+    
+    Args:
+        content (str): 文档内容文本
+        output_path (str): 输出文档的保存路径
+        title (str): 文档标题
+        
+    Returns:
+        str: 操作结果信息
+    """
+    try:
+        doc = Document()
+        
+        # 设置文档标题
+        doc.core_properties.title = title
+        
+        # 将文本内容按段落分割
+        paragraphs = content.split('\n')
+        
+        for para_text in paragraphs:
+            para_text = para_text.strip()
+            if para_text:  # 只添加非空段落
+                # 检查是否是标题（以#开头）
+                if para_text.startswith('#'):
+                    # 计算标题级别
+                    level = len(para_text) - len(para_text.lstrip('#'))
+                    para_text = para_text.lstrip('# ').strip()
+                    
+                    # 添加标题段落
+                    para = doc.add_paragraph(para_text)
+                    if level == 1:
+                        para.style = 'Heading 1'
+                    elif level == 2:
+                        para.style = 'Heading 2'
+                    elif level == 3:
+                        para.style = 'Heading 3'
+                    else:
+                        para.style = 'Heading 4'
+                else:
+                    # 添加普通段落
+                    doc.add_paragraph(para_text)
+        
+        # 保存文档
+        doc.save(output_path)
+        return json.dumps({
+            "success": True,
+            "message": f"文档已成功保存到 {output_path}",
+            "file_path": output_path
+        }, ensure_ascii=False)
+        
+    except Exception as e:
+        return json.dumps({
+            "success": False,
+            "error": f"创建Word文档时出错: {str(e)}"
+        }, ensure_ascii=False)
+
+
+@tool
 def compare_docx(file_path1: str, file_path2: str) -> str:
     """
     比较两个Word文档的内容和格式差异

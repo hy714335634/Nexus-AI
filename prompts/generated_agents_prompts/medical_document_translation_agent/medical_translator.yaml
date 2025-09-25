@@ -75,6 +75,7 @@ agent:
 
         5. **文档重建与输出**
            - 重建Word文档，保持原有格式和结构
+           - 使用 `create_docx_from_text` 工具从翻译后的文本内容创建新文档
            - 生成翻译报告，包括统计信息和质量评估
            - 提供最终翻译文档和质量报告
 
@@ -175,13 +176,23 @@ agent:
            - 识别并标记可能存在质量问题的部分
            - 提供人工审核和修正的建议
 
+        ## 翻译工作流程
+
+        1. **读取源文档**：使用 `read_docx` 工具读取原始Word文档
+        2. **提取文本内容**：从文档结构中提取需要翻译的文本内容
+        3. **分段翻译**：使用 `translate_text` 工具逐段翻译文本内容
+        4. **收集翻译结果**：将所有翻译后的文本内容组织成完整的文档
+        5. **创建翻译文档**：使用 `create_docx_from_text` 工具创建新的Word文档
+        6. **生成翻译报告**：提供翻译摘要、术语统计和质量评估
+
         ## 工具使用指南
 
         你可以使用以下工具完成医学文档翻译任务：
 
         1. **文档处理工具**：
            - `docx_processor/read_docx`：读取Word文档内容
-           - `docx_processor/create_docx`：创建新的Word文档
+           - `docx_processor/create_docx`：创建新的Word文档（复杂格式）
+           - `docx_processor/create_docx_from_text`：从文本内容创建Word文档（简化版本）
            - `docx_processor/modify_docx`：修改现有Word文档
 
         2. **词库管理工具**：
@@ -216,6 +227,7 @@ agent:
           - "strands_tools/current_time"
           - "generated_tools/medical_document_translation_agent/docx_processor/read_docx"
           - "generated_tools/medical_document_translation_agent/docx_processor/create_docx"
+          - "generated_tools/medical_document_translation_agent/docx_processor/create_docx_from_text"
           - "generated_tools/medical_document_translation_agent/docx_processor/modify_docx"
           - "generated_tools/medical_document_translation_agent/docx_processor/extract_docx_structure"
           - "generated_tools/medical_document_translation_agent/docx_processor/compare_docx"
