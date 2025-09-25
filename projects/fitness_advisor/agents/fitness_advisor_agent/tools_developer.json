@@ -1,0 +1,158 @@
+{
+  "tool_development": {
+    "development_overview": {
+      "project_name": "fitness_advisor",
+      "version": "1.0",
+      "date": "2025-09-25",
+      "development_scope": "开发健身顾问智能体所需的计算工具，主要包括BMI计算、BMR计算等健康指标计算功能",
+      "design_principles": [
+        "准确性：确保所有计算结果符合科学健身原则",
+        "易用性：提供清晰的参数说明和错误处理",
+        "完整性：返回全面的计算结果和相关信息",
+        "安全性：对输入参数进行严格验证",
+        "扩展性：设计灵活的接口支持未来功能扩展"
+      ],
+      "key_decisions": [
+        "使用JSON格式返回结果，方便前端解析和展示",
+        "为每个工具函数实现完整的错误处理机制",
+        "添加详细的文档字符串，便于使用者理解",
+        "使用类型注解增强代码可读性和安全性",
+        "返回额外的相关信息，提高计算结果的实用性"
+      ]
+    },
+    "tools": [
+      {
+        "tool_name": "calculate_bmi",
+        "description": "计算身体质量指数(BMI)并根据标准进行分类",
+        "function_signature": "calculate_bmi(height: float, weight: float) -> str",
+        "parameters": [
+          {
+            "name": "height",
+            "type": "float",
+            "description": "身高，单位为米(m)",
+            "required": true
+          },
+          {
+            "name": "weight",
+            "type": "float",
+            "description": "体重，单位为公斤(kg)",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的BMI计算结果，包含BMI值和体重状态分类",
+        "dependencies": ["json"],
+        "implementation_notes": [
+          "验证输入参数是否为正数",
+          "计算BMI值：体重(kg) / 身高(m)²",
+          "根据BMI值确定体重分类",
+          "返回JSON格式的计算结果"
+        ],
+        "error_handling": [
+          "当输入的身高或体重为非正数时抛出异常",
+          "捕获并处理所有可能的异常",
+          "在错误情况下返回包含错误信息的JSON"
+        ],
+        "usage_examples": [
+          "calculate_bmi(1.75, 70) 返回BMI计算结果和体重分类"
+        ]
+      },
+      {
+        "tool_name": "calculate_bmr",
+        "description": "计算基础代谢率(BMR)，即人体在静息状态下维持基本生命活动所需的最低能量",
+        "function_signature": "calculate_bmr(weight: float, height: float, age: int, gender: str, formula: str = \"mifflin_st_jeor\", body_fat_percentage: Optional[float] = None) -> str",
+        "parameters": [
+          {
+            "name": "weight",
+            "type": "float",
+            "description": "体重，单位为公斤(kg)",
+            "required": true
+          },
+          {
+            "name": "height",
+            "type": "float",
+            "description": "身高，单位为厘米(cm)",
+            "required": true
+          },
+          {
+            "name": "age",
+            "type": "int",
+            "description": "年龄，单位为岁",
+            "required": true
+          },
+          {
+            "name": "gender",
+            "type": "str",
+            "description": "性别，\"male\"(男性)或\"female\"(女性)",
+            "required": true
+          },
+          {
+            "name": "formula",
+            "type": "str",
+            "description": "计算公式，可选值: \"mifflin_st_jeor\"(默认), \"harris_benedict\", \"katch_mcardle\"",
+            "required": false
+          },
+          {
+            "name": "body_fat_percentage",
+            "type": "Optional[float]",
+            "description": "体脂率，以百分比表示，使用Katch-McArdle公式时必须提供",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的BMR计算结果，包含BMR值(卡路里/天)和使用的计算公式",
+        "dependencies": ["json", "typing"],
+        "implementation_notes": [
+          "支持多种BMR计算公式",
+          "验证输入参数的有效性",
+          "根据性别和所选公式计算BMR",
+          "返回包含详细信息的JSON结果"
+        ],
+        "error_handling": [
+          "验证体重、身高、年龄是否为正数",
+          "验证性别输入是否有效",
+          "验证公式选择是否有效",
+          "当使用Katch-McArdle公式但未提供体脂率时抛出异常",
+          "捕获并处理所有可能的异常"
+        ],
+        "usage_examples": [
+          "calculate_bmr(70, 175, 30, \"male\") 使用默认Mifflin-St Jeor公式计算BMR",
+          "calculate_bmr(65, 165, 28, \"female\", \"harris_benedict\") 使用Harris-Benedict公式计算BMR",
+          "calculate_bmr(80, 180, 35, \"male\", \"katch_mcardle\", 15) 使用Katch-McArdle公式计算BMR，体脂率15%"
+        ]
+      }
+    ],
+    "code_quality": {
+      "code_standards": [
+        "遵循PEP 8编码规范",
+        "使用类型注解增强代码可读性和安全性",
+        "提供详细的文档字符串",
+        "实现全面的错误处理",
+        "返回结构化的JSON数据"
+      ],
+      "testing_strategy": [
+        "单元测试覆盖各种正常输入场景",
+        "边界值测试验证参数限制",
+        "错误处理测试确保异常情况下的行为符合预期",
+        "集成测试验证与其他组件的协作"
+      ],
+      "performance_considerations": [
+        "优化计算逻辑，减少不必要的计算",
+        "使用高效的数据结构",
+        "避免重复计算相同的值"
+      ],
+      "security_measures": [
+        "严格验证所有输入参数",
+        "防止不合理的参数值导致计算错误",
+        "确保错误信息不泄露敏感信息"
+      ]
+    },
+    "integration_details": {
+      "aws_services": [],
+      "external_libraries": ["json", "typing"],
+      "api_endpoints": [],
+      "data_formats": ["JSON"]
+    },
+    "development_notes": "工具开发过程中特别关注了计算结果的科学性和准确性，确保所有计算公式符合健身科学标准。同时，为了提高工具的实用性，在返回结果中添加了额外的相关信息，如BMI分类标准、不同活动水平下的卡路里需求等。错误处理机制设计得较为完善，可以捕获各种异常情况并返回友好的错误信息。"
+  }
+}

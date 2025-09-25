@@ -1,0 +1,6 @@
+project:
+  created_date: '2025-09-25T06:37:01.864638+00:00'
+  description: 一个能够根据用户情况生成个性化健身建议的智能体
+  name: fitness_advisor
+  updated_date: '2025-09-25T06:37:05.238591+00:00'
+  version: 1.0.0

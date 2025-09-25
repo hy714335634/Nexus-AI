@@ -65,24 +65,12 @@ def _sync_stage_progress(
         logger.info(f"No project id")
         return
 
-    if not all(
-        helper is not None
-        for helper in (mark_stage_running, mark_stage_completed, mark_stage_failed)
-    ):
-        logger.info(
-            "Stage progress helpers unavailable while updating project=%s stage=%s",
-            project_name,
-            stage_name,
-        )
-        return
-
     try:
         if error_message:
             mark_stage_failed(project_id, stage_name, error_message)
             return
 
         if status:
-            mark_stage_running(project_id, stage_name)
             mark_stage_completed(project_id, stage_name)
             if STAGE_SEQUENCE and stage_name == STAGE_SEQUENCE[-1][0] and mark_project_completed:
                 mark_project_completed(project_id)
