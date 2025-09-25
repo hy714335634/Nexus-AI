@@ -1,0 +1,796 @@
+{
+  "tool_development": {
+    "development_overview": {
+      "project_name": "medical_document_translation_agent",
+      "version": "1.0",
+      "date": "2025-09-24",
+      "development_scope": "为医学文档翻译智能体开发一套完整的工具，包括文档处理、医学词库管理、翻译引擎、质量控制和批量处理功能",
+      "design_principles": [
+        "模块化设计：每个工具专注于单一职责，便于维护和扩展",
+        "医学专业性：针对医学文档特点进行优化",
+        "格式完整性：确保翻译过程中保持原文档格式和结构",
+        "术语一致性：通过词库管理确保医学术语翻译的准确性和一致性",
+        "用户友好性：提供清晰的接口和详细的文档"
+      ],
+      "key_decisions": [
+        "使用python-docx库处理Word文档格式",
+        "实现自定义词库管理系统支持多种导入格式",
+        "采用AWS Bedrock作为AI翻译服务",
+        "设计多维度质量控制系统",
+        "实现异步批量处理机制"
+      ]
+    },
+    "tools": [
+      {
+        "tool_name": "docx_processor",
+        "description": "处理Microsoft Word文档的工具，支持读取、解析、修改和生成.docx文件，保持原文档的排版、布局、格式和样式",
+        "function_signature": "read_docx(file_path: str, return_format: str = \"json\", extract_images: bool = False) -> str",
+        "parameters": [
+          {
+            "name": "file_path",
+            "type": "str",
+            "description": "Word文档的路径",
+            "required": true
+          },
+          {
+            "name": "return_format",
+            "type": "str",
+            "description": "返回格式，可选值: \"json\", \"text\"",
+            "required": false
+          },
+          {
+            "name": "extract_images",
+            "type": "bool",
+            "description": "是否提取图片（以base64编码返回）",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "文档内容的JSON或文本表示",
+        "dependencies": ["python-docx", "json", "os", "base64"],
+        "implementation_notes": [
+          "使用python-docx库解析.docx文件",
+          "提取文档的完整结构，包括段落、表格、图片、页眉页脚等",
+          "支持提取文档元数据和样式信息"
+        ],
+        "error_handling": [
+          "检查文件是否存在",
+          "验证文件格式是否为.docx",
+          "处理文档解析过程中的异常"
+        ],
+        "usage_examples": [
+          "读取Word文档并返回JSON格式的结构化内容",
+          "提取文档中的纯文本内容"
+        ]
+      },
+      {
+        "tool_name": "docx_processor",
+        "description": "创建Word文档的功能",
+        "function_signature": "create_docx(content: Dict[str, Any], output_path: str) -> str",
+        "parameters": [
+          {
+            "name": "content",
+            "type": "Dict[str, Any]",
+            "description": "文档内容的结构化表示（JSON格式）",
+            "required": true
+          },
+          {
+            "name": "output_path",
+            "type": "str",
+            "description": "输出文档的保存路径",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "操作结果信息",
+        "dependencies": ["python-docx", "json", "os"],
+        "implementation_notes": [
+          "根据提供的结构化内容创建Word文档",
+          "重建文档的段落、表格、页眉页脚等元素",
+          "应用样式和格式设置"
+        ],
+        "error_handling": [
+          "验证输入内容的格式",
+          "处理文档创建过程中的异常",
+          "确保输出路径有效"
+        ],
+        "usage_examples": [
+          "根据翻译后的结构化内容创建新的Word文档"
+        ]
+      },
+      {
+        "tool_name": "docx_processor",
+        "description": "修改Word文档的功能",
+        "function_signature": "modify_docx(file_path: str, modifications: Dict[str, Any], output_path: str) -> str",
+        "parameters": [
+          {
+            "name": "file_path",
+            "type": "str",
+            "description": "要修改的Word文档路径",
+            "required": true
+          },
+          {
+            "name": "modifications",
+            "type": "Dict[str, Any]",
+            "description": "要应用的修改",
+            "required": true
+          },
+          {
+            "name": "output_path",
+            "type": "str",
+            "description": "修改后文档的保存路径",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "操作结果信息",
+        "dependencies": ["python-docx", "json", "os"],
+        "implementation_notes": [
+          "支持文本替换、添加段落、添加表格等修改操作",
+          "保持原文档的格式和样式"
+        ],
+        "error_handling": [
+          "检查文件是否存在",
+          "验证文件格式是否为.docx",
+          "处理修改过程中的异常"
+        ],
+        "usage_examples": [
+          "替换文档中的特定文本",
+          "添加新段落或表格"
+        ]
+      },
+      {
+        "tool_name": "medical_glossary_manager",
+        "description": "医学词库管理工具，支持导入、管理和查询医学专业词汇词库",
+        "function_signature": "import_glossary(file_path: str, source_lang_column: str, target_lang_column: str, category_column: Optional[str] = None, glossary_name: Optional[str] = None, cache_dir: Optional[str] = None) -> str",
+        "parameters": [
+          {
+            "name": "file_path",
+            "type": "str",
+            "description": "词库文件路径",
+            "required": true
+          },
+          {
+            "name": "source_lang_column",
+            "type": "str",
+            "description": "源语言列名",
+            "required": true
+          },
+          {
+            "name": "target_lang_column",
+            "type": "str",
+            "description": "目标语言列名",
+            "required": true
+          },
+          {
+            "name": "category_column",
+            "type": "Optional[str]",
+            "description": "分类列名（可选）",
+            "required": false
+          },
+          {
+            "name": "glossary_name",
+            "type": "Optional[str]",
+            "description": "词库名称（可选，默认使用文件名）",
+            "required": false
+          },
+          {
+            "name": "cache_dir",
+            "type": "Optional[str]",
+            "description": "缓存目录（可选）",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的导入结果",
+        "dependencies": ["pandas", "json", "os", "datetime", "hashlib"],
+        "implementation_notes": [
+          "支持Excel、CSV、JSON等格式的词库导入",
+          "自动生成术语ID和元数据",
+          "支持词库版本管理",
+          "创建索引以加速查询"
+        ],
+        "error_handling": [
+          "验证文件是否存在",
+          "检查必要的列是否存在",
+          "处理导入过程中的异常"
+        ],
+        "usage_examples": [
+          "导入Excel格式的医学术语词库",
+          "导入CSV格式的药物名称对照表"
+        ]
+      },
+      {
+        "tool_name": "medical_glossary_manager",
+        "description": "搜索词库中的术语",
+        "function_signature": "search_term(term: str, glossary_name: str, is_source_lang: bool = True, exact_match: bool = False, max_results: int = 10, cache_dir: Optional[str] = None) -> str",
+        "parameters": [
+          {
+            "name": "term",
+            "type": "str",
+            "description": "要搜索的术语",
+            "required": true
+          },
+          {
+            "name": "glossary_name",
+            "type": "str",
+            "description": "词库名称",
+            "required": true
+          },
+          {
+            "name": "is_source_lang",
+            "type": "bool",
+            "description": "是否在源语言中搜索，False表示在目标语言中搜索",
+            "required": false
+          },
+          {
+            "name": "exact_match",
+            "type": "bool",
+            "description": "是否精确匹配",
+            "required": false
+          },
+          {
+            "name": "max_results",
+            "type": "int",
+            "description": "最大结果数量",
+            "required": false
+          },
+          {
+            "name": "cache_dir",
+            "type": "Optional[str]",
+            "description": "缓存目录（可选）",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的搜索结果",
+        "dependencies": ["json", "os"],
+        "implementation_notes": [
+          "支持精确匹配和模糊匹配",
+          "使用索引加速查询",
+          "更新术语使用计数"
+        ],
+        "error_handling": [
+          "检查词库是否存在",
+          "验证词库格式是否有效",
+          "处理搜索过程中的异常"
+        ],
+        "usage_examples": [
+          "搜索特定医学术语的翻译",
+          "查找包含特定关键词的术语"
+        ]
+      },
+      {
+        "tool_name": "medical_glossary_manager",
+        "description": "在文本中匹配词库术语",
+        "function_signature": "match_terms(text: str, glossary_name: str, is_source_lang: bool = True, min_confidence: float = 0.7, cache_dir: Optional[str] = None) -> str",
+        "parameters": [
+          {
+            "name": "text",
+            "type": "str",
+            "description": "要匹配的文本",
+            "required": true
+          },
+          {
+            "name": "glossary_name",
+            "type": "str",
+            "description": "词库名称",
+            "required": true
+          },
+          {
+            "name": "is_source_lang",
+            "type": "bool",
+            "description": "是否在源语言中匹配，False表示在目标语言中匹配",
+            "required": false
+          },
+          {
+            "name": "min_confidence",
+            "type": "float",
+            "description": "最小置信度阈值",
+            "required": false
+          },
+          {
+            "name": "cache_dir",
+            "type": "Optional[str]",
+            "description": "缓存目录（可选）",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的匹配结果",
+        "dependencies": ["json", "os", "re"],
+        "implementation_notes": [
+          "使用正则表达式匹配术语",
+          "按长度排序术语，优先匹配长术语",
+          "记录匹配位置和置信度"
+        ],
+        "error_handling": [
+          "检查词库是否存在",
+          "验证词库格式是否有效",
+          "处理匹配过程中的异常"
+        ],
+        "usage_examples": [
+          "在医学文本中识别和匹配专业术语",
+          "为翻译引擎提供术语匹配结果"
+        ]
+      },
+      {
+        "tool_name": "translation_engine",
+        "description": "医学文档翻译引擎，支持基于词库和AI的翻译功能",
+        "function_signature": "translate_text(text: str, source_lang: str, target_lang: str, glossary_name: Optional[str] = None, domain: str = \"general\", use_ai: bool = True, context: Optional[str] = None, cache_dir: Optional[str] = None) -> str",
+        "parameters": [
+          {
+            "name": "text",
+            "type": "str",
+            "description": "要翻译的文本",
+            "required": true
+          },
+          {
+            "name": "source_lang",
+            "type": "str",
+            "description": "源语言代码（如'en', 'zh'）",
+            "required": true
+          },
+          {
+            "name": "target_lang",
+            "type": "str",
+            "description": "目标语言代码（如'zh', 'en'）",
+            "required": true
+          },
+          {
+            "name": "glossary_name",
+            "type": "Optional[str]",
+            "description": "词库名称（可选）",
+            "required": false
+          },
+          {
+            "name": "domain",
+            "type": "str",
+            "description": "医学领域（默认为'general'）",
+            "required": false
+          },
+          {
+            "name": "use_ai",
+            "type": "bool",
+            "description": "是否使用AI翻译（默认为True）",
+            "required": false
+          },
+          {
+            "name": "context",
+            "type": "Optional[str]",
+            "description": "上下文信息（可选）",
+            "required": false
+          },
+          {
+            "name": "cache_dir",
+            "type": "Optional[str]",
+            "description": "缓存目录（可选）",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的翻译结果",
+        "dependencies": ["boto3", "json", "os", "re", "hashlib", "datetime"],
+        "implementation_notes": [
+          "先使用词库进行术语匹配，再使用AI翻译未匹配部分",
+          "支持多种医学领域的专业翻译",
+          "使用AWS Bedrock作为AI翻译服务",
+          "实现翻译缓存机制"
+        ],
+        "error_handling": [
+          "验证语言代码和医学领域",
+          "处理词库匹配和AI翻译过程中的异常",
+          "处理AWS API调用异常"
+        ],
+        "usage_examples": [
+          "翻译单个医学术语或短语",
+          "翻译包含专业术语的医学段落"
+        ]
+      },
+      {
+        "tool_name": "translation_engine",
+        "description": "处理医学缩写的翻译",
+        "function_signature": "translate_abbreviations(text: str, source_lang: str, target_lang: str, expand_abbreviations: bool = True, glossary_name: Optional[str] = None, domain: str = \"general\", use_ai: bool = True, cache_dir: Optional[str] = None) -> str",
+        "parameters": [
+          {
+            "name": "text",
+            "type": "str",
+            "description": "要翻译的文本",
+            "required": true
+          },
+          {
+            "name": "source_lang",
+            "type": "str",
+            "description": "源语言代码（如'en', 'zh'）",
+            "required": true
+          },
+          {
+            "name": "target_lang",
+            "type": "str",
+            "description": "目标语言代码（如'zh', 'en'）",
+            "required": true
+          },
+          {
+            "name": "expand_abbreviations",
+            "type": "bool",
+            "description": "是否展开缩写（默认为True）",
+            "required": false
+          },
+          {
+            "name": "glossary_name",
+            "type": "Optional[str]",
+            "description": "词库名称（可选）",
+            "required": false
+          },
+          {
+            "name": "domain",
+            "type": "str",
+            "description": "医学领域（默认为'general'）",
+            "required": false
+          },
+          {
+            "name": "use_ai",
+            "type": "bool",
+            "description": "是否使用AI翻译（默认为True）",
+            "required": false
+          },
+          {
+            "name": "cache_dir",
+            "type": "Optional[str]",
+            "description": "缓存目录（可选）",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的翻译结果",
+        "dependencies": ["boto3", "json", "os", "re"],
+        "implementation_notes": [
+          "识别医学缩写并展开为全称",
+          "支持常见医学缩写的自动识别",
+          "可选择是否在翻译前展开缩写"
+        ],
+        "error_handling": [
+          "验证语言代码和医学领域",
+          "处理缩写识别和展开过程中的异常",
+          "处理翻译过程中的异常"
+        ],
+        "usage_examples": [
+          "翻译包含医学缩写的文本",
+          "在翻译前自动展开医学缩写"
+        ]
+      },
+      {
+        "tool_name": "quality_controller",
+        "description": "医学翻译质量控制工具，用于检查术语一致性和生成质量报告",
+        "function_signature": "check_terminology_consistency(source_text: str, translated_text: str, glossary_name: str, source_lang: str, target_lang: str, cache_dir: Optional[str] = None) -> str",
+        "parameters": [
+          {
+            "name": "source_text",
+            "type": "str",
+            "description": "源文本",
+            "required": true
+          },
+          {
+            "name": "translated_text",
+            "type": "str",
+            "description": "翻译文本",
+            "required": true
+          },
+          {
+            "name": "glossary_name",
+            "type": "str",
+            "description": "词库名称",
+            "required": true
+          },
+          {
+            "name": "source_lang",
+            "type": "str",
+            "description": "源语言代码",
+            "required": true
+          },
+          {
+            "name": "target_lang",
+            "type": "str",
+            "description": "目标语言代码",
+            "required": true
+          },
+          {
+            "name": "cache_dir",
+            "type": "Optional[str]",
+            "description": "缓存目录（可选）",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的一致性检查结果",
+        "dependencies": ["json", "os", "re"],
+        "implementation_notes": [
+          "检查翻译中术语的一致性",
+          "识别术语翻译不一致的问题",
+          "计算术语一致性得分"
+        ],
+        "error_handling": [
+          "验证词库是否存在",
+          "处理术语匹配和一致性检查过程中的异常"
+        ],
+        "usage_examples": [
+          "检查医学文档翻译中术语使用的一致性",
+          "识别需要修正的术语翻译"
+        ]
+      },
+      {
+        "tool_name": "quality_controller",
+        "description": "生成全面的翻译质量报告",
+        "function_signature": "generate_quality_report(source_text: str, translated_text: str, source_lang: str, target_lang: str, glossary_name: Optional[str] = None, domain: str = \"general\", cache_dir: Optional[str] = None) -> str",
+        "parameters": [
+          {
+            "name": "source_text",
+            "type": "str",
+            "description": "源文本",
+            "required": true
+          },
+          {
+            "name": "translated_text",
+            "type": "str",
+            "description": "翻译文本",
+            "required": true
+          },
+          {
+            "name": "source_lang",
+            "type": "str",
+            "description": "源语言代码",
+            "required": true
+          },
+          {
+            "name": "target_lang",
+            "type": "str",
+            "description": "目标语言代码",
+            "required": true
+          },
+          {
+            "name": "glossary_name",
+            "type": "Optional[str]",
+            "description": "词库名称（可选）",
+            "required": false
+          },
+          {
+            "name": "domain",
+            "type": "str",
+            "description": "医学领域",
+            "required": false
+          },
+          {
+            "name": "cache_dir",
+            "type": "Optional[str]",
+            "description": "缓存目录（可选）",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的质量报告",
+        "dependencies": ["json", "os", "re", "hashlib", "datetime", "boto3"],
+        "implementation_notes": [
+          "评估多个质量维度，包括术语一致性、缩写处理、语法正确性等",
+          "生成综合质量得分",
+          "提供改进建议"
+        ],
+        "error_handling": [
+          "处理质量评估过程中的异常",
+          "确保报告生成的稳定性"
+        ],
+        "usage_examples": [
+          "评估医学文档翻译的整体质量",
+          "生成包含多维度评分的质量报告"
+        ]
+      },
+      {
+        "tool_name": "batch_processor",
+        "description": "批量处理医学文档翻译的工具，管理翻译队列和进度",
+        "function_signature": "create_batch_task(file_paths: List[str], source_lang: str, target_lang: str, glossary_name: Optional[str] = None, domain: str = \"general\", task_name: Optional[str] = None, description: Optional[str] = None, priority: int = 1, cache_dir: Optional[str] = None) -> str",
+        "parameters": [
+          {
+            "name": "file_paths",
+            "type": "List[str]",
+            "description": "要翻译的文档路径列表",
+            "required": true
+          },
+          {
+            "name": "source_lang",
+            "type": "str",
+            "description": "源语言代码",
+            "required": true
+          },
+          {
+            "name": "target_lang",
+            "type": "str",
+            "description": "目标语言代码",
+            "required": true
+          },
+          {
+            "name": "glossary_name",
+            "type": "Optional[str]",
+            "description": "词库名称（可选）",
+            "required": false
+          },
+          {
+            "name": "domain",
+            "type": "str",
+            "description": "医学领域",
+            "required": false
+          },
+          {
+            "name": "task_name",
+            "type": "Optional[str]",
+            "description": "任务名称（可选）",
+            "required": false
+          },
+          {
+            "name": "description",
+            "type": "Optional[str]",
+            "description": "任务描述（可选）",
+            "required": false
+          },
+          {
+            "name": "priority",
+            "type": "int",
+            "description": "任务优先级（1-5，1为最高）",
+            "required": false
+          },
+          {
+            "name": "cache_dir",
+            "type": "Optional[str]",
+            "description": "缓存目录（可选）",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的任务创建结果",
+        "dependencies": ["json", "os", "uuid", "datetime", "shutil"],
+        "implementation_notes": [
+          "创建批量翻译任务并管理任务队列",
+          "验证文件格式和有效性",
+          "支持任务优先级设置"
+        ],
+        "error_handling": [
+          "验证文件路径和格式",
+          "处理任务创建过程中的异常"
+        ],
+        "usage_examples": [
+          "创建包含多个医学文档的批量翻译任务",
+          "设置任务优先级和描述信息"
+        ]
+      },
+      {
+        "tool_name": "batch_processor",
+        "description": "启动批量翻译任务并获取进度",
+        "function_signature": "start_batch_task(task_id: str, cache_dir: Optional[str] = None) -> str",
+        "parameters": [
+          {
+            "name": "task_id",
+            "type": "str",
+            "description": "任务ID",
+            "required": true
+          },
+          {
+            "name": "cache_dir",
+            "type": "Optional[str]",
+            "description": "缓存目录（可选）",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的启动结果",
+        "dependencies": ["json", "os", "datetime", "threading"],
+        "implementation_notes": [
+          "启动后台线程处理批量翻译任务",
+          "更新任务状态和进度",
+          "支持任务取消和暂停"
+        ],
+        "error_handling": [
+          "验证任务是否存在",
+          "检查任务状态是否允许启动",
+          "处理任务启动过程中的异常"
+        ],
+        "usage_examples": [
+          "启动已创建的批量翻译任务",
+          "监控任务进度和状态"
+        ]
+      },
+      {
+        "tool_name": "batch_processor",
+        "description": "生成批量翻译任务报告",
+        "function_signature": "generate_batch_report(task_id: str, include_details: bool = True, cache_dir: Optional[str] = None) -> str",
+        "parameters": [
+          {
+            "name": "task_id",
+            "type": "str",
+            "description": "任务ID",
+            "required": true
+          },
+          {
+            "name": "include_details",
+            "type": "bool",
+            "description": "是否包含详细信息",
+            "required": false
+          },
+          {
+            "name": "cache_dir",
+            "type": "Optional[str]",
+            "description": "缓存目录（可选）",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的报告",
+        "dependencies": ["json", "os", "uuid", "datetime"],
+        "implementation_notes": [
+          "生成包含任务摘要和详细信息的报告",
+          "计算任务完成时间和处理时长",
+          "支持详细程度的配置"
+        ],
+        "error_handling": [
+          "验证任务是否存在",
+          "处理报告生成过程中的异常"
+        ],
+        "usage_examples": [
+          "生成批量翻译任务的完整报告",
+          "获取任务处理统计信息"
+        ]
+      }
+    ],
+    "code_quality": {
+      "code_standards": [
+        "遵循PEP 8编码规范",
+        "使用类型注解提高代码可读性和安全性",
+        "详细的文档字符串，包括参数和返回值说明",
+        "适当的代码注释解释复杂逻辑",
+        "模块化设计，每个工具专注于单一职责"
+      ],
+      "testing_strategy": [
+        "单元测试覆盖核心功能",
+        "边界条件测试确保健壮性",
+        "异常处理测试验证错误恢复能力",
+        "集成测试验证工具间协作",
+        "性能测试确保处理大型文档的能力"
+      ],
+      "performance_considerations": [
+        "使用缓存机制减少重复翻译",
+        "实现索引加速词库查询",
+        "异步处理批量任务避免阻塞",
+        "优化内存使用，避免大文档处理时内存溢出",
+        "使用线程池管理并发任务"
+      ],
+      "security_measures": [
+        "输入验证防止注入攻击",
+        "安全处理文件路径避免目录遍历",
+        "保护API密钥和敏感配置",
+        "限制资源使用防止拒绝服务",
+        "安全存储翻译历史和用户数据"
+      ]
+    },
+    "integration_details": {
+      "aws_services": [
+        "AWS Bedrock用于AI翻译服务",
+        "AWS S3可用于存储大型文档和词库（可选扩展）",
+        "AWS CloudWatch可用于监控批量任务（可选扩展）"
+      ],
+      "external_libraries": [
+        "python-docx用于Word文档处理",
+        "pandas用于词库数据管理",
+        "boto3用于AWS服务集成",
+        "strands用于工具定义和集成"
+      ],
+      "api_endpoints": [
+        "AWS Bedrock API用于AI翻译",
+        "可扩展集成其他翻译API作为备选"
+      ],
+      "data_formats": [
+        "JSON用于结构化数据交换",
+        "DOCX用于文档处理",
+        "CSV/Excel/JSON用于词库导入",
+        "UTF-8编码确保多语言支持"
+      ]
+    },
+    "development_notes": "在开发过程中，我们重点关注了医学文档翻译的特殊需求，特别是术语一致性和格式保持。docx_processor工具的开发遇到了复杂文档格式保持的挑战，我们通过深入研究python-docx库的API并实现自定义格式处理逻辑解决了这一问题。medical_glossary_manager的设计采用了索引机制以提高大型词库的查询效率，同时支持词库版本管理满足不同医学领域的需求。translation_engine整合了词库翻译和AI翻译，确保专业术语的准确性同时保持翻译的流畅性。quality_controller实现了多维度的质量评估，特别关注医学术语的一致性和缩写处理。batch_processor采用异步处理机制，确保大批量文档处理时的系统稳定性和进度反馈。所有工具都遵循模块化设计原则，便于未来扩展和维护。"
+  }
+}

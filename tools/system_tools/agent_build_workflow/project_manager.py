@@ -1021,8 +1021,8 @@ def update_project_stage_content(project_name: str, agent_name: str, stage_name:
     
     Args:
         project_name (str): 项目名称
-        agent_name (str): Agent名称
-        stage_name (str): 阶段名称
+        agent_name (str): 正在开发的Agent名称
+        stage_name (str): 当前阶段名称
         content (str): 要写入的内容
         agent_artifact_path (List[str], optional): 生成的制品路径数组，用于代码开发、工具生成、提示词生成阶段
         

@@ -1,0 +1,396 @@
+{
+  "agent_code_development": {
+    "development_overview": {
+      "project_name": "medical_document_translation_agent",
+      "version": "1.0",
+      "date": "2025-09-24",
+      "development_scope": "开发一个专业的医学文档翻译智能体，能够处理Microsoft Word文档，支持自定义医学词库管理、智能翻译、格式保持、质量控制和批量处理等核心功能",
+      "design_principles": [
+        "模块化设计：将功能划分为文档处理、词库管理、翻译引擎、质量控制、批量处理等模块",
+        "专业性优先：确保医学术语翻译的准确性和一致性",
+        "格式保持：确保翻译后文档保持原有格式和结构",
+        "用户友好：提供清晰的接口和详细的文档",
+        "错误处理：实现健壮的异常处理机制"
+      ],
+      "key_decisions": [
+        "使用nexus_utils.agent_factory创建基于提示词模板的智能体",
+        "采用Claude Opus模型以获得最佳医学翻译能力",
+        "集成五个核心工具模块：docx_processor、medical_glossary_manager、translation_engine、quality_controller和batch_processor",
+        "实现单文档翻译、批量翻译、词库管理、质量报告等核心功能",
+        "提供命令行接口支持不同操作模式"
+      ]
+    },
+    "agent_implementation": {
+      "agent_name": "medical_translator",
+      "file_path": "agents/generated_agents/medical_document_translation_agent/medical_translator.py",
+      "main_class": "N/A (基于函数式设计)",
+      "entry_point": "if __name__ == \"__main__\"",
+      "dependencies": [
+        "nexus_utils.agent_factory",
+        "strands.telemetry",
+        "logging",
+        "os",
+        "json",
+        "argparse"
+      ],
+      "imports": [
+        "from nexus_utils.agent_factory import create_agent_from_prompt_template",
+        "from strands.telemetry import StrandsTelemetry",
+        "import os",
+        "import json",
+        "import logging",
+        "from typing import Dict, List, Any, Optional, Union"
+      ]
+    },
+    "core_functions": [
+      {
+        "function_name": "translate_medical_document",
+        "purpose": "翻译单个医学文档",
+        "parameters": [
+          {
+            "name": "file_path",
+            "type": "str",
+            "description": "要翻译的文档路径",
+            "required": true
+          },
+          {
+            "name": "source_lang",
+            "type": "str",
+            "description": "源语言代码 (如 'en', 'zh')",
+            "required": true
+          },
+          {
+            "name": "target_lang",
+            "type": "str",
+            "description": "目标语言代码 (如 'zh', 'en')",
+            "required": true
+          },
+          {
+            "name": "glossary_name",
+            "type": "Optional[str]",
+            "description": "词库名称 (可选)",
+            "required": false
+          },
+          {
+            "name": "domain",
+            "type": "str",
+            "description": "医学领域 (默认为'general')",
+            "required": false
+          },
+          {
+            "name": "expand_abbreviations",
+            "type": "bool",
+            "description": "是否展开医学缩写 (默认为True)",
+            "required": false
+          },
+          {
+            "name": "output_path",
+            "type": "Optional[str]",
+            "description": "输出文件路径 (可选)",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "翻译结果信息",
+        "implementation_notes": [
+          "构建结构化输入提示，包含文档路径、语言、词库等信息",
+          "调用医学翻译智能体处理翻译请求",
+          "实现错误处理并记录日志"
+        ]
+      },
+      {
+        "function_name": "batch_translate_documents",
+        "purpose": "批量翻译多个医学文档",
+        "parameters": [
+          {
+            "name": "file_paths",
+            "type": "List[str]",
+            "description": "要翻译的文档路径列表",
+            "required": true
+          },
+          {
+            "name": "source_lang",
+            "type": "str",
+            "description": "源语言代码",
+            "required": true
+          },
+          {
+            "name": "target_lang",
+            "type": "str",
+            "description": "目标语言代码",
+            "required": true
+          },
+          {
+            "name": "glossary_name",
+            "type": "Optional[str]",
+            "description": "词库名称 (可选)",
+            "required": false
+          },
+          {
+            "name": "domain",
+            "type": "str",
+            "description": "医学领域 (默认为'general')",
+            "required": false
+          },
+          {
+            "name": "expand_abbreviations",
+            "type": "bool",
+            "description": "是否展开医学缩写 (默认为True)",
+            "required": false
+          },
+          {
+            "name": "output_dir",
+            "type": "Optional[str]",
+            "description": "输出目录 (可选)",
+            "required": false
+          },
+          {
+            "name": "task_name",
+            "type": "Optional[str]",
+            "description": "任务名称 (可选)",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "批量翻译结果信息",
+        "implementation_notes": [
+          "构建结构化输入提示，包含文档列表、语言、词库等信息",
+          "调用医学翻译智能体处理批量翻译请求",
+          "实现错误处理并记录日志"
+        ]
+      },
+      {
+        "function_name": "manage_medical_glossary",
+        "purpose": "管理医学词库",
+        "parameters": [
+          {
+            "name": "action",
+            "type": "str",
+            "description": "操作类型 ('import', 'export', 'search', 'add', 'delete')",
+            "required": true
+          },
+          {
+            "name": "glossary_name",
+            "type": "str",
+            "description": "词库名称",
+            "required": true
+          },
+          {
+            "name": "file_path",
+            "type": "Optional[str]",
+            "description": "词库文件路径 (导入操作必需)",
+            "required": false
+          },
+          {
+            "name": "source_lang_column",
+            "type": "Optional[str]",
+            "description": "源语言列名 (导入操作必需)",
+            "required": false
+          },
+          {
+            "name": "target_lang_column",
+            "type": "Optional[str]",
+            "description": "目标语言列名 (导入操作必需)",
+            "required": false
+          },
+          {
+            "name": "category_column",
+            "type": "Optional[str]",
+            "description": "分类列名 (可选)",
+            "required": false
+          },
+          {
+            "name": "output_format",
+            "type": "Optional[str]",
+            "description": "导出格式 (导出操作必需，'json', 'csv', 'excel')",
+            "required": false
+          },
+          {
+            "name": "output_path",
+            "type": "Optional[str]",
+            "description": "导出路径 (导出操作可选)",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "操作结果信息",
+        "implementation_notes": [
+          "构建结构化输入提示，包含操作类型、词库名称等信息",
+          "根据操作类型提供不同的参数",
+          "调用医学翻译智能体处理词库管理请求",
+          "实现错误处理并记录日志"
+        ]
+      },
+      {
+        "function_name": "generate_quality_report",
+        "purpose": "生成翻译质量报告",
+        "parameters": [
+          {
+            "name": "source_file_path",
+            "type": "str",
+            "description": "源文档路径",
+            "required": true
+          },
+          {
+            "name": "translated_file_path",
+            "type": "str",
+            "description": "翻译文档路径",
+            "required": true
+          },
+          {
+            "name": "source_lang",
+            "type": "str",
+            "description": "源语言代码",
+            "required": true
+          },
+          {
+            "name": "target_lang",
+            "type": "str",
+            "description": "目标语言代码",
+            "required": true
+          },
+          {
+            "name": "glossary_name",
+            "type": "Optional[str]",
+            "description": "词库名称 (可选)",
+            "required": false
+          },
+          {
+            "name": "domain",
+            "type": "str",
+            "description": "医学领域 (默认为'general')",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "质量报告",
+        "implementation_notes": [
+          "构建结构化输入提示，包含源文档、翻译文档、语言等信息",
+          "调用医学翻译智能体生成质量报告",
+          "实现错误处理并记录日志"
+        ]
+      },
+      {
+        "function_name": "get_batch_task_progress",
+        "purpose": "获取批量翻译任务进度",
+        "parameters": [
+          {
+            "name": "task_id",
+            "type": "str",
+            "description": "任务ID",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "任务进度信息",
+        "implementation_notes": [
+          "构建结构化输入提示，包含任务ID",
+          "调用医学翻译智能体获取任务进度",
+          "实现错误处理并记录日志"
+        ]
+      }
+    ],
+    "tool_integration": {
+      "custom_tools": [
+        "docx_processor - 处理Word文档的工具",
+        "medical_glossary_manager - 管理医学词库的工具",
+        "translation_engine - 翻译引擎工具",
+        "quality_controller - 翻译质量控制工具",
+        "batch_processor - 批量处理工具"
+      ],
+      "system_tools": [
+        "strands_tools/file_read - 文件读取工具",
+        "strands_tools/file_write - 文件写入工具",
+        "strands_tools/current_time - 获取当前时间工具"
+      ],
+      "strands_tools": [
+        "StrandsTelemetry - 遥测工具"
+      ],
+      "integration_notes": [
+        "通过提示词模板中的工具依赖配置集成所有工具",
+        "使用医学翻译智能体的自然语言接口调用工具功能",
+        "工具功能通过结构化提示词传递参数"
+      ]
+    },
+    "configuration": {
+      "environment_variables": [
+        "BYPASS_TOOL_CONSENT=true - 绕过工具使用确认",
+        "OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 - 遥测导出端点"
+      ],
+      "model_configuration": {
+        "model_name": "us.anthropic.claude-3-opus-20240229-v1:0",
+        "max_tokens": 60000,
+        "temperature": 0.3,
+        "top_p": 0.8
+      },
+      "streaming_config": {
+        "enabled": true,
+        "chunk_size": 1024
+      }
+    },
+    "error_handling": {
+      "exception_types": [
+        "一般异常 (Exception)",
+        "文件不存在异常",
+        "格式错误异常",
+        "API调用异常"
+      ],
+      "error_responses": [
+        "记录详细错误日志",
+        "返回用户友好的错误信息",
+        "提供错误原因和可能的解决方案"
+      ],
+      "recovery_strategies": [
+        "使用try-except块捕获异常",
+        "记录错误日志以便调试",
+        "返回结构化错误信息"
+      ]
+    },
+    "testing": {
+      "test_cases": [
+        "单文档翻译测试",
+        "批量文档翻译测试",
+        "词库管理测试",
+        "质量报告生成测试",
+        "任务进度查询测试"
+      ],
+      "test_scenarios": [
+        "翻译英文到中文的医学文档",
+        "翻译中文到英文的医学文档",
+        "导入和使用自定义医学词库",
+        "批量处理多个医学文档",
+        "生成翻译质量报告"
+      ],
+      "validation_criteria": [
+        "翻译结果的准确性和专业性",
+        "术语翻译的一致性",
+        "文档格式保持的完整性",
+        "错误处理的有效性",
+        "批量处理的效率"
+      ]
+    },
+    "deployment": {
+      "deployment_requirements": [
+        "Python 3.13+",
+        "nexus_utils库",
+        "strands库",
+        "boto3库",
+        "python-docx库",
+        "pandas库"
+      ],
+      "runtime_dependencies": [
+        "AWS Bedrock API访问权限",
+        "足够的内存资源处理大型文档",
+        "文件系统读写权限",
+        "网络连接以访问AI模型"
+      ],
+      "performance_considerations": [
+        "大型文档处理可能需要较长时间",
+        "批量处理时考虑内存使用",
+        "API调用频率限制",
+        "缓存机制优化重复翻译"
+      ]
+    },
+    "development_notes": "在开发医学文档翻译智能体的过程中，我采用了基于函数式设计的方法，通过nexus_utils.agent_factory创建基于提示词模板的智能体。选择Claude Opus模型是为了获得最佳的医学翻译能力，该模型在理解医学术语和上下文方面表现出色。智能体的核心功能包括单文档翻译、批量翻译、词库管理、质量报告生成和任务进度查询，每个功能都通过构建结构化的输入提示来实现。工具集成方面，我通过提示词模板中的工具依赖配置集成了五个核心工具模块：docx_processor、medical_glossary_manager、translation_engine、quality_controller和batch_processor，这些工具分别负责文档处理、词库管理、翻译引擎、质量控制和批量处理功能。命令行接口的设计支持不同的操作模式，使用户可以灵活选择所需功能。错误处理机制确保了智能体的稳定性，通过try-except块捕获异常并提供用户友好的错误信息。整体设计遵循模块化、专业性优先、格式保持、用户友好和错误处理的原则，确保医学文档翻译的高质量和可靠性。"
+  }
+}

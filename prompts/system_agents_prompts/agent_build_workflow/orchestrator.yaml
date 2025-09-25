@@ -132,7 +132,7 @@ agent:
         │       ├── config.yaml          # 项目基本配置
         │       ├── README.md            # 项目说明
         │       └── status.yaml          # 项目需求文档和进度追踪
-        └── utils/                     # 共享工具
+        └── nexus_utils/                     # 共享工具
         ```
 
         ### 项目工作区
@@ -322,7 +322,7 @@ agent:
         │       ├── config.yaml          # 项目基本配置
         │       ├── README.md            # 项目说明
         │       └── status.yaml          # 项目需求文档和进度追踪
-        └── utils/                     # 共享工具
+        └── nexus_utils/                     # 共享工具
         ```
 
         ### 项目工作区

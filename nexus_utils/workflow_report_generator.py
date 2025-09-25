@@ -100,22 +100,16 @@ class WorkflowReportGenerator:
     def parse_workflow_result(self, graph_result: Any, project_dir: str = None) -> WorkflowSummary:
         """解析GraphResult对象"""
         try:
-            print(f"🔍 开始解析工作流结果，类型: {type(graph_result)}")
-            print(f"🔍 可用属性: {[attr for attr in dir(graph_result) if not attr.startswith('_')]}")
             
             # 检查accumulated_usage
             if hasattr(graph_result, 'accumulated_usage'):
                 usage = graph_result.accumulated_usage
-                print(f"🔍 accumulated_usage类型: {type(usage)}")
-                print(f"🔍 accumulated_usage内容: {usage}")
             else:
                 print(f"⚠️ 未找到accumulated_usage属性")
             
             # 检查results
             if hasattr(graph_result, 'results'):
                 results = graph_result.results
-                print(f"🔍 results类型: {type(results)}")
-                print(f"🔍 results键: {list(results.keys()) if results else 'None'}")
             else:
                 print(f"⚠️ 未找到results属性")
             
@@ -150,11 +144,9 @@ class WorkflowReportGenerator:
                 if isinstance(usage, dict):
                     total_input_tokens = usage.get('inputTokens', 0)
                     total_output_tokens = usage.get('outputTokens', 0)
-                    print(f"🔍 使用系统级别Token统计(字典格式): input={total_input_tokens}, output={total_output_tokens}")
                 elif hasattr(usage, 'inputTokens') and hasattr(usage, 'outputTokens'):
                     total_input_tokens = usage.inputTokens
                     total_output_tokens = usage.outputTokens
-                    print(f"🔍 使用系统级别Token统计(对象格式): input={total_input_tokens}, output={total_output_tokens}")
                 else:
                     print(f"⚠️ usage格式不支持: {type(usage)}")
                     usage = None
@@ -163,8 +155,6 @@ class WorkflowReportGenerator:
                 # 如果没有系统级别统计，使用各阶段累加
                 total_input_tokens = sum(stage.input_tokens for stage in stages)
                 total_output_tokens = sum(stage.output_tokens for stage in stages)
-                print(f"🔍 从各阶段累加Token统计: input={total_input_tokens}, output={total_output_tokens}")
-                print(f"⚠️ 未找到系统级别accumulated_usage，使用各阶段估算值")
             
             # 计算其他指标
             total_tool_calls = sum(stage.tool_calls for stage in stages)
@@ -174,11 +164,9 @@ class WorkflowReportGenerator:
             # 优先使用系统级别的执行时间
             if hasattr(graph_result, 'execution_time'):
                 total_duration = graph_result.execution_time / 1000.0  # 转换为秒
-                print(f"🔍 使用系统级别执行时间: {total_duration:.2f}秒")
             else:
                 # 如果没有系统级别时间，使用各阶段累加
                 total_duration = sum(stage.duration or 0 for stage in stages)
-                print(f"🔍 使用各阶段累加执行时间: {total_duration:.2f}秒")
             
             # 生成工具使用总结
             tool_usage_summary = self._generate_tool_usage_summary(stages)

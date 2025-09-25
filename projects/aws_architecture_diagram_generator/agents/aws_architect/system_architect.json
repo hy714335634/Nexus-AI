@@ -1,0 +1,305 @@
+{
+  "system_design": {
+    "design_overview": {
+      "project_name": "aws_architecture_diagram_generator",
+      "version": "1.0",
+      "date": "2025-09-24",
+      "design_scope": "设计一个智能的AWS架构图生成系统，能够理解用户的自然语言描述，将IT技术栈映射到AWS托管服务，并生成多种格式的专业架构图（mermaid、markdown、drawio、PPT）",
+      "design_principles": [
+        "单一职责原则：Agent专注于架构图生成这一核心功能",
+        "智能映射原则：基于AWS最佳实践进行技术栈到服务的映射",
+        "多格式输出原则：支持不同场景下的多种输出格式",
+        "美观性原则：确保生成的架构图符合AWS官方风格",
+        "可扩展性原则：支持未来新增AWS服务和输出格式"
+      ],
+      "key_decisions": [
+        "采用单Agent架构，所有功能集中在一个智能Agent中处理",
+        "基于requirements_analyzer模板进行定制开发",
+        "集成strands_tools/use_aws工具进行实时AWS服务查询",
+        "使用分层处理架构：理解→映射→验证→生成→美化",
+        "支持交互式澄清机制处理模糊需求"
+      ],
+      "workflow_type": "single_agent",
+      "recommended_templates": ["requirements_analyzer", "aws_pricing_agent"]
+    },
+    "architecture": {
+      "system_context": "AWS架构图生成器作为独立的智能Agent，接收用户的自然语言架构需求描述，通过内置的AWS知识库和实时查询工具，将需求转换为合理的AWS架构设计，并输出多种格式的可视化架构图。系统与AWS服务生态深度集成，确保推荐的架构方案符合最佳实践。",
+      "agent_topology": "单Agent拓扑结构，由一个核心的aws_architect Agent处理所有功能模块，包括自然语言理解、技术栈映射、架构验证、多格式输出生成和图形美化。Agent内部采用模块化设计，各功能模块通过明确的接口进行交互。",
+      "interaction_model": "用户与Agent直接交互模式。用户输入自然语言描述，Agent通过多轮对话澄清需求，然后生成架构设计和多格式输出。Agent可以主动询问用户偏好和约束条件，支持迭代优化架构设计。",
+      "technology_stack": {
+        "sdk": "Strands SDK",
+        "runtime": "Local",
+        "integrations": ["AWS Bedrock", "strands_tools/use_aws", "AWS服务API", "图形渲染引擎", "PPT生成库"]
+      }
+    },
+    "agents": [
+      {
+        "name": "aws_architect",
+        "purpose": "智能AWS架构图生成器，负责理解用户需求、映射AWS服务、验证架构合理性并生成多格式可视化输出",
+        "responsibilities": [
+          "解析和理解用户的自然语言架构需求描述",
+          "将IT技术栈和非AWS产品映射到合适的AWS托管服务",
+          "验证架构设计的合理性和AWS最佳实践符合性",
+          "生成mermaid、markdown、drawio格式的基础架构图",
+          "基于用户提供的模板生成PPT格式的高级架构图",
+          "优化架构图布局，确保美观性和AWS风格一致性",
+          "集成AWS工具进行实时服务信息查询和验证"
+        ],
+        "interfaces": {
+          "inputs": [
+            "用户自然语言架构需求描述",
+            "IT技术栈和组件列表",
+            "架构约束和偏好设置",
+            "AWS图标模板文件（可选）",
+            "PPT模板文件（可选）",
+            "输出格式偏好设置"
+          ],
+          "outputs": [
+            "架构需求理解和澄清问题",
+            "AWS服务映射建议和替代方案",
+            "架构合理性验证报告",
+            "mermaid格式架构图代码",
+            "markdown格式架构文档",
+            "drawio格式XML文件",
+            "PPT格式专业架构图",
+            "架构设计说明和最佳实践建议"
+          ]
+        },
+        "dependencies": [
+          "strands_tools/use_aws工具",
+          "AWS Bedrock AI服务",
+          "内置AWS服务知识库",
+          "图形渲染和布局算法",
+          "PPT生成和操作库"
+        ],
+        "implementation_notes": [
+          "基于requirements_analyzer模板进行定制开发",
+          "实现分层处理架构：NLP理解层→服务映射层→架构验证层→输出生成层→美化处理层",
+          "集成多种输出格式生成器，支持格式间的一致性",
+          "实现智能布局算法，优化连线路径和元素排列",
+          "支持模板管理和自定义扩展机制"
+        ],
+        "recommended_template": "requirements_analyzer"
+      }
+    ],
+    "data_models": [
+      {
+        "name": "ArchitectureRequest",
+        "schema": {
+          "user_description": "string - 用户自然语言描述",
+          "tech_stack": "array - IT技术栈列表",
+          "constraints": "object - 架构约束条件",
+          "preferences": "object - 用户偏好设置",
+          "output_formats": "array - 需要的输出格式"
+        },
+        "validation_rules": [
+          "user_description不能为空",
+          "output_formats至少包含一种格式",
+          "constraints必须是有效的架构约束"
+        ],
+        "relationships": ["与AWSServiceMapping关联", "与ArchitectureDesign关联"]
+      },
+      {
+        "name": "AWSServiceMapping",
+        "schema": {
+          "original_tech": "string - 原始技术栈",
+          "aws_service": "string - 对应AWS服务",
+          "mapping_confidence": "float - 映射置信度",
+          "alternatives": "array - 替代方案列表",
+          "best_practice_notes": "string - 最佳实践说明"
+        },
+        "validation_rules": [
+          "aws_service必须是有效的AWS服务名称",
+          "mapping_confidence范围0-1",
+          "alternatives不能为空"
+        ],
+        "relationships": ["与ArchitectureRequest关联", "与ArchitectureDesign关联"]
+      },
+      {
+        "name": "ArchitectureDesign",
+        "schema": {
+          "components": "array - 架构组件列表",
+          "connections": "array - 组件间连接关系",
+          "vpc_layout": "object - VPC网络布局",
+          "security_groups": "array - 安全组配置",
+          "validation_results": "object - 验证结果",
+          "optimization_suggestions": "array - 优化建议"
+        },
+        "validation_rules": [
+          "components不能为空",
+          "每个组件必须有唯一标识",
+          "connections必须引用有效的组件"
+        ],
+        "relationships": ["与OutputArtifacts关联"]
+      },
+      {
+        "name": "OutputArtifacts",
+        "schema": {
+          "mermaid_code": "string - Mermaid图表代码",
+          "markdown_doc": "string - Markdown文档内容",
+          "drawio_xml": "string - DrawIO XML内容",
+          "ppt_file_path": "string - PPT文件路径",
+          "generation_metadata": "object - 生成元数据"
+        },
+        "validation_rules": [
+          "至少包含一种输出格式",
+          "生成的内容必须符合对应格式规范"
+        ],
+        "relationships": ["与ArchitectureDesign关联"]
+      }
+    ],
+    "interaction_flows": [
+      {
+        "name": "架构需求理解流程",
+        "description": "解析用户输入的自然语言描述，提取关键信息并澄清模糊需求",
+        "steps": [
+          {
+            "step": "接收用户输入",
+            "agent": "aws_architect",
+            "action": "解析自然语言描述",
+            "data": "ArchitectureRequest"
+          },
+          {
+            "step": "需求分析",
+            "agent": "aws_architect",
+            "action": "提取技术栈和架构要素",
+            "data": "解析结果"
+          },
+          {
+            "step": "澄清确认",
+            "agent": "aws_architect",
+            "action": "生成澄清问题",
+            "data": "澄清问题列表"
+          },
+          {
+            "step": "需求确认",
+            "agent": "aws_architect",
+            "action": "整合用户反馈",
+            "data": "最终需求规格"
+          }
+        ]
+      },
+      {
+        "name": "AWS服务映射流程",
+        "description": "将用户提到的技术栈和组件映射到对应的AWS服务",
+        "steps": [
+          {
+            "step": "技术栈识别",
+            "agent": "aws_architect",
+            "action": "识别传统技术组件",
+            "data": "技术栈列表"
+          },
+          {
+            "step": "AWS服务查询",
+            "agent": "aws_architect",
+            "action": "调用strands_tools/use_aws查询服务信息",
+            "data": "AWS服务详情"
+          },
+          {
+            "step": "映射匹配",
+            "agent": "aws_architect",
+            "action": "执行智能映射算法",
+            "data": "AWSServiceMapping"
+          },
+          {
+            "step": "替代方案生成",
+            "agent": "aws_architect",
+            "action": "生成多种AWS服务选项",
+            "data": "映射方案列表"
+          }
+        ]
+      },
+      {
+        "name": "架构设计验证流程",
+        "description": "验证生成的架构设计是否合理且符合AWS最佳实践",
+        "steps": [
+          {
+            "step": "架构一致性检查",
+            "agent": "aws_architect",
+            "action": "验证组件间兼容性",
+            "data": "兼容性报告"
+          },
+          {
+            "step": "网络架构验证",
+            "agent": "aws_architect",
+            "action": "检查VPC内外服务分类",
+            "data": "网络拓扑验证"
+          },
+          {
+            "step": "最佳实践对比",
+            "agent": "aws_architect",
+            "action": "对比AWS最佳实践",
+            "data": "实践符合性报告"
+          },
+          {
+            "step": "优化建议生成",
+            "agent": "aws_architect",
+            "action": "生成改进建议",
+            "data": "优化建议列表"
+          }
+        ]
+      },
+      {
+        "name": "多格式输出生成流程",
+        "description": "基于验证后的架构设计生成多种格式的可视化输出",
+        "steps": [
+          {
+            "step": "基础格式生成",
+            "agent": "aws_architect",
+            "action": "生成mermaid、markdown、drawio格式",
+            "data": "基础输出文件"
+          },
+          {
+            "step": "PPT模板处理",
+            "agent": "aws_architect",
+            "action": "处理用户提供的PPT模板",
+            "data": "模板配置"
+          },
+          {
+            "step": "高级PPT生成",
+            "agent": "aws_architect",
+            "action": "基于模板生成PPT架构图",
+            "data": "PPT文件"
+          },
+          {
+            "step": "美化优化",
+            "agent": "aws_architect",
+            "action": "优化布局和视觉效果",
+            "data": "OutputArtifacts"
+          }
+        ]
+      }
+    ],
+    "security_considerations": [
+      "用户输入的架构信息不进行持久化存储，保护商业机密",
+      "AWS API调用使用安全的认证机制",
+      "生成的文件支持访问权限控制",
+      "敏感配置信息（如密钥、密码）不在架构图中显示",
+      "确保strands_tools/use_aws工具的安全调用"
+    ],
+    "error_handling": [
+      "自然语言理解失败时，提供澄清问题引导用户",
+      "AWS服务查询失败时，使用内置知识库作为备选",
+      "架构验证发现问题时，提供具体的修改建议",
+      "格式生成失败时，提供错误详情和重试机制",
+      "PPT模板处理异常时，回退到默认模板",
+      "网络连接问题时，启用离线模式基础功能"
+    ],
+    "performance_considerations": [
+      "使用缓存机制减少重复的AWS服务查询",
+      "异步处理多格式输出生成，提高响应速度",
+      "优化图形渲染算法，减少复杂架构图的生成时间",
+      "实现增量更新机制，支持架构设计的快速迭代",
+      "限制单次处理的架构复杂度，避免系统过载"
+    ],
+    "monitoring_strategy": [
+      "记录用户请求的处理时间和成功率",
+      "监控AWS服务映射的准确性和用户满意度",
+      "跟踪不同输出格式的使用频率和生成成功率",
+      "监控strands_tools/use_aws工具的调用频率和响应时间",
+      "收集用户对生成架构图质量的反馈",
+      "监控系统资源使用情况，特别是PPT生成过程"
+    ]
+  },
+  "design_rationale": "本系统设计采用单Agent架构，主要基于以下考虑：1）功能聚焦性 - 所有功能都围绕AWS架构图生成这一核心任务，单Agent能够提供更好的一致性和协调性；2）技术栈统一性 - 基于requirements_analyzer模板进行定制，能够快速实现自然语言处理和多格式输出功能；3）AWS深度集成 - 通过strands_tools/use_aws工具实现与AWS服务的深度集成，确保信息的准确性和时效性；4）分层处理架构 - 在单Agent内部实现模块化设计，通过理解→映射→验证→生成→美化的流水线处理，确保每个环节的质量；5）交互式设计 - 支持多轮对话和澄清机制，能够处理复杂和模糊的用户需求；6）可扩展性考虑 - 虽然采用单Agent架构，但内部模块化设计支持未来功能扩展和新AWS服务的集成；7）性能优化 - 通过缓存、异步处理和增量更新等机制，确保系统在处理复杂架构时的响应性能。这种设计平衡了功能完整性、开发效率和系统性能，为用户提供专业、准确、美观的AWS架构图生成服务。"
+}

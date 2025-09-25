@@ -42,5 +42,5 @@ def inference_with_amazon_q(data):
 
 if __name__ == "__main__":
     data = "你好，我是Strands SDK，我是一个AI Agent，我可以帮助你完成各种任务。"
-    result = strands_inference_with_q(data)
+    result = inference_with_amazon_q(data)
     print(result)
