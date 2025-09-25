@@ -37,3 +37,8 @@
 **Agent名称**: logo_designer
 **开发阶段**: agent_developer_manager
 
+
+## requirements_analyzer - 2025-09-24 16:09:43 UTC
+**Agent名称**: fitness_coach
+**开发阶段**: requirements_analyzer
+

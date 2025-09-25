@@ -46,10 +46,50 @@ project_info:
       stage: agent_developer_manager
       status: true
       updated_date: '2025-09-19T09:15:43.114020+00:00'
+  - created_date: '2025-09-24T16:09:58.521510+00:00'
+    description: 智能体：fitness_coach
+    last_updated: '2025-09-24T16:09:58.521538+00:00'
+    name: fitness_coach
+    pipeline:
+    - description: 需求分析阶段 - 分析用户需求，定义功能规格
+      doc_path: projects/logo_design_agent/agents/fitness_coach/requirements_analyzer.json
+      stage: requirements_analyzer
+      status: true
+      updated_date: '2025-09-24T16:09:58.521540+00:00'
+    - description: 系统架构设计阶段 - 设计系统架构和技术方案
+      doc_path: ''
+      stage: system_architect
+      status: false
+      updated_date: null
+    - description: Agent设计阶段 - 设计智能体结构和交互模式
+      doc_path: ''
+      stage: agent_designer
+      status: false
+      updated_date: null
+    - description: 提示词工程阶段 - 设计和优化提示词模板
+      doc_path: ''
+      stage: prompt_engineer
+      status: false
+      updated_date: null
+    - description: 工具开发阶段 - 开发必要的工具和函数
+      doc_path: ''
+      stage: tools_developer
+      status: false
+      updated_date: null
+    - description: Agent代码开发阶段 - 实现智能体代码
+      doc_path: ''
+      stage: agent_code_developer
+      status: false
+      updated_date: null
+    - description: Agent开发管理阶段 - 管理和协调开发流程
+      doc_path: ''
+      stage: agent_developer_manager
+      status: false
+      updated_date: null
   description: 专业的Logo设计智能体，能够根据用户需求分析和设计概念，生成高质量的logo图片，并提供设计说明报告。
-  last_updated: '2025-09-19T09:15:43.113725+00:00'
+  last_updated: '2025-09-24T16:09:58.521499+00:00'
   name: logo_design_agent
   progress:
-  - completed: 7
-    total: 7
+  - completed: 8
+    total: 14
   version: 1.0.0
