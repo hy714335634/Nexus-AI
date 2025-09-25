@@ -25,7 +25,7 @@ from api.core.celery_app import celery_app
 from api.database.dynamodb_client import DynamoDBClient
 from api.tasks.agent_build_tasks import build_agent
 from api.models.schemas import TaskStatusResponse, TaskStatusData
-from api.services import StageTracker
+from tools.system_tools.agent_build_workflow.stage_tracker import initialize_project_record
 
 logger = logging.getLogger(__name__)
 
@@ -42,8 +42,8 @@ async def create_agent(request: CreateAgentRequest):
         session_id = f"job_{uuid.uuid4().hex}"
         project_id = session_id
 
-        tracker = StageTracker(project_id)
-        tracker.initialize(
+        initialize_project_record(
+            project_id,
             requirement=request.requirement,
             user_id=request.user_id,
             user_name=request.user_name,
