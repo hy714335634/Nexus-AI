@@ -6,7 +6,14 @@ import logging
 from typing import Optional
 
 from api.core.celery_app import celery_app
-from api.services import AgentCLIBuildService, StageTracker
+from tools.system_tools.agent_build_workflow.stage_tracker import (
+    STAGE_SEQUENCE,
+    mark_stage_completed,
+    mark_stage_failed,
+    mark_stage_running,
+)
+
+from api.services import AgentCLIBuildService
 
 logger = logging.getLogger(__name__)
 
@@ -25,9 +32,8 @@ def build_agent(
 
     logger.info("Starting agent build task", extra={"session_id": session_id, "project_id": project_id})
 
-    tracker = StageTracker(project_id)
-    orchestrator_stage = StageTracker.STAGES[0][0]
-    tracker.mark_stage_running(orchestrator_stage)
+    orchestrator_stage = STAGE_SEQUENCE[0][0]
+    mark_stage_running(project_id, orchestrator_stage)
 
     service = AgentCLIBuildService()
 
@@ -38,11 +44,11 @@ def build_agent(
             project_id=project_id,
         )
     except Exception as exc:  # pragma: no cover - defensive logging
-        tracker.mark_stage_failed(orchestrator_stage, str(exc))
+        mark_stage_failed(project_id, orchestrator_stage, str(exc))
         logger.exception("Agent build task failed", extra={"project_id": project_id})
         raise
 
-    tracker.mark_stage_completed(orchestrator_stage)
+    mark_stage_completed(project_id, orchestrator_stage)
 
     payload = output.to_dict()
     payload.update({
