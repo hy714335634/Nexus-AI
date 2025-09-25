@@ -321,7 +321,7 @@ if __name__ == "__main__":
             expand_abbreviations=args.expand_abbreviations,
             output_path=args.output
         )
-        print(f"📋 翻译结果:\n{result}")
+        # print(f"📋 翻译结果:\n{result}")
     
     elif args.mode == 'batch':
         if not args.files or not args.source_lang or not args.target_lang:

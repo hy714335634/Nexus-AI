@@ -14,3 +14,4 @@ Pillow
 python-docx
 PyPDF2
 openpyxl
+tooluniverse
