@@ -1,0 +1,49 @@
+project_info:
+- agents:
+  - created_date: '2025-09-25T07:39:46.410737+00:00'
+    description: 智能体：fitness_coach_agent
+    last_updated: '2025-09-25T07:39:46.410764+00:00'
+    name: fitness_coach_agent
+    pipeline:
+    - description: 需求分析阶段 - 分析用户需求，定义功能规格
+      doc_path: projects/personal_fitness_coach/agents/fitness_coach_agent/requirements_analyzer.json
+      stage: requirements_analyzer
+      status: true
+      updated_date: '2025-09-25T07:39:46.410767+00:00'
+    - description: 系统架构设计阶段 - 设计系统架构和技术方案
+      doc_path: ''
+      stage: system_architect
+      status: false
+      updated_date: null
+    - description: Agent设计阶段 - 设计智能体结构和交互模式
+      doc_path: ''
+      stage: agent_designer
+      status: false
+      updated_date: null
+    - description: 提示词工程阶段 - 设计和优化提示词模板
+      doc_path: ''
+      stage: prompt_engineer
+      status: false
+      updated_date: null
+    - description: 工具开发阶段 - 开发必要的工具和函数
+      doc_path: ''
+      stage: tools_developer
+      status: false
+      updated_date: null
+    - description: Agent代码开发阶段 - 实现智能体代码
+      doc_path: ''
+      stage: agent_code_developer
+      status: false
+      updated_date: null
+    - description: Agent开发管理阶段 - 管理和协调开发流程
+      doc_path: ''
+      stage: agent_developer_manager
+      status: false
+      updated_date: null
+  description: 一个智能健身助手，能够根据用户的健康状况、健身目标和个人偏好提供个性化的健身建议、锻炼计划和健康指导。
+  last_updated: '2025-09-25T07:39:46.410732+00:00'
+  name: personal_fitness_coach
+  progress:
+  - completed: 1
+    total: 7
+  version: 1.0.0
