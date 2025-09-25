@@ -18,6 +18,9 @@ class StageTracker:
         ("requirements_analyzer", "需求分析"),
         ("system_architect", "系统架构设计"),
         ("agent_designer", "Agent设计"),
+        ("prompt_engineer", "提示词工程"),
+        ("tools_developer", "工具开发"),
+        ("agent_code_developer", "代码开发"),
         ("agent_developer_manager", "开发管理"),
     ]
 
@@ -28,10 +31,22 @@ class StageTracker:
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
+    def ensure_initialized(
+        self,
+        *,
+        requirement: str = "",
+        user_id: Optional[str] = None,
+        user_name: Optional[str] = None,
+    ) -> None:
+        response = self.db_client.projects_table.get_item(Key={"project_id": self.project_id})
+        if response.get("Item"):
+            return
+        self.initialize(requirement=requirement, user_id=user_id, user_name=user_name)
+
     def initialize(
         self,
         *,
-        requirement: str,
+        requirement: str = "",
         user_id: Optional[str] = None,
         user_name: Optional[str] = None,
     ) -> None:
@@ -72,7 +87,7 @@ class StageTracker:
         if not stage:
             return
         stage["status"] = "running"
-        stage["started_at"] = self._now()
+        stage.setdefault("started_at", self._now())
         stage.pop("completed_at", None)
         stage.pop("error", None)
         self._write_snapshot(snapshot)
@@ -96,7 +111,7 @@ class StageTracker:
             stage["error"] = error_message
             stage.setdefault("started_at", self._now())
             stage["completed_at"] = self._now()
-        self._write_snapshot(snapshot, project_status=ProjectStatus.FAILED.value, error_info={"error": error_message})
+        self._write_snapshot(snapshot)
 
     def mark_project_completed(self) -> None:
         snapshot = self._load_snapshot()
@@ -107,6 +122,10 @@ class StageTracker:
                 stage["completed_at"] = self._now()
                 stage.pop("error", None)
         self._write_snapshot(snapshot, project_status=ProjectStatus.COMPLETED.value)
+
+    def mark_project_failed(self, error_message: str) -> None:
+        snapshot = self._load_snapshot()
+        self._write_snapshot(snapshot, project_status=ProjectStatus.FAILED.value, error_info={"error": error_message})
 
     # ------------------------------------------------------------------
     # Internal helpers

@@ -26,26 +26,23 @@ def build_agent(
     logger.info("Starting agent build task", extra={"session_id": session_id, "project_id": project_id})
 
     tracker = StageTracker(project_id)
-    tracker.mark_stage_running(StageTracker.STAGES[0][0])
+    orchestrator_stage = StageTracker.STAGES[0][0]
+    tracker.mark_stage_running(orchestrator_stage)
 
     service = AgentCLIBuildService()
 
     try:
-        output = service.run_build(requirement, session_id=session_id)
+        output = service.run_build(
+            requirement,
+            session_id=session_id,
+            project_id=project_id,
+        )
     except Exception as exc:  # pragma: no cover - defensive logging
-        tracker.mark_stage_failed(StageTracker.STAGES[0][0], str(exc))
+        tracker.mark_stage_failed(orchestrator_stage, str(exc))
         logger.exception("Agent build task failed", extra={"project_id": project_id})
         raise
 
-    # Mark stages sequentially to reflect completion order.
-    first_stage = StageTracker.STAGES[0][0]
-    tracker.mark_stage_completed(first_stage)
-
-    for stage_name, _ in StageTracker.STAGES[1:]:
-        tracker.mark_stage_running(stage_name)
-        tracker.mark_stage_completed(stage_name)
-
-    tracker.mark_project_completed()
+    tracker.mark_stage_completed(orchestrator_stage)
 
     payload = output.to_dict()
     payload.update({

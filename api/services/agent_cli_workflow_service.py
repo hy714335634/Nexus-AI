@@ -51,20 +51,37 @@ class AgentCLIBuildService:
             telemetry.setup_otlp_exporter()
             self.__class__._telemetry_initialized = True
 
-    def run_build(self, requirement: str, *, session_id: Optional[str] = None) -> AgentWorkflowOutput:
+    def run_build(
+        self,
+        requirement: str,
+        *,
+        session_id: Optional[str] = None,
+        project_id: Optional[str] = None,
+    ) -> AgentWorkflowOutput:
         session = session_id or str(uuid.uuid4())
+        project_identifier = project_id or session
 
         self._ensure_environment()
 
-        # Reuse the CLI helpers to stay faithful to the original behaviour.
-        intent_result = cli_workflow.analyze_user_intent(requirement)
-        workflow = cli_workflow.create_build_workflow()
+        # Stage tracker relies on this environment variable to synchronise with DynamoDB.
+        previous_tracker_id = os.environ.get("NEXUS_STAGE_TRACKER_PROJECT_ID")
+        os.environ["NEXUS_STAGE_TRACKER_PROJECT_ID"] = project_identifier
 
-        start_time = time.time()
-        workflow_result = workflow(str(intent_result))
-        execution_time = time.time() - start_time
+        try:
+            # Reuse the CLI helpers to stay faithful to the original behaviour.
+            intent_result = cli_workflow.analyze_user_intent(requirement)
+            workflow = cli_workflow.create_build_workflow()
 
-        report_path = generate_workflow_summary_report(workflow_result, "./projects")
+            start_time = time.time()
+            workflow_result = workflow(str(intent_result))
+            execution_time = time.time() - start_time
+
+            report_path = generate_workflow_summary_report(workflow_result, "./projects")
+        finally:
+            if previous_tracker_id is None:
+                os.environ.pop("NEXUS_STAGE_TRACKER_PROJECT_ID", None)
+            else:
+                os.environ["NEXUS_STAGE_TRACKER_PROJECT_ID"] = previous_tracker_id
 
         intent_payload = {
             "intent_type": intent_result.intent_type,
