@@ -31,10 +31,10 @@ utils/multimodal_processing/
 
 ```python
 # 导入数据模型
-from utils.multimodal_processing.models.data_models import FileMetadata, ProcessedContent
+from nexus_utils.multimodal_processing.models.data_models import FileMetadata, ProcessedContent
 
 # 使用延迟导入避免循环依赖
-from utils.multimodal_processing import get_multimodal_model_service, get_content_parsing_engine
+from nexus_utils.multimodal_processing import get_multimodal_model_service, get_content_parsing_engine
 
 # 获取服务实例
 multimodal_service = get_multimodal_model_service()()
@@ -44,7 +44,7 @@ parsing_engine = get_content_parsing_engine()()
 ### 2. 处理单个文件
 
 ```python
-from utils.multimodal_processing import get_image_processor, get_document_processor
+from nexus_utils.multimodal_processing import get_image_processor, get_document_processor
 
 # 图像处理
 image_processor = get_image_processor()()
@@ -63,7 +63,7 @@ result = doc_processor.process(file_metadata)
 ### 3. 批量处理文件
 
 ```python
-from utils.multimodal_processing import get_content_parsing_engine
+from nexus_utils.multimodal_processing import get_content_parsing_engine
 
 parsing_engine = get_content_parsing_engine()()
 file_list = [file_metadata1, file_metadata2, file_metadata3]
@@ -73,7 +73,7 @@ results = parsing_engine.parse_files(file_list)
 ### 4. 使用S3存储
 
 ```python
-from utils.multimodal_processing import get_s3_storage_service
+from nexus_utils.multimodal_processing import get_s3_storage_service
 
 s3_service = get_s3_storage_service()(
     bucket_name="my-bucket",
