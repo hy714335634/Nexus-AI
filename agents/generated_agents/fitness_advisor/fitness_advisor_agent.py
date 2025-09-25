@@ -6,34 +6,81 @@
 能够根据用户的个人情况、健身目标和偏好，提供科学、安全、个性化的健身建议。
 """
 
+import argparse
 import os
 import json
-from typing import Dict, Any, Optional, List, Union
-from datetime import datetime
+from typing import Dict, Any, Optional, List
+from datetime import datetime, timezone
 
 from nexus_utils.agent_factory import create_agent_from_prompt_template
 from strands.telemetry import StrandsTelemetry
 
-# 设置环境变量
-os.environ["BYPASS_TOOL_CONSENT"] = "true"
-os.environ["OTEL_EXPORTER_OTLP_ENDPOINT"] = "http://localhost:4318"
+# ---------------------------------------------------------------------------
+# Agent bootstrap helpers
+# ---------------------------------------------------------------------------
 
-# 设置遥测
-strands_telemetry = StrandsTelemetry()
-strands_telemetry.setup_otlp_exporter()
+_AGENT_INSTANCE = None
+_TELEMETRY_INITIALISED = False
 
-# 创建Agent的通用参数
-agent_params = {
-    "env": "production",
-    "version": "latest", 
-    "model_id": "default"
-}
 
-# 创建健身顾问智能体
-fitness_advisor_agent = create_agent_from_prompt_template(
-    agent_name="generated_agents_prompts/fitness_advisor/fitness_advisor_agent", 
-    **agent_params
-)
+def _ensure_environment() -> None:
+    os.environ.setdefault("BYPASS_TOOL_CONSENT", "true")
+    os.environ.setdefault("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4318")
+
+
+def _initialise_telemetry() -> None:
+    global _TELEMETRY_INITIALISED
+    if not _TELEMETRY_INITIALISED:
+        telemetry = StrandsTelemetry()
+        telemetry.setup_otlp_exporter()
+        _TELEMETRY_INITIALISED = True
+
+
+def _build_agent():
+    agent_params = {
+        "env": "production",
+        "version": "latest",
+        "model_id": "default",
+    }
+    return create_agent_from_prompt_template(
+        agent_name="generated_agents_prompts/fitness_advisor/fitness_advisor_agent",
+        **agent_params,
+    )
+
+
+def get_agent():
+    """Return a singleton instance of the fitness advisor agent."""
+
+    global _AGENT_INSTANCE
+
+    if _AGENT_INSTANCE is None:
+        _ensure_environment()
+        _initialise_telemetry()
+        _AGENT_INSTANCE = _build_agent()
+
+    return _AGENT_INSTANCE
+
+
+def get_agent_metadata() -> Dict[str, Any]:
+    """Return descriptive metadata about this agent implementation."""
+
+    return {
+        "agent_id": "fitness_advisor",
+        "project_id": "fitness_advisor",
+        "name": "Fitness Advisor Agent",
+        "description": "Provides personalised fitness, workout, and diet recommendations.",
+        "entrypoint": "agents.generated_agents.fitness_advisor.fitness_advisor_agent:invoke",
+        "capabilities": ["chat", "workout_plan", "diet_plan"],
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+def invoke(message: str, *, session_state: Optional[Dict[str, Any]] = None) -> str:
+    """Minimal invocation surface for conversational usage via API."""
+
+    del session_state  # Reserved for future streaming/session support
+    agent = get_agent()
+    return agent(message)
 
 def generate_user_id(name: str, email: Optional[str] = None) -> str:
     """
@@ -149,7 +196,7 @@ def create_workout_plan_for_user(
     )
     
     # 使用智能体生成健身计划
-    response = fitness_advisor_agent(workout_request)
+    response = get_agent()(workout_request)
     
     # 返回健身计划
     return {
@@ -201,7 +248,7 @@ def create_diet_plan_for_user(
     )
     
     # 使用智能体生成饮食计划
-    response = fitness_advisor_agent(diet_request)
+    response = get_agent()(diet_request)
     
     # 返回饮食计划
     return {
@@ -215,71 +262,84 @@ def create_diet_plan_for_user(
     }
 
 def answer_fitness_question(question: str) -> str:
-    """
-    回答用户关于健身的问题
-    
-    Args:
-        question: 用户的健身相关问题
-        
-    Returns:
-        str: 问题的回答
-    """
-    # 构建问题请求
+    """回答用户关于健身的问题。"""
+
     question_request = f"健身问题: {question}\n请提供专业、准确的回答。"
-    
-    # 使用智能体回答问题
-    response = fitness_advisor_agent(question_request)
-    
-    return response
+    return get_agent()(question_request)
 
-def main():
-    """主函数，用于命令行测试"""
-    import argparse
-    
-    # 解析命令行参数
-    parser = argparse.ArgumentParser(description='健身顾问智能体测试')
-    parser.add_argument('-m', '--mode', type=str, 
-                       choices=['workout', 'diet', 'question'],
-                       default="question",
-                       help='运行模式: workout(健身计划), diet(饮食计划), question(回答问题)')
-    parser.add_argument('-q', '--question', type=str, 
-                       default="如何正确做俯卧撑?",
-                       help='健身相关问题')
-    args = parser.parse_args()
-    
-    print(f"✅ 健身顾问智能体创建成功: {fitness_advisor_agent.name}")
-    
-    # 根据模式执行不同功能
-    if args.mode == 'workout':
-        # 测试创建健身计划
+
+def build_arg_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="健身顾问智能体 CLI")
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    chat_parser = subparsers.add_parser("chat", help="与智能体进行自由对话")
+    chat_parser.add_argument("message", help="发送给智能体的消息")
+
+    workout_parser = subparsers.add_parser("workout-plan", help="生成健身计划")
+    workout_parser.add_argument("name", help="用户名")
+    workout_parser.add_argument("goal", help="健身目标")
+    workout_parser.add_argument("experience", help="经验水平")
+    workout_parser.add_argument("days", nargs="+", help="每周可训练的日期")
+    workout_parser.add_argument("equipment", nargs="+", help="现有训练器材")
+    workout_parser.add_argument("--email", help="用户邮箱")
+    workout_parser.add_argument("--health", nargs="*", help="健康限制", default=None)
+
+    diet_parser = subparsers.add_parser("diet-plan", help="生成饮食计划")
+    diet_parser.add_argument("name", help="用户名")
+    diet_parser.add_argument("goal", help="饮食目标")
+    diet_parser.add_argument("tdee", type=int, help="每日总能耗")
+    diet_parser.add_argument("preferences", nargs="+", help="饮食偏好")
+    diet_parser.add_argument("--email", help="用户邮箱")
+    diet_parser.add_argument("--allergies", nargs="*", help="过敏源", default=None)
+    diet_parser.add_argument("--meals", type=int, default=3, help="每日餐数")
+
+    question_parser = subparsers.add_parser("question", help="咨询健身问题")
+    question_parser.add_argument("question", help="健身相关问题")
+
+    return parser
+
+
+def main(argv: Optional[List[str]] = None) -> int:
+    parser = build_arg_parser()
+    args = parser.parse_args(argv)
+
+    if args.command == "chat":
+        print(invoke(args.message))
+        return 0
+
+    if args.command == "workout-plan":
+        user_id = generate_user_id(args.name, args.email)
         plan = create_workout_plan_for_user(
-            user_id="test_user",
-            goal="增肌",
-            experience_level="中级",
-            available_days=["周一", "周三", "周五"],
-            available_equipment=["哑铃", "杠铃", "引体向上器械"]
+            user_id=user_id,
+            goal=args.goal,
+            experience_level=args.experience,
+            available_days=args.days,
+            available_equipment=args.equipment,
+            health_conditions=args.health,
         )
-        print("\n📋 生成的健身计划:")
-        print(plan["plan"])
-        
-    elif args.mode == 'diet':
-        # 测试创建饮食计划
-        plan = create_diet_plan_for_user(
-            user_id="test_user",
-            goal="减脂",
-            tdee=2200,
-            dietary_preferences=["高蛋白", "低碳水"],
-            meal_count=4
-        )
-        print("\n📋 生成的饮食计划:")
-        print(plan["plan"])
-        
-    else:  # question模式
-        # 测试回答健身问题
-        question = args.question
-        print(f"\n❓ 问题: {question}")
-        answer = answer_fitness_question(question)
-        print(f"\n📋 回答:\n{answer}")
+        print(json.dumps(plan, ensure_ascii=False, indent=2))
+        return 0
 
-if __name__ == "__main__":
-    main()
+    if args.command == "diet-plan":
+        user_id = generate_user_id(args.name, args.email)
+        plan = create_diet_plan_for_user(
+            user_id=user_id,
+            goal=args.goal,
+            tdee=args.tdee,
+            dietary_preferences=args.preferences,
+            allergies=args.allergies,
+            meal_count=args.meals,
+        )
+        print(json.dumps(plan, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "question":
+        print(answer_fitness_question(args.question))
+        return 0
+
+    parser.print_help()
+    return 1
+
+
+if __name__ == "__main__":  # pragma: no cover - CLI entry point
+    raise SystemExit(main())
