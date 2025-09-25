@@ -1,0 +1,284 @@
+{
+  "system_design": {
+    "design_overview": {
+      "project_name": "医学文档翻译Agent",
+      "version": "1.0",
+      "date": "2025-09-24",
+      "design_scope": "设计一个专业的医学文档翻译Agent，能够处理Microsoft Word文档，支持自定义医学词库管理、智能翻译、格式保持、质量控制和批量处理等核心功能",
+      "design_principles": [
+        "单一职责原则：Agent专注于医学文档翻译任务",
+        "模块化设计：各功能模块独立且可扩展",
+        "格式保持优先：确保翻译后文档格式完整性",
+        "质量优先：医学术语翻译准确性和一致性",
+        "用户体验优先：操作简单直观，反馈及时"
+      ],
+      "key_decisions": [
+        "采用单Agent架构，避免多Agent协调复杂性",
+        "基于document_processor_agent模板进行定制化开发",
+        "使用python-docx库处理Word文档格式",
+        "集成AI翻译API与自定义词库的混合翻译策略",
+        "采用分层处理模式：词库翻译→AI翻译→质量检查"
+      ],
+      "workflow_type": "single_agent",
+      "recommended_templates": ["document_processor_agent", "pubmed_literature_agent"]
+    },
+    "architecture": {
+      "system_context": "该系统是一个独立的医学文档翻译服务，主要服务于医疗机构、医学研究人员、制药企业等需要高质量医学文档翻译的用户。系统通过单一Agent架构提供完整的翻译服务，包括文档处理、词库管理、智能翻译、质量控制等功能。",
+      "agent_topology": "单Agent拓扑结构：用户 → Medical Translator Agent → 翻译结果。Agent内部包含五个核心模块：文档处理模块、词库管理模块、翻译引擎模块、质量控制模块、用户交互模块。",
+      "interaction_model": "用户通过统一接口与Agent交互，Agent内部各模块按照预定义的工作流程协作处理。工作流程：文档上传→文档解析→词库匹配→AI翻译→质量检查→格式重建→结果输出。",
+      "technology_stack": {
+        "sdk": "Strands SDK",
+        "runtime": "Local",
+        "integrations": ["AWS Bedrock", "python-docx", "pandas", "翻译API服务", "本地文件系统"]
+      }
+    },
+    "agents": [
+      {
+        "name": "medical_translator",
+        "purpose": "专业的医学文档翻译专家，提供高质量的医学文档翻译服务",
+        "responsibilities": [
+          "解析和处理Microsoft Word文档",
+          "管理和维护医学专业词库",
+          "执行基于词库的精准术语翻译",
+          "执行AI智能翻译处理词库外内容",
+          "保持文档原有格式和样式",
+          "执行翻译质量控制和一致性检查",
+          "生成翻译报告和统计信息",
+          "管理翻译历史和版本控制",
+          "提供用户交互界面和反馈"
+        ],
+        "interfaces": {
+          "inputs": [
+            "Word文档文件(.docx格式)",
+            "医学词库文件(Excel/CSV/JSON格式)",
+            "翻译配置参数(源语言、目标语言、质量要求等)",
+            "批量处理文档列表",
+            "用户操作指令"
+          ],
+          "outputs": [
+            "翻译后的Word文档",
+            "翻译质量报告",
+            "词库使用统计",
+            "翻译历史记录",
+            "错误和警告信息",
+            "处理进度反馈"
+          ]
+        },
+        "dependencies": [
+          "python-docx库用于Word文档处理",
+          "pandas库用于词库数据管理",
+          "AWS Bedrock用于AI翻译",
+          "本地文件系统用于数据存储",
+          "翻译API服务用于备用翻译"
+        ],
+        "implementation_notes": [
+          "基于document_processor_agent模板进行定制化开发",
+          "需要扩展Word文档的复杂格式处理能力",
+          "需要实现医学词库的高效查询和匹配算法",
+          "需要集成AI翻译API并处理上下文感知",
+          "需要实现格式保持的算法确保输出文档格式完整",
+          "需要建立翻译质量评估和一致性检查机制"
+        ],
+        "recommended_template": "document_processor_agent"
+      }
+    ],
+    "data_models": [
+      {
+        "name": "DocumentStructure",
+        "schema": "{\"content\": \"string\", \"paragraphs\": [\"Paragraph\"], \"tables\": [\"Table\"], \"images\": [\"Image\"], \"headers\": [\"Header\"], \"footers\": [\"Footer\"], \"styles\": \"StyleInfo\"}",
+        "validation_rules": [
+          "content字段不能为空",
+          "paragraphs数组必须包含至少一个段落",
+          "styles信息必须包含字体、颜色、格式等完整信息"
+        ],
+        "relationships": ["与TranslationTask关联", "与QualityReport关联"]
+      },
+      {
+        "name": "MedicalGlossary",
+        "schema": "{\"term_id\": \"string\", \"source_term\": \"string\", \"target_term\": \"string\", \"category\": \"string\", \"confidence\": \"float\", \"usage_count\": \"int\", \"last_updated\": \"datetime\"}",
+        "validation_rules": [
+          "source_term和target_term不能为空",
+          "confidence值必须在0-1之间",
+          "category必须是预定义的医学分类"
+        ],
+        "relationships": ["与TranslationTask关联", "与QualityReport关联"]
+      },
+      {
+        "name": "TranslationTask",
+        "schema": "{\"task_id\": \"string\", \"document_path\": \"string\", \"source_language\": \"string\", \"target_language\": \"string\", \"status\": \"string\", \"progress\": \"float\", \"start_time\": \"datetime\", \"end_time\": \"datetime\", \"glossary_matches\": \"int\", \"ai_translations\": \"int\"}",
+        "validation_rules": [
+          "task_id必须唯一",
+          "progress值必须在0-1之间",
+          "status必须是预定义状态值"
+        ],
+        "relationships": ["与DocumentStructure关联", "与QualityReport关联", "与TranslationHistory关联"]
+      },
+      {
+        "name": "QualityReport",
+        "schema": "{\"report_id\": \"string\", \"task_id\": \"string\", \"overall_score\": \"float\", \"consistency_score\": \"float\", \"terminology_accuracy\": \"float\", \"issues\": [\"QualityIssue\"], \"suggestions\": [\"string\"], \"glossary_coverage\": \"float\"}",
+        "validation_rules": [
+          "所有评分字段值必须在0-1之间",
+          "issues数组可以为空但不能为null",
+          "glossary_coverage必须是有效的百分比"
+        ],
+        "relationships": ["与TranslationTask关联", "与DocumentStructure关联"]
+      },
+      {
+        "name": "TranslationHistory",
+        "schema": "{\"history_id\": \"string\", \"task_id\": \"string\", \"version\": \"int\", \"changes\": [\"Change\"], \"created_time\": \"datetime\", \"created_by\": \"string\", \"document_snapshot\": \"string\"}",
+        "validation_rules": [
+          "version必须是正整数",
+          "created_time不能为未来时间",
+          "document_snapshot路径必须有效"
+        ],
+        "relationships": ["与TranslationTask关联"]
+      }
+    ],
+    "interaction_flows": [
+      {
+        "name": "单文档翻译流程",
+        "description": "处理单个Word文档的完整翻译流程",
+        "steps": [
+          {
+            "step": "1. 文档上传和验证",
+            "agent": "medical_translator",
+            "action": "接收用户上传的Word文档，验证格式和完整性",
+            "data": "Word文档文件、翻译配置参数"
+          },
+          {
+            "step": "2. 文档解析和结构提取",
+            "agent": "medical_translator",
+            "action": "使用python-docx解析文档，提取文本内容和格式信息",
+            "data": "DocumentStructure对象"
+          },
+          {
+            "step": "3. 医学词库匹配",
+            "agent": "medical_translator",
+            "action": "在医学词库中查找匹配的术语，进行精准替换",
+            "data": "词库匹配结果、术语对应关系"
+          },
+          {
+            "step": "4. AI智能翻译",
+            "agent": "medical_translator",
+            "action": "对词库未覆盖的内容使用AI进行智能翻译",
+            "data": "AI翻译结果、上下文信息"
+          },
+          {
+            "step": "5. 质量检查和一致性验证",
+            "agent": "medical_translator",
+            "action": "检查翻译质量，验证术语一致性，生成质量报告",
+            "data": "QualityReport对象"
+          },
+          {
+            "step": "6. 格式重建和文档生成",
+            "agent": "medical_translator",
+            "action": "重建Word文档格式，生成最终翻译文档",
+            "data": "翻译后的Word文档"
+          },
+          {
+            "step": "7. 结果输出和报告生成",
+            "agent": "medical_translator",
+            "action": "输出翻译文档，生成翻译报告和统计信息",
+            "data": "翻译文档、翻译报告、统计信息"
+          }
+        ]
+      },
+      {
+        "name": "批量文档处理流程",
+        "description": "同时处理多个Word文档的批量翻译流程",
+        "steps": [
+          {
+            "step": "1. 批量文档上传",
+            "agent": "medical_translator",
+            "action": "接收多个Word文档，创建批量处理任务",
+            "data": "文档列表、批量处理配置"
+          },
+          {
+            "step": "2. 任务队列管理",
+            "agent": "medical_translator",
+            "action": "将文档分配到处理队列，管理并发处理",
+            "data": "TranslationTask对象列表"
+          },
+          {
+            "step": "3. 并行文档处理",
+            "agent": "medical_translator",
+            "action": "并行执行单文档翻译流程，实时更新进度",
+            "data": "处理进度、中间结果"
+          },
+          {
+            "step": "4. 批量结果汇总",
+            "agent": "medical_translator",
+            "action": "汇总所有文档的翻译结果和质量报告",
+            "data": "批量翻译结果、汇总报告"
+          }
+        ]
+      },
+      {
+        "name": "词库管理流程",
+        "description": "医学词库的导入、更新和管理流程",
+        "steps": [
+          {
+            "step": "1. 词库文件上传",
+            "agent": "medical_translator",
+            "action": "接收Excel/CSV/JSON格式的词库文件",
+            "data": "词库文件、格式配置"
+          },
+          {
+            "step": "2. 词库数据解析",
+            "agent": "medical_translator",
+            "action": "解析词库文件，验证数据格式和完整性",
+            "data": "MedicalGlossary对象列表"
+          },
+          {
+            "step": "3. 词库数据集成",
+            "agent": "medical_translator",
+            "action": "将新词库数据与现有词库合并，处理冲突",
+            "data": "更新后的词库数据"
+          },
+          {
+            "step": "4. 词库索引重建",
+            "agent": "medical_translator",
+            "action": "重建词库索引，优化查询性能",
+            "data": "词库索引、查询优化结果"
+          }
+        ]
+      }
+    ],
+    "security_considerations": [
+      "用户上传文档的加密存储和传输",
+      "医学敏感信息的隐私保护和脱敏处理",
+      "词库数据的访问权限控制和审计日志",
+      "翻译历史记录的安全存储和定期清理",
+      "API密钥和敏感配置的安全管理",
+      "用户会话的安全认证和授权机制"
+    ],
+    "error_handling": [
+      "文档格式错误：提供详细错误信息和修复建议",
+      "词库数据异常：自动数据清洗和异常记录",
+      "AI翻译服务异常：自动重试和降级处理",
+      "网络连接异常：本地缓存和离线模式支持",
+      "内存不足：分批处理和资源优化",
+      "并发处理冲突：任务队列管理和资源锁定",
+      "文档格式保持失败：格式回退和用户通知"
+    ],
+    "performance_considerations": [
+      "文档处理性能：单文档处理时间控制在页数×30秒以内",
+      "词库查询性能：词库查询响应时间不超过100毫秒",
+      "内存使用优化：支持最大50MB文档处理，合理内存管理",
+      "并发处理能力：支持最多10个文档的并行处理",
+      "缓存策略：词库数据缓存和翻译结果缓存",
+      "资源管理：合理的CPU和内存资源分配",
+      "网络优化：API调用的连接池和重试机制"
+    ],
+    "monitoring_strategy": [
+      "翻译任务监控：实时跟踪任务状态和处理进度",
+      "质量指标监控：翻译准确率、一致性评分等关键指标",
+      "性能监控：处理时间、内存使用、API响应时间",
+      "错误监控：异常捕获、错误分类和告警机制",
+      "用户行为监控：使用频率、功能偏好、满意度反馈",
+      "系统资源监控：CPU、内存、磁盘、网络使用情况",
+      "日志管理：结构化日志记录和日志分析"
+    ]
+  },
+  "design_rationale": "该系统设计采用单Agent架构是基于以下考虑：1）功能统一性：所有功能都围绕医学文档翻译这一核心任务，逻辑上属于同一个业务域；2）简化复杂性：避免多Agent间的协调和通信开销，降低系统复杂度；3）性能优化：单Agent内部模块间的数据传递效率更高，减少序列化开销；4）维护便利：单一代码库更容易维护和调试。选择document_processor_agent作为基础模板是因为它已经具备了完整的文档处理框架，只需要扩展翻译功能和医学词库管理功能即可。数据模型设计遵循关系型数据结构，确保数据一致性和查询效率。交互流程设计采用分层处理模式，先进行词库精准匹配，再进行AI智能翻译，最后进行质量检查，确保翻译质量的同时提高处理效率。安全和性能考虑覆盖了医学文档翻译场景的关键需求，包括隐私保护、处理性能、并发能力等。监控策略确保系统运行的可观测性，支持持续优化和问题诊断。"
+}

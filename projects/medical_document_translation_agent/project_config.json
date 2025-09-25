@@ -1,0 +1,281 @@
+{
+  "project_name": "medical_document_translation_agent",
+  "validation_timestamp": "2025-09-24T15:41:46.677030+00:00",
+  "overall_status": "success",
+  "agent_scripts": [
+    {
+      "script_path": "agents/generated_agents/medical_document_translation_agent/medical_translator.py",
+      "syntax_valid": true,
+      "dependencies": [
+        "os",
+        "json",
+        "logging",
+        "typing",
+        "nexus_utils.agent_factory",
+        "strands.telemetry",
+        "argparse"
+      ],
+      "execution_params": [],
+      "argparse_params": [
+        {
+          "name": "--mode",
+          "type": "str",
+          "description": "操作模式: translate(单文档翻译), batch(批量翻译), glossary(词库管理), report(质量报告), progress(任务进度)",
+          "required": true,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "--file",
+          "type": "str",
+          "description": "要翻译的文档路径",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "--source_lang",
+          "type": "str",
+          "description": "源语言代码 (如 en, zh)",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "--target_lang",
+          "type": "str",
+          "description": "目标语言代码 (如 zh, en)",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "--glossary",
+          "type": "str",
+          "description": "词库名称",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "--domain",
+          "type": "str",
+          "description": "医学领域",
+          "required": false,
+          "default": "general",
+          "action": null
+        },
+        {
+          "name": "--expand_abbreviations",
+          "type": "str",
+          "description": "是否展开医学缩写",
+          "required": false,
+          "default": null,
+          "action": "store_true"
+        },
+        {
+          "name": "--output",
+          "type": "str",
+          "description": "输出文件路径",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "--files",
+          "type": "str",
+          "description": "要翻译的文档路径列表，用逗号分隔",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "--output_dir",
+          "type": "str",
+          "description": "输出目录",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "--task_name",
+          "type": "str",
+          "description": "任务名称",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "--glossary_action",
+          "type": "str",
+          "description": "词库操作类型",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "--glossary_name",
+          "type": "str",
+          "description": "词库名称",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "--glossary_file",
+          "type": "str",
+          "description": "词库文件路径",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "--source_column",
+          "type": "str",
+          "description": "源语言列名",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "--target_column",
+          "type": "str",
+          "description": "目标语言列名",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "--category_column",
+          "type": "str",
+          "description": "分类列名",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "--output_format",
+          "type": "str",
+          "description": "导出格式",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "--source_file",
+          "type": "str",
+          "description": "源文档路径",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "--translated_file",
+          "type": "str",
+          "description": "翻译文档路径",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "--task_id",
+          "type": "str",
+          "description": "任务ID",
+          "required": false,
+          "default": null,
+          "action": null
+        }
+      ],
+      "error_message": ""
+    }
+  ],
+  "prompt_files": [
+    {
+      "prompt_path": "generated_agents_prompts/medical_document_translation_agent/medical_translator.yaml",
+      "tool_count": 25,
+      "valid": true,
+      "error_message": "",
+      "metadata": {
+        "tags": [
+          "medical_translation",
+          "document_processing",
+          "glossary_management",
+          "quality_control",
+          "batch_processing"
+        ],
+        "supported_models": [
+          "us.anthropic.claude-3-7-sonnet-20250219-v1:0",
+          "us.anthropic.claude-3-opus-20240229-v1:0"
+        ],
+        "tools_dependencies": [
+          "strands_tools/file_read",
+          "strands_tools/file_write",
+          "strands_tools/current_time",
+          "generated_tools/medical_document_translation_agent/docx_processor/read_docx",
+          "generated_tools/medical_document_translation_agent/docx_processor/create_docx",
+          "generated_tools/medical_document_translation_agent/docx_processor/modify_docx",
+          "generated_tools/medical_document_translation_agent/docx_processor/extract_docx_structure",
+          "generated_tools/medical_document_translation_agent/docx_processor/compare_docx",
+          "generated_tools/medical_document_translation_agent/medical_glossary_manager/import_glossary",
+          "generated_tools/medical_document_translation_agent/medical_glossary_manager/search_term",
+          "generated_tools/medical_document_translation_agent/medical_glossary_manager/match_terms",
+          "generated_tools/medical_document_translation_agent/medical_glossary_manager/add_term",
+          "generated_tools/medical_document_translation_agent/medical_glossary_manager/export_glossary",
+          "generated_tools/medical_document_translation_agent/translation_engine/translate_text",
+          "generated_tools/medical_document_translation_agent/translation_engine/translate_abbreviations",
+          "generated_tools/medical_document_translation_agent/translation_engine/translate_with_context",
+          "generated_tools/medical_document_translation_agent/translation_engine/translate_with_domain_adaptation",
+          "generated_tools/medical_document_translation_agent/quality_controller/check_terminology_consistency",
+          "generated_tools/medical_document_translation_agent/quality_controller/generate_quality_report",
+          "generated_tools/medical_document_translation_agent/quality_controller/identify_uncertain_translations",
+          "generated_tools/medical_document_translation_agent/quality_controller/check_abbreviation_handling",
+          "generated_tools/medical_document_translation_agent/batch_processor/create_batch_task",
+          "generated_tools/medical_document_translation_agent/batch_processor/start_batch_task",
+          "generated_tools/medical_document_translation_agent/batch_processor/generate_batch_report",
+          "generated_tools/medical_document_translation_agent/batch_processor/get_batch_progress"
+        ]
+      },
+      "agent_info": {
+        "name": "medical_translator",
+        "description": "专业的医学文档翻译专家，能够精准翻译医学专业文档，支持Word文档处理、医学词库管理、智能翻译、质量控制和批量处理",
+        "category": "translation"
+      }
+    }
+  ],
+  "generated_tools": [
+    {
+      "tool_path": "generated_tools/medical_document_translation_agent/batch_processor.py",
+      "syntax_valid": true,
+      "error_message": ""
+    },
+    {
+      "tool_path": "generated_tools/medical_document_translation_agent/quality_controller.py",
+      "syntax_valid": true,
+      "error_message": ""
+    },
+    {
+      "tool_path": "generated_tools/medical_document_translation_agent/medical_glossary_manager.py",
+      "syntax_valid": true,
+      "error_message": ""
+    },
+    {
+      "tool_path": "generated_tools/medical_document_translation_agent/translation_engine.py",
+      "syntax_valid": true,
+      "error_message": ""
+    },
+    {
+      "tool_path": "generated_tools/medical_document_translation_agent/docx_processor.py",
+      "syntax_valid": true,
+      "error_message": ""
+    }
+  ],
+  "total_tools": 25,
+  "summary": {
+    "agent_scripts_count": 1,
+    "prompt_files_count": 1,
+    "generated_tool_files_count": 5,
+    "all_scripts_valid": true,
+    "all_tools_valid": true,
+    "all_prompts_valid": true
+  }
+}

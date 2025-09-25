@@ -370,7 +370,7 @@ def validate_agent_file(file_path: str) -> str:
         # 检查是否所有检查都通过
         missing_imports = []
         if not has_agent_factory_import:
-            missing_imports.append("utils.agent_factory")
+            missing_imports.append("nexus_utils.agent_factory")
         if not has_create_agent_import:
             missing_imports.append("create_agent_from_prompt_template")
         

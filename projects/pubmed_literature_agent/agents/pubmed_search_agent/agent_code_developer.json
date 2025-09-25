@@ -35,7 +35,7 @@
       "main_class": "N/A (functional implementation)",
       "entry_point": "search_pubmed_literature",
       "dependencies": [
-        "utils.agent_factory",
+        "nexus_utils.agent_factory",
         "strands.telemetry",
         "os",
         "json",
@@ -191,7 +191,7 @@
         "Optional: PUBMED_API_KEY environment variable for higher rate limits"
       ],
       "runtime_dependencies": [
-        "utils.agent_factory",
+        "nexus_utils.agent_factory",
         "strands.telemetry",
         "pubmed_api_tool custom tools"
       ],

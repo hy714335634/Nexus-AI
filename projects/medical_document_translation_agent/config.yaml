@@ -1,0 +1,6 @@
+project:
+  created_date: '2025-09-24T14:52:03.488258+00:00'
+  description: 专业的医学文档翻译Agent，能够精准翻译医学专业文档，支持Word文档处理、医学词库管理、智能翻译、质量控制和良好用户体验
+  name: medical_document_translation_agent
+  updated_date: '2025-09-24T14:52:10.384514+00:00'
+  version: 1.0.0

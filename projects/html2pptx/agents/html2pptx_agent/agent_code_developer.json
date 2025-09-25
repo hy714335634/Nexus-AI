@@ -36,7 +36,7 @@
       "entry_point": "main()",
       "dependencies": [
         "os", "sys", "json", "argparse", "tempfile", "pathlib",
-        "utils.agent_factory", "strands.telemetry"
+        "nexus_utils.agent_factory", "strands.telemetry"
       ],
       "imports": [
         "from nexus_utils.agent_factory import create_agent_from_prompt_template",
@@ -274,7 +274,7 @@
         "Pillow库"
       ],
       "runtime_dependencies": [
-        "utils.agent_factory",
+        "nexus_utils.agent_factory",
         "strands.telemetry",
         "提示词模板：generated_agents_prompts/html2pptx/html2pptx_agent"
       ],
