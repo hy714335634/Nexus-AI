@@ -2,7 +2,7 @@
 Agent management API endpoints
 """
 from fastapi import APIRouter, HTTPException, Query, Path
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 import uuid
 import logging
 from datetime import datetime, timezone
@@ -25,7 +25,7 @@ from api.core.celery_app import celery_app
 from api.database.dynamodb_client import DynamoDBClient
 from api.tasks.agent_build_tasks import build_agent
 from api.models.schemas import TaskStatusResponse, TaskStatusData
-from api.services import StageTracker
+from tools.system_tools.agent_build_workflow.stage_tracker import initialize_project_record
 
 logger = logging.getLogger(__name__)
 
@@ -42,8 +42,8 @@ async def create_agent(request: CreateAgentRequest):
         session_id = f"job_{uuid.uuid4().hex}"
         project_id = session_id
 
-        tracker = StageTracker(project_id)
-        tracker.initialize(
+        initialize_project_record(
+            project_id,
             requirement=request.requirement,
             user_id=request.user_id,
             user_name=request.user_name,
@@ -109,7 +109,7 @@ async def get_agent_status(task_id: str = Path(..., description="Celery任务ID"
         async_result = AsyncResult(task_id, app=celery_app)
         status = async_result.state.lower()
 
-        result_payload = None
+        result_payload: Optional[Dict[str, Any]] = None
         error_message = None
 
         if async_result.successful():
@@ -119,9 +119,20 @@ async def get_agent_status(task_id: str = Path(..., description="Celery任务ID"
         elif async_result.failed():
             error_message = str(async_result.result)
 
+        project_id = None
+        if isinstance(result_payload, dict):
+            project_id = result_payload.get("project_id")
+        project_id = project_id or task_id
+
         # Enrich with latest stage snapshot from DynamoDB if available.
+        project_item = None
         try:
-            project_item = DynamoDBClient().projects_table.get_item(Key={"project_id": task_id}).get("Item")
+            project_item = (
+                DynamoDBClient()
+                .projects_table
+                .get_item(Key={"project_id": project_id})
+                .get("Item")
+            )
         except Exception:
             project_item = None
 
@@ -133,8 +144,11 @@ async def get_agent_status(task_id: str = Path(..., description="Celery任务ID"
                 result_payload = {}
             if snapshot:
                 result_payload["stages_snapshot"] = snapshot
-            result_payload["progress_percentage"] = float(progress) if isinstance(progress, (Decimal, int, float)) else 0.0
+            result_payload["progress_percentage"] = (
+                float(progress) if isinstance(progress, (Decimal, int, float)) else 0.0
+            )
             result_payload["project_status"] = project_status
+            result_payload.setdefault("project_id", project_id)
 
         status_data = TaskStatusData(
             task_id=task_id,
@@ -173,100 +187,43 @@ async def get_build_stages(
     返回所有8个构建阶段的详细状态信息
     """
     try:
-        # Import dependencies
-        from api.models.schemas import StageData, BuildStage, StageStatus, create_stage_data
-        
-        # Initialize database client
         db_client = DynamoDBClient()
-        
-        # Check if project exists
+
         project_data = db_client.get_project(project_id)
         if not project_data:
             raise ResourceNotFoundError("Project", project_id)
-        
-        # Get all stage records for the project
-        stage_records = db_client.list_project_stages(project_id)
-        
-        # Convert stage records to StageData objects
-        stages_data = []
-        
-        for record in stage_records:
-            try:
-                # Parse stage enum
-                stage = BuildStage(record['stage'])
-                status = StageStatus(record['status'])
-                
-                # Parse timestamps
-                started_at = None
-                completed_at = None
-                
-                if record.get('started_at'):
-                    try:
-                        started_at = datetime.fromisoformat(record['started_at'].replace('Z', '+00:00'))
-                    except (ValueError, AttributeError):
-                        pass
-                
-                if record.get('completed_at'):
-                    try:
-                        completed_at = datetime.fromisoformat(record['completed_at'].replace('Z', '+00:00'))
-                    except (ValueError, AttributeError):
-                        pass
-                
-                # Parse output data and logs
-                output_data = record.get('output_data')
-                if isinstance(output_data, str):
-                    try:
-                        import json
-                        output_data = json.loads(output_data)
-                    except json.JSONDecodeError:
-                        output_data = {"raw_output": output_data}
-                
-                logs = record.get('logs', [])
-                if isinstance(logs, str):
-                    try:
-                        import json
-                        logs = json.loads(logs)
-                    except json.JSONDecodeError:
-                        logs = [logs]
-                
-                # Create stage data
-                stage_data = create_stage_data(
-                    stage=stage,
-                    status=status,
-                    started_at=started_at,
-                    completed_at=completed_at,
-                    duration_seconds=record.get('duration_seconds'),
-                    agent_name=record.get('agent_name'),
-                    output_data=output_data,
-                    error_message=record.get('error_message'),
-                    logs=logs
-                )
-                
-                stages_data.append(stage_data)
-                
-            except (ValueError, KeyError) as e:
-                logger.warning(f"Invalid stage record for project {project_id}: {str(e)}")
-                continue
-        
-        # Sort stages by stage number
-        stages_data.sort(key=lambda x: x.stage_number)
-        
-        # Create response data
+
+        snapshot = project_data.get("stages_snapshot") or {}
+        stages = snapshot.get("stages", [])
+        normalized_stages = []
+
+        for stage in stages:
+            normalized_stage = {
+                "name": stage.get("name"),
+                "display_name": stage.get("display_name"),
+                "order": stage.get("order"),
+                "status": stage.get("status"),
+                "started_at": stage.get("started_at"),
+                "completed_at": stage.get("completed_at"),
+                "error": stage.get("error"),
+            }
+            normalized_stages.append(normalized_stage)
+
         response_data = {
             "project_id": project_id,
-            "total_stages": len(stages_data),
-            "stages": [stage.model_dump() for stage in stages_data],
-            "current_stage_number": project_data.get('current_stage_number', 0),
-            "overall_progress": project_data.get('progress_percentage', 0.0)
+            "total_stages": snapshot.get("total", len(normalized_stages)),
+            "completed_stages": snapshot.get("completed", 0),
+            "stages": normalized_stages,
+            "overall_progress": project_data.get("progress_percentage", 0.0),
         }
-        
+
         return StagesResponse(
             success=True,
             data=response_data,
             timestamp=datetime.now(timezone.utc),
-            request_id=str(uuid.uuid4())
+            request_id=str(uuid.uuid4()),
         )
-        
+
     except ResourceNotFoundError:
         raise HTTPException(
             status_code=404,

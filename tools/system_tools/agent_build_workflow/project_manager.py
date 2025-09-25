@@ -22,15 +22,79 @@
 
 import os
 import json
+import logging
 import yaml
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional, List, Literal
 from pathlib import Path
+
 from tools.system_tools.agent_build_workflow.tool_template_provider import validate_tool_file
 from tools.system_tools.agent_build_workflow.agent_template_provider import validate_agent_file
 from tools.system_tools.agent_build_workflow.prompt_template_provider import validate_prompt_file
+from tools.system_tools.agent_build_workflow.stage_tracker import (
+    STAGE_SEQUENCE,
+    mark_project_completed,
+    mark_stage_completed,
+    mark_stage_failed,
+    mark_stage_running,
+)
 
-from strands import Agent,tool
+from strands import Agent, tool
+
+logger = logging.getLogger(__name__)
+
+
+def _current_project_id() -> Optional[str]:
+    project_id = os.environ.get("NEXUS_STAGE_TRACKER_PROJECT_ID")
+    if not project_id:
+        logger.debug("NEXUS_STAGE_TRACKER_PROJECT_ID missing; skip remote stage sync")
+    return project_id
+
+
+def _sync_stage_progress(
+    project_name: str,
+    stage_name: str,
+    *,
+    status: bool,
+    error_message: Optional[str] = None,
+) -> None:
+    """Propagate stage progress to DynamoDB when helpers are available."""
+    logger.info(f"Start _sync_stage_progress")
+    project_id = _current_project_id()
+    if not project_id:
+        logger.info(f"No project id")
+        return
+
+    try:
+        if error_message:
+            mark_stage_failed(project_id, stage_name, error_message)
+            return
+
+        if status:
+            mark_stage_completed(project_id, stage_name)
+            if STAGE_SEQUENCE and stage_name == STAGE_SEQUENCE[-1][0] and mark_project_completed:
+                mark_project_completed(project_id)
+                logger.info(
+                    "Remote project completion triggered: project_id=%s", project_id
+                )
+            logger.info(
+                "Remote stage marked completed: project=%s stage=%s",
+                project_name,
+                stage_name,
+            )
+        else:
+            mark_stage_running(project_id, stage_name)
+            logger.info(
+                "Remote stage marked running: project=%s stage=%s",
+                project_name,
+                stage_name,
+            )
+    except Exception:
+        logger.exception(
+            "Failed to sync stage progress to remote store: project=%s stage=%s",
+            project_name,
+            stage_name,
+        )
 
 
 def _enhance_content_with_context(content: str, project_name: str, agent_name: str, stage_name: str) -> str:
@@ -564,7 +628,6 @@ def update_project_status(project_name: str, agent_name: str, stage: str, status
         # 初始化或更新项目信息
         if "project_info" not in status_data:
             status_data["project_info"] = []
-        
         # 查找或创建项目条目
         project_entry = None
         for project in status_data["project_info"]:
@@ -665,7 +728,13 @@ def update_project_status(project_name: str, agent_name: str, stage: str, status
                 new_stage_entry["agent_artifact_path"] = agent_artifact_path
             
             agent_entry["pipeline"].append(new_stage_entry)
-        
+            logger.info(
+                "Stage entry created: project=%s agent=%s stage=%s",
+                project_name,
+                agent_name,
+                stage,
+            )
+
         # 计算项目整体进度
         all_agents = project_entry["agents"]
         total_project_stages = 0
@@ -696,7 +765,9 @@ def update_project_status(project_name: str, agent_name: str, stage: str, status
         # 写入状态文件
         with open(status_path, 'w', encoding='utf-8') as f:
             yaml.dump(status_data, f, default_flow_style=False, allow_unicode=True, indent=2)
-        
+
+        _sync_stage_progress(project_name, stage, status=status)
+
         result = {
             "status": "success",
             "message": f"项目 '{project_name}' 中 Agent '{agent_name}' 的阶段 '{stage}' 状态更新成功",

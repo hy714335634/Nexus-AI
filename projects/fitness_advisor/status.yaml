@@ -1,49 +1,57 @@
 project_info:
 - agents:
-  - created_date: '2025-09-25T01:38:14.138696+00:00'
+  - created_date: '2025-09-25T06:38:31.244401+00:00'
     description: 智能体：fitness_advisor_agent
-    last_updated: '2025-09-25T02:18:16.916809+00:00'
+    last_updated: '2025-09-25T08:02:03.154239+00:00'
     name: fitness_advisor_agent
     pipeline:
     - description: 需求分析阶段 - 分析用户需求，定义功能规格
       doc_path: projects/fitness_advisor/agents/fitness_advisor_agent/requirements_analyzer.json
       stage: requirements_analyzer
       status: true
-      updated_date: '2025-09-25T01:38:14.138810+00:00'
+      updated_date: '2025-09-25T06:38:31.244428+00:00'
     - description: 系统架构设计阶段 - 设计系统架构和技术方案
       doc_path: projects/fitness_advisor/agents/fitness_advisor_agent/system_architect.json
       stage: system_architect
       status: true
-      updated_date: '2025-09-25T02:18:16.916825+00:00'
+      updated_date: '2025-09-25T07:41:29.042533+00:00'
     - description: Agent设计阶段 - 设计智能体结构和交互模式
       doc_path: projects/fitness_advisor/agents/fitness_advisor_agent/agent_designer.json
       stage: agent_designer
       status: true
-      updated_date: '2025-09-25T02:16:25.813865+00:00'
-    - description: 提示词工程阶段 - 设计和优化提示词模板
-      doc_path: ''
+      updated_date: '2025-09-25T06:43:17.661797+00:00'
+    - agent_artifact_path:
+      - prompts/generated_agents_prompts/fitness_advisor/fitness_advisor_agent.yaml
+      description: 提示词工程阶段 - 设计和优化提示词模板
+      doc_path: projects/fitness_advisor/agents/fitness_advisor_agent/prompt_engineer.json
       stage: prompt_engineer
-      status: false
-      updated_date: null
-    - description: 工具开发阶段 - 开发必要的工具和函数
-      doc_path: ''
+      status: true
+      updated_date: '2025-09-25T07:50:52.902027+00:00'
+    - agent_artifact_path:
+      - tools/generated_tools/fitness_advisor/fitness_calculator.py
+      - tools/generated_tools/fitness_advisor/user_profile_manager.py
+      - tools/generated_tools/fitness_advisor/fitness_time_tracker.py
+      description: 工具开发阶段 - 开发必要的工具和函数
+      doc_path: projects/fitness_advisor/agents/fitness_advisor_agent/tools_developer.json
       stage: tools_developer
-      status: false
-      updated_date: null
-    - description: Agent代码开发阶段 - 实现智能体代码
-      doc_path: ''
+      status: true
+      updated_date: '2025-09-25T08:02:03.154241+00:00'
+    - agent_artifact_path:
+      - generated_agents/fitness_advisor/fitness_advisor_agent.py
+      description: Agent代码开发阶段 - 实现智能体代码
+      doc_path: projects/fitness_advisor/agents/fitness_advisor_agent/agent_code_developer.json
       stage: agent_code_developer
-      status: false
-      updated_date: null
+      status: true
+      updated_date: '2025-09-25T07:54:37.045883+00:00'
     - description: Agent开发管理阶段 - 管理和协调开发流程
       doc_path: ''
       stage: agent_developer_manager
-      status: false
-      updated_date: null
-  description: 一个能够根据用户情况和目标生成个性化健身建议的智能体，提供锻炼计划、健康饮食指导和健身进度跟踪。
-  last_updated: '2025-09-25T02:18:16.916781+00:00'
+      status: true
+      updated_date: '2025-09-25T07:55:23.083267+00:00'
+  description: 一个能够根据用户情况生成个性化健身建议的智能体
+  last_updated: '2025-09-25T08:02:03.154226+00:00'
   name: fitness_advisor
   progress:
-  - completed: 3
+  - completed: 7
     total: 7
   version: 1.0.0
