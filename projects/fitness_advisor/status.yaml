@@ -2,7 +2,7 @@ project_info:
 - agents:
   - created_date: '2025-09-25T01:38:14.138696+00:00'
     description: 智能体：fitness_advisor_agent
-    last_updated: '2025-09-25T01:41:08.541420+00:00'
+    last_updated: '2025-09-25T02:18:16.916809+00:00'
     name: fitness_advisor_agent
     pipeline:
     - description: 需求分析阶段 - 分析用户需求，定义功能规格
@@ -14,12 +14,12 @@ project_info:
       doc_path: projects/fitness_advisor/agents/fitness_advisor_agent/system_architect.json
       stage: system_architect
       status: true
-      updated_date: '2025-09-25T01:41:08.541422+00:00'
+      updated_date: '2025-09-25T02:18:16.916825+00:00'
     - description: Agent设计阶段 - 设计智能体结构和交互模式
-      doc_path: ''
+      doc_path: projects/fitness_advisor/agents/fitness_advisor_agent/agent_designer.json
       stage: agent_designer
-      status: false
-      updated_date: null
+      status: true
+      updated_date: '2025-09-25T02:16:25.813865+00:00'
     - description: 提示词工程阶段 - 设计和优化提示词模板
       doc_path: ''
       stage: prompt_engineer
@@ -41,9 +41,9 @@ project_info:
       status: false
       updated_date: null
   description: 一个能够根据用户情况和目标生成个性化健身建议的智能体，提供锻炼计划、健康饮食指导和健身进度跟踪。
-  last_updated: '2025-09-25T01:41:08.541414+00:00'
+  last_updated: '2025-09-25T02:18:16.916781+00:00'
   name: fitness_advisor
   progress:
-  - completed: 2
+  - completed: 3
     total: 7
   version: 1.0.0
