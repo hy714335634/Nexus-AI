@@ -22,6 +22,7 @@ STAGE_SEQUENCE: List[Tuple[str, str]] = [
     ("tools_developer", "工具开发"),
     ("agent_code_developer", "代码开发"),
     ("agent_developer_manager", "开发管理"),
+    ("agent_deployer", "Agent部署"),
 ]
 
 

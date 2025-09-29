@@ -21,6 +21,8 @@ from api.models.schemas import (
     ProjectRecord,
     StageRecord,
     AgentRecord,
+    AgentInvocationRecord,
+    ArtifactRecord,
     ProjectStatus,
     StageStatus,
     AgentStatus,
@@ -126,6 +128,8 @@ class DynamoDBClient:
         self._stages_table = None
         self._agents_table = None
         self._stats_table = None
+        self._artifacts_table = None
+        self._invocations_table = None
         
         # Connection health tracking
         self._last_health_check = None
@@ -161,6 +165,20 @@ class DynamoDBClient:
         if self._stats_table is None:
             self._stats_table = self.dynamodb.Table('BuildStatistics')
         return self._stats_table
+
+    @property
+    def artifacts_table(self):
+        """Lazy initialization of artifacts table"""
+        if self._artifacts_table is None:
+            self._artifacts_table = self.dynamodb.Table('AgentArtifacts')
+        return self._artifacts_table
+
+    @property
+    def invocations_table(self):
+        """Lazy initialization of agent invocations table"""
+        if self._invocations_table is None:
+            self._invocations_table = self.dynamodb.Table('AgentInvocations')
+        return self._invocations_table
     
     @retry_on_error(max_retries=3, delay=1.0, backoff=2.0)
     def health_check(self) -> bool:
@@ -189,6 +207,8 @@ class DynamoDBClient:
             self._stages_table = None
             self._agents_table = None
             self._stats_table = None
+            self._artifacts_table = None
+            self._invocations_table = None
             
             # Force health check
             self._last_health_check = None
@@ -202,6 +222,8 @@ class DynamoDBClient:
             self._create_stages_table()
             self._create_agents_table()
             self._create_statistics_table()
+            self._create_artifacts_table()
+            self._create_invocations_table()
             logger.info("DynamoDB tables created successfully")
         except Exception as e:
             logger.error(f"Error creating DynamoDB tables: {str(e)}")
@@ -408,7 +430,150 @@ class DynamoDBClient:
                 logger.info("AgentInstances table already exists")
                 return self.agents_table
             raise
-    
+
+    def _create_artifacts_table(self):
+        """Create AgentArtifacts table"""
+        try:
+            table = self.dynamodb.create_table(
+                TableName='AgentArtifacts',
+                KeySchema=[
+                    {
+                        'AttributeName': 'artifact_id',
+                        'KeyType': 'HASH'
+                    }
+                ],
+                AttributeDefinitions=[
+                    {
+                        'AttributeName': 'artifact_id',
+                        'AttributeType': 'S'
+                    },
+                    {
+                        'AttributeName': 'agent_id',
+                        'AttributeType': 'S'
+                    },
+                    {
+                        'AttributeName': 'project_id',
+                        'AttributeType': 'S'
+                    },
+                    {
+                        'AttributeName': 'created_at',
+                        'AttributeType': 'S'
+                    }
+                ],
+                GlobalSecondaryIndexes=[
+                    {
+                        'IndexName': 'AgentIndex',
+                        'KeySchema': [
+                            {
+                                'AttributeName': 'agent_id',
+                                'KeyType': 'HASH'
+                            },
+                            {
+                                'AttributeName': 'created_at',
+                                'KeyType': 'RANGE'
+                            }
+                        ],
+                        'Projection': {
+                            'ProjectionType': 'ALL'
+                        },
+                        'ProvisionedThroughput': {
+                            'ReadCapacityUnits': 5,
+                            'WriteCapacityUnits': 5
+                        }
+                    },
+                    {
+                        'IndexName': 'ProjectIndex',
+                        'KeySchema': [
+                            {
+                                'AttributeName': 'project_id',
+                                'KeyType': 'HASH'
+                            },
+                            {
+                                'AttributeName': 'created_at',
+                                'KeyType': 'RANGE'
+                            }
+                        ],
+                        'Projection': {
+                            'ProjectionType': 'ALL'
+                        },
+                        'ProvisionedThroughput': {
+                            'ReadCapacityUnits': 5,
+                            'WriteCapacityUnits': 5
+                        }
+                    }
+                ],
+                ProvisionedThroughput={
+                    'ReadCapacityUnits': 10,
+                    'WriteCapacityUnits': 10
+                }
+            )
+            table.wait_until_exists()
+            return table
+        except ClientError as e:
+            if e.response['Error']['Code'] == 'ResourceInUseException':
+                logger.info("AgentArtifacts table already exists")
+                return self.artifacts_table
+            raise
+
+    def _create_invocations_table(self):
+        """Create AgentInvocations table"""
+        try:
+            table = self.dynamodb.create_table(
+                TableName='AgentInvocations',
+                KeySchema=[
+                    {
+                        'AttributeName': 'invocation_id',
+                        'KeyType': 'HASH'
+                    }
+                ],
+                AttributeDefinitions=[
+                    {
+                        'AttributeName': 'invocation_id',
+                        'AttributeType': 'S'
+                    },
+                    {
+                        'AttributeName': 'agent_id',
+                        'AttributeType': 'S'
+                    },
+                    {
+                        'AttributeName': 'timestamp',
+                        'AttributeType': 'S'
+                    }
+                ],
+                GlobalSecondaryIndexes=[
+                    {
+                        'IndexName': 'AgentInvocationIndex',
+                        'KeySchema': [
+                            {
+                                'AttributeName': 'agent_id',
+                                'KeyType': 'HASH'
+                            },
+                            {
+                                'AttributeName': 'timestamp',
+                                'KeyType': 'RANGE'
+                            }
+                        ],
+                        'Projection': {
+                            'ProjectionType': 'ALL'
+                        },
+                        'ProvisionedThroughput': {
+                            'ReadCapacityUnits': 5,
+                            'WriteCapacityUnits': 5
+                        }
+                    }
+                ],
+                ProvisionedThroughput={
+                    'ReadCapacityUnits': 10,
+                    'WriteCapacityUnits': 10
+                }
+            )
+            table.wait_until_exists()
+            return table
+        except ClientError as e:
+            if e.response['Error']['Code'] == 'ResourceInUseException':
+                logger.info("AgentInvocations table already exists")
+                return self.invocations_table
+            raise
     def _create_statistics_table(self):
         """Create BuildStatistics table"""
         try:
@@ -1083,18 +1248,19 @@ class DynamoDBClient:
             for key, value in kwargs.items():
                 if value is not None:
                     if isinstance(value, datetime):
-                        value = value.isoformat() + "Z"
+                        iso_value = value.astimezone(timezone.utc).isoformat()
+                        if iso_value.endswith("+00:00"):
+                            iso_value = iso_value[:-6] + "Z"
+                        value = iso_value
                     elif isinstance(value, (ProjectStatus, StageStatus, AgentStatus, BuildStage)):
                         value = value.value
                     elif isinstance(value, (dict, list)):
                         value = json.dumps(value, default=str)
-                    
-                    # Handle reserved keywords
-                    attr_name = f"#{key}" if key in ['status', 'data', 'timestamp'] else key
+
+                    attr_name = f"#attr_{key}"
                     update_expression += f", {attr_name} = :{key}"
                     expression_values[f":{key}"] = value
-                    if attr_name.startswith('#'):
-                        expression_names[attr_name] = key
+                    expression_names[attr_name] = key
             
             self.agents_table.update_item(
                 Key={'agent_id': agent_id},
@@ -1184,6 +1350,115 @@ class DynamoDBClient:
         except Exception as e:
             logger.error(f"Error searching agents: {str(e)}")
             raise APIException(f"Failed to search agents: {str(e)}")
+
+    # Artifact operations
+    @retry_on_error(max_retries=3, delay=1.0, backoff=2.0)
+    def create_artifact_record(self, artifact: ArtifactRecord) -> None:
+        try:
+            self._ensure_connection()
+            item = self._serialize_item(artifact.dict())
+            self.artifacts_table.put_item(Item=item)
+            logger.debug("Created artifact record %s", artifact.artifact_id)
+        except Exception as e:
+            logger.error("Error creating artifact record: %s", e)
+            raise APIException(f"Failed to create artifact record: {e}")
+
+    @retry_on_error(max_retries=3, delay=1.0, backoff=2.0)
+    def list_artifacts_by_agent(self, agent_id: str, limit: int = 20, last_key: Optional[str] = None) -> Dict[str, Any]:
+        try:
+            self._ensure_connection()
+            query_kwargs = {
+                'IndexName': 'AgentIndex',
+                'KeyConditionExpression': Key('agent_id').eq(agent_id),
+                'ScanIndexForward': False,
+                'Limit': limit,
+            }
+            if last_key:
+                query_kwargs['ExclusiveStartKey'] = {'agent_id': agent_id, 'created_at': last_key}
+            response = self.artifacts_table.query(**query_kwargs)
+            items = [self._deserialize_item(item) for item in response.get('Items', [])]
+            return {
+                'items': items,
+                'last_key': response.get('LastEvaluatedKey', {}).get('created_at'),
+                'count': len(items),
+            }
+        except Exception as e:
+            logger.error("Error listing artifacts for agent %s: %s", agent_id, e)
+            raise APIException(f"Failed to list artifacts: {e}")
+
+    @retry_on_error(max_retries=3, delay=1.0, backoff=2.0)
+    def list_artifacts_by_project(self, project_id: str, stage: Optional[str] = None) -> List[Dict[str, Any]]:
+        try:
+            self._ensure_connection()
+            query_kwargs = {
+                'IndexName': 'ProjectIndex',
+                'KeyConditionExpression': Key('project_id').eq(project_id),
+                'ScanIndexForward': False,
+            }
+            if stage:
+                query_kwargs['FilterExpression'] = Attr('stage').eq(stage)
+            response = self.artifacts_table.query(**query_kwargs)
+            items = response.get('Items', [])
+            return [self._deserialize_item(item) for item in items]
+        except Exception as e:
+            logger.error("Error listing artifacts for project %s: %s", project_id, e)
+            raise APIException(f"Failed to list artifacts: {e}")
+
+    @retry_on_error(max_retries=3, delay=1.0, backoff=2.0)
+    def delete_artifacts_for_stage(self, project_id: str, stage: str) -> None:
+        try:
+            self._ensure_connection()
+            query_kwargs = {
+                'IndexName': 'ProjectIndex',
+                'KeyConditionExpression': Key('project_id').eq(project_id),
+                'FilterExpression': Attr('stage').eq(stage),
+            }
+            response = self.artifacts_table.query(**query_kwargs)
+            for item in response.get('Items', []):
+                self.artifacts_table.delete_item(Key={'artifact_id': item['artifact_id']})
+        except Exception as e:
+            logger.error(
+                "Error deleting artifacts for project %s stage %s: %s",
+                project_id,
+                stage,
+                e,
+            )
+            raise APIException(f"Failed to delete artifacts: {e}")
+
+    # Invocation operations
+    @retry_on_error(max_retries=3, delay=1.0, backoff=2.0)
+    def log_agent_invocation(self, invocation: AgentInvocationRecord) -> None:
+        try:
+            self._ensure_connection()
+            item = self._serialize_item(invocation.dict())
+            self.invocations_table.put_item(Item=item)
+            logger.debug("Logged invocation %s for agent %s", invocation.invocation_id, invocation.agent_id)
+        except Exception as e:
+            logger.error("Error logging agent invocation: %s", e)
+            raise APIException(f"Failed to log agent invocation: {e}")
+
+    @retry_on_error(max_retries=3, delay=1.0, backoff=2.0)
+    def list_agent_invocations(self, agent_id: str, limit: int = 20, last_key: Optional[str] = None) -> Dict[str, Any]:
+        try:
+            self._ensure_connection()
+            query_kwargs = {
+                'IndexName': 'AgentInvocationIndex',
+                'KeyConditionExpression': Key('agent_id').eq(agent_id),
+                'ScanIndexForward': False,
+                'Limit': limit,
+            }
+            if last_key:
+                query_kwargs['ExclusiveStartKey'] = {'agent_id': agent_id, 'timestamp': last_key}
+            response = self.invocations_table.query(**query_kwargs)
+            items = [self._deserialize_item(item) for item in response.get('Items', [])]
+            return {
+                'items': items,
+                'last_key': response.get('LastEvaluatedKey', {}).get('timestamp'),
+                'count': len(items),
+            }
+        except Exception as e:
+            logger.error("Error listing invocations for agent %s: %s", agent_id, e)
+            raise APIException(f"Failed to list agent invocations: {e}")
     
     # Utility methods
     def _serialize_item(self, item: Dict[str, Any]) -> Dict[str, Any]:
@@ -1192,7 +1467,10 @@ class DynamoDBClient:
         for key, value in item.items():
             if value is not None:
                 if isinstance(value, datetime):
-                    serialized[key] = value.isoformat() + "Z"
+                    iso_value = value.astimezone(timezone.utc).isoformat()
+                    if iso_value.endswith("+00:00"):
+                        iso_value = iso_value[:-6] + "Z"
+                    serialized[key] = iso_value
                 elif isinstance(value, (ProjectStatus, StageStatus, AgentStatus, BuildStage)):
                     serialized[key] = value.value
                 elif isinstance(value, float):
@@ -1211,12 +1489,23 @@ class DynamoDBClient:
         deserialized = {}
         # Fields that are typically stored as JSON strings
         json_fields = [
-            'agent_config', 'build_summary', 'error_info', 'output_data', 
-            'dependencies', 'supported_models', 'tags', 'logs', 'config',
-            'stages_snapshot'
+            'agent_config', 'build_summary', 'error_info', 'output_data',
+            'dependencies', 'supported_models', 'supported_inputs', 'tags', 'logs', 'config',
+            'stages_snapshot', 'agents', 'artifact_paths'
         ]
         
+        datetime_fields = {
+            'created_at',
+            'updated_at',
+            'last_deployed_at',
+            'completed_at',
+            'started_at',
+        }
+
         for key, value in item.items():
+            if isinstance(value, str) and key in datetime_fields:
+                deserialized[key] = self._parse_datetime(value)
+                continue
             if isinstance(value, str) and key in json_fields:
                 # Try to parse JSON strings for known JSON fields
                 try:
@@ -1232,6 +1521,20 @@ class DynamoDBClient:
             else:
                 deserialized[key] = value
         return deserialized
+
+    def _parse_datetime(self, value: str) -> Optional[datetime]:
+        if not value:
+            return None
+
+        cleaned = value.strip()
+        if cleaned.endswith('Z'):
+            cleaned = cleaned[:-1]
+            if not cleaned.endswith('+00:00'):
+                cleaned = f"{cleaned}+00:00"
+        try:
+            return datetime.fromisoformat(cleaned)
+        except ValueError:
+            return None
 
 # Global DynamoDB client instance
 db_client = DynamoDBClient()

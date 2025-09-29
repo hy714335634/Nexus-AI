@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import os
 import time
 import uuid
@@ -73,7 +74,7 @@ class AgentCLIBuildService:
             workflow = cli_workflow.create_build_workflow()
 
             start_time = time.time()
-            workflow_result = workflow(str(intent_result))
+            workflow_result = self._execute_workflow_with_retry(workflow, intent_result)
             execution_time = time.time() - start_time
 
             report_path = generate_workflow_summary_report(workflow_result, "./projects")
@@ -84,21 +85,23 @@ class AgentCLIBuildService:
                 os.environ["NEXUS_STAGE_TRACKER_PROJECT_ID"] = previous_tracker_id
 
         intent_payload = {
-            "intent_type": intent_result.intent_type,
-            "mentioned_project_name": intent_result.mentioned_project_name,
-            "project_exists": intent_result.project_exists,
-            "orchestrator_guidance": intent_result.orchestrator_guidance,
+            "intent_type": self._json_safe(getattr(intent_result, "intent_type", None)),
+            "mentioned_project_name": self._json_safe(getattr(intent_result, "mentioned_project_name", None)),
+            "project_exists": self._json_safe(getattr(intent_result, "project_exists", None)),
+            "orchestrator_guidance": self._json_safe(getattr(intent_result, "orchestrator_guidance", None)),
         }
 
         workflow_payload = {
-            "status": getattr(workflow_result, "status", None),
-            "total_nodes": getattr(workflow_result, "total_nodes", None),
-            "completed_nodes": getattr(workflow_result, "completed_nodes", None),
-            "failed_nodes": getattr(workflow_result, "failed_nodes", None),
-            "execution_time_ms": getattr(workflow_result, "execution_time", None),
+            "status": self._json_safe(getattr(workflow_result, "status", None)),
+            "total_nodes": self._json_safe(getattr(workflow_result, "total_nodes", None)),
+            "completed_nodes": self._json_safe(getattr(workflow_result, "completed_nodes", None)),
+            "failed_nodes": self._json_safe(getattr(workflow_result, "failed_nodes", None)),
+            "execution_time_ms": self._json_safe(getattr(workflow_result, "execution_time", None)),
             "execution_order": [
-                getattr(node, "node_id", str(node)) for node in getattr(workflow_result, "execution_order", [])
+                self._json_safe(getattr(node, "node_id", node))
+                for node in getattr(workflow_result, "execution_order", [])
             ],
+            "accumulated_usage": self._json_safe(getattr(workflow_result, "accumulated_usage", None)),
         }
 
         return AgentWorkflowOutput(
@@ -109,5 +112,72 @@ class AgentCLIBuildService:
             workflow=workflow_payload,
         )
 
+    def _execute_workflow_with_retry(self, workflow: Any, intent_result: Any) -> Any:
+        """Execute workflow with exponential backoff on max_tokens limit errors."""
+
+        delays = [0, 120, 240, 480]  # seconds
+        last_exception: Optional[Exception] = None
+
+        for attempt, delay in enumerate(delays, start=1):
+            if delay:
+                logger.info(
+                    "Workflow retry attempt %s after sleeping %ss due to max_tokens limit",
+                    attempt,
+                    delay,
+                )
+                time.sleep(delay)
+
+            try:
+                return workflow(str(intent_result))
+            except Exception as exc:  # pragma: no cover - retry loop
+                message = str(exc)
+                if "max_tokens limit" not in message:
+                    raise
+                last_exception = exc
+                if attempt == len(delays):
+                    break
+                logger.warning(
+                    "Max tokens limit reached (attempt %s/%s), will retry with backoff",
+                    attempt,
+                    len(delays),
+                )
+
+        # All retries exhausted
+        if last_exception:
+            raise last_exception
+        raise RuntimeError("Workflow retry loop exited unexpectedly")
+
+    def _json_safe(self, value: Any) -> Any:
+        """Best-effort conversion of SDK objects to JSON-serialisable primitives."""
+
+        if value is None or isinstance(value, (str, int, float, bool)):
+            return value
+
+        if isinstance(value, dict):
+            return {k: self._json_safe(v) for k, v in value.items()}
+
+        if isinstance(value, (list, tuple, set)):
+            return [self._json_safe(v) for v in value]
+
+        # Enums or objects with value/name attributes
+        for attr in ("value", "name", "status"):
+            if hasattr(value, attr):
+                candidate = getattr(value, attr)
+                if isinstance(candidate, (str, int, float, bool)):
+                    return candidate
+
+        # Dataclasses or objects exposing dict representations
+        if hasattr(value, "to_dict"):
+            try:
+                return self._json_safe(value.to_dict())
+            except Exception:  # pragma: no cover - defensive
+                pass
+
+        if hasattr(value, "__dict__"):
+            return self._json_safe(vars(value))
+
+        return str(value)
+
 
 __all__ = ["AgentCLIBuildService", "AgentWorkflowOutput"]
+logger = logging.getLogger(__name__)
