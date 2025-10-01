@@ -24,6 +24,9 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(level
 logger = logging.getLogger(__name__)
 
 
+REPO_ROOT = Path(__file__).resolve().parents[3]
+
+
 class ScriptInfo:
     """脚本信息数据结构"""
     def __init__(self):
@@ -294,7 +297,7 @@ def project_verify(project_name: str) -> str:
         config.validation_timestamp = datetime.now(timezone.utc).isoformat()
         
         # 项目根目录
-        project_root = Path("/Users/qangz/Downloads/99.Project/Nexus-AI")
+        project_root = REPO_ROOT
         project_dir = project_root / "projects" / project_name
         
         if not project_dir.exists():

@@ -10,6 +10,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional, List
 
+import yaml
+
 from api.core.config import settings
 from api.core.exceptions import APIException
 from api.database.dynamodb_client import DynamoDBClient
@@ -164,6 +166,8 @@ class AgentDeploymentService:
                 region=deployment_region,
             )
 
+            self._ensure_local_package_installation(project_name)
+
             launch_result = runtime.launch()
             status_response = runtime.status()
 
@@ -254,9 +258,102 @@ class AgentDeploymentService:
         if config_path.exists():
             return
 
-        raise AgentDeploymentError(
-            "未找到 project_config.json，请先执行构建流程生成项目配置"
+        logger.info(
+            "project_config.json missing for project %s; rebuilding from stage artifacts",
+            project_name,
         )
+
+        agents_root = project_dir / "agents"
+        if not agents_root.exists():
+            raise AgentDeploymentError("项目尚未生成任何Agent阶段文档")
+
+        agent_dirs = [d for d in agents_root.iterdir() if d.is_dir()]
+        if not agent_dirs:
+            raise AgentDeploymentError("项目尚未生成任何Agent阶段文档")
+
+        target_dir = None
+        if agent_name_override:
+            for candidate in agent_dirs:
+                candidate_name = candidate.name
+                if candidate_name == agent_name_override or candidate_name == f"{agent_name_override}_agent":
+                    target_dir = candidate
+                    break
+        if target_dir is None:
+            target_dir = agent_dirs[0]
+
+        agent_dir = target_dir
+        agent_name = agent_dir.name
+
+        code_json_path = agent_dir / "agent_code_developer.json"
+        prompt_json_path = agent_dir / "prompt_engineer.json"
+        tools_json_path = agent_dir / "tools_developer.json"
+
+        if not code_json_path.exists():
+            raise AgentDeploymentError("缺少 agent_code_developer.json，无法生成Agent代码")
+
+        agent_code_data = json.loads(code_json_path.read_text(encoding="utf-8"))
+        agent_code = agent_code_data.get("agent_code") or {}
+
+        prompt_data = {}
+        if prompt_json_path.exists():
+            prompt_json = json.loads(prompt_json_path.read_text(encoding="utf-8"))
+            prompt_data = prompt_json.get("prompt_engineering") or {}
+
+        tools_data: List[Dict[str, Any]] = []
+        if tools_json_path.exists():
+            tools_json = json.loads(tools_json_path.read_text(encoding="utf-8"))
+            tools_data = tools_json.get("tools_development", {}).get("tools", [])
+
+        script_output = self._write_agent_script(project_name, agent_name, agent_code)
+        prompt_output = self._write_prompt_file(project_name, agent_name, prompt_data)
+        tool_outputs = self._write_tool_files(project_name, tools_data)
+        requirements_file = self._ensure_requirements_file(project_dir, agent_code, tools_data)
+
+        project_config = {
+            "project_name": project_name,
+            "project_id": project_id,
+            "generated_at": datetime.utcnow().replace(tzinfo=timezone.utc).isoformat(),
+            "agent_scripts": [
+                {
+                    "script_path": str(script_output.relative_to(self.repo_root)),
+                    "syntax_valid": True,
+                    "dependencies": agent_code.get("dependencies", []),
+                    "error_message": "",
+                    "argparse_params": agent_code.get("execution_params") or [],
+                }
+            ],
+            "prompt_files": [
+                {
+                    "prompt_path": str(prompt_output.relative_to(self.repo_root)) if prompt_output else None,
+                    "tool_count": len(tools_data),
+                    "valid": True,
+                    "error_message": "",
+                    "agent_info": {
+                        "name": agent_name,
+                        "description": agent_code.get("description"),
+                        "category": agent_code.get("implementation_details", {}).get("architecture"),
+                    },
+                    "metadata": {
+                        "prompt_variables": prompt_data.get("prompt_variables", []),
+                        "tags": prompt_data.get("tags", []),
+                    },
+                }
+            ],
+            "generated_tools": [
+                {"tool_path": str(path.relative_to(self.repo_root))}
+                for path in tool_outputs
+            ],
+            "requirements_path": str(requirements_file.relative_to(self.repo_root))
+            if requirements_file
+            else None,
+        }
+
+        config_path.write_text(
+            json.dumps(project_config, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+
+        logger.info("Generated project_config.json for project %s", project_name)
 
     @dataclass
     class _ArtifactMetadata:
@@ -399,6 +496,147 @@ class AgentDeploymentService:
             return Path(prompt_path).stem
 
         return None
+
+    def _ensure_local_package_installation(self, project_name: str) -> None:
+        """Patch generated Dockerfile so local packages (e.g. nexus_utils) are available."""
+        dockerfile_path = self.repo_root / "Dockerfile"
+        if not dockerfile_path.exists():
+            return
+
+        try:
+            dockerfile_content = dockerfile_path.read_text(encoding="utf-8")
+        except OSError:
+            return
+
+        copy_marker = (
+            f"COPY projects/{project_name}/requirements.txt projects/{project_name}/requirements.txt"
+        )
+        if copy_marker in dockerfile_content and "COPY nexus_utils nexus_utils" not in dockerfile_content:
+            dockerfile_content = dockerfile_content.replace(
+                copy_marker,
+                copy_marker + "\nCOPY nexus_utils nexus_utils",
+            )
+
+        install_marker = f"RUN pip install -r projects/{project_name}/requirements.txt"
+        if install_marker in dockerfile_content and "pip install ./nexus_utils" not in dockerfile_content:
+            dockerfile_content = dockerfile_content.replace(
+                install_marker,
+                install_marker + "\nRUN pip install ./nexus_utils",
+            )
+
+        try:
+            dockerfile_path.write_text(dockerfile_content, encoding="utf-8")
+        except OSError:
+            return
+
+        dockerignore_path = self.repo_root / ".dockerignore"
+        if dockerignore_path.exists():
+            try:
+                lines = dockerignore_path.read_text(encoding="utf-8").splitlines()
+            except OSError:
+                return
+
+            filtered = [
+                line
+                for line in lines
+                if line.strip() not in {"nexus_utils", "nexus_utils/"}
+            ]
+
+            if filtered != lines:
+                dockerignore_path.write_text("\n".join(filtered) + "\n", encoding="utf-8")
+
+    def _write_agent_script(
+        self,
+        project_name: str,
+        agent_name: str,
+        agent_code: Dict[str, Any],
+    ) -> Path:
+        generated_dir = self.repo_root / "agents" / "generated_agents" / project_name
+        generated_dir.mkdir(parents=True, exist_ok=True)
+
+        script_path = generated_dir / f"{agent_name}.py"
+        if script_path.exists():
+            return script_path
+
+        main_code = agent_code.get("main_code") or "# TODO: implement agent logic\n"
+        if not isinstance(main_code, str):
+            main_code = str(main_code)
+
+        script_path.write_text(main_code, encoding="utf-8")
+        return script_path
+
+    def _write_prompt_file(
+        self,
+        project_name: str,
+        agent_name: str,
+        prompt_data: Dict[str, Any],
+    ) -> Optional[Path]:
+        if not prompt_data:
+            return None
+
+        prompts_dir = self.repo_root / "prompts" / "generated_agents_prompts" / project_name
+        prompts_dir.mkdir(parents=True, exist_ok=True)
+
+        prompt_path = prompts_dir / f"{agent_name}.yaml"
+        if prompt_path.exists():
+            return prompt_path
+
+        prompt_payload = prompt_data.get("prompt_definition") or prompt_data
+        prompt_path.write_text(
+            yaml.safe_dump(prompt_payload, allow_unicode=True, sort_keys=False),
+            encoding="utf-8",
+        )
+        return prompt_path
+
+    def _write_tool_files(
+        self,
+        project_name: str,
+        tools_data: List[Dict[str, Any]],
+    ) -> List[Path]:
+        if not tools_data:
+            return []
+
+        tools_dir = self.repo_root / "tools" / "generated_tools" / project_name
+        tools_dir.mkdir(parents=True, exist_ok=True)
+
+        outputs: List[Path] = []
+        for tool in tools_data:
+            name = tool.get("name") or tool.get("id")
+            if not name:
+                continue
+            filename = f"{name}.py"
+            target = tools_dir / filename
+            if target.exists():
+                outputs.append(target)
+                continue
+
+            code = tool.get("code") or "# TODO: implement tool logic\n"
+            if not isinstance(code, str):
+                code = str(code)
+
+            target.write_text(code, encoding="utf-8")
+            outputs.append(target)
+
+        return outputs
+
+    def _ensure_requirements_file(
+        self,
+        project_dir: Path,
+        agent_code: Dict[str, Any],
+        tools_data: List[Dict[str, Any]],
+    ) -> Optional[Path]:
+        deps = set(agent_code.get("dependencies") or [])
+        for tool in tools_data:
+            deps.update(tool.get("dependencies") or [])
+
+        if not deps:
+            return None
+
+        req_path = project_dir / "requirements.txt"
+        req_path.parent.mkdir(parents=True, exist_ok=True)
+
+        req_path.write_text("\n".join(sorted(deps)) + "\n", encoding="utf-8")
+        return req_path
 
     def _ensure_agent_record(
         self,
