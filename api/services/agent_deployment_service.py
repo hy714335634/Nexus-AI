@@ -518,11 +518,20 @@ class AgentDeploymentService:
             )
 
         install_marker = f"RUN pip install -r projects/{project_name}/requirements.txt"
-        if install_marker in dockerfile_content and "pip install ./nexus_utils" not in dockerfile_content:
+        if install_marker in dockerfile_content and "pip install ./nexus_utils" in dockerfile_content:
             dockerfile_content = dockerfile_content.replace(
-                install_marker,
-                install_marker + "\nRUN pip install ./nexus_utils",
+                "\nRUN pip install ./nexus_utils",
+                "",
             )
+
+        pythonpath_line = 'ENV PYTHONPATH="/app:/app/nexus_utils:$PYTHONPATH"'
+        if pythonpath_line not in dockerfile_content:
+            workdir_line = "WORKDIR /app"
+            if workdir_line in dockerfile_content:
+                dockerfile_content = dockerfile_content.replace(
+                    workdir_line,
+                    workdir_line + "\n\n" + pythonpath_line,
+                )
 
         try:
             dockerfile_path.write_text(dockerfile_content, encoding="utf-8")

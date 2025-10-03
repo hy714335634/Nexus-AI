@@ -1,5 +1,4 @@
 # AWS Architecture Diagram Generator Dependencies
-strands>=0.5.0
 python-pptx>=0.6.21
 diagrams>=0.23.3
 markdown>=3.4.3

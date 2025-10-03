@@ -39,7 +39,7 @@ class Settings(BaseSettings):
     
     # Application Configuration
     MAX_CONCURRENT_BUILDS: int = 10
-    BUILD_TIMEOUT_MINUTES: int = 60
+    BUILD_TIMEOUT_MINUTES: int = 600
 
     # AgentCore Deployment Configuration
     AGENTCORE_REGION: Optional[str] = None

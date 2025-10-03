@@ -2180,8 +2180,30 @@ def generate_python_requirements(project_name: str, content: str) -> str:
     Returns:
         str: 操作结果信息
     """
-    with open(os.path.join("projects", project_name, "requirements.txt"), "w") as f:
-        f.write(content)
+    requirements_path = os.path.join("projects", project_name, "requirements.txt")
+
+    entries = []
+    if content:
+        for raw_line in content.splitlines():
+            line = raw_line.strip()
+            if not line:
+                continue
+            lower = line.lower()
+            # Skip references to non-existent "strands" package; we ship strands-agents instead.
+            if lower.startswith("strands") and not lower.startswith("strands-agents"):
+                continue
+            entries.append(line)
+
+    baseline = ["./nexus_utils", "strands-agents", "strands-agents-tools"]
+    merged: dict[str, None] = {}
+    for value in baseline + entries:
+        key = value.strip()
+        if key:
+            merged.setdefault(key, None)
+
+    with open(requirements_path, "w", encoding="utf-8") as f:
+        f.write("\n".join(merged.keys()) + "\n")
+
     return f"在projects/{project_name}/requirements.txt 文件中生成项目依赖的库"
     
 

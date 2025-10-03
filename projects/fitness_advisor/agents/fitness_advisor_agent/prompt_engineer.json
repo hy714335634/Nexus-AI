@@ -1,0 +1,132 @@
+{
+  "prompt_engineer_document": {
+    "project_name": "fitness_advisor",
+    "agent_name": "fitness_advisor_agent",
+    "version": "1.0",
+    "date": "2025-10-03",
+    "prompt_design": {
+      "overview": "为fitness_advisor_agent设计的提示词模板，旨在创建一个专业、个性化的健身顾问智能体，能够根据用户的个人情况和健身目标提供科学的健身建议、锻炼计划和饮食指导。",
+      "design_principles": [
+        "专业性：基于运动生理学、健身训练方法、运动营养学等专业知识",
+        "个性化：根据用户的具体情况和目标提供定制化建议",
+        "安全第一：强调训练安全和伤害预防",
+        "科学性：所有建议基于科学证据和研究",
+        "实用性：提供可操作、易于执行的建议"
+      ],
+      "structure": {
+        "role_definition": "明确定义智能体作为专业健身顾问的角色和职责",
+        "knowledge_domains": "列出智能体的专业知识领域，包括运动生理学、健身训练方法等",
+        "core_responsibilities": "详细说明智能体的核心职责，如用户信息收集、健身目标评估等",
+        "specialized_skills": "描述智能体的专业技能，如运动适配、训练方法选择等",
+        "limitations": "明确智能体的能力边界和限制",
+        "interaction_flow": "定义智能体与用户的交互流程",
+        "personality_traits": "设定智能体的个性特征，如专业权威、友好支持等",
+        "output_specifications": "规定输出的格式和内容要求",
+        "safety_disclaimers": "包含必要的安全声明和责任提示",
+        "error_handling": "提供错误处理和异常情况的应对策略"
+      },
+      "key_components": {
+        "system_prompt": "详细的系统提示词，包含角色定义、专业知识、职责、技能、限制等",
+        "metadata": "包含标签、支持的模型和工具依赖等元数据信息",
+        "environment_settings": "不同环境（开发、生产、测试）的参数设置"
+      }
+    },
+    "prompt_implementation": {
+      "file_path": "prompts/generated_agents_prompts/fitness_advisor/fitness_advisor_agent.yaml",
+      "format": "YAML",
+      "key_sections": {
+        "agent_definition": {
+          "name": "fitness_advisor_agent",
+          "description": "智能健身顾问，根据用户个人情况和健身目标，提供科学、个性化的健身建议，包括锻炼计划、饮食指导和进度跟踪方法",
+          "category": "health_fitness"
+        },
+        "environment_settings": {
+          "development": "适合开发阶段的参数设置",
+          "production": "适合生产环境的参数设置",
+          "testing": "适合测试阶段的参数设置"
+        },
+        "version_info": {
+          "version": "latest",
+          "status": "stable",
+          "created_date": "2025-10-03T12:15:03.384221+00:00",
+          "author": "agent build workflow",
+          "description": "智能健身顾问Agent，提供个性化健身建议、锻炼计划和饮食指导"
+        },
+        "system_prompt_sections": [
+          "角色定义",
+          "专业知识领域",
+          "核心职责",
+          "专业技能",
+          "工作限制",
+          "交互流程",
+          "个性特征",
+          "输出规范",
+          "安全与责任声明",
+          "错误处理"
+        ],
+        "metadata": {
+          "tags": ["fitness", "health", "workout", "nutrition", "personal_training"],
+          "supported_models": ["us.anthropic.claude-3-7-sonnet-20250219-v1:0"],
+          "tools_dependencies": ["strands_tools/current_time", "strands_tools/calculator"]
+        }
+      }
+    },
+    "testing_and_validation": {
+      "validation_results": "提示词模板已通过验证，符合YAML格式要求和Nexus-AI平台的提示词标准",
+      "test_scenarios": [
+        "用户请求减肥计划",
+        "用户请求增肌训练方案",
+        "用户咨询特定健身动作的正确姿势",
+        "用户询问饮食建议",
+        "用户报告训练中的不适感"
+      ],
+      "expected_behaviors": [
+        "收集用户的详细信息（年龄、性别、体重等）",
+        "评估用户目标的合理性",
+        "提供个性化的锻炼计划",
+        "解释建议背后的科学原理",
+        "包含安全提示和注意事项",
+        "在医疗相关问题上建议咨询专业人士"
+      ]
+    },
+    "design_decisions": [
+      {
+        "decision": "采用结构化的系统提示词",
+        "rationale": "清晰的结构有助于智能体理解其角色和职责，提高回复的一致性和专业性",
+        "alternatives_considered": "简洁提示词、对话式提示词",
+        "impact": "提高智能体回复的质量和专业度，确保覆盖所有必要的健身指导领域"
+      },
+      {
+        "decision": "详细定义专业知识领域和核心职责",
+        "rationale": "明确智能体的专业背景和职责范围，使其能够提供全面、专业的健身建议",
+        "alternatives_considered": "简单角色描述、仅列出基本职责",
+        "impact": "增强智能体的专业性和权威性，提供更全面的健身指导"
+      },
+      {
+        "decision": "包含安全与责任声明",
+        "rationale": "健身领域涉及身体健康和安全，明确责任边界和安全提示非常重要",
+        "alternatives_considered": "省略责任声明、简化安全提示",
+        "impact": "提高用户安全意识，明确智能体与医疗建议的界限"
+      },
+      {
+        "decision": "定义明确的交互流程",
+        "rationale": "结构化的交互流程有助于智能体系统性地收集信息、分析需求并提供建议",
+        "alternatives_considered": "自由对话形式、单次回复模式",
+        "impact": "提高信息收集的完整性和建议的针对性"
+      },
+      {
+        "decision": "设定个性特征",
+        "rationale": "定义智能体的沟通风格和个性特征，使交互更自然、更有人情味",
+        "alternatives_considered": "纯客观中立风格、完全专业化语言",
+        "impact": "增强用户体验，建立信任关系，提高用户参与度"
+      }
+    ],
+    "future_improvements": [
+      "增加更多专业领域的知识，如运动康复、特殊人群训练等",
+      "添加对特定健身器材和设施的使用指导",
+      "扩展饮食指导，包括更详细的营养计划和食谱推荐",
+      "增强进度跟踪功能，提供更科学的评估方法",
+      "添加更多工具依赖，如计算BMI、基础代谢率等专用工具"
+    ]
+  }
+}
