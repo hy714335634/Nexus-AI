@@ -21,6 +21,7 @@ from agents.system_agents.agent_build_workflow.agent_designer_agent import agent
 from agents.system_agents.agent_build_workflow.prompt_engineer_agent import prompt_engineer
 from agents.system_agents.agent_build_workflow.tool_developer_agent import tool_developer
 from agents.system_agents.agent_build_workflow.agent_code_developer_agent import agent_code_developer
+from agents.system_agents.agent_build_workflow.agent_deployer_agent import agent_deployer
 from agents.system_agents.agent_build_workflow.agent_developer_manager_agent import agent_developer_manager
 from strands.telemetry import StrandsTelemetry
 from nexus_utils.workflow_report_generator import generate_workflow_summary_report
@@ -49,6 +50,7 @@ orchestrator = create_agent_from_prompt_template(
 # 创建意图分析 agent
 intent_analyzer = create_agent_from_prompt_template(
     agent_name="system_agents_prompts/agent_build_workflow/agent_intent_analyzer",
+    nocallback=True,
     **agent_params
 )
 
@@ -61,10 +63,9 @@ def analyze_user_intent(user_input: str):
     
     try:
         # 使用意图分析 agent
-        intent_result = intent_analyzer(f"用户输入：{user_input}")
         intent_structured_result = intent_analyzer.structured_output(
             IntentRecognitionResult,
-            "进行意图识别"
+            f"用户输入：{user_input}"
         )
         print(f"\n{'='*80}")
         print(f"📊 意图类型:\t{intent_structured_result.intent_type}")
@@ -197,7 +198,7 @@ def run_workflow(user_input: str, session_id="default"):
 
         return {
             "report_path": report_path,
-            "intent_analysis": intent_result,
+            "intent_analysis": intent_structured_result,
             "workflow_result": result
         }
     except Exception as e:

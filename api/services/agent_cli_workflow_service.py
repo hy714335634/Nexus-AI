@@ -115,13 +115,20 @@ class AgentCLIBuildService:
     def _execute_workflow_with_retry(self, workflow: Any, intent_result: Any) -> Any:
         """Execute workflow with exponential backoff on max_tokens limit errors."""
 
-        delays = [0, 120, 240, 480]  # seconds
+        delays = [0, 60, 120, 240, 480, 960]  # seconds
         last_exception: Optional[Exception] = None
+        transient_markers = (
+            "max_tokens limit",
+            "throttlingException",
+            "Too many requests",
+            "TooManyRequests",
+            "Rate exceeded",
+        )
 
         for attempt, delay in enumerate(delays, start=1):
             if delay:
                 logger.info(
-                    "Workflow retry attempt %s after sleeping %ss due to max_tokens limit",
+                    "Workflow retry attempt %s after sleeping %ss due to transient Bedrock error",
                     attempt,
                     delay,
                 )
@@ -131,13 +138,14 @@ class AgentCLIBuildService:
                 return workflow(str(intent_result))
             except Exception as exc:  # pragma: no cover - retry loop
                 message = str(exc)
-                if "max_tokens limit" not in message:
+                if not any(marker in message for marker in transient_markers):
                     raise
                 last_exception = exc
                 if attempt == len(delays):
                     break
                 logger.warning(
-                    "Max tokens limit reached (attempt %s/%s), will retry with backoff",
+                    "Transient Bedrock error '%s' (attempt %s/%s), will retry with backoff",
+                    message,
                     attempt,
                     len(delays),
                 )
