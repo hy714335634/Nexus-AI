@@ -33,6 +33,7 @@ class BuildStage(str, Enum):
     SYSTEM_ARCHITECTURE = "system_architecture"         # 2. 系统架构设计
     AGENT_DESIGN = "agent_design"                       # 3. Agent设计
     AGENT_DEVELOPER_MANAGER = "agent_developer_manager" # 4. 开发管理
+    AGENT_DEPLOYER = "agent_deployer"                   # 5. 部署到运行时
     
     @classmethod
     def get_stage_number(cls, stage: 'BuildStage') -> int:
@@ -43,6 +44,7 @@ class BuildStage(str, Enum):
             cls.SYSTEM_ARCHITECTURE,
             cls.AGENT_DESIGN,
             cls.AGENT_DEVELOPER_MANAGER,
+            cls.AGENT_DEPLOYER,
         ]
         return stage_order.index(stage) + 1
     
@@ -55,6 +57,7 @@ class BuildStage(str, Enum):
             cls.SYSTEM_ARCHITECTURE,
             cls.AGENT_DESIGN,
             cls.AGENT_DEVELOPER_MANAGER,
+            cls.AGENT_DEPLOYER,
         ]
         if 1 <= stage_number <= len(stage_order):
             return stage_order[stage_number - 1]
@@ -69,6 +72,7 @@ class BuildStage(str, Enum):
             cls.SYSTEM_ARCHITECTURE: "系统架构设计",
             cls.AGENT_DESIGN: "Agent设计",
             cls.AGENT_DEVELOPER_MANAGER: "开发管理",
+            cls.AGENT_DEPLOYER: "Agent部署",
         }
         return stage_names.get(stage, stage.value)
 
@@ -240,6 +244,8 @@ class ProjectRecord(BaseModel):
     tags: List[str] = Field(default_factory=list)
     priority: int = 3
     stages_snapshot: Dict[str, Dict[str, Any]] = Field(default_factory=dict)
+    agents: List[str] = Field(default_factory=list)
+    artifacts_base_path: Optional[str] = None
 
 class StageRecord(BaseModel):
     project_id: str
@@ -260,19 +266,56 @@ class AgentRecord(BaseModel):
     agent_id: str
     project_id: str
     agent_name: str
-    category: Optional[str] = None
     description: Optional[str] = None
+    category: Optional[str] = None
     version: str = "v1.0.0"
     status: AgentStatus
-    script_path: Optional[str] = None
+    entrypoint: Optional[str] = None
+    agentcore_entrypoint: Optional[str] = None
+    deployment_type: str = "local"
+    deployment_status: str = "pending"
+    code_path: Optional[str] = None
     prompt_path: Optional[str] = None
+    tools_path: Optional[str] = None
+    script_path: Optional[str] = None  # backwards compatibility
     tools_count: int = 0
     dependencies: List[str] = Field(default_factory=list)
     supported_models: List[str] = Field(default_factory=list)
+    supported_inputs: List[str] = Field(default_factory=lambda: ["text"])
     tags: List[str] = Field(default_factory=list)
     call_count: int = 0
     success_rate: float = 0.0
     last_called_at: Optional[datetime] = None
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    agentcore_arn: Optional[str] = None
+    agentcore_alias: Optional[str] = None
+    region: Optional[str] = None
+    last_deployed_at: Optional[datetime] = None
+    last_deployment_error: Optional[str] = None
+
+class AgentInvocationRecord(BaseModel):
+    invocation_id: str
+    agent_id: str
+    session_id: Optional[str] = None
+    input_type: str = "text"
+    request_payload: Dict[str, Any] = Field(default_factory=dict)
+    response_payload: Optional[Dict[str, Any]] = None
+    caller: str = "api"
+    duration_ms: Optional[int] = None
+    status: str = "success"
+    error_message: Optional[str] = None
+    timestamp: datetime
+
+class ArtifactRecord(BaseModel):
+    artifact_id: str
+    agent_id: Optional[str] = None
+    project_id: str
+    stage: str
+    type: Optional[str] = None
+    file_path: Optional[str] = None
+    doc_path: Optional[str] = None
+    metadata: Dict[str, Any] = Field(default_factory=dict)
     created_at: datetime
 
 # Helper functions for stage management
@@ -307,6 +350,7 @@ def get_all_stages() -> List[BuildStage]:
         BuildStage.SYSTEM_ARCHITECTURE,
         BuildStage.AGENT_DESIGN,
         BuildStage.AGENT_DEVELOPER_MANAGER,
+        BuildStage.AGENT_DEPLOYER,
     ]
 
 

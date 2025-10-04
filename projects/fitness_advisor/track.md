@@ -3,47 +3,32 @@
 **项目名称**: fitness_advisor
 **Agent名称**: fitness_advisor_agent  
 **开发阶段**: requirements_analyzer
-**生成时间**: 2025-09-25 06:38:27 UTC
+**生成时间**: 2025-10-03 12:05:54 UTC
 
 ---
 
 
-## system_architect - 2025-09-25 06:41:34 UTC
+## system_architect - 2025-10-03 12:08:22 UTC
 **Agent名称**: fitness_advisor_agent
 **开发阶段**: system_architect
 
 
-## agent_designer - 2025-09-25 06:43:11 UTC
+## agent_designer - 2025-10-03 12:09:42 UTC
 **Agent名称**: fitness_advisor_agent
 **开发阶段**: agent_designer
 
 
-## tools_developer - 2025-09-25 07:30:52 UTC
-**Agent名称**: fitness_advisor_agent
-**开发阶段**: tools_developer
-
-
-## tools_developer - 2025-09-25 07:32:02 UTC
-**Agent名称**: fitness_advisor_agent
-**开发阶段**: tools_developer
-
-
-## prompt_engineer - 2025-09-25 07:50:47 UTC
+## prompt_engineer - 2025-10-03 12:16:46 UTC
 **Agent名称**: fitness_advisor_agent
 **开发阶段**: prompt_engineer
 
 
-## tools_developer - 2025-09-25 07:53:43 UTC
-**Agent名称**: fitness_advisor_agent
-**开发阶段**: tools_developer
-
-
-## agent_code_developer - 2025-09-25 07:54:24 UTC
+## agent_code_developer - 2025-10-03 12:28:45 UTC
 **Agent名称**: fitness_advisor_agent
 **开发阶段**: agent_code_developer
 
 
-## tools_developer - 2025-09-25 08:01:56 UTC
+## agent_developer_manager - 2025-10-03 12:31:17 UTC
 **Agent名称**: fitness_advisor_agent
-**开发阶段**: tools_developer
+**开发阶段**: agent_developer_manager
 

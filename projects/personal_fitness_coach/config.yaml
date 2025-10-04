@@ -1,6 +1,0 @@
-project:
-  created_date: '2025-09-25T07:38:24.198151+00:00'
-  description: 一个智能健身助手，能够根据用户的健康状况、健身目标和个人偏好提供个性化的健身建议、锻炼计划和健康指导。
-  name: personal_fitness_coach
-  updated_date: '2025-09-25T07:38:30.837320+00:00'
-  version: 1.0.0

@@ -1,7 +1,7 @@
 # fitness_advisor
 
 ## 项目描述
-一个能够根据用户情况生成个性化健身建议的智能体
+一个能够根据用户个人情况生成定制化健身建议的智能体，包括锻炼计划、饮食建议和健身目标追踪。
 
 ## 项目结构
 ```
@@ -30,122 +30,85 @@ fitness_advisor/
 - **system_architect**: ✅ 已完成 - [文档](projects/fitness_advisor/agents/fitness_advisor_agent/system_architect.json)
 - **agent_designer**: ✅ 已完成 - [文档](projects/fitness_advisor/agents/fitness_advisor_agent/agent_designer.json)
 - **prompt_engineer**: ✅ 已完成 - [文档](projects/fitness_advisor/agents/fitness_advisor_agent/prompt_engineer.json)
-- **tools_developer**: ✅ 已完成
+- **tools_developer**: ✅ 已完成 - [文档](projects/fitness_advisor/agents/fitness_advisor_agent/tools_developer.json)
 - **agent_code_developer**: ✅ 已完成 - [文档](projects/fitness_advisor/agents/fitness_advisor_agent/agent_code_developer.json)
-- **agent_developer_manager**: ✅ 已完成
+- **agent_developer_manager**: ⏳ 待完成
 
 ## 附加信息
 # Fitness Advisor
 
-## 项目概述
-Fitness Advisor 是一个智能健身顾问系统，能够根据用户的个人情况、健身目标和偏好，生成个性化健身建议，提供锻炼计划、饮食建议和健身指导，回答用户关于健身的常见问题。
+一个能够根据用户个人情况生成定制化健身建议的智能体，包括锻炼计划、饮食建议和健身目标追踪。
 
-## 项目状态
-✅ 需求分析: 完成  
-✅ 系统架构: 完成  
-✅ 智能体设计: 完成  
-✅ 工具开发: 完成  
-✅ 提示词工程: 完成  
-✅ 智能体代码开发: 完成  
-✅ 智能体开发管理: 完成  
+## 项目概述
+
+Fitness Advisor是一个智能健身顾问系统，能够基于用户的个人信息（如年龄、性别、身高、体重、健身经验等）和健身目标（如减肥、增肌、塑形、提高体能等），提供个性化的健身建议，包括锻炼计划、饮食指导和进度跟踪方法。
 
 ## 功能特点
-- 个性化健身计划生成
-- 科学的饮食建议和营养指导
-- 健康指标计算（BMI、BMR、TDEE等）
-- 锻炼进度跟踪和分析
-- 健身目标设定和监控
-- 健身常见问题解答
-- 锻炼提醒和日程安排
 
-## 技术架构
-本项目基于Claude 3.5 Sonnet大语言模型，结合专业健身知识和个性化推荐算法，通过自然语言交互为用户提供健身指导。
+- **个性化健身计划**：根据用户的身体状况、健身经验和目标生成定制化的锻炼计划
+- **饮食建议**：提供与健身目标匹配的营养指导和饮食建议
+- **进度跟踪**：建议适合的健身进度跟踪方法和指标
+- **安全保障**：提供运动安全提醒和注意事项，确保健身过程安全有效
+- **健身知识**：解答用户关于健身的问题，提供科学的健身知识
+- **动态调整**：根据用户反馈和进度调整训练计划
 
-### 核心组件
-1. **健身计算工具** - 提供各种健康指标的计算功能
-2. **用户资料管理** - 存储和管理用户个人信息和健身记录
-3. **时间跟踪系统** - 管理健身计划和提醒
+## 项目结构
 
-## 目录结构
 ```
 fitness_advisor/
 ├── agents/
-│   └── fitness_advisor_agent/
-│       ├── agent_designer.json      # 智能体设计文档
-│       ├── requirements_analyzer.json # 需求分析文档
-│       ├── system_architect.json    # 系统架构文档
-│       ├── prompt_engineer.json     # 提示词工程文档
-│       └── agent_code_developer.json # 智能体代码文档
-├── tools/
-│   └── generated_tools/
+│   └── generated_agents/
 │       └── fitness_advisor/
-│           ├── fitness_calculator.py  # 健康指标计算工具
-│           ├── user_profile_manager.py # 用户数据管理工具
-│           └── fitness_time_tracker.py # 时间管理工具
-├── requirements.txt                 # 项目依赖
-└── README.md                        # 项目说明文档
+│           └── fitness_advisor_agent.py  # 主Agent代码
+├── generated_agents_prompts/
+│   └── fitness_advisor/
+│       └── fitness_advisor_agent.yaml    # Agent提示词模板
+├── requirements.txt                      # 项目依赖
+└── README.md                             # 项目说明文档
 ```
 
-## 工具说明
+## 开发状态
 
-### 1. 健康指标计算工具 (fitness_calculator.py)
-提供多种健康和健身相关指标的计算功能：
-- BMI (身体质量指数) 计算
-- BMR (基础代谢率) 计算
-- TDEE (每日总能量消耗) 计算
-- 体脂率计算
-- 理想体重计算
-- 宏量营养素需求计算
-- 一次性最大重量(1RM)计算
-- 运动消耗卡路里计算
-- 每日水分需求计算
-
-### 2. 用户数据管理工具 (user_profile_manager.py)
-管理用户个人资料和健身相关数据：
-- 用户个人资料保存和检索
-- 健身目标管理
-- 锻炼记录存储和分析
-- 身体测量数据跟踪
-- 用户进度报告生成
-
-### 3. 时间管理工具 (fitness_time_tracker.py)
-管理健身计划和时间相关功能：
-- 健身计划创建和管理
-- 每日/每周锻炼计划查看
-- 锻炼完成记录
-- 锻炼提醒设置
-- 计划坚持情况分析
+- ✅ 需求分析
+- ✅ 系统架构设计
+- ✅ Agent设计
+- ✅ 提示词工程
+- ✅ 工具开发
+- ✅ Agent代码开发
+- ✅ 开发管理与协调
 
 ## 使用方法
-用户可以通过自然语言对话与Fitness Advisor智能体进行交互，例如：
-1. 询问健身建议："我想减掉10公斤体重，应该怎么做？"
-2. 获取锻炼计划："请给我制定一个每周三天的力量训练计划"
-3. 计算健康指标："我身高175厘米，体重70公斤，请计算我的BMI"
-4. 设定健身目标："我想在三个月内增加5公斤肌肉"
-5. 跟踪健身进度："我上周完成了哪些锻炼？"
-6. 获取饮食建议："请给我制定一个减脂期的饮食计划"
 
-## 安全与免责声明
-- Fitness Advisor提供的建议基于科学健身原则，但不能替代专业医疗或健身教练的指导
-- 用户在开始任何新的健身计划前应咨询医生
+1. 安装依赖：
+   ```
+   pip install -r requirements.txt
+   ```
+
+2. 运行Agent：
+   ```
+   python agents/generated_agents/fitness_advisor/fitness_advisor_agent.py -q "我是一个30岁的男性，身高175cm，体重80kg，想要减脂增肌，每周能锻炼3-4次，每次1小时左右，请给我一个合适的健身计划和饮食建议。"
+   ```
+
+3. 可选参数：
+   - `-q`：健身咨询问题
+   - `-m`：咨询模式 (general, workout, nutrition, tracking, knowledge, safety)
+
+## 注意事项
+
+- 本系统提供的建议仅供参考，不替代专业健身教练或医疗专业人士的指导
+- 用户在开始任何新的健身计划前，应咨询医生，特别是有既往健康问题的用户
 - 系统不提供医疗诊断或治疗建议
-- 用户数据仅在当前会话中使用，不进行永久存储
+- 用户应根据自身实际情况调整系统提供的建议
 
-## 依赖项
-- strands>=0.1.0
-- python-dateutil>=2.8.2
-- typing_extensions>=4.5.0
-- pydantic>=2.0.0
+## 技术栈
 
-## 未来计划
-- 添加更多专业化的训练计划模板
-- 增强饮食建议的个性化程度
-- 集成可视化进度报告
-- 支持可穿戴设备数据导入
-- 开发移动应用界面
+- Python 3.13+
+- Strands SDK
+- AWS Bedrock AI推理引擎
+- Anthropic Claude 3.5 Sonnet模型
 
 ## 使用说明
 请参考项目配置文件和状态文件了解当前开发进度。
 
 ---
-*最后更新时间: 2025-09-25 07:55:54 UTC*
+*最后更新时间: 2025-10-03 12:30:49 UTC*

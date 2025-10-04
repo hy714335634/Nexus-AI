@@ -23,6 +23,7 @@
 import os
 import json
 import logging
+import uuid
 import yaml
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional, List, Literal
@@ -38,6 +39,8 @@ from tools.system_tools.agent_build_workflow.stage_tracker import (
     mark_stage_failed,
     mark_stage_running,
 )
+from api.database.dynamodb_client import DynamoDBClient
+from api.models.schemas import ArtifactRecord
 
 from strands import Agent, tool
 
@@ -145,6 +148,46 @@ def _enhance_content_with_context(content: str, project_name: str, agent_name: s
     # 返回原始内容，不添加上下文头部
     return content
 
+
+def _record_stage_artifacts(stage_name: str, artifact_paths: List[str]) -> None:
+    if not artifact_paths:
+        return
+
+    project_id = _current_project_id()
+    if not project_id:
+        return
+
+    try:
+        db_client = DynamoDBClient()
+        db_client.delete_artifacts_for_stage(project_id, stage_name)
+
+        timestamp = datetime.utcnow().replace(tzinfo=timezone.utc)
+        for path in artifact_paths:
+            record = ArtifactRecord(
+                artifact_id=f"{project_id}:{stage_name}:{uuid.uuid4().hex}",
+                project_id=project_id,
+                stage=stage_name,
+                file_path=path,
+                created_at=timestamp,
+            )
+            db_client.create_artifact_record(record)
+    except Exception:
+        logger.exception(
+            "Failed to record artifact paths to remote store: stage=%s paths=%s",
+            stage_name,
+            artifact_paths,
+        )
+
+
+def _normalize_artifact_path(path_value: str) -> str:
+    from pathlib import Path
+
+    candidate = Path(path_value)
+    try:
+        return candidate.resolve().relative_to(Path.cwd().resolve()).as_posix()
+    except ValueError:
+        return candidate.as_posix()
+
 # @tool
 # def set_current_project_stats(action: str, agent: Agent):
 #     """设置项目基本信息"""
@@ -185,24 +228,14 @@ def project_init(project_name: str) -> str:
         project_name = project_name.strip()
         if "/" in project_name or "\\" in project_name or ".." in project_name:
             return "错误：项目名称不能包含路径分隔符或相对路径"
-        
-        # 创建项目根目录
+
         project_root = os.path.join("projects", project_name)
-        
-        # 检查项目是否已存在
-        if os.path.exists(project_root):
-            return f"错误：项目 '{project_name}' 已存在"
-        
-        # 创建目录结构
-        directories = [
-            project_root,
-            os.path.join(project_root, "agents")
-        ]
-        
-        for directory in directories:
-            os.makedirs(directory, exist_ok=True)
-        
-        # 创建基础文件
+        reused_project = os.path.exists(project_root)
+
+        # 创建或复用目录结构
+        os.makedirs(project_root, exist_ok=True)
+        os.makedirs(os.path.join(project_root, "agents"), exist_ok=True)
+
         files_created = []
         
         # 创建 config.yaml
@@ -216,9 +249,10 @@ def project_init(project_name: str) -> str:
             }
         }
         
-        with open(config_path, 'w', encoding='utf-8') as f:
-            yaml.dump(config_content, f, default_flow_style=False, allow_unicode=True, indent=2)
-        files_created.append("config.yaml")
+        if not os.path.exists(config_path):
+            with open(config_path, 'w', encoding='utf-8') as f:
+                yaml.dump(config_content, f, default_flow_style=False, allow_unicode=True, indent=2)
+            files_created.append("config.yaml")
         
         # 创建 README.md
         readme_path = os.path.join(project_root, "README.md")
@@ -276,34 +310,26 @@ nexus-ai/
 请参考项目配置文件和状态文件了解当前开发进度。
 """
         
-        with open(readme_path, 'w', encoding='utf-8') as f:
-            f.write(readme_content)
-        files_created.append("README.md")
+        if not os.path.exists(readme_path):
+            with open(readme_path, 'w', encoding='utf-8') as f:
+                f.write(readme_content)
+            files_created.append("README.md")
         
         # 创建 status.yaml
         status_path = os.path.join(project_root, "status.yaml")
-        status_content = {
-            "project_info": [
-                {
-                    "name": project_name,
-                    "description": f"AI智能体项目：{project_name}",
-                    "version": "1.0.0",
-                    "last_updated": datetime.now(timezone.utc).isoformat(),
-                    "progress": [
-                        {
-                            "total": 0,
-                            "completed": 0
-                        }
-                    ],
-                    "agents": []
-                }
-            ]
-        }
-        
-        with open(status_path, 'w', encoding='utf-8') as f:
-            yaml.dump(status_content, f, default_flow_style=False, allow_unicode=True, indent=2)
-        files_created.append("status.yaml")
-        
+        if not os.path.exists(status_path):
+            status_content = {
+                "project": project_name,
+                "status": "initialized",
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "last_updated": datetime.now(timezone.utc).isoformat(),
+                "agents": {}
+            }
+
+            with open(status_path, 'w', encoding='utf-8') as f:
+                yaml.dump(status_content, f, default_flow_style=False, allow_unicode=True, indent=2)
+            files_created.append("status.yaml")
+
         # 返回成功信息
         result = {
             "status": "success",
@@ -313,7 +339,8 @@ nexus-ai/
                 "agents/"
             ],
             "files_created": files_created,
-            "created_date": datetime.now(timezone.utc).isoformat()
+            "created_date": datetime.now(timezone.utc).isoformat(),
+            "reused": reused_project,
         }
         
         return json.dumps(result, ensure_ascii=False, indent=2)
@@ -1151,7 +1178,15 @@ def update_project_stage_content(project_name: str, agent_name: str, stage_name:
         # 写入内容
         with open(stage_file_path, 'w', encoding='utf-8') as f:
             f.write(enhanced_content)
-        
+
+        artifact_records = [_normalize_artifact_path(stage_file_path)]
+        if agent_artifact_path:
+            artifact_records.extend(
+                _normalize_artifact_path(str(path)) for path in agent_artifact_path
+            )
+        normalized = list(dict.fromkeys(artifact_records))
+        _record_stage_artifacts(stage_name, normalized)
+
         # 如果提供了agent_artifact_path，使用专门的函数更新制品路径
         artifact_stages = ["prompt_engineer", "tools_developer", "agent_code_developer"]
         if stage_name in artifact_stages and agent_artifact_path:
@@ -2145,8 +2180,30 @@ def generate_python_requirements(project_name: str, content: str) -> str:
     Returns:
         str: 操作结果信息
     """
-    with open(os.path.join("projects", project_name, "requirements.txt"), "w") as f:
-        f.write(content)
+    requirements_path = os.path.join("projects", project_name, "requirements.txt")
+
+    entries = []
+    if content:
+        for raw_line in content.splitlines():
+            line = raw_line.strip()
+            if not line:
+                continue
+            lower = line.lower()
+            # Skip references to non-existent "strands" package; we ship strands-agents instead.
+            if lower.startswith("strands") and not lower.startswith("strands-agents"):
+                continue
+            entries.append(line)
+
+    baseline = ["./nexus_utils", "strands-agents", "strands-agents-tools"]
+    merged: dict[str, None] = {}
+    for value in baseline + entries:
+        key = value.strip()
+        if key:
+            merged.setdefault(key, None)
+
+    with open(requirements_path, "w", encoding="utf-8") as f:
+        f.write("\n".join(merged.keys()) + "\n")
+
     return f"在projects/{project_name}/requirements.txt 文件中生成项目依赖的库"
     
 
@@ -2220,7 +2277,7 @@ def generate_content(type: Literal["agent", "prompt", "tool"], content: str, pro
         # 写入文件
         with open(file_path, 'w', encoding='utf-8') as f:
             f.write(content)
-        
+
         # 验证生成的文件
         validation_result = verify_file_content(type, file_path)
         try:
@@ -2243,7 +2300,10 @@ def generate_content(type: Literal["agent", "prompt", "tool"], content: str, pro
         except json.JSONDecodeError:
             # 如果验证结果不是JSON格式，记录警告但继续
             pass
-        
+
+        normalized_path = _normalize_artifact_path(file_path)
+        _record_stage_artifacts(stage, [normalized_path])
+
         result = {
             "status": "success",
             "message": f"成功创建{type}文件",
@@ -2251,6 +2311,7 @@ def generate_content(type: Literal["agent", "prompt", "tool"], content: str, pro
             "project_name": project_name,
             "agent_name": artifact_name,
             "file_path": file_path,
+            "normalized_file_path": normalized_path,
             "file_name": filename,
             "target_directory": target_dir,
             "content_length": len(content),
