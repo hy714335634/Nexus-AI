@@ -15,3 +15,4 @@ python-docx
 PyPDF2
 openpyxl
 tooluniverse
+setuptools

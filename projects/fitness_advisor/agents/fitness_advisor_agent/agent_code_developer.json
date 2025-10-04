@@ -3,343 +3,285 @@
     "development_overview": {
       "project_name": "fitness_advisor",
       "version": "1.0",
-      "date": "2025-09-25",
-      "development_scope": "开发一个能够提供个性化健身建议、锻炼计划、饮食指导和回答健身相关问题的智能体",
+      "date": "2025-10-03",
+      "development_scope": "开发一个智能健身顾问Agent，能够根据用户个人情况和健身目标，提供科学、个性化的健身建议，包括锻炼计划、饮食指导和进度跟踪方法",
       "design_principles": [
-        "个性化：根据用户特定情况提供定制化建议",
-        "科学性：所有建议基于科学健身原则",
-        "安全性：优先考虑用户健康安全",
-        "易用性：使用简单明了的语言提供建议",
-        "专业性：提供专业、有效的健身指导"
+        "个性化优先：所有建议基于用户个人情况定制",
+        "安全第一：确保运动安全，避免伤害风险",
+        "科学性：基于运动生理学和营养学原理",
+        "易用性：简洁直观的交互界面",
+        "模块化设计：便于维护和扩展功能"
       ],
       "key_decisions": [
-        "基于内容生成器模板实现智能体核心功能",
-        "集成三个自定义工具模块：健身计算工具、用户资料管理工具、健身时间管理工具",
-        "实现辅助函数处理工具返回的JSON数据",
-        "提供健身计划生成、饮食计划生成和问题解答三个主要功能",
-        "使用Claude 3.5 Sonnet模型确保高质量的内容生成"
+        "采用单Agent架构，简化系统复杂度",
+        "基于Strands SDK和Anthropic Claude模型实现",
+        "模块化功能设计，分离不同健身咨询场景",
+        "内置安全检查机制，确保建议的安全性",
+        "提供命令行测试接口，支持不同咨询模式"
       ]
     },
     "agent_implementation": {
       "agent_name": "fitness_advisor_agent",
       "file_path": "agents/generated_agents/fitness_advisor/fitness_advisor_agent.py",
-      "main_class": "N/A（使用函数式实现）",
-      "entry_point": "main()",
+      "main_class": "N/A (使用函数式编程模式)",
+      "entry_point": "process_fitness_request",
       "dependencies": [
         "nexus_utils.agent_factory",
         "strands.telemetry",
-        "json",
+        "logging",
         "os",
-        "datetime",
-        "typing",
-        "hashlib",
         "argparse"
       ],
       "imports": [
         "from nexus_utils.agent_factory import create_agent_from_prompt_template",
         "from strands.telemetry import StrandsTelemetry",
         "import os",
-        "import json",
-        "from typing import Dict, Any, Optional, List, Union",
-        "from datetime import datetime"
+        "import logging",
+        "from typing import Dict, List, Any, Optional, Union"
       ]
     },
     "core_functions": [
       {
-        "function_name": "generate_user_id",
-        "purpose": "根据用户名和可选的邮箱生成唯一用户ID",
+        "function_name": "process_fitness_request",
+        "purpose": "处理用户的健身咨询请求",
         "parameters": [
           {
-            "name": "name",
+            "name": "user_query",
             "type": "str",
-            "description": "用户名",
+            "description": "用户的健身咨询内容",
             "required": true
-          },
-          {
-            "name": "email",
-            "type": "Optional[str]",
-            "description": "用户邮箱(可选)",
-            "required": false
           }
         ],
         "return_type": "str",
-        "return_description": "生成的用户ID",
+        "return_description": "Agent的回复内容",
         "implementation_notes": [
-          "使用hashlib.md5生成哈希值",
-          "如果提供邮箱则使用邮箱作为主要标识符",
-          "否则使用用户名和时间戳组合",
-          "取哈希值前12位作为ID"
+          "直接调用fitness_advisor Agent处理用户查询",
+          "包含错误处理机制",
+          "记录请求处理日志"
         ]
       },
       {
-        "function_name": "parse_bmi_result",
-        "purpose": "解析BMI计算结果JSON字符串",
+        "function_name": "analyze_user_profile",
+        "purpose": "分析用户信息并生成健身画像",
         "parameters": [
           {
-            "name": "bmi_json",
-            "type": "str",
-            "description": "BMI计算工具返回的JSON字符串",
+            "name": "user_info",
+            "type": "Dict[str, Any]",
+            "description": "包含用户基本信息的字典",
             "required": true
           }
         ],
         "return_type": "Dict[str, Any]",
-        "return_description": "解析后的BMI数据",
+        "return_description": "用户健身画像",
         "implementation_notes": [
-          "使用json.loads解析JSON字符串",
-          "处理可能的JSON解析错误"
+          "构建结构化的分析请求",
+          "调用Agent进行用户画像分析",
+          "处理并返回分析结果"
         ]
       },
       {
-        "function_name": "parse_bmr_result",
-        "purpose": "解析BMR计算结果JSON字符串",
+        "function_name": "generate_workout_plan",
+        "purpose": "根据用户画像生成个性化锻炼计划",
         "parameters": [
           {
-            "name": "bmr_json",
-            "type": "str",
-            "description": "BMR计算工具返回的JSON字符串",
+            "name": "user_profile",
+            "type": "Dict[str, Any]",
+            "description": "用户健身画像",
             "required": true
           }
         ],
         "return_type": "Dict[str, Any]",
-        "return_description": "解析后的BMR数据",
+        "return_description": "包含锻炼计划的字典",
         "implementation_notes": [
-          "使用json.loads解析JSON字符串",
-          "处理可能的JSON解析错误"
+          "基于用户画像构建锻炼计划请求",
+          "指定计划需包含的关键要素",
+          "调用Agent生成个性化锻炼计划"
         ]
       },
       {
-        "function_name": "parse_tdee_result",
-        "purpose": "解析TDEE计算结果JSON字符串",
+        "function_name": "generate_nutrition_plan",
+        "purpose": "根据用户画像生成个性化饮食建议",
         "parameters": [
           {
-            "name": "tdee_json",
-            "type": "str",
-            "description": "TDEE计算工具返回的JSON字符串",
+            "name": "user_profile",
+            "type": "Dict[str, Any]",
+            "description": "用户健身画像",
             "required": true
           }
         ],
         "return_type": "Dict[str, Any]",
-        "return_description": "解析后的TDEE数据",
+        "return_description": "包含饮食建议的字典",
         "implementation_notes": [
-          "使用json.loads解析JSON字符串",
-          "处理可能的JSON解析错误"
+          "基于用户画像构建饮食建议请求",
+          "指定饮食建议需包含的关键要素",
+          "调用Agent生成个性化饮食计划"
         ]
       },
       {
-        "function_name": "create_workout_plan_for_user",
-        "purpose": "为用户创建健身计划",
+        "function_name": "provide_progress_tracking",
+        "purpose": "根据健身目标提供进度跟踪方法",
         "parameters": [
           {
-            "name": "user_id",
+            "name": "fitness_goal",
             "type": "str",
-            "description": "用户ID",
+            "description": "用户的健身目标",
             "required": true
-          },
-          {
-            "name": "goal",
-            "type": "str",
-            "description": "健身目标(减脂、增肌、提高耐力等)",
-            "required": true
-          },
-          {
-            "name": "experience_level",
-            "type": "str",
-            "description": "经验水平(初学者、中级、高级)",
-            "required": true
-          },
-          {
-            "name": "available_days",
-            "type": "List[str]",
-            "description": "可用于锻炼的日期列表",
-            "required": true
-          },
-          {
-            "name": "available_equipment",
-            "type": "List[str]",
-            "description": "可用设备列表",
-            "required": true
-          },
-          {
-            "name": "health_conditions",
-            "type": "Optional[List[str]]",
-            "description": "健康状况列表(可选)",
-            "required": false
           }
         ],
         "return_type": "Dict[str, Any]",
-        "return_description": "创建的健身计划",
+        "return_description": "包含进度跟踪方法的字典",
         "implementation_notes": [
-          "构建结构化的健身计划请求",
-          "调用智能体生成健身计划",
-          "返回包含计划和元数据的字典"
+          "基于健身目标构建进度跟踪请求",
+          "指定跟踪方法需包含的关键要素",
+          "调用Agent提供个性化进度跟踪建议"
         ]
       },
       {
-        "function_name": "create_diet_plan_for_user",
-        "purpose": "为用户创建饮食计划",
-        "parameters": [
-          {
-            "name": "user_id",
-            "type": "str",
-            "description": "用户ID",
-            "required": true
-          },
-          {
-            "name": "goal",
-            "type": "str",
-            "description": "健身目标(减脂、增肌、维持)",
-            "required": true
-          },
-          {
-            "name": "tdee",
-            "type": "int",
-            "description": "每日总能量消耗(卡路里)",
-            "required": true
-          },
-          {
-            "name": "dietary_preferences",
-            "type": "List[str]",
-            "description": "饮食偏好列表",
-            "required": true
-          },
-          {
-            "name": "allergies",
-            "type": "Optional[List[str]]",
-            "description": "过敏源列表(可选)",
-            "required": false
-          },
-          {
-            "name": "meal_count",
-            "type": "int",
-            "description": "每日餐数(默认为3)",
-            "required": false
-          }
-        ],
-        "return_type": "Dict[str, Any]",
-        "return_description": "创建的饮食计划",
-        "implementation_notes": [
-          "构建结构化的饮食计划请求",
-          "调用智能体生成饮食计划",
-          "返回包含计划和元数据的字典"
-        ]
-      },
-      {
-        "function_name": "answer_fitness_question",
-        "purpose": "回答用户关于健身的问题",
+        "function_name": "provide_fitness_knowledge",
+        "purpose": "提供健身知识和问题解答",
         "parameters": [
           {
             "name": "question",
             "type": "str",
-            "description": "用户的健身相关问题",
+            "description": "用户的健身知识问题",
             "required": true
           }
         ],
         "return_type": "str",
-        "return_description": "问题的回答",
+        "return_description": "健身知识解答",
         "implementation_notes": [
-          "构建问题请求",
-          "调用智能体回答问题",
-          "直接返回智能体的回答"
+          "构建知识查询请求",
+          "要求回答基于科学证据",
+          "调用Agent提供专业健身知识"
         ]
       },
       {
-        "function_name": "main",
-        "purpose": "主函数，用于命令行测试",
-        "parameters": [],
-        "return_type": "None",
-        "return_description": "无返回值",
+        "function_name": "check_plan_safety",
+        "purpose": "检查健身计划是否安全合理",
+        "parameters": [
+          {
+            "name": "plan",
+            "type": "str",
+            "description": "健身计划内容",
+            "required": true
+          },
+          {
+            "name": "user_info",
+            "type": "Dict[str, Any]",
+            "description": "用户基本信息",
+            "required": true
+          }
+        ],
+        "return_type": "Dict[str, Any]",
+        "return_description": "安全检查结果",
         "implementation_notes": [
-          "解析命令行参数",
-          "根据运行模式执行不同功能",
-          "支持三种模式：workout(健身计划)、diet(饮食计划)、question(回答问题)"
+          "结合用户信息和计划内容构建安全检查请求",
+          "指定多个安全评估维度",
+          "调用Agent进行全面安全评估"
         ]
       }
     ],
     "tool_integration": {
       "custom_tools": [
-        "fitness_calculator.py (提供各种健身相关计算)",
-        "user_profile_manager.py (管理用户资料和健身数据)",
-        "fitness_time_tracker.py (管理锻炼计划和进度跟踪)"
+        "user_profile_analyzer",
+        "workout_plan_generator",
+        "nutrition_plan_generator",
+        "progress_tracker",
+        "fitness_knowledge_base",
+        "safety_checker"
       ],
       "system_tools": [
-        "strands_tools/current_time (获取当前时间)",
-        "strands_tools/calculator (进行基本计算)"
+        "strands_tools/current_time",
+        "strands_tools/calculator"
       ],
       "strands_tools": [
-        "StrandsTelemetry (遥测功能)"
+        "StrandsTelemetry"
       ],
       "integration_notes": [
-        "使用JSON解析函数处理工具返回的数据",
-        "在健身计划和饮食计划生成中使用工具提供的数据",
-        "提供命令行界面用于测试不同功能"
+        "通过提示词模板中的tools_dependencies配置集成系统工具",
+        "自定义工具功能通过专门的函数实现，而非直接工具调用",
+        "使用logging模块记录工具使用情况",
+        "配置遥测系统监控工具性能"
       ]
     },
     "configuration": {
       "environment_variables": [
-        "BYPASS_TOOL_CONSENT=true (绕过工具同意提示)",
-        "OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 (遥测端点)"
+        "BYPASS_TOOL_CONSENT",
+        "OTEL_EXPORTER_OTLP_ENDPOINT"
       ],
       "model_configuration": {
-        "model_name": "Claude 3.5 Sonnet",
+        "model_name": "Anthropic Claude 3.5 Sonnet",
         "max_tokens": 60000,
         "temperature": 0.3,
         "top_p": 0.8
       },
       "streaming_config": {
         "enabled": true,
-        "chunk_size": 1024
+        "chunk_size": null
       }
     },
     "error_handling": {
       "exception_types": [
-        "json.JSONDecodeError (JSON解析错误)",
-        "ValueError (值错误)",
-        "Exception (通用异常)"
+        "一般异常(Exception)",
+        "API调用错误",
+        "参数验证错误",
+        "安全风险异常"
       ],
       "error_responses": [
-        "JSON解析错误时返回错误状态和消息",
-        "命令行参数错误时显示帮助信息"
+        "友好的错误提示信息",
+        "建议用户修改请求的提示",
+        "技术错误的简化描述"
       ],
       "recovery_strategies": [
-        "在JSON解析失败时返回默认错误对象",
-        "使用try-except块捕获和处理异常"
+        "记录详细错误日志",
+        "返回用户友好的错误信息",
+        "提供备选解决方案"
       ]
     },
     "testing": {
       "test_cases": [
-        "健身计划生成测试",
-        "饮食计划生成测试",
-        "健身问题回答测试"
+        "一般健身咨询处理",
+        "锻炼计划生成",
+        "饮食建议生成",
+        "进度跟踪方法提供",
+        "健身知识问答",
+        "计划安全性检查"
       ],
       "test_scenarios": [
-        "通过命令行参数选择不同的功能模式",
-        "测试不同类型的健身目标和用户偏好"
+        "减脂目标用户咨询",
+        "增肌目标用户咨询",
+        "初学者健身指导",
+        "高级健身爱好者计划调整",
+        "特殊健康状况用户咨询"
       ],
       "validation_criteria": [
-        "生成的健身计划是否符合用户目标和限制",
-        "生成的饮食计划是否符合用户的营养需求",
-        "问题回答是否准确、专业且安全"
+        "回复的专业性和准确性",
+        "建议的个性化程度",
+        "安全考虑的全面性",
+        "回复的结构清晰度",
+        "错误处理的有效性"
       ]
     },
     "deployment": {
       "deployment_requirements": [
         "Python 3.13+",
         "Strands SDK",
-        "nexus_utils",
-        "访问权限：健身计算工具、用户资料管理工具、健身时间管理工具"
+        "AWS Bedrock访问权限",
+        "适当的内存资源(至少4GB)"
       ],
       "runtime_dependencies": [
-        "健身计算工具",
-        "用户资料管理工具",
-        "健身时间管理工具",
-        "Claude 3.5 Sonnet模型"
+        "nexus_utils",
+        "strands",
+        "logging",
+        "argparse",
+        "typing"
       ],
       "performance_considerations": [
-        "模型响应时间可能影响用户体验",
-        "处理大量用户数据时的内存使用",
-        "工具调用的延迟"
+        "大型健身计划生成可能需要较长处理时间",
+        "并发请求处理能力取决于底层模型服务",
+        "考虑实现结果缓存以提高性能"
       ]
     },
-    "development_notes": "在开发健身顾问智能体的过程中，我采用了基于内容生成器模板的实现方式，并集成了三个专门的工具模块来增强其功能。智能体的核心设计原则是提供个性化、科学、安全的健身建议，同时保持专业性和易用性。主要功能包括生成健身计划、饮食计划和回答健身问题。为了确保数据处理的可靠性，我实现了一系列JSON解析函数。智能体的命令行界面支持三种不同的运行模式，便于测试和演示。在错误处理方面，采用了try-except模式捕获可能的异常，并提供了友好的错误信息。整体代码结构清晰，函数职责明确，并使用了类型注解提高代码质量。"
+    "development_notes": "开发过程中特别注重了安全性和个性化，确保所有健身建议都基于用户的具体情况。采用模块化设计使不同功能（锻炼计划、饮食建议、进度跟踪等）可以独立工作，也可以组合使用。命令行接口设计支持不同咨询模式，便于测试和演示。错误处理机制确保即使在异常情况下也能提供友好响应。未来可考虑添加更多专业领域的功能，如运动康复、特殊人群训练等。"
   }
 }
