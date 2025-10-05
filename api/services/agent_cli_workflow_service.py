@@ -123,6 +123,8 @@ class AgentCLIBuildService:
             "Too many requests",
             "TooManyRequests",
             "Rate exceeded",
+            "Response ended prematurely",
+            "ProtocolError",
         )
 
         for attempt, delay in enumerate(delays, start=1):
