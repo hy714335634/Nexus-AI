@@ -7,13 +7,97 @@ import boto3
 import importlib
 import json
 import time
+import types
 from typing import Dict, Any, Optional, Type, Union, List
+from datetime import datetime
+from pathlib import Path
 from nexus_utils.config_loader import get_config
 from strands.models import BedrockModel
 from botocore.config import Config as BotocoreConfig
 from nexus_utils import prompts_manager
 from strands import Agent, tool
 os.environ["BYPASS_TOOL_CONSENT"] = "true"
+
+STAGE_LOG_DIR = Path.cwd() / "logs" / "stages"
+
+
+def _build_stage_log_path(agent_label: str) -> Path:
+    """Generate per-agent stage log path."""
+
+    safe_label = agent_label.replace("/", "__")
+    return STAGE_LOG_DIR / f"{safe_label}.txt"
+
+
+def _append_stage_log(agent_label: str, payload: Any) -> None:
+    """Append agent invocation payload to the stage log file."""
+
+    try:
+        path = _build_stage_log_path(agent_label)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("a", encoding="utf-8") as fp:
+            timestamp = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+            fp.write(f"===== {timestamp} :: {agent_label} =====\n")
+            if payload is None:
+                fp.write("<empty>\n\n")
+            elif isinstance(payload, str):
+                fp.write(payload)
+                fp.write("\n\n")
+            else:
+                try:
+                    fp.write(json.dumps(payload, ensure_ascii=False, indent=2))
+                    fp.write("\n\n")
+                except Exception:
+                    fp.write(str(payload))
+                    fp.write("\n\n")
+    except Exception:
+        # Logging should never break the agent pipeline
+        pass
+
+
+def _wrap_agent_call_for_stage_logging(agent: Agent, agent_label: str) -> None:
+    """Wrap an Agent's __call__ to capture invocation input for debugging."""
+
+    if getattr(agent, "_stage_logging_wrapped", False):
+        return
+
+    original_call = agent.__call__
+
+    def logged_call(*args, **kwargs):
+        payload = None
+        if args:
+            payload = args[0]
+        elif kwargs:
+            payload = kwargs
+        _append_stage_log(agent_label, payload)
+        return original_call(*args, **kwargs)
+
+    agent.__call__ = logged_call  # type: ignore[assignment]
+    setattr(agent, "_stage_logging_wrapped", True)
+
+
+def _wrap_model_stream_for_stage_logging(model: BedrockModel, agent_label: str) -> None:
+    """Wrap BedrockModel.stream to log the outgoing prompt payloads."""
+
+    if getattr(model, "_stage_logging_wrapped", False):
+        return
+
+    original_stream = model.stream
+
+    async def logging_stream(self, messages, tool_specs=None, system_prompt=None, **kwargs):  # type: ignore[override]
+        try:
+            payload = {
+                "system_prompt": system_prompt,
+                "messages": messages,
+            }
+            _append_stage_log(agent_label, payload)
+        except Exception:
+            pass
+
+        async for event in original_stream(messages, tool_specs=tool_specs, system_prompt=system_prompt, **kwargs):
+            yield event
+
+    model.stream = types.MethodType(logging_stream, model)
+    setattr(model, "_stage_logging_wrapped", True)
 
 
 config = get_config()
@@ -502,6 +586,8 @@ def create_agent_from_prompt_template(agent_name: str, env="production", version
                 boto_client_config=boto_config
             )
         
+        _wrap_model_stream_for_stage_logging(model, latest_version.agent_name)
+
         # 创建 Agent，合并额外参数
         agent_kwargs = {
             'name': latest_version.agent_name,
@@ -517,11 +603,11 @@ def create_agent_from_prompt_template(agent_name: str, env="production", version
         if enable_logging:
             # 从agent_name中提取实际的Agent名称
             actual_agent_name = agent_name.split('/')[-1] if '/' in agent_name else agent_name
-            
+
             # 创建Agent日志Hook
             from nexus_utils.strands_agent_logging_hook import create_agent_logging_hook
             logging_hook = create_agent_logging_hook(actual_agent_name)
-            
+
             # 将Hook添加到Agent的hooks参数中
             if 'hooks' not in agent_kwargs:
                 agent_kwargs['hooks'] = []
@@ -532,6 +618,7 @@ def create_agent_from_prompt_template(agent_name: str, env="production", version
 
         # 创建Agent
         agent = Agent(**agent_kwargs)
+        _wrap_agent_call_for_stage_logging(agent, latest_version.agent_name)
         if state:
             for key, value in state.items():
                 agent.state.set(key, value)
