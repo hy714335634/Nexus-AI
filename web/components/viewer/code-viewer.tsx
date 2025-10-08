@@ -1,8 +1,7 @@
 'use client';
 
 import { useCallback, useState } from 'react';
-import Highlight, { defaultProps } from 'prism-react-renderer';
-import nightOwl from 'prism-react-renderer/themes/nightOwl';
+import { Highlight, defaultProps, themes } from 'prism-react-renderer';
 
 interface CodeViewerProps {
   readonly content: string;
@@ -108,7 +107,7 @@ export function CodeViewer({
       </div>
 
       <div style={{ maxHeight: '420px', overflow: 'auto' }}>
-        <Highlight {...defaultProps} theme={nightOwl} code={content} language={language as any}>
+        <Highlight {...defaultProps} theme={themes.nightOwl} code={content} language={language as any}>
           {({ className, style, tokens, getLineProps, getTokenProps }) => (
             <pre className={className} style={{ ...style, margin: 0, padding: '16px' }}>
               {tokens.map((line, i) => (

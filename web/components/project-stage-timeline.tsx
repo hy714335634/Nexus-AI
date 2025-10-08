@@ -1,4 +1,4 @@
-import { StatusBadge } from '@/components/status-badge';
+import { StatusBadge } from './status-badge';
 import type { StageData } from '@/types/api';
 import { formatDateTime, formatDuration, formatRelativeTime } from '@/lib/formatters';
 

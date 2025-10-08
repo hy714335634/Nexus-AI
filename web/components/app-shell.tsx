@@ -27,8 +27,7 @@ const NAV_SECTIONS: NavSection[] = [
     title: '核心模块',
     items: [
       { label: '首页概览', href: '/', icon: '🏠', status: 'online' },
-      { label: '构建进度', href: '/build', icon: '🔨', badge: '3', status: 'building' },
-      { label: '构建模块', href: '/build/modules', icon: '🧩', status: 'online' },
+      { label: '构建模块', href: '/build/modules', icon: '🔨', badge: '3', status: 'building' },
       { label: '管理模块', href: '/management', icon: '⚙️', status: 'online' },
       { label: '迭代模块', href: '/iteration', icon: '🔄', badge: '1', status: 'online' },
       { label: '问题排查', href: '/troubleshoot', icon: '🐛', status: 'online' },

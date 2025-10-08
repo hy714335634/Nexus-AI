@@ -1,4 +1,4 @@
-import { StatusBadge } from '@/components/status-badge';
+import { StatusBadge } from './status-badge';
 import type { ProjectDetail } from '@/types/projects';
 import { formatDateTime, formatRelativeTime } from '@/lib/formatters';
 

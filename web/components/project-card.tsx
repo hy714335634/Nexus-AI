@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { StatusBadge } from '@components/status-badge';
+import { StatusBadge } from './status-badge';
 import type { ProjectSummary } from '@/types/projects';
 
 interface ProjectCardProps {

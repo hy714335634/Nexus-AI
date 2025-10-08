@@ -2,8 +2,8 @@
 
 import { useQuery, UseQueryOptions } from '@tanstack/react-query';
 import { useEffect, useRef } from 'react';
-import { fetchProjectSummaries, fetchProjectDetail } from '@/lib/projects';
-import type { ProjectDetail, ProjectSummary } from '@/types/projects';
+import { fetchProjectSummaries, fetchProjectDetail, fetchBuildDashboard } from '@/lib/projects';
+import type { ProjectDetail, ProjectSummary, BuildDashboard } from '@/types/projects';
 
 export function useProjectSummaries(options?: UseQueryOptions<ProjectSummary[]>) {
   return useQuery<ProjectSummary[]>({
@@ -60,4 +60,41 @@ export function useProjectDetail(projectId: string, options?: UseQueryOptions<Pr
   }, [query.data]);
 
   return query;
+}
+
+export function useBuildDashboard(
+  projectId: string,
+  options?: UseQueryOptions<BuildDashboard | undefined>,
+) {
+  return useQuery<BuildDashboard | undefined>({
+    queryKey: ['projects', 'build-dashboard', projectId],
+    queryFn: () => fetchBuildDashboard(projectId),
+    enabled: Boolean(projectId),
+    staleTime: 5_000,
+    refetchOnReconnect: true,
+    refetchOnWindowFocus: false,
+    retry: 5,
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      if (!data) {
+        return false;
+      }
+
+      const isBuilding = data.status === 'building' || data.status === 'pending';
+      const hasRunningStage = data.stages.some((stage) => stage.status === 'running');
+      const hasRecentCompletion =
+        data.latestTask?.status === 'completed' && (data.progressPercentage ?? 0) >= 100;
+
+      if (!isBuilding && !hasRunningStage) {
+        return false;
+      }
+
+      if (hasRecentCompletion) {
+        return false;
+      }
+
+      return 5_000;
+    },
+    ...options,
+  });
 }

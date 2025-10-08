@@ -1,0 +1,30 @@
+./nexus_utils
+strands-agents
+strands-agents-tools
+# Fitness Advisor Agent Dependencies
+# Generated on 2025-10-08
+# Core dependencies
+pydantic>=2.0.0
+python-dotenv>=1.0.0
+# NLP and text processing
+nltk>=3.8.0
+spacy>=3.7.0
+regex>=2023.8.8
+# Data analysis and computation
+pandas>=2.0.0
+numpy>=1.24.0
+scipy>=1.11.0
+matplotlib>=3.7.0
+# Web and API integration
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+scholarly>=1.7.0
+# Data validation and conversion
+jsonschema>=4.19.0
+pyyaml>=6.0.0
+# Testing
+pytest>=7.4.0
+pytest-cov>=4.1.0
+# Documentation
+mkdocs>=1.5.0
+mkdocs-material>=9.2.0

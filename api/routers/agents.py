@@ -17,6 +17,11 @@ from api.models.schemas import (
     AgentDetailsResponse,
     BuildControlRequest,
     APIResponse,
+    BuildDashboardResponse,
+    ProjectListResponse,
+    ProjectListData,
+    ProjectListItem,
+    ProjectStatus,
 )
 from api.core.exceptions import ValidationError, ResourceNotFoundError
 from celery.result import AsyncResult
@@ -25,6 +30,7 @@ from api.core.celery_app import celery_app
 from api.database.dynamodb_client import DynamoDBClient
 from api.tasks.agent_build_tasks import build_agent
 from api.models.schemas import TaskStatusResponse, TaskStatusData
+from api.services import BuildDashboardService
 from tools.system_tools.agent_build_workflow.stage_tracker import initialize_project_record
 
 logger = logging.getLogger(__name__)
@@ -42,11 +48,15 @@ async def create_agent(request: CreateAgentRequest):
         session_id = f"job_{uuid.uuid4().hex}"
         project_id = session_id
 
+        derived_agent_name = _derive_agent_name(request.agent_name, request.requirement, project_id)
+
         initialize_project_record(
             project_id,
             requirement=request.requirement,
             user_id=request.user_id,
             user_name=request.user_name,
+            project_name=derived_agent_name,
+            tags=request.tags,
         )
 
         task = build_agent.delay(
@@ -55,6 +65,7 @@ async def create_agent(request: CreateAgentRequest):
             session_id=session_id,
             user_id=request.user_id,
             user_name=request.user_name,
+            agent_name=derived_agent_name,
         )
 
         return CreateAgentResponse(
@@ -63,6 +74,7 @@ async def create_agent(request: CreateAgentRequest):
                 "task_id": task.id,
                 "session_id": session_id,
                 "project_id": project_id,
+                "agent_name": derived_agent_name,
                 "status": "queued",
                 "message": "代理构建任务已提交，正在排队执行",
             },
@@ -100,6 +112,21 @@ def _normalize(value):
     if isinstance(value, list):
         return [_normalize(v) for v in value]
     return value
+
+
+def _derive_agent_name(provided: Optional[str], requirement: str, project_id: str) -> Optional[str]:
+    if provided and provided.strip():
+        name = provided.strip()
+        if not name.startswith("job_"):
+            return name
+
+    candidate = requirement.strip().splitlines()[0].strip() if requirement else ""
+    if candidate and not candidate.startswith("job_"):
+        if len(candidate) > 80:
+            candidate = candidate[:77].rstrip() + "…"
+        return candidate
+
+    return f"构建任务 {project_id[-6:]}"
 
 
 @router.get("/agents/{task_id}/status", response_model=TaskStatusResponse)
@@ -246,10 +273,238 @@ async def get_build_stages(
             }
         )
 
+
+@router.get("/projects/{project_id}/build", response_model=BuildDashboardResponse)
+async def get_project_build_dashboard(
+    project_id: str = Path(..., description="项目ID"),
+):
+    """聚合项目构建进度、阶段与最新任务信息。"""
+    service = BuildDashboardService()
+    try:
+        dashboard = service.get_build_dashboard(project_id)
+        return BuildDashboardResponse(
+            success=True,
+            data=dashboard,
+            timestamp=datetime.now(timezone.utc),
+            request_id=str(uuid.uuid4()),
+        )
+    except ResourceNotFoundError:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "code": "PROJECT_NOT_FOUND",
+                "message": f"项目 {project_id} 不存在",
+                "details": "请检查项目ID是否正确",
+                "suggestion": "使用有效的项目ID或创建新项目",
+            },
+        )
+    except Exception as exc:
+        logger.error("Error building dashboard for project %s: %s", project_id, exc, exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "code": "BUILD_DASHBOARD_FAILED",
+                "message": "构建进度查询失败",
+                "details": str(exc),
+                "suggestion": "请稍后重试或联系技术支持",
+            },
+        )
+
+
+@router.get("/projects", response_model=ProjectListResponse)
+async def list_projects(
+    page: int = Query(1, ge=1, description="页码"),
+    limit: int = Query(20, ge=1, le=500, description="每页数量"),
+    status: Optional[str] = Query(None, description="状态过滤"),
+    user_id: Optional[str] = Query(None, description="用户过滤"),
+    search: Optional[str] = Query(None, description="搜索关键词"),
+):
+    """列表构建项目记录。"""
+
+    try:
+        db_client = DynamoDBClient()
+
+        filters: Dict[str, Any] = {}
+
+        if status:
+            try:
+                filters['status'] = ProjectStatus(status)
+            except ValueError:
+                return ProjectListResponse(
+                    success=True,
+                    data=ProjectListData(
+                        projects=[],
+                        pagination={
+                            "page": page,
+                            "limit": limit,
+                            "total": 0,
+                            "pages": 0,
+                            "has_next": False,
+                            "has_prev": page > 1,
+                        },
+                    ),
+                    timestamp=datetime.now(timezone.utc),
+                    request_id=str(uuid.uuid4()),
+                )
+
+        if user_id:
+            filters['user_id'] = user_id
+
+        if search:
+            filters['search'] = search
+
+        projects_batch: List[Dict[str, Any]] = []
+        has_next = False
+        last_key: Optional[str] = None
+
+        for current_page in range(1, page + 1):
+            result = db_client.list_projects(limit=limit, last_key=last_key, filters=filters)
+            batch = result.get('items', [])
+            last_key = result.get('last_key')
+
+            if current_page == page:
+                projects_batch = batch
+                has_next = bool(last_key)
+
+            if not last_key:
+                if current_page < page:
+                    projects_batch = []
+                break
+
+        approx_total = (page - 1) * limit + len(projects_batch)
+        if has_next:
+            approx_total += 1
+        total_pages = max(page, (approx_total + limit - 1) // limit) if approx_total else page
+
+        def _parse_datetime(value: Any) -> Optional[datetime]:
+            if not value:
+                return None
+            if isinstance(value, datetime):
+                return value
+            if isinstance(value, (int, float)):
+                try:
+                    return datetime.fromtimestamp(value, tz=timezone.utc)
+                except (OverflowError, ValueError):
+                    return None
+            if isinstance(value, str):
+                try:
+                    normalized = value.replace('Z', '+00:00') if value.endswith('Z') else value
+                    return datetime.fromisoformat(normalized)
+                except ValueError:
+                    return None
+            return None
+
+        def _as_float(value: Any) -> float:
+            if value is None:
+                return 0.0
+            if isinstance(value, Decimal):
+                return float(value)
+            if isinstance(value, (int, float)):
+                return float(value)
+            try:
+                return float(str(value))
+            except (TypeError, ValueError):
+                return 0.0
+
+        def _as_int(value: Any) -> int:
+            if value is None:
+                return 0
+            if isinstance(value, Decimal):
+                return int(value)
+            if isinstance(value, bool):
+                return int(value)
+            if isinstance(value, (int, float)):
+                return int(value)
+            try:
+                return int(float(str(value)))
+            except (TypeError, ValueError):
+                return 0
+
+        def _normalize_tags(value: Any) -> List[str]:
+            if value is None:
+                return []
+            if isinstance(value, list):
+                return [str(item) for item in value]
+            return [str(value)]
+
+        project_items: List[ProjectListItem] = []
+        for project in projects_batch:
+            project_id = str(project.get('project_id', ''))
+            if not project_id:
+                continue
+
+            status_value = project.get('status') or ProjectStatus.BUILDING.value
+            try:
+                project_status = ProjectStatus(status_value)
+            except ValueError:
+                project_status = ProjectStatus.BUILDING
+
+            progress = _as_float(project.get('progress_percentage'))
+            progress = max(0.0, min(100.0, progress))
+
+            current_stage = project.get('current_stage')
+            if not current_stage:
+                snapshot = project.get('stages_snapshot') or {}
+                stages_info = snapshot.get('stages') or []
+                running_stage = next((stage for stage in stages_info if stage.get('status') == 'running'), None)
+                pending_stage = next((stage for stage in stages_info if stage.get('status') == 'pending'), None)
+                if running_stage:
+                    current_stage = running_stage.get('name')
+                elif pending_stage:
+                    current_stage = pending_stage.get('name')
+
+            project_items.append(
+                ProjectListItem(
+                    project_id=project_id,
+                    project_name=project.get('project_name'),
+                    status=project_status,
+                    progress_percentage=progress,
+                    current_stage=current_stage,
+                    updated_at=_parse_datetime(project.get('updated_at')),
+                    created_at=_parse_datetime(project.get('created_at')),
+                    user_id=project.get('user_id'),
+                    user_name=project.get('user_name'),
+                    agent_count=_as_int(project.get('agent_count')),
+                    tags=_normalize_tags(project.get('tags')),
+                )
+            )
+
+        list_data = ProjectListData(
+            projects=project_items,
+            pagination={
+                "page": page,
+                "limit": limit,
+                "total": approx_total,
+                "pages": total_pages,
+                "has_next": has_next,
+                "has_prev": page > 1,
+            },
+        )
+
+        return ProjectListResponse(
+            success=True,
+            data=list_data,
+            timestamp=datetime.now(timezone.utc),
+            request_id=str(uuid.uuid4()),
+        )
+
+    except Exception as exc:
+        logger.error("Error listing projects: %s", exc, exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "code": "PROJECT_LIST_FAILED",
+                "message": "项目列表查询失败",
+                "details": str(exc),
+                "suggestion": "请稍后重试或联系技术支持",
+            },
+        )
+
+
 @router.get("/agents", response_model=AgentListResponse)
 async def list_agents(
     page: int = Query(1, ge=1, description="页码"),
-    limit: int = Query(20, ge=1, le=100, description="每页数量"),
+    limit: int = Query(20, ge=1, le=500, description="每页数量"),
     status: Optional[str] = Query(None, description="状态过滤"),
     category: Optional[str] = Query(None, description="类别过滤"),
     user_id: Optional[str] = Query(None, description="用户过滤"),
@@ -263,57 +518,103 @@ async def list_agents(
     try:
         # Import dependencies
         from api.models.schemas import AgentListData, AgentSummary, AgentStatus
-        
+
         # Initialize database client
         db_client = DynamoDBClient()
-        
-        # Calculate offset for pagination
-        offset = (page - 1) * limit
-        
-        # Get agents based on filters
-        agents_data = []
+
+        filters: Dict[str, Any] = {}
+
+        if status:
+            try:
+                filters['status'] = AgentStatus(status)
+            except ValueError:
+                return AgentListResponse(
+                    success=True,
+                    data=AgentListData(
+                        agents=[],
+                        pagination={
+                            "page": page,
+                            "limit": limit,
+                            "total": 0,
+                            "pages": 0,
+                            "has_next": False,
+                            "has_prev": page > 1,
+                        },
+                    ),
+                    timestamp=datetime.now(timezone.utc),
+                    request_id=str(uuid.uuid4()),
+                )
+
+        if category:
+            filters['category'] = category
+
+        if search:
+            filters['search'] = search
+
+        agents_data: List[Dict[str, Any]] = []
+        paginated_agents: List[Dict[str, Any]] = []
         total_count = 0
-        
+        has_next = False
+
         if user_id:
-            # Filter by user - get projects first, then agents
             projects_result = db_client.list_projects_by_user(user_id, limit=1000)
             project_ids = [p['project_id'] for p in projects_result.get('items', [])]
-            
-            # Get agents for these projects
+
             for project_id in project_ids:
                 try:
                     agents = db_client.list_agents_by_project(project_id)
                     agents_data.extend(agents)
                 except Exception:
-                    continue  # Skip if project has no agents
+                    continue
+
+            status_filter = filters.get('status')
+            if status_filter:
+                target_status = status_filter.value if isinstance(status_filter, AgentStatus) else status_filter
+                agents_data = [a for a in agents_data if a.get('status') == target_status]
+
+            category_filter = filters.get('category')
+            if category_filter:
+                agents_data = [a for a in agents_data if a.get('category') == category_filter]
+
+            search_filter = str(filters.get('search', '')).lower()
+            if search_filter:
+                agents_data = [
+                    a for a in agents_data
+                    if search_filter in str(a.get('agent_name', '')).lower()
+                    or search_filter in str(a.get('description', '')).lower()
+                    or search_filter in str(a.get('project_id', '')).lower()
+                ]
+
+            total_count = len(agents_data)
+            start = max(0, (page - 1) * limit)
+            paginated_agents = agents_data[start:start + limit]
+            has_next = total_count > start + len(paginated_agents)
         else:
-            # Get all agents (this would need a scan operation in real implementation)
-            # For now, we'll return empty results as this requires more complex querying
-            pass
-        
-        # Apply additional filters
-        if status:
-            try:
-                status_enum = AgentStatus(status)
-                agents_data = [a for a in agents_data if a.get('status') == status_enum.value]
-            except ValueError:
-                # Invalid status, return empty results
-                agents_data = []
-        
-        if category:
-            agents_data = [a for a in agents_data if a.get('category') == category]
-        
-        if search:
-            search_lower = search.lower()
-            agents_data = [
-                a for a in agents_data 
-                if (search_lower in a.get('agent_name', '').lower() or 
-                    search_lower in a.get('description', '').lower())
-            ]
-        
-        # Apply pagination
-        total_count = len(agents_data)
-        paginated_agents = agents_data[offset:offset + limit]
+            last_key: Optional[str] = None
+            fetched_items: List[Dict[str, Any]] = []
+
+            for current_page in range(1, page + 1):
+                scan_result = db_client.list_agents(
+                    limit=limit,
+                    last_key=last_key,
+                    filters=filters,
+                )
+                batch = scan_result.get('items', [])
+                last_key = scan_result.get('last_key')
+
+                if current_page == page:
+                    fetched_items = batch
+                    has_next = bool(last_key)
+
+                if not last_key:
+                    if current_page < page:
+                        fetched_items = []
+                    break
+
+            paginated_agents = fetched_items
+            total_count = (page - 1) * limit + len(paginated_agents)
+            if has_next:
+                total_count += 1
         
         # Convert to AgentSummary objects
         agent_summaries = []
@@ -326,14 +627,20 @@ async def list_agents(
                         created_at = datetime.fromisoformat(agent_data['created_at'].replace('Z', '+00:00'))
                     except (ValueError, AttributeError):
                         pass
-                
+
                 # Create agent summary
+                raw_status = agent_data.get('status', 'offline')
+                try:
+                    agent_status = AgentStatus(raw_status)
+                except ValueError:
+                    agent_status = AgentStatus.BUILDING if raw_status == 'building' else AgentStatus.OFFLINE
+
                 agent_summary = AgentSummary(
                     agent_id=agent_data.get('agent_id', ''),
                     project_id=agent_data.get('project_id', ''),
                     agent_name=agent_data.get('agent_name', ''),
                     category=agent_data.get('category'),
-                    status=AgentStatus(agent_data.get('status', 'offline')),
+                    status=agent_status,
                     version=agent_data.get('version', 'v1.0.0'),
                     created_at=created_at,
                     call_count=agent_data.get('call_count', 0),
@@ -345,8 +652,8 @@ async def list_agents(
                 logger.warning(f"Invalid agent data: {str(e)}")
                 continue
         
-        # Calculate pagination info
-        total_pages = (total_count + limit - 1) // limit
+        approx_total = max(total_count, (page - 1) * limit + len(paginated_agents))
+        total_pages = max(page, (approx_total + limit - 1) // limit) if approx_total else page
         
         # Create response data
         list_data = AgentListData(
@@ -356,7 +663,7 @@ async def list_agents(
                 "limit": limit,
                 "total": total_count,
                 "pages": total_pages,
-                "has_next": page < total_pages,
+                "has_next": has_next,
                 "has_prev": page > 1
             }
         )
