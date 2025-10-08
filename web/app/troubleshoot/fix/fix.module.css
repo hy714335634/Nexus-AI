@@ -1,0 +1,43 @@
+.page {
+  display: grid;
+  gap: 24px;
+  color: #333;
+}
+
+.card {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+  display: grid;
+  gap: 16px;
+}
+
+.title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--accent, #667eea);
+}
+
+.taskList {
+  display: grid;
+  gap: 12px;
+}
+
+.taskItem {
+  background: rgba(102, 126, 234, 0.12);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+.timeline {
+  display: grid;
+  gap: 12px;
+}
+
+.timelineItem {
+  background: rgba(76, 175, 80, 0.12);
+  border-radius: 12px;
+  padding: 12px 14px;
+  color: #2e7d32;
+}
