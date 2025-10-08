@@ -1,0 +1,83 @@
+/*!*************************************************************************************************************************************************************************************************************************************************************************************************!*\
+  !*** css ./node_modules/next/dist/build/webpack/loaders/css-loader/src/index.js??ruleSet[1].rules[11].oneOf[7].use[2]!./node_modules/next/dist/build/webpack/loaders/postcss-loader/src/index.js??ruleSet[1].rules[11].oneOf[7].use[3]!./app/troubleshoot/reproduction/reproduction.module.css ***!
+  \*************************************************************************************************************************************************************************************************************************************************************************************************/
+.reproduction_page__tGGXV {
+  display: grid;
+  grid-gap: 24px;
+  gap: 24px;
+  color: #333;
+}
+
+.reproduction_card__IjukX {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+  display: grid;
+  grid-gap: 16px;
+  gap: 16px;
+}
+
+.reproduction_title__87vqp {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--accent, #667eea);
+}
+
+.reproduction_formGrid__OY3ZL {
+  display: grid;
+  grid-gap: 16px;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.reproduction_input__yaYIN,
+.reproduction_select__YUr4d,
+.reproduction_textarea__ZSS6y {
+  border: 1px solid #d7dbff;
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: #f8f9ff;
+  font-size: 0.95rem;
+  color: #333;
+}
+
+.reproduction_timeline__JD3ig {
+  display: grid;
+  grid-gap: 12px;
+  gap: 12px;
+}
+
+.reproduction_timelineItem__K1r_y {
+  background: rgba(102, 126, 234, 0.12);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+.reproduction_actionRow__r3DZj {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.reproduction_primaryButton__B6B5_,
+.reproduction_secondaryButton___0T_c {
+  border: none;
+  border-radius: 24px;
+  padding: 10px 18px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.reproduction_primaryButton__B6B5_ {
+  background: linear-gradient(45deg, var(--accent, #667eea), var(--accent-dark, #764ba2));
+  color: #fff;
+}
+
+.reproduction_secondaryButton___0T_c {
+  background: rgba(102, 126, 234, 0.12);
+  color: var(--accent, #667eea);
+}
+

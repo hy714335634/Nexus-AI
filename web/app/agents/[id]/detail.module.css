@@ -1,0 +1,166 @@
+.page {
+  display: grid;
+  gap: 24px;
+  color: #333;
+}
+
+.header {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.titleGroup {
+  display: grid;
+  gap: 8px;
+}
+
+.title {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--accent, #667eea);
+}
+
+.subtitle {
+  font-size: 0.95rem;
+  color: #666;
+}
+
+.headerActions {
+  display: flex;
+  gap: 12px;
+}
+
+.button {
+  border: none;
+  border-radius: 24px;
+  padding: 10px 18px;
+  font-weight: 600;
+  background: rgba(102, 126, 234, 0.12);
+  color: var(--accent, #667eea);
+}
+
+.layout {
+  display: grid;
+  gap: 24px;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1.2fr);
+}
+
+.card {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.12);
+  display: grid;
+  gap: 16px;
+}
+
+.cardTitle {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--accent, #667eea);
+}
+
+.detailGrid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.detailItem {
+  background: rgba(102, 126, 234, 0.08);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: grid;
+  gap: 6px;
+}
+
+.detailLabel {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.detailValue {
+  font-weight: 600;
+  color: #333;
+}
+
+.sectionList {
+  display: grid;
+  gap: 12px;
+}
+
+.sectionBlock {
+  background: #f7f8ff;
+  border-radius: 12px;
+  padding: 16px 18px;
+  line-height: 1.6;
+}
+
+.versionTabs {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.versionButton {
+  border: none;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: rgba(102, 126, 234, 0.12);
+  color: var(--accent, #667eea);
+  font-weight: 600;
+}
+
+.versionButtonActive {
+  background: linear-gradient(45deg, var(--accent, #667eea), var(--accent-dark, #764ba2));
+  color: #fff;
+}
+
+.metricGrid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.metricCard {
+  background: rgba(102, 126, 234, 0.1);
+  border-radius: 12px;
+  padding: 12px 14px;
+  text-align: center;
+}
+
+.metricValue {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--accent, #667eea);
+}
+
+.timeline {
+  display: grid;
+  gap: 10px;
+}
+
+.timelineItem {
+  background: rgba(102, 126, 234, 0.1);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: grid;
+  gap: 4px;
+}
+
+.timelineTime {
+  font-size: 0.8rem;
+  color: #777;
+}
+
+@media (max-width: 1080px) {
+  .layout {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+}

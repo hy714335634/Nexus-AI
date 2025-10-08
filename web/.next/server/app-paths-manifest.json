@@ -1,0 +1,14 @@
+{
+  "/not-found": "app/not-found.js",
+  "/page": "app/page.js",
+  "/build/page": "app/build/page.js",
+  "/build/modules/page": "app/build/modules/page.js",
+  "/management/page": "app/management/page.js",
+  "/troubleshoot/page": "app/troubleshoot/page.js",
+  "/troubleshoot/analysis/page": "app/troubleshoot/analysis/page.js",
+  "/troubleshoot/reproduction/page": "app/troubleshoot/reproduction/page.js",
+  "/troubleshoot/code-review/page": "app/troubleshoot/code-review/page.js",
+  "/tools/page": "app/tools/page.js",
+  "/agents/dialog/page": "app/agents/dialog/page.js",
+  "/evolution/page": "app/evolution/page.js"
+}

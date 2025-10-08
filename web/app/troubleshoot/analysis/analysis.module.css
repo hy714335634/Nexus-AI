@@ -1,0 +1,49 @@
+.page {
+  display: grid;
+  gap: 24px;
+  color: #333;
+}
+
+.card {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+  display: grid;
+  gap: 16px;
+}
+
+.title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--accent, #667eea);
+}
+
+.logPanel {
+  background: #0f172a;
+  color: #cbd5f5;
+  border-radius: 12px;
+  padding: 16px;
+  font-family: SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+  font-size: 0.85rem;
+  min-height: 220px;
+}
+
+.metricGrid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.metricCard {
+  background: rgba(102, 126, 234, 0.12);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+.recommendCard {
+  background: rgba(76, 175, 80, 0.12);
+  border-radius: 14px;
+  padding: 14px 16px;
+  color: #2e7d32;
+}

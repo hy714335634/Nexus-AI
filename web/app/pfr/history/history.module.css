@@ -1,0 +1,59 @@
+.page {
+  display: grid;
+  gap: 24px;
+  color: #333;
+}
+
+.header {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
+}
+
+.title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--accent, #667eea);
+}
+
+.filters {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.input,
+.select {
+  border: 1px solid #d7dbff;
+  border-radius: 12px;
+  padding: 10px 14px;
+  background: #f8f9ff;
+  font-size: 0.95rem;
+  color: #333;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 20px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+}
+
+.table thead {
+  background: rgba(102, 126, 234, 0.12);
+}
+
+.table th,
+.table td {
+  padding: 14px;
+  text-align: left;
+  font-size: 0.92rem;
+  border-bottom: 1px solid rgba(215, 219, 255, 0.6);
+}
+
+.table tbody tr:hover {
+  background: rgba(102, 126, 234, 0.08);
+}

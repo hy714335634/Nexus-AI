@@ -1,0 +1,62 @@
+.page {
+  display: grid;
+  gap: 24px;
+  color: #333;
+}
+
+.header {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
+}
+
+.title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--accent, #667eea);
+}
+
+.timeline {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+  display: grid;
+  gap: 16px;
+}
+
+.timelineItem {
+  border-left: 4px solid var(--accent, #667eea);
+  padding: 12px 16px;
+  background: #f7f8ff;
+  border-radius: 12px;
+  display: grid;
+  gap: 6px;
+}
+
+.itemMeta {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.compareCard {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+  display: grid;
+  gap: 16px;
+}
+
+.diffGrid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.diffItem {
+  background: rgba(102, 126, 234, 0.12);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
