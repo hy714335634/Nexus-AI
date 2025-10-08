@@ -2,7 +2,7 @@
 Pydantic schemas for request/response models
 """
 from pydantic import BaseModel, Field, field_validator
-from typing import Optional, List, Dict, Any, Union
+from typing import Optional, List, Dict, Any, Union, Literal
 from datetime import datetime
 from enum import Enum
 from decimal import Decimal
@@ -81,6 +81,7 @@ class CreateAgentRequest(BaseModel):
     requirement: str = Field(..., max_length=5000, description="自然语言需求描述")
     user_id: str = Field(..., min_length=1, max_length=100, description="用户ID")
     user_name: Optional[str] = Field(None, max_length=100, description="用户名称")
+    agent_name: Optional[str] = Field(None, max_length=200, description="Agent 名称")
     priority: Optional[int] = Field(3, ge=1, le=5, description="优先级 (1-5)")
     tags: Optional[List[str]] = Field(default_factory=list, description="标签列表")
     
@@ -98,6 +99,14 @@ class CreateAgentRequest(BaseModel):
             raise ValueError('需求描述至少需要10个字符')
             
         return stripped
+    
+    @field_validator('agent_name')
+    @classmethod
+    def validate_agent_name(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        cleaned = value.strip()
+        return cleaned or None
 
 class BuildControlRequest(BaseModel):
     action: str = Field(..., pattern="^(pause|resume|stop|restart)$", description="控制操作")
@@ -176,6 +185,28 @@ class AgentListData(BaseModel):
 class AgentListResponse(APIResponse):
     data: AgentListData
 
+class ProjectListItem(BaseModel):
+    project_id: str
+    project_name: Optional[str] = None
+    status: ProjectStatus
+    progress_percentage: float = Field(0.0, ge=0.0, le=100.0)
+    current_stage: Optional[str] = None
+    updated_at: Optional[datetime] = None
+    created_at: Optional[datetime] = None
+    user_id: Optional[str] = None
+    user_name: Optional[str] = None
+    agent_count: int = 0
+    tags: List[str] = Field(default_factory=list)
+
+
+class ProjectListData(BaseModel):
+    projects: List[ProjectListItem]
+    pagination: Dict[str, Any]
+
+
+class ProjectListResponse(APIResponse):
+    data: ProjectListData
+
 class AgentDetails(BaseModel):
     agent_id: str
     project_id: str
@@ -197,6 +228,89 @@ class AgentDetails(BaseModel):
 
 class AgentDetailsResponse(APIResponse):
     data: AgentDetails
+
+
+class BuildDashboardStage(BaseModel):
+    name: str
+    display_name: Optional[str] = None
+    order: int
+    status: StageStatus
+    started_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
+    duration_seconds: Optional[float] = None
+    error: Optional[str] = None
+    input_tokens: Optional[int] = None
+    output_tokens: Optional[int] = None
+    tool_calls: Optional[int] = None
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
+class BuildDashboardTaskSnapshot(BaseModel):
+    task_id: str
+    status: str
+    started_at: Optional[datetime] = None
+    finished_at: Optional[datetime] = None
+    error: Optional[str] = None
+    metadata: Optional[Dict[str, Any]] = None
+
+
+class BuildDashboardMetrics(BaseModel):
+    total_duration_seconds: Optional[float] = None
+    input_tokens: Optional[int] = None
+    output_tokens: Optional[int] = None
+    tool_calls: Optional[int] = None
+    cost_estimate: Optional[Dict[str, Any]] = None
+    total_tools: Optional[int] = None
+
+
+class BuildDashboardResource(BaseModel):
+    id: str
+    label: str
+    owner: Optional[str] = None
+    status: Optional[str] = None
+
+
+class BuildDashboardAlert(BaseModel):
+    id: str
+    level: Literal["info", "warning", "error"]
+    message: str
+    created_at: datetime
+
+
+class BuildDashboardGraphNode(BaseModel):
+    id: str
+    label: str
+    type: Optional[str] = None
+    status: Optional[StageStatus] = None
+
+
+class BuildDashboardGraphEdge(BaseModel):
+    source: str
+    target: str
+    kind: Optional[str] = None
+
+
+class BuildDashboardData(BaseModel):
+    project_id: str
+    project_name: Optional[str] = None
+    status: ProjectStatus
+    progress_percentage: float = 0.0
+    requirement: Optional[str] = None
+    stages: List[BuildDashboardStage] = Field(default_factory=list)
+    total_stages: int = 0
+    completed_stages: int = 0
+    updated_at: Optional[datetime] = None
+    latest_task: Optional[BuildDashboardTaskSnapshot] = None
+    metrics: Optional[BuildDashboardMetrics] = None
+    resources: List[BuildDashboardResource] = Field(default_factory=list)
+    alerts: List[BuildDashboardAlert] = Field(default_factory=list)
+    workflow_graph_nodes: List[BuildDashboardGraphNode] = Field(default_factory=list)
+    workflow_graph_edges: List[BuildDashboardGraphEdge] = Field(default_factory=list)
+    error_info: Optional[Dict[str, Any]] = None
+
+
+class BuildDashboardResponse(APIResponse):
+    data: BuildDashboardData
 
 class StatisticsOverview(BaseModel):
     total_agents: int = 0

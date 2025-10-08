@@ -89,7 +89,15 @@ class AgentCLIBuildService:
             "mentioned_project_name": self._json_safe(getattr(intent_result, "mentioned_project_name", None)),
             "project_exists": self._json_safe(getattr(intent_result, "project_exists", None)),
             "orchestrator_guidance": self._json_safe(getattr(intent_result, "orchestrator_guidance", None)),
+            "existing_project_info": self._json_safe(getattr(intent_result, "existing_project_info", None)),
+            "new_project_info": self._json_safe(getattr(intent_result, "new_project_info", None)),
         }
+
+        new_project_info = getattr(intent_result, "new_project_info", None)
+        if new_project_info is not None:
+            suggested_name = getattr(new_project_info, "suggested_project_name", None)
+            if suggested_name:
+                intent_payload["suggested_project_name"] = self._json_safe(suggested_name)
 
         workflow_payload = {
             "status": self._json_safe(getattr(workflow_result, "status", None)),

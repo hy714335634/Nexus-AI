@@ -1,0 +1,683 @@
+{
+  "tools_development": {
+    "development_overview": {
+      "project_name": "sleep_reminder",
+      "agent_name": "sleep_reminder_agent",
+      "version": "1.0",
+      "date": "2025-10-08",
+      "scope": "为智能睡眠提醒Agent开发核心工具和功能模块，包括用户管理、时间计算、提醒生成、数据分析、知识库和任务调度等关键组件",
+      "development_principles": [
+        "模块化设计：每个工具独立开发，接口清晰",
+        "可测试性：提供完整的单元测试和集成测试",
+        "性能优化：确保响应时间满足用户体验要求",
+        "错误处理：完善的异常处理和恢复机制",
+        "数据安全：本地存储，加密保护敏感信息",
+        "可扩展性：支持后续功能扩展和优化"
+      ]
+    },
+    "core_tools": [
+      {
+        "tool_name": "UserProfileManager",
+        "description": "用户档案管理工具，负责用户睡眠偏好的存储、查询和更新",
+        "functions": [
+          {
+            "function_name": "create_user_profile",
+            "description": "创建新用户档案",
+            "parameters": [
+              "user_id: str - 用户唯一标识",
+              "name: str - 用户姓名",
+              "age: int - 用户年龄（可选）"
+            ],
+            "returns": "bool - 创建成功返回True",
+            "implementation": "使用SQLite存储用户基本信息，生成唯一ID，初始化默认睡眠偏好"
+          },
+          {
+            "function_name": "update_sleep_preferences",
+            "description": "更新用户睡眠偏好设置",
+            "parameters": [
+              "user_id: str - 用户ID",
+              "sleep_duration: float - 理想睡眠时长（小时）",
+              "wake_time: str - 起床时间（HH:MM格式）",
+              "prep_time: int - 睡前准备时间（分钟）",
+              "reminder_style: str - 提醒风格（温和/活泼/专业/简洁）"
+            ],
+            "returns": "bool - 更新成功返回True",
+            "implementation": "验证输入参数，更新数据库记录，触发相关计算更新"
+          },
+          {
+            "function_name": "get_user_profile",
+            "description": "获取用户完整档案信息",
+            "parameters": [
+              "user_id: str - 用户ID"
+            ],
+            "returns": "dict - 用户档案信息字典",
+            "implementation": "从数据库查询用户信息和睡眠偏好，返回结构化数据"
+          },
+          {
+            "function_name": "validate_sleep_settings",
+            "description": "验证睡眠设置的合理性",
+            "parameters": [
+              "sleep_duration: float - 睡眠时长",
+              "wake_time: str - 起床时间",
+              "prep_time: int - 准备时间"
+            ],
+            "returns": "tuple - (是否有效: bool, 错误信息: str)",
+            "implementation": "检查睡眠时长范围（4-12小时），时间格式有效性，准备时间合理性"
+          }
+        ],
+        "data_models": [
+          {
+            "model_name": "User",
+            "fields": [
+              "user_id: VARCHAR(50) PRIMARY KEY",
+              "name: VARCHAR(100)",
+              "age: INTEGER",
+              "created_at: DATETIME",
+              "last_active: DATETIME"
+            ]
+          },
+          {
+            "model_name": "SleepProfile",
+            "fields": [
+              "user_id: VARCHAR(50) FOREIGN KEY",
+              "ideal_sleep_duration: REAL",
+              "wake_up_time: VARCHAR(5)",
+              "preparation_time: INTEGER",
+              "reminder_style: VARCHAR(20)",
+              "updated_at: DATETIME"
+            ]
+          }
+        ]
+      },
+      {
+        "tool_name": "SleepCalculator",
+        "description": "睡眠时间计算工具，提供最佳睡觉时间计算和睡眠周期分析",
+        "functions": [
+          {
+            "function_name": "calculate_bedtime",
+            "description": "计算最佳睡觉时间",
+            "parameters": [
+              "wake_time: str - 起床时间（HH:MM）",
+              "sleep_duration: float - 理想睡眠时长（小时）",
+              "prep_time: int - 睡前准备时间（分钟）",
+              "current_time: datetime - 当前时间（可选）"
+            ],
+            "returns": "dict - 包含建议睡觉时间、准备开始时间等信息",
+            "implementation": "从起床时间倒推计算，考虑睡眠周期（90分钟）优化，处理跨日情况"
+          },
+          {
+            "function_name": "optimize_sleep_cycles",
+            "description": "基于睡眠周期优化睡觉时间",
+            "parameters": [
+              "target_bedtime: datetime - 目标睡觉时间",
+              "wake_time: datetime - 起床时间"
+            ],
+            "returns": "datetime - 优化后的最佳睡觉时间",
+            "implementation": "计算完整睡眠周期数，调整时间以对齐90分钟周期边界"
+          },
+          {
+            "function_name": "calculate_sleep_debt",
+            "description": "计算睡眠债务",
+            "parameters": [
+              "user_id: str - 用户ID",
+              "days: int - 计算天数（默认7天）"
+            ],
+            "returns": "float - 累积睡眠债务（小时）",
+            "implementation": "统计实际睡眠时间与理想睡眠时间的差值，计算累积债务"
+          },
+          {
+            "function_name": "get_sleep_recommendation",
+            "description": "获取个性化睡眠建议",
+            "parameters": [
+              "user_profile: dict - 用户档案",
+              "sleep_history: list - 睡眠历史记录"
+            ],
+            "returns": "dict - 包含建议内容和理由",
+            "implementation": "分析用户习惯，结合睡眠科学知识，生成个性化建议"
+          }
+        ],
+        "algorithms": [
+          {
+            "name": "睡眠周期对齐算法",
+            "description": "将睡觉时间调整到最接近的90分钟周期边界",
+            "complexity": "O(1)",
+            "accuracy": "±15分钟内的最优解"
+          },
+          {
+            "name": "跨日时间计算",
+            "description": "处理跨越午夜的时间计算",
+            "complexity": "O(1)",
+            "edge_cases": "处理夏令时、时区变更等特殊情况"
+          }
+        ]
+      },
+      {
+        "tool_name": "ReminderGenerator",
+        "description": "提醒内容生成工具，创建个性化的睡眠提醒消息",
+        "functions": [
+          {
+            "function_name": "generate_reminder",
+            "description": "生成个性化睡眠提醒",
+            "parameters": [
+              "user_profile: dict - 用户档案",
+              "bedtime_info: dict - 睡觉时间信息",
+              "context: dict - 上下文信息（当前时间、最近表现等）"
+            ],
+            "returns": "str - 生成的提醒消息",
+            "implementation": "基于用户偏好风格，结合提示词模板，生成个性化内容"
+          },
+          {
+            "function_name": "select_reminder_template",
+            "description": "选择合适的提醒模板",
+            "parameters": [
+              "reminder_style: str - 提醒风格",
+              "urgency_level: int - 紧急程度（1-5）",
+              "user_performance: str - 用户最近表现"
+            ],
+            "returns": "str - 选中的模板内容",
+            "implementation": "根据风格和紧急程度匹配最合适的模板"
+          },
+          {
+            "function_name": "customize_message",
+            "description": "定制化消息内容",
+            "parameters": [
+              "template: str - 基础模板",
+              "variables: dict - 变量替换字典"
+            ],
+            "returns": "str - 定制化后的消息",
+            "implementation": "使用字符串模板替换变量，确保消息的个性化"
+          },
+          {
+            "function_name": "validate_message_quality",
+            "description": "验证消息质量",
+            "parameters": [
+              "message: str - 生成的消息",
+              "max_length: int - 最大长度限制"
+            ],
+            "returns": "tuple - (是否合格: bool, 质量评分: float)",
+            "implementation": "检查消息长度、语调一致性、关键信息完整性"
+          }
+        ],
+        "templates": [
+          {
+            "category": "温和型提醒",
+            "templates": [
+              "亲爱的{user_name}，现在是{current_time}，建议在{bedtime}开始准备睡觉哦～良好的睡眠是健康的基础💤",
+              "温馨提醒：距离您的理想睡觉时间还有{time_remaining}，不如现在开始放松一下，为美好的梦境做准备吧✨",
+              "您好{user_name}，今天辛苦了！{bedtime}是您的最佳睡觉时间，让我们一起养成规律的作息习惯吧🌙"
+            ]
+          },
+          {
+            "category": "活泼型提醒",
+            "templates": [
+              "嘿{user_name}！🎉 睡觉时间到啦～现在是{current_time}，该和周公约会了，明天又是元气满满的一天！",
+              "叮咚！您的专属睡眠闹钟响了🔔 {bedtime}准时上床，做个好梦，明天继续闪闪发光！✨",
+              "睡神召唤术即将生效！💫 {user_name}快快准备，{time_remaining}后就是最佳入睡时机哦～"
+            ]
+          },
+          {
+            "category": "专业型提醒",
+            "templates": [
+              "根据您的睡眠配置，建议在{bedtime}入睡以获得{sleep_duration}小时的充足睡眠。当前时间{current_time}。",
+              "睡眠提醒：为确保明日{wake_time}准时起床并保持最佳状态，请在{bedtime}开始睡觉准备。",
+              "基于睡眠科学，您的最佳入睡时间为{bedtime}。充足睡眠有助于提高记忆力和免疫力。"
+            ]
+          },
+          {
+            "category": "简洁型提醒",
+            "templates": [
+              "睡觉时间：{bedtime}，当前：{current_time}",
+              "{user_name}，该睡觉了。目标时间：{bedtime}",
+              "提醒：{time_remaining}后入睡，保持规律作息。"
+            ]
+          }
+        ]
+      },
+      {
+        "tool_name": "SleepTracker",
+        "description": "睡眠习惯追踪工具，记录和分析用户的睡眠数据",
+        "functions": [
+          {
+            "function_name": "record_sleep_event",
+            "description": "记录睡眠相关事件",
+            "parameters": [
+              "user_id: str - 用户ID",
+              "event_type: str - 事件类型（reminder_sent/bedtime_confirmed/wake_up等）",
+              "timestamp: datetime - 事件时间",
+              "additional_data: dict - 额外数据（可选）"
+            ],
+            "returns": "bool - 记录成功返回True",
+            "implementation": "将事件数据存储到数据库，支持后续分析和统计"
+          },
+          {
+            "function_name": "analyze_sleep_patterns",
+            "description": "分析用户睡眠模式",
+            "parameters": [
+              "user_id: str - 用户ID",
+              "analysis_period: int - 分析周期（天数）"
+            ],
+            "returns": "dict - 睡眠模式分析结果",
+            "implementation": "统计平均睡觉时间、规律性、按时率等指标"
+          },
+          {
+            "function_name": "calculate_sleep_metrics",
+            "description": "计算睡眠指标",
+            "parameters": [
+              "sleep_records: list - 睡眠记录列表",
+              "target_profile: dict - 目标睡眠档案"
+            ],
+            "returns": "dict - 各项睡眠指标",
+            "implementation": "计算平均睡眠时长、规律性评分、改善趋势等"
+          },
+          {
+            "function_name": "generate_sleep_report",
+            "description": "生成睡眠分析报告",
+            "parameters": [
+              "user_id: str - 用户ID",
+              "report_type: str - 报告类型（weekly/monthly）"
+            ],
+            "returns": "dict - 结构化的分析报告",
+            "implementation": "整合各项指标，生成用户友好的分析报告"
+          },
+          {
+            "function_name": "detect_sleep_anomalies",
+            "description": "检测睡眠异常模式",
+            "parameters": [
+              "user_id: str - 用户ID",
+              "sensitivity: float - 检测敏感度（0-1）"
+            ],
+            "returns": "list - 检测到的异常模式列表",
+            "implementation": "使用统计方法识别异常的睡眠模式和趋势"
+          }
+        ],
+        "data_models": [
+          {
+            "model_name": "SleepRecord",
+            "fields": [
+              "record_id: VARCHAR(50) PRIMARY KEY",
+              "user_id: VARCHAR(50) FOREIGN KEY",
+              "date: DATE",
+              "planned_bedtime: DATETIME",
+              "actual_bedtime: DATETIME",
+              "reminder_sent_time: DATETIME",
+              "user_response: VARCHAR(50)",
+              "sleep_quality_rating: INTEGER",
+              "notes: TEXT"
+            ]
+          }
+        ],
+        "analytics_algorithms": [
+          {
+            "name": "睡眠规律性评分",
+            "description": "基于睡觉时间的标准差计算规律性",
+            "formula": "score = max(0, 10 - std_deviation * 2)",
+            "range": "0-10分，10分表示完全规律"
+          },
+          {
+            "name": "睡眠债务累积",
+            "description": "计算实际睡眠与理想睡眠的累积差值",
+            "formula": "debt = sum(ideal_duration - actual_duration)",
+            "unit": "小时"
+          }
+        ]
+      },
+      {
+        "tool_name": "KnowledgeBase",
+        "description": "睡眠健康知识库工具，提供科学的睡眠建议和知识查询",
+        "functions": [
+          {
+            "function_name": "get_sleep_advice",
+            "description": "获取睡眠健康建议",
+            "parameters": [
+              "query_type: str - 查询类型（sleep_hygiene/sleep_disorders/age_specific等）",
+              "user_context: dict - 用户上下文信息",
+              "specific_issue: str - 具体问题（可选）"
+            ],
+            "returns": "dict - 包含建议内容和相关知识",
+            "implementation": "根据查询类型和用户情况，返回匹配的知识内容"
+          },
+          {
+            "function_name": "search_knowledge",
+            "description": "搜索知识库内容",
+            "parameters": [
+              "keywords: list - 关键词列表",
+              "category: str - 知识分类（可选）"
+            ],
+            "returns": "list - 匹配的知识条目",
+            "implementation": "使用关键词匹配和分类过滤搜索相关知识"
+          },
+          {
+            "function_name": "get_personalized_tips",
+            "description": "获取个性化睡眠建议",
+            "parameters": [
+              "user_profile: dict - 用户档案",
+              "sleep_analysis: dict - 睡眠分析结果"
+            ],
+            "returns": "list - 个性化建议列表",
+            "implementation": "基于用户特征和睡眠状况，匹配最相关的建议"
+          },
+          {
+            "function_name": "validate_advice_safety",
+            "description": "验证建议的安全性",
+            "parameters": [
+              "advice_content: str - 建议内容",
+              "user_age: int - 用户年龄",
+              "health_conditions: list - 健康状况（可选）"
+            ],
+            "returns": "tuple - (是否安全: bool, 警告信息: str)",
+            "implementation": "检查建议是否包含医疗内容，是否适合用户年龄段"
+          }
+        ],
+        "knowledge_categories": [
+          {
+            "category": "睡眠卫生基础",
+            "topics": [
+              "理想的睡眠环境设置",
+              "睡前放松技巧",
+              "避免影响睡眠的因素",
+              "规律作息的重要性"
+            ]
+          },
+          {
+            "category": "年龄相关建议",
+            "topics": [
+              "儿童睡眠需求（6-12岁）",
+              "青少年睡眠特点（13-17岁）",
+              "成年人睡眠优化（18-64岁）",
+              "老年人睡眠调整（65岁以上）"
+            ]
+          },
+          {
+            "category": "常见睡眠问题",
+            "topics": [
+              "入睡困难的应对方法",
+              "夜间醒来的处理建议",
+              "早醒问题的改善策略",
+              "睡眠质量提升技巧"
+            ]
+          },
+          {
+            "category": "生活方式影响",
+            "topics": [
+              "饮食对睡眠的影响",
+              "运动与睡眠的关系",
+              "电子设备使用建议",
+              "工作压力管理"
+            ]
+          }
+        ]
+      },
+      {
+        "tool_name": "ScheduleManager",
+        "description": "定时任务管理工具，负责提醒的调度和执行",
+        "functions": [
+          {
+            "function_name": "schedule_reminder",
+            "description": "安排睡眠提醒任务",
+            "parameters": [
+              "user_id: str - 用户ID",
+              "reminder_time: datetime - 提醒时间",
+              "reminder_type: str - 提醒类型",
+              "repeat_pattern: str - 重复模式（daily/weekly/custom）"
+            ],
+            "returns": "str - 任务ID",
+            "implementation": "使用schedule库创建定时任务，支持重复和一次性提醒"
+          },
+          {
+            "function_name": "cancel_reminder",
+            "description": "取消已安排的提醒",
+            "parameters": [
+              "task_id: str - 任务ID"
+            ],
+            "returns": "bool - 取消成功返回True",
+            "implementation": "从任务队列中移除指定的提醒任务"
+          },
+          {
+            "function_name": "update_reminder_schedule",
+            "description": "更新提醒时间安排",
+            "parameters": [
+              "user_id: str - 用户ID",
+              "new_schedule: dict - 新的时间安排"
+            ],
+            "returns": "bool - 更新成功返回True",
+            "implementation": "取消旧任务，创建新的提醒任务"
+          },
+          {
+            "function_name": "get_pending_reminders",
+            "description": "获取待执行的提醒任务",
+            "parameters": [
+              "user_id: str - 用户ID（可选）"
+            ],
+            "returns": "list - 待执行任务列表",
+            "implementation": "查询任务队列，返回未执行的提醒任务"
+          },
+          {
+            "function_name": "execute_reminder",
+            "description": "执行提醒任务",
+            "parameters": [
+              "task_id: str - 任务ID"
+            ],
+            "returns": "bool - 执行成功返回True",
+            "implementation": "生成提醒内容，发送通知，记录执行日志"
+          }
+        ],
+        "scheduling_features": [
+          {
+            "feature": "精确时间触发",
+            "description": "支持秒级精度的定时触发",
+            "implementation": "使用threading.Timer实现精确定时"
+          },
+          {
+            "feature": "重复任务管理",
+            "description": "支持每日、每周等重复模式",
+            "implementation": "基于cron表达式的重复任务调度"
+          },
+          {
+            "feature": "任务持久化",
+            "description": "任务信息持久化存储，重启后恢复",
+            "implementation": "将任务信息存储到数据库，启动时自动恢复"
+          },
+          {
+            "feature": "异常处理",
+            "description": "任务执行失败的重试和恢复机制",
+            "implementation": "记录失败任务，支持手动或自动重试"
+          }
+        ]
+      },
+      {
+        "tool_name": "NotificationService",
+        "description": "通知服务工具，负责向用户发送各种类型的提醒",
+        "functions": [
+          {
+            "function_name": "send_desktop_notification",
+            "description": "发送桌面通知",
+            "parameters": [
+              "title: str - 通知标题",
+              "message: str - 通知内容",
+              "icon: str - 图标路径（可选）",
+              "duration: int - 显示时长（秒）"
+            ],
+            "returns": "bool - 发送成功返回True",
+            "implementation": "使用plyer库发送跨平台桌面通知"
+          },
+          {
+            "function_name": "play_reminder_sound",
+            "description": "播放提醒音效",
+            "parameters": [
+              "sound_file: str - 音效文件路径",
+              "volume: float - 音量（0-1）"
+            ],
+            "returns": "bool - 播放成功返回True",
+            "implementation": "使用pygame或系统API播放音效文件"
+          },
+          {
+            "function_name": "show_popup_reminder",
+            "description": "显示弹窗提醒",
+            "parameters": [
+              "message: str - 提醒消息",
+              "buttons: list - 按钮选项",
+              "timeout: int - 自动关闭时间（秒）"
+            ],
+            "returns": "str - 用户选择的按钮",
+            "implementation": "使用tkinter创建模态对话框"
+          },
+          {
+            "function_name": "log_notification_event",
+            "description": "记录通知事件",
+            "parameters": [
+              "user_id: str - 用户ID",
+              "notification_type: str - 通知类型",
+              "content: str - 通知内容",
+              "delivery_status: str - 送达状态"
+            ],
+            "returns": "bool - 记录成功返回True",
+            "implementation": "将通知事件记录到数据库，用于统计分析"
+          }
+        ]
+      }
+    ],
+    "utility_tools": [
+      {
+        "tool_name": "DatabaseManager",
+        "description": "数据库管理工具，提供数据存储和查询的统一接口",
+        "functions": [
+          "init_database() - 初始化数据库结构",
+          "execute_query(sql, params) - 执行SQL查询",
+          "backup_database(backup_path) - 数据库备份",
+          "restore_database(backup_path) - 数据库恢复",
+          "encrypt_sensitive_data(data) - 敏感数据加密",
+          "decrypt_sensitive_data(encrypted_data) - 敏感数据解密"
+        ]
+      },
+      {
+        "tool_name": "ConfigManager",
+        "description": "配置管理工具，处理系统配置和用户设置",
+        "functions": [
+          "load_config(config_file) - 加载配置文件",
+          "save_config(config_data, config_file) - 保存配置",
+          "get_setting(key, default_value) - 获取配置项",
+          "update_setting(key, value) - 更新配置项",
+          "validate_config(config_data) - 验证配置有效性"
+        ]
+      },
+      {
+        "tool_name": "LogManager",
+        "description": "日志管理工具，记录系统运行和用户操作日志",
+        "functions": [
+          "setup_logger(log_level, log_file) - 初始化日志器",
+          "log_info(message, user_id) - 记录信息日志",
+          "log_warning(message, user_id) - 记录警告日志",
+          "log_error(message, error_details) - 记录错误日志",
+          "rotate_logs() - 日志轮转",
+          "analyze_logs(start_date, end_date) - 日志分析"
+        ]
+      },
+      {
+        "tool_name": "ValidationUtils",
+        "description": "数据验证工具集，提供各种数据验证功能",
+        "functions": [
+          "validate_time_format(time_string) - 验证时间格式",
+          "validate_sleep_duration(duration) - 验证睡眠时长",
+          "validate_user_input(input_data, rules) - 通用输入验证",
+          "sanitize_string(input_string) - 字符串清理",
+          "check_data_integrity(data) - 数据完整性检查"
+        ]
+      }
+    ],
+    "integration_interfaces": [
+      {
+        "interface_name": "AgentToolsAPI",
+        "description": "Agent与工具模块的统一接口",
+        "methods": [
+          "get_user_bedtime_recommendation(user_id) - 获取睡觉时间建议",
+          "generate_personalized_reminder(user_id, context) - 生成个性化提醒",
+          "record_user_sleep_event(user_id, event_data) - 记录睡眠事件",
+          "get_sleep_analysis_report(user_id, period) - 获取睡眠分析报告",
+          "schedule_daily_reminders(user_id) - 安排每日提醒",
+          "get_health_advice(user_id, query) - 获取健康建议"
+        ]
+      },
+      {
+        "interface_name": "DataAccessLayer",
+        "description": "数据访问层，封装所有数据库操作",
+        "methods": [
+          "create_user(user_data) - 创建用户",
+          "update_user_profile(user_id, profile_data) - 更新用户档案",
+          "get_user_sleep_history(user_id, days) - 获取睡眠历史",
+          "save_sleep_record(record_data) - 保存睡眠记录",
+          "get_reminder_templates(category) - 获取提醒模板",
+          "log_system_event(event_data) - 记录系统事件"
+        ]
+      }
+    ],
+    "testing_framework": {
+      "unit_tests": [
+        "test_user_profile_manager.py - 用户档案管理测试",
+        "test_sleep_calculator.py - 睡眠时间计算测试",
+        "test_reminder_generator.py - 提醒生成测试",
+        "test_sleep_tracker.py - 睡眠追踪测试",
+        "test_knowledge_base.py - 知识库测试",
+        "test_schedule_manager.py - 任务调度测试"
+      ],
+      "integration_tests": [
+        "test_agent_tools_integration.py - Agent与工具集成测试",
+        "test_database_operations.py - 数据库操作测试",
+        "test_notification_delivery.py - 通知送达测试",
+        "test_end_to_end_workflow.py - 端到端工作流测试"
+      ],
+      "performance_tests": [
+        "test_response_time.py - 响应时间测试",
+        "test_memory_usage.py - 内存使用测试",
+        "test_concurrent_users.py - 并发用户测试",
+        "test_database_performance.py - 数据库性能测试"
+      ]
+    },
+    "deployment_artifacts": [
+      {
+        "artifact_type": "core_modules",
+        "files": [
+          "tools/user_profile_manager.py",
+          "tools/sleep_calculator.py",  
+          "tools/reminder_generator.py",
+          "tools/sleep_tracker.py",
+          "tools/knowledge_base.py",
+          "tools/schedule_manager.py",
+          "tools/notification_service.py"
+        ]
+      },
+      {
+        "artifact_type": "utility_modules",
+        "files": [
+          "utils/database_manager.py",
+          "utils/config_manager.py",
+          "utils/log_manager.py",
+          "utils/validation_utils.py"
+        ]
+      },
+      {
+        "artifact_type": "interface_modules",
+        "files": [
+          "interfaces/agent_tools_api.py",
+          "interfaces/data_access_layer.py"
+        ]
+      },
+      {
+        "artifact_type": "test_modules",
+        "files": [
+          "tests/unit/test_*.py",
+          "tests/integration/test_*.py",
+          "tests/performance/test_*.py"
+        ]
+      },
+      {
+        "artifact_type": "configuration_files",
+        "files": [
+          "config/database_schema.sql",
+          "config/default_settings.json",
+          "config/reminder_templates.json",
+          "config/knowledge_base.json"
+        ]
+      }
+    ]
+  }
+}

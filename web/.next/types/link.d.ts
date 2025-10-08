@@ -30,8 +30,6 @@ declare namespace __next_route_internal_types__ {
 
   type StaticRoutes = 
     | `/`
-    | `/agents/dialog`
-    | `/agents/new`
     | `/build`
     | `/build/graph`
     | `/build/modules`
@@ -43,8 +41,9 @@ declare namespace __next_route_internal_types__ {
     | `/evolution/progress`
     | `/evolution/submit`
     | `/management`
+    | `/agents/dialog`
+    | `/agents/new`
     | `/ops`
-    | `/projects`
     | `/pfr`
     | `/pfr/history`
     | `/tools`
@@ -54,17 +53,18 @@ declare namespace __next_route_internal_types__ {
     | `/troubleshoot`
     | `/troubleshoot/analysis`
     | `/troubleshoot/code-review`
-    | `/troubleshoot/fix`
     | `/troubleshoot/reproduction`
     | `/troubleshoot/tracking`
+    | `/troubleshoot/fix`
+    | `/projects`
   type DynamicRoutes<T extends string = string> = 
     | `/agents/${SafeSlug<T>}`
-    | `/projects/${SafeSlug<T>}`
-    | `/projects/${SafeSlug<T>}/deploy`
     | `/pfr/iterations/${SafeSlug<T>}`
     | `/tools/${SafeSlug<T>}/config`
     | `/tools/${SafeSlug<T>}/detail`
     | `/tools/${SafeSlug<T>}/logs`
+    | `/projects/${SafeSlug<T>}`
+    | `/projects/${SafeSlug<T>}/deploy`
 
   type RouteImpl<T> = 
     | StaticRoutes

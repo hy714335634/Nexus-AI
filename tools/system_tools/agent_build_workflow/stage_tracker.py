@@ -6,6 +6,7 @@ import logging
 from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Dict, List, Optional, Tuple
+import re
 
 from api.database.dynamodb_client import DynamoDBClient
 from api.models.schemas import ProjectStatus
@@ -25,6 +26,8 @@ STAGE_SEQUENCE: List[Tuple[str, str]] = [
     ("agent_deployer", "Agent部署"),
 ]
 
+_JOB_ID_PATTERN = re.compile(r"^job_[0-9a-f]{8,}$", re.IGNORECASE)
+
 
 def initialize_project_record(
     project_id: str,
@@ -32,6 +35,8 @@ def initialize_project_record(
     requirement: str = "",
     user_id: Optional[str] = None,
     user_name: Optional[str] = None,
+    project_name: Optional[str] = None,
+    tags: Optional[List[str]] = None,
 ) -> None:
     """Create or overwrite the project record with a fresh stage snapshot."""
 
@@ -40,11 +45,16 @@ def initialize_project_record(
 
     snapshot = _default_snapshot()
 
+    normalized_tags = [tag.strip() for tag in (tags or []) if isinstance(tag, str) and tag.strip()]
+    resolved_project_name = _resolve_project_name(project_name, requirement, project_id)
+
     item = {
         "project_id": project_id,
+        "project_name": resolved_project_name,
         "requirement": requirement,
         "user_id": user_id,
         "user_name": user_name,
+        "tags": normalized_tags or None,
         "status": ProjectStatus.BUILDING.value,
         "progress_percentage": Decimal("0"),
         "created_at": now,
@@ -240,6 +250,47 @@ def _default_snapshot() -> Dict[str, any]:
 def _is_project_completed(snapshot: Dict[str, any]) -> bool:
     stages = snapshot.get("stages", [])
     return bool(stages) and all(stage.get("status") == "completed" for stage in stages)
+
+
+def _resolve_project_name(
+    provided_name: Optional[str],
+    requirement: str,
+    project_id: str,
+) -> Optional[str]:
+    candidate = _sanitize_project_name(provided_name)
+    if candidate:
+        return candidate
+
+    requirement_title = _extract_requirement_title(requirement)
+    if requirement_title:
+        return requirement_title
+
+    return None
+
+
+def _sanitize_project_name(value: Optional[str]) -> Optional[str]:
+    if not value:
+        return None
+    candidate = value.strip()
+    if not candidate:
+        return None
+    if _JOB_ID_PATTERN.match(candidate):
+        return None
+    return candidate
+
+
+def _extract_requirement_title(value: Optional[str]) -> Optional[str]:
+    if not value:
+        return None
+    # Focus on the first line and cap the length to keep UI concise.
+    first_line = value.strip().splitlines()[0].strip()
+    if not first_line:
+        return None
+    if len(first_line) > 80:
+        first_line = first_line[:77].rstrip() + "…"
+    if _JOB_ID_PATTERN.match(first_line):
+        return None
+    return first_line
 
 
 def _convert(value):

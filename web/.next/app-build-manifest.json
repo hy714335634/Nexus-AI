@@ -1,22 +1,16 @@
 {
   "pages": {
-    "/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/css/app/page.css",
-      "static/chunks/app/page.js"
-    ],
     "/layout": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/css/app/layout.css",
       "static/chunks/app/layout.js"
     ],
-    "/build/page": [
+    "/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/css/app/build/page.css",
-      "static/chunks/app/build/page.js"
+      "static/css/app/page.css",
+      "static/chunks/app/page.js"
     ],
     "/build/modules/page": [
       "static/chunks/webpack.js",
@@ -24,53 +18,16 @@
       "static/css/app/build/modules/page.css",
       "static/chunks/app/build/modules/page.js"
     ],
-    "/management/page": [
+    "/build/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/css/app/management/page.css",
-      "static/chunks/app/management/page.js"
+      "static/css/app/build/page.css",
+      "static/chunks/app/build/page.js"
     ],
-    "/troubleshoot/page": [
+    "/agents/new/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/css/app/troubleshoot/page.css",
-      "static/chunks/app/troubleshoot/page.js"
-    ],
-    "/troubleshoot/analysis/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/css/app/troubleshoot/analysis/page.css",
-      "static/chunks/app/troubleshoot/analysis/page.js"
-    ],
-    "/troubleshoot/reproduction/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/css/app/troubleshoot/reproduction/page.css",
-      "static/chunks/app/troubleshoot/reproduction/page.js"
-    ],
-    "/troubleshoot/code-review/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/css/app/troubleshoot/code-review/page.css",
-      "static/chunks/app/troubleshoot/code-review/page.js"
-    ],
-    "/tools/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/css/app/tools/page.css",
-      "static/chunks/app/tools/page.js"
-    ],
-    "/agents/dialog/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/css/app/agents/dialog/page.css",
-      "static/chunks/app/agents/dialog/page.js"
-    ],
-    "/evolution/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/css/app/evolution/page.css",
-      "static/chunks/app/evolution/page.js"
+      "static/chunks/app/agents/new/page.js"
     ],
     "/not-found": [
       "static/chunks/webpack.js",

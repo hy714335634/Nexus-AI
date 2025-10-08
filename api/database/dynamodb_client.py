@@ -746,6 +746,79 @@ class DynamoDBClient:
         except Exception as e:
             logger.error(f"Error listing projects by status {status}: {str(e)}")
             raise APIException(f"Failed to list projects by status: {str(e)}")
+
+    @retry_on_error(max_retries=3, delay=1.0, backoff=2.0)
+    def list_projects(
+        self,
+        limit: int = 20,
+        last_key: Optional[Dict[str, Any]] = None,
+        filters: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """Scan projects table with optional filters."""
+
+        try:
+            self._ensure_connection()
+
+            collected: List[Dict[str, Any]] = []
+            scanned = 0
+            exclusive_start_key = last_key
+
+            status_filter = None
+            if filters and filters.get('status'):
+                status_value = filters['status']
+                if isinstance(status_value, ProjectStatus):
+                    status_value = status_value.value
+                status_filter = str(status_value)
+
+            user_filter = str(filters.get('user_id', '')).strip() if filters else ''
+            search_filter = str(filters.get('search', '')).strip().lower() if filters else ''
+
+            while len(collected) < limit:
+                scan_kwargs: Dict[str, Any] = {
+                    'Limit': limit,
+                }
+
+                if exclusive_start_key:
+                    scan_kwargs['ExclusiveStartKey'] = exclusive_start_key
+
+                response = self.projects_table.scan(**scan_kwargs)
+                items = response.get('Items', [])
+                scanned += len(items)
+
+                for item in items:
+                    project = self._deserialize_item(item)
+
+                    if status_filter and str(project.get('status')) != status_filter:
+                        continue
+                    if user_filter and str(project.get('user_id', '')).strip() != user_filter:
+                        continue
+                    if search_filter:
+                        searchable = ' '.join(
+                            str(project.get(field, '') or '')
+                            for field in ('project_id', 'project_name', 'tags')
+                        ).lower()
+                        if search_filter not in searchable:
+                            continue
+
+                    collected.append(project)
+                    if len(collected) >= limit:
+                        break
+
+                exclusive_start_key = response.get('LastEvaluatedKey')
+                if not exclusive_start_key:
+                    break
+
+            last_evaluated = exclusive_start_key.get('project_id') if exclusive_start_key else None
+
+            return {
+                'items': collected[:limit],
+                'last_key': last_evaluated,
+                'count': len(collected[:limit]),
+                'scanned_count': scanned,
+            }
+        except Exception as exc:
+            logger.error(f"Error scanning projects: {exc}")
+            raise APIException(f"Failed to list projects: {exc}")
     
     @retry_on_error(max_retries=3, delay=1.0, backoff=2.0)
     def delete_project(self, project_id: str) -> bool:

@@ -14,6 +14,7 @@ interface FormState {
   requirement: string;
   user_id: string;
   user_name: string;
+  agent_name: string;
   priority: number;
   tags: string;
 }
@@ -22,6 +23,7 @@ const INITIAL_STATE: FormState = {
   requirement: '',
   user_id: 'console-user',
   user_name: 'Console User',
+  agent_name: '',
   priority: 3,
   tags: '',
 };
@@ -77,12 +79,12 @@ export function NewAgentView() {
     onSuccess: (data, variables) => {
       setSubmittedTaskId(data.task_id);
       toast.success('已提交构建任务', {
-        description: `项目 ${data.project_id} 正在排队构建。`,
+        description: `项目 ${data.agent_name ?? data.project_id} 正在排队构建。`,
       });
 
       const optimisticProject: ProjectSummary = {
         projectId: data.project_id,
-        projectName: variables.requirement.slice(0, 60) || data.project_id,
+        projectName: variables.agent_name || variables.requirement.slice(0, 60) || data.project_id,
         status: 'building',
         progressPercentage: 0,
         currentStage: 'orchestrator',
@@ -99,8 +101,6 @@ export function NewAgentView() {
       });
 
       queryClient.invalidateQueries({ queryKey: ['projects', 'summaries'] });
-
-      setTimeout(() => router.push(`/projects/${data.project_id}`), 600);
     },
     onError: (error: unknown) => {
       const message = error instanceof Error ? error.message : '提交失败，请稍后重试';
@@ -117,6 +117,7 @@ export function NewAgentView() {
       requirement: form.requirement.trim(),
       user_id: form.user_id.trim(),
       user_name: form.user_name.trim(),
+      agent_name: form.agent_name.trim() || undefined,
       priority: form.priority,
       tags: parseTags(form.tags),
     };
@@ -268,6 +269,22 @@ export function NewAgentView() {
                   required
                   value={form.user_name}
                   onChange={(event) => setForm((prev) => ({ ...prev, user_name: event.target.value }))}
+                  style={{
+                    padding: '10px 12px',
+                    borderRadius: '10px',
+                    border: '1px solid rgba(255, 255, 255, 0.12)',
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    color: '#fff',
+                  }}
+                />
+              </label>
+
+              <label style={{ display: 'grid', gap: '8px' }}>
+                <span style={{ fontSize: '14px', color: 'var(--muted)' }}>Agent 名称</span>
+                <input
+                  value={form.agent_name}
+                  onChange={(event) => setForm((prev) => ({ ...prev, agent_name: event.target.value }))}
+                  placeholder="例如：企业客服助理"
                   style={{
                     padding: '10px 12px',
                     borderRadius: '10px',
