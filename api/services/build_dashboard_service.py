@@ -184,7 +184,7 @@ class BuildDashboardService:
 
         candidates: list[Path] = []
 
-        metrics = project_record.get("metrics")
+        metrics = project_record.get("metrics_payload") or project_record.get("metrics")
         if isinstance(metrics, dict):
             report_path = metrics.get("report_path")
             if isinstance(report_path, str) and report_path:
@@ -308,7 +308,7 @@ def _extract_task_snapshot(project_record: Dict[str, Any]) -> Optional[BuildDash
 
 
 def _extract_metrics(project_record: Dict[str, Any]) -> Optional[BuildDashboardMetrics]:
-    metrics = project_record.get("metrics")
+    metrics = project_record.get("metrics_payload") or project_record.get("metrics")
     if not isinstance(metrics, dict):
         return None
 

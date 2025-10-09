@@ -1,0 +1,118 @@
+{
+  "project_name": "file_summary_agent",
+  "validation_timestamp": "2025-10-09T03:57:23.514628+00:00",
+  "overall_status": "success",
+  "agent_scripts": [
+    {
+      "script_path": "agents/generated_agents/file_summary_agent/file_summarizer.py",
+      "syntax_valid": true,
+      "dependencies": [
+        "os",
+        "sys",
+        "json",
+        "typing",
+        "pathlib",
+        "nexus_utils.agent_factory",
+        "strands.telemetry",
+        "argparse"
+      ],
+      "execution_params": [],
+      "argparse_params": [
+        {
+          "name": "-f",
+          "type": "str",
+          "description": "Path to file to summarize",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "-b",
+          "type": "str",
+          "description": "Comma-separated list of file paths for batch processing",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "-l",
+          "type": "str",
+          "description": "Summary length",
+          "required": false,
+          "default": "standard",
+          "action": null
+        },
+        {
+          "name": "-o",
+          "type": "str",
+          "description": "Output format",
+          "required": false,
+          "default": "json",
+          "action": null
+        },
+        {
+          "name": "-k",
+          "type": "str",
+          "description": "Extract keywords",
+          "required": false,
+          "default": null,
+          "action": "store_true"
+        },
+        {
+          "name": "-e",
+          "type": "str",
+          "description": "Environment setting",
+          "required": false,
+          "default": "production",
+          "action": null
+        }
+      ],
+      "error_message": ""
+    }
+  ],
+  "prompt_files": [
+    {
+      "prompt_path": "generated_agents_prompts/file_summary_agent/file_summarizer.yaml",
+      "tool_count": 3,
+      "valid": true,
+      "error_message": "",
+      "metadata": {
+        "tags": [
+          "document_processing",
+          "text_summarization",
+          "file_analysis",
+          "content_extraction"
+        ],
+        "supported_models": [
+          "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
+        ],
+        "tools_dependencies": [
+          "strands_tools/file_read",
+          "strands_tools/current_time",
+          "generated_tools/file_summary_agent/file_summarizer_tool/file_summarizer_tool"
+        ]
+      },
+      "agent_info": {
+        "name": "file_summarizer",
+        "description": "一个专业的文件摘要智能体，能够读取多种格式的文件，提取内容，并生成高质量摘要。",
+        "category": "document_processing"
+      }
+    }
+  ],
+  "generated_tools": [
+    {
+      "tool_path": "generated_tools/file_summary_agent/file_summarizer_tool.py",
+      "syntax_valid": true,
+      "error_message": ""
+    }
+  ],
+  "total_tools": 3,
+  "summary": {
+    "agent_scripts_count": 1,
+    "prompt_files_count": 1,
+    "generated_tool_files_count": 1,
+    "all_scripts_valid": true,
+    "all_tools_valid": true,
+    "all_prompts_valid": true
+  }
+}
