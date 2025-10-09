@@ -9,3 +9,4 @@ markdown>=3.4.0
 chardet>=5.0.0
 boto3>=1.28.0
 pathlib>=1.0.1
+PyYAML
