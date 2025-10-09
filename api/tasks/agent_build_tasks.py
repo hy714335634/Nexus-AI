@@ -63,7 +63,8 @@ def build_agent(
                 finished_at=finish_time,
                 error=str(exc),
             ),
-            metrics=None,
+            metrics_payload=None,
+            project_name=agent_name,
         )
         mark_stage_failed(project_id, orchestrator_stage, str(exc))
         logger.exception("Agent build task failed", extra={"project_id": project_id})
@@ -108,7 +109,7 @@ def build_agent(
     _persist_task_snapshot(
         project_id,
         latest_task=latest_task_payload,
-        metrics=metrics_payload,
+        metrics_payload=metrics_payload,
         project_name=resolved_agent_name,
     )
 
@@ -151,7 +152,7 @@ def _persist_task_snapshot(
     project_id: str,
     *,
     latest_task: Optional[Dict[str, Any]],
-    metrics: Optional[Dict[str, Any]],
+    metrics_payload: Optional[Dict[str, Any]],
     project_name: Optional[str] = None,
 ) -> None:
     db_client = DynamoDBClient()
@@ -159,28 +160,32 @@ def _persist_task_snapshot(
     values: Dict[str, Any] = {
         ":updated_at": _isoformat(datetime.now(timezone.utc)),
     }
+    expression_names: Dict[str, str] = {}
 
     if latest_task:
         update_expression += ", latest_task = :latest_task"
         values[":latest_task"] = _to_dynamo(latest_task)
 
-    if metrics:
-        cleaned_metrics = {k: v for k, v in metrics.items() if v is not None}
+    if metrics_payload:
+        cleaned_metrics = {k: v for k, v in metrics_payload.items() if v is not None}
         if cleaned_metrics:
-            update_expression += ", #metrics = :metrics"
-            expression_names = expression_names or {}
-            expression_names["#metrics"] = "metrics"
-            values[":metrics"] = _to_dynamo(cleaned_metrics)
+            update_expression += ", #metrics_payload = :metrics_payload"
+            expression_names["#metrics_payload"] = "metrics_payload"
+            values[":metrics_payload"] = _to_dynamo(cleaned_metrics)
 
     if project_name:
         update_expression += ", project_name = :project_name"
         values[":project_name"] = project_name
 
-    db_client.projects_table.update_item(
-        Key={"project_id": project_id},
-        UpdateExpression=update_expression,
-        ExpressionAttributeValues=values,
-    )
+    update_kwargs: Dict[str, Any] = {
+        "Key": {"project_id": project_id},
+        "UpdateExpression": update_expression,
+        "ExpressionAttributeValues": values,
+    }
+    if expression_names:
+        update_kwargs["ExpressionAttributeNames"] = expression_names
+
+    db_client.projects_table.update_item(**update_kwargs)
 
 
 def _extract_usage_value(usage: Any, key: str) -> Optional[int]:
