@@ -87,6 +87,29 @@ def _sync_stage_progress(
             )
         else:
             mark_stage_running(project_id, stage_name)
+
+            try:
+                stage_names = [name for name, _ in STAGE_SEQUENCE]
+                current_index = stage_names.index(stage_name)
+            except ValueError:
+                current_index = -1
+
+            if current_index > 0:
+                previous_stage = stage_names[current_index - 1]
+                try:
+                    mark_stage_completed(project_id, previous_stage)
+                    logger.info(
+                        "Previous stage auto-completed: project=%s stage=%s",
+                        project_name,
+                        previous_stage,
+                    )
+                except Exception:
+                    logger.exception(
+                        "Failed to auto-complete previous stage: project=%s stage=%s",
+                        project_name,
+                        previous_stage,
+                    )
+
             logger.info(
                 "Remote stage marked running: project=%s stage=%s",
                 project_name,
@@ -2194,7 +2217,7 @@ def generate_python_requirements(project_name: str, content: str) -> str:
                 continue
             entries.append(line)
 
-    baseline = ["./nexus_utils", "strands-agents", "strands-agents-tools"]
+    baseline = ["./nexus_utils", "strands-agents", "strands-agents-tools", "PyYAML"]
     merged: dict[str, None] = {}
     for value in baseline + entries:
         key = value.strip()

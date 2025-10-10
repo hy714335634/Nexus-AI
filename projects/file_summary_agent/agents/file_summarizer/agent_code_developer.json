@@ -1,0 +1,353 @@
+{
+  "agent_code_development": {
+    "development_overview": {
+      "project_name": "file_summary_agent",
+      "version": "1.0",
+      "date": "2025-10-09",
+      "development_scope": "开发一个能够读取多种格式文件并生成高质量摘要的智能体",
+      "design_principles": [
+        "模块化设计 - 分离核心功能和辅助功能",
+        "用户友好 - 提供简洁明了的接口",
+        "健壮性 - 完善的错误处理机制",
+        "可扩展性 - 易于添加新功能和支持新文件格式",
+        "性能优化 - 高效处理大文件和批量任务"
+      ],
+      "key_decisions": [
+        "使用类封装智能体功能，提供更好的接口和可维护性",
+        "实现单例模式简化智能体实例化",
+        "提供批处理和单文件处理两种模式",
+        "使用命令行参数支持灵活调用",
+        "基于Strands SDK和AWS Bedrock构建"
+      ]
+    },
+    "agent_implementation": {
+      "agent_name": "file_summarizer",
+      "file_path": "agents/generated_agents/file_summary_agent/file_summarizer.py",
+      "main_class": "FileSummarizerAgent",
+      "entry_point": "get_file_summarizer",
+      "dependencies": [
+        "nexus_utils.agent_factory",
+        "strands.telemetry",
+        "os",
+        "sys",
+        "json",
+        "typing",
+        "pathlib"
+      ],
+      "imports": [
+        "from nexus_utils.agent_factory import create_agent_from_prompt_template",
+        "from strands.telemetry import StrandsTelemetry",
+        "import os, sys, json",
+        "from typing import Union, List, Dict, Any, Optional, Literal",
+        "from pathlib import Path"
+      ]
+    },
+    "core_functions": [
+      {
+        "function_name": "FileSummarizerAgent.__init__",
+        "purpose": "初始化文件摘要智能体",
+        "parameters": [
+          {
+            "name": "env",
+            "type": "str",
+            "description": "环境设置（'production', 'development', 或 'testing'）",
+            "required": false
+          },
+          {
+            "name": "version",
+            "type": "str",
+            "description": "智能体版本",
+            "required": false
+          },
+          {
+            "name": "model_id",
+            "type": "str",
+            "description": "使用的模型ID",
+            "required": false
+          }
+        ],
+        "return_type": "None",
+        "return_description": "无返回值",
+        "implementation_notes": [
+          "设置环境变量",
+          "创建智能体参数",
+          "使用create_agent_from_prompt_template创建智能体实例"
+        ]
+      },
+      {
+        "function_name": "FileSummarizerAgent.summarize_file",
+        "purpose": "生成单个文件的摘要",
+        "parameters": [
+          {
+            "name": "file_path",
+            "type": "str",
+            "description": "要摘要的文件路径",
+            "required": true
+          },
+          {
+            "name": "summary_length",
+            "type": "Literal[\"short\", \"standard\", \"detailed\"]",
+            "description": "摘要长度（'short', 'standard', 或 'detailed'）",
+            "required": false
+          },
+          {
+            "name": "output_format",
+            "type": "Literal[\"json\", \"markdown\", \"plain\"]",
+            "description": "输出格式（'json', 'markdown', 或 'plain'）",
+            "required": false
+          },
+          {
+            "name": "extract_keywords",
+            "type": "bool",
+            "description": "是否提取关键词",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "指定格式的文件摘要",
+        "implementation_notes": [
+          "验证文件是否存在",
+          "构建摘要提示",
+          "调用智能体生成摘要"
+        ]
+      },
+      {
+        "function_name": "FileSummarizerAgent.summarize_files",
+        "purpose": "批量生成多个文件的摘要",
+        "parameters": [
+          {
+            "name": "file_paths",
+            "type": "List[str]",
+            "description": "要摘要的文件路径列表",
+            "required": true
+          },
+          {
+            "name": "summary_length",
+            "type": "Literal[\"short\", \"standard\", \"detailed\"]",
+            "description": "摘要长度（'short', 'standard', 或 'detailed'）",
+            "required": false
+          },
+          {
+            "name": "output_format",
+            "type": "Literal[\"json\", \"markdown\", \"plain\"]",
+            "description": "输出格式（'json', 'markdown', 或 'plain'）",
+            "required": false
+          },
+          {
+            "name": "extract_keywords",
+            "type": "bool",
+            "description": "是否提取关键词",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "指定格式的批量文件摘要",
+        "implementation_notes": [
+          "验证所有文件是否存在",
+          "构建批量摘要提示",
+          "调用智能体生成批量摘要"
+        ]
+      },
+      {
+        "function_name": "_build_summarize_prompt",
+        "purpose": "构建单文件摘要的提示词",
+        "parameters": [
+          {
+            "name": "file_path",
+            "type": "str",
+            "description": "文件路径",
+            "required": true
+          },
+          {
+            "name": "summary_length",
+            "type": "str",
+            "description": "摘要长度",
+            "required": true
+          },
+          {
+            "name": "output_format",
+            "type": "str",
+            "description": "输出格式",
+            "required": true
+          },
+          {
+            "name": "extract_keywords",
+            "type": "bool",
+            "description": "是否提取关键词",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "格式化的提示词字符串",
+        "implementation_notes": [
+          "组合文件路径和处理参数",
+          "指示使用file_summarizer_tool工具"
+        ]
+      },
+      {
+        "function_name": "_build_batch_summarize_prompt",
+        "purpose": "构建批量文件摘要的提示词",
+        "parameters": [
+          {
+            "name": "file_paths",
+            "type": "List[str]",
+            "description": "文件路径列表",
+            "required": true
+          },
+          {
+            "name": "summary_length",
+            "type": "str",
+            "description": "摘要长度",
+            "required": true
+          },
+          {
+            "name": "output_format",
+            "type": "str",
+            "description": "输出格式",
+            "required": true
+          },
+          {
+            "name": "extract_keywords",
+            "type": "bool",
+            "description": "是否提取关键词",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "格式化的提示词字符串",
+        "implementation_notes": [
+          "组合文件路径列表和处理参数",
+          "指示使用file_summarizer_tool工具的批处理模式"
+        ]
+      },
+      {
+        "function_name": "get_file_summarizer",
+        "purpose": "获取配置好的FileSummarizerAgent实例",
+        "parameters": [
+          {
+            "name": "env",
+            "type": "str",
+            "description": "环境设置（'production', 'development', 或 'testing'）",
+            "required": false
+          },
+          {
+            "name": "version",
+            "type": "str",
+            "description": "智能体版本",
+            "required": false
+          },
+          {
+            "name": "model_id",
+            "type": "str",
+            "description": "使用的模型ID",
+            "required": false
+          }
+        ],
+        "return_type": "FileSummarizerAgent",
+        "return_description": "配置好的FileSummarizerAgent实例",
+        "implementation_notes": [
+          "创建并返回一个新的FileSummarizerAgent实例",
+          "实现单例模式简化调用"
+        ]
+      }
+    ],
+    "tool_integration": {
+      "custom_tools": [
+        "file_summarizer_tool"
+      ],
+      "system_tools": [
+        "file_read",
+        "current_time"
+      ],
+      "strands_tools": [
+        "StrandsTelemetry"
+      ],
+      "integration_notes": [
+        "file_summarizer_tool作为主要工具处理文件读取和摘要生成",
+        "file_read作为辅助工具在需要时使用",
+        "current_time用于记录处理时间戳",
+        "StrandsTelemetry用于遥测和性能监控"
+      ]
+    },
+    "configuration": {
+      "environment_variables": [
+        "BYPASS_TOOL_CONSENT",
+        "OTEL_EXPORTER_OTLP_ENDPOINT"
+      ],
+      "model_configuration": {
+        "model_name": "Claude 3 Sonnet (Anthropic)",
+        "max_tokens": 60000,
+        "temperature": 0.3,
+        "top_p": 0.8
+      },
+      "streaming_config": {
+        "enabled": true,
+        "chunk_size": 1024
+      }
+    },
+    "error_handling": {
+      "exception_types": [
+        "ValueError - 文件不存在或格式不支持",
+        "RuntimeError - 摘要生成失败",
+        "Exception - 通用异常捕获"
+      ],
+      "error_responses": [
+        "文件不存在 - 清晰的错误信息",
+        "格式不支持 - 建议支持的格式",
+        "处理失败 - 详细错误信息"
+      ],
+      "recovery_strategies": [
+        "批处理模式下单文件失败不影响其他文件处理",
+        "提供明确的错误信息和建议",
+        "命令行模式下使用系统退出码指示错误"
+      ]
+    },
+    "testing": {
+      "test_cases": [
+        "单文件摘要生成",
+        "批量文件处理",
+        "不同摘要长度选项",
+        "不同输出格式选项",
+        "关键词提取功能"
+      ],
+      "test_scenarios": [
+        "正常文件处理",
+        "文件不存在场景",
+        "不支持的文件格式",
+        "大文件处理",
+        "多文件批处理"
+      ],
+      "validation_criteria": [
+        "摘要质量和准确性",
+        "处理时间和效率",
+        "错误处理的有效性",
+        "输出格式的正确性",
+        "关键词提取的相关性"
+      ]
+    },
+    "deployment": {
+      "deployment_requirements": [
+        "Python 3.13+",
+        "Strands SDK",
+        "AWS Bedrock访问权限",
+        "文件处理相关依赖库"
+      ],
+      "runtime_dependencies": [
+        "nexus_utils",
+        "strands",
+        "boto3",
+        "PyPDF2/pdfplumber",
+        "python-docx",
+        "markdown",
+        "chardet"
+      ],
+      "performance_considerations": [
+        "大文件分块处理",
+        "批量处理并发控制",
+        "内存使用优化",
+        "API调用频率限制"
+      ]
+    },
+    "development_notes": "开发过程中特别关注了用户体验和错误处理。通过类封装和清晰的接口设计，使得智能体更易于使用和扩展。批处理功能的实现考虑了效率和资源使用，采用了适当的并发控制策略。命令行接口设计遵循了直观性和灵活性原则，使得用户可以方便地通过命令行使用所有功能。错误处理机制确保了在各种异常情况下都能提供有用的反馈和建议。"
+  }
+}

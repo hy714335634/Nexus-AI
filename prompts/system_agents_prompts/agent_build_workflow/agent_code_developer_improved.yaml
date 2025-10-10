@@ -63,6 +63,80 @@ agent:
         - **类型注解**：使用完整的类型提示系统
         - **其他开发**：基于boto3或使用use_aws工具，以及python默认工具进行构建
         
+        **AgentCore部署和文件处理要求**：
+        生成的Agent代码必须能够部署到AWS Bedrock AgentCore并正确处理文件输入：
+        
+        1. **Agent代码结构**：
+           - Agent代码必须简洁，遵循系统Agent模板模式
+           - 使用 agent_factory.create_agent_from_prompt_template 创建agent
+           - 不要创建复杂的类封装，保持代码简单直接
+           - 示例结构：
+             ```python
+             import os
+             from nexus_utils.agent_factory import create_agent_from_prompt_template
+             
+             os.environ["BYPASS_TOOL_CONSENT"] = "true"
+             
+             agent_params = {"env": "production", "version": "latest", "model_id": "default"}
+             my_agent = create_agent_from_prompt_template(
+                 agent_name="generated_agents_prompts/<project>/<agent>", 
+                 **agent_params
+             )
+             
+             if __name__ == "__main__":
+                 import argparse
+                 parser = argparse.ArgumentParser(description='Agent')
+                 parser.add_argument('-i', '--input', type=str, default="test", help='Input')
+                 args = parser.parse_args()
+                 print(f"✅ Agent创建成功: {my_agent.name}")
+                 result = my_agent(args.input)
+                 print(f"📋 响应:\n{result}")
+             ```
+        
+        2. **文件处理机制**：
+           - AgentCore通过payload的media字段传递文件（base64编码）
+           - Agent通过prompt接收文本指令和文件引用
+           - 工具需要支持两种输入方式：
+             a) 文件路径（本地测试）
+             b) base64编码的文件内容（AgentCore部署）
+           
+        3. **工具文件处理模式**：
+           工具必须支持灵活的文件输入：
+           ```python
+           def process_file(file_input: str, input_type: str = "auto"):
+               """
+               Args:
+                   file_input: 文件路径或base64编码内容
+                   input_type: "path", "base64", 或 "auto"（自动检测）
+               """
+               if input_type == "auto":
+                   # 自动检测：如果是有效路径则读取文件，否则当作base64
+                   if os.path.exists(file_input):
+                       with open(file_input, 'rb') as f:
+                           content = f.read()
+                   else:
+                       # 尝试base64解码
+                       import base64
+                       content = base64.b64decode(file_input)
+               elif input_type == "path":
+                   with open(file_input, 'rb') as f:
+                       content = f.read()
+               else:  # base64
+                   import base64
+                   content = base64.b64decode(file_input)
+               return content
+           ```
+        
+        4. **Prompt设计要求**：
+           - Prompt必须指导Agent如何从用户输入中提取文件信息
+           - Agent应该能够理解"处理这个文件"、"总结README.md"等自然语言
+           - 工具调用时，Agent会自动传递文件路径或内容
+        
+        5. **测试兼容性**：
+           - 本地测试：使用 -i 参数传递文件路径
+           - AgentCore调用：通过payload的prompt和media字段传递
+           - 工具应该透明处理两种情况
+        
         开发原则：
         1. **架构一致性**：严格遵循系统架构设计
         2. **功能完整性**：实现设计规格中的所有功能

@@ -1,0 +1,252 @@
+/*!*************************************************************************************************************************************************************************************************************************************************************!*\
+  !*** css ./node_modules/next/dist/build/webpack/loaders/css-loader/src/index.js??ruleSet[1].rules[11].oneOf[12].use[2]!./node_modules/next/dist/build/webpack/loaders/postcss-loader/src/index.js??ruleSet[1].rules[11].oneOf[12].use[3]!./app/globals.css ***!
+  \*************************************************************************************************************************************************************************************************************************************************************/
+:root {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  --sidebar-bg: rgba(255, 255, 255, 0.95);
+  --sidebar-border: #e0e0e0;
+  --sidebar-text: #333;
+  --accent: #667eea;
+  --accent-dark: #764ba2;
+  --muted: #999;
+  --badge-bg: #ff4444;
+  --card-bg: rgba(255, 255, 255, 0.95);
+  --card-backdrop: blur(10px);
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: var(--sidebar-text);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+}
+
+textarea, input {
+  font: inherit;
+}
+
+main {
+  width: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/*!***************************************************************************************************************************************************************************************************************************************************************************!*\
+  !*** css ./node_modules/next/dist/build/webpack/loaders/css-loader/src/index.js??ruleSet[1].rules[11].oneOf[7].use[2]!./node_modules/next/dist/build/webpack/loaders/postcss-loader/src/index.js??ruleSet[1].rules[11].oneOf[7].use[3]!./components/app-shell.module.css ***!
+  \***************************************************************************************************************************************************************************************************************************************************************************/
+.app-shell_appContainer__0H4B8 {
+  display: flex;
+  min-height: 100vh;
+}
+
+.app-shell_sidebar__UP6vv {
+  width: 280px;
+  background: var(--sidebar-bg);
+  -webkit-backdrop-filter: blur(10px);
+          backdrop-filter: blur(10px);
+  box-shadow: 2px 0 20px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+}
+
+.app-shell_sidebarHeader__oUvh1 {
+  padding: 24px;
+  border-bottom: 1px solid var(--sidebar-border);
+  background: rgba(102, 126, 234, 0.12);
+}
+
+.app-shell_logo__sBghO {
+  font-size: 1.3rem;
+  font-weight: 700;
+  text-align: center;
+  color: var(--accent);
+}
+
+.app-shell_navModules__qoglZ {
+  flex: 1 1;
+  padding: 16px 0 24px;
+  overflow-y: auto;
+}
+
+.app-shell_navSection__NEc2_ {
+  margin-bottom: 24px;
+}
+
+.app-shell_navSectionTitle__Lqb75 {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 0 24px 8px;
+}
+
+.app-shell_navList__YKsrK {
+  display: grid;
+  grid-gap: 4px;
+  gap: 4px;
+}
+
+.app-shell_navItem__2qkmb {
+  display: flex;
+  align-items: center;
+  padding: 12px 24px 12px 28px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, color 0.3s ease, border-left-color 0.3s ease;
+  border-left: 4px solid transparent;
+  position: relative;
+  color: var(--sidebar-text);
+}
+
+.app-shell_navItem__2qkmb:hover {
+  background: rgba(102, 126, 234, 0.1);
+  border-left-color: var(--accent);
+}
+
+.app-shell_navItemActive__Bhoku {
+  background: rgba(102, 126, 234, 0.15);
+  border-left-color: var(--accent);
+  color: var(--accent);
+}
+
+.app-shell_navItemActive__Bhoku::before {
+  content: '';
+  position: absolute;
+  right: 16px;
+  width: 8px;
+  height: 8px;
+  background: var(--accent);
+  border-radius: 50%;
+}
+
+.app-shell_navIcon__VQnxD {
+  margin-right: 12px;
+  font-size: 1.1rem;
+}
+
+.app-shell_navText__qYYNT {
+  font-weight: 500;
+  flex: 1 1;
+}
+
+.app-shell_navBadge__sj9J5 {
+  background: var(--badge-bg);
+  color: #fff;
+  font-size: 0.65rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  font-weight: 600;
+  margin-left: 6px;
+}
+
+.app-shell_navStatus__KAuzD {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-left: 8px;
+}
+
+.app-shell_statusOnline__GU4EM {
+  background: #4caf50;
+}
+
+.app-shell_statusBuilding__LMLOI {
+  background: #ff9800;
+}
+
+.app-shell_statusOffline__ZqrBB {
+  background: #e0e0e0;
+}
+
+.app-shell_mainContent__u2z4c {
+  flex: 1 1;
+  display: flex;
+  flex-direction: column;
+  background: rgba(255, 255, 255, 0.06);
+  -webkit-backdrop-filter: blur(6px);
+          backdrop-filter: blur(6px);
+}
+
+.app-shell_header__Co6gZ {
+  background: var(--sidebar-bg);
+  -webkit-backdrop-filter: blur(10px);
+          backdrop-filter: blur(10px);
+  padding: 16px 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+}
+
+.app-shell_pageTitle__GT_8I {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.app-shell_userInfo__Wymc8 {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 0.95rem;
+  color: #555;
+}
+
+.app-shell_userAvatar__Alakt {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-weight: 600;
+}
+
+.app-shell_content__kPj4f {
+  flex: 1 1;
+  padding: 32px;
+  overflow-y: auto;
+}
+
+@media (max-width: 1080px) {
+  .app-shell_appContainer__0H4B8 {
+    flex-direction: column;
+  }
+
+  .app-shell_sidebar__UP6vv {
+    width: 100%;
+    flex-direction: column;
+    box-shadow: none;
+  }
+
+  .app-shell_navModules__qoglZ {
+    display: none;
+  }
+
+  .app-shell_mainContent__u2z4c {
+    min-height: calc(100vh - 80px);
+  }
+}
+

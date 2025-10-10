@@ -1,0 +1,400 @@
+{
+  "system_architecture": {
+    "architecture_name": "智能睡眠提醒系统架构",
+    "version": "1.0",
+    "date": "2025-10-08",
+    "architecture_overview": "基于单Agent架构的智能睡眠提醒系统，采用模块化设计，包含用户管理、时间计算、提醒生成、数据分析和知识库等核心模块。系统遵循本地优先、隐私保护的设计原则，支持离线运行和个性化服务。",
+    "architecture_type": "单Agent架构",
+    "design_principles": [
+      "隐私优先：用户数据本地存储，最小化数据收集",
+      "模块化设计：功能模块独立，便于维护和扩展",
+      "用户体验优先：简洁直观的交互界面",
+      "可靠性保证：高可用性和数据一致性",
+      "个性化服务：基于用户偏好的智能推荐",
+      "离线优先：核心功能支持离线运行"
+    ],
+    "system_components": {
+      "core_agent": {
+        "name": "SleepReminderAgent",
+        "description": "智能睡眠提醒核心Agent，负责协调各个模块，处理用户请求，生成睡眠提醒",
+        "responsibilities": [
+          "接收和处理用户输入",
+          "协调各功能模块工作",
+          "生成个性化睡眠提醒",
+          "管理用户交互流程",
+          "执行定时任务和提醒"
+        ],
+        "interfaces": [
+          "用户交互接口",
+          "模块调用接口",
+          "数据访问接口",
+          "定时器接口"
+        ]
+      },
+      "functional_modules": [
+        {
+          "name": "UserProfileManager",
+          "description": "用户档案管理模块",
+          "functions": [
+            "用户睡眠偏好设置和存储",
+            "用户配置数据管理",
+            "个人信息隐私保护",
+            "配置数据验证和更新"
+          ],
+          "data_structures": [
+            "UserProfile: 用户基本信息和睡眠偏好",
+            "SleepPreferences: 睡眠时长、起床时间等偏好",
+            "ReminderSettings: 提醒方式和频率设置"
+          ]
+        },
+        {
+          "name": "SleepCalculator",
+          "description": "睡眠时间计算模块",
+          "functions": [
+            "最佳睡觉时间计算",
+            "睡眠周期分析",
+            "睡前准备时间考虑",
+            "动态时间调整建议"
+          ],
+          "algorithms": [
+            "基于睡眠时长的逆向计算",
+            "睡眠周期优化算法",
+            "个性化时间调整算法"
+          ]
+        },
+        {
+          "name": "ReminderGenerator",
+          "description": "提醒生成模块",
+          "functions": [
+            "个性化提醒内容生成",
+            "提醒时机智能判断",
+            "多样化提醒模板管理",
+            "提醒效果跟踪"
+          ],
+          "templates": [
+            "温馨提醒模板",
+            "健康建议模板",
+            "激励型提醒模板",
+            "简洁提醒模板"
+          ]
+        },
+        {
+          "name": "SleepTracker",
+          "description": "睡眠习惯追踪模块",
+          "functions": [
+            "睡眠数据记录和存储",
+            "睡眠模式分析",
+            "习惯趋势统计",
+            "异常模式检测"
+          ],
+          "analytics": [
+            "睡眠规律性分析",
+            "睡眠债务计算",
+            "改善建议生成",
+            "周期性报告生成"
+          ]
+        },
+        {
+          "name": "KnowledgeBase",
+          "description": "睡眠健康知识库模块",
+          "functions": [
+            "睡眠健康知识存储",
+            "个性化建议匹配",
+            "知识内容检索",
+            "建议内容生成"
+          ],
+          "knowledge_categories": [
+            "睡眠科学基础知识",
+            "睡眠卫生指导",
+            "常见睡眠问题解决方案",
+            "年龄相关睡眠建议"
+          ]
+        },
+        {
+          "name": "ScheduleManager",
+          "description": "定时任务管理模块",
+          "functions": [
+            "提醒任务调度",
+            "定时器管理",
+            "任务执行监控",
+            "异常处理和恢复"
+          ],
+          "scheduling_features": [
+            "精确时间触发",
+            "重复任务管理",
+            "任务优先级处理",
+            "系统资源优化"
+          ]
+        }
+      ]
+    },
+    "data_architecture": {
+      "storage_strategy": "本地存储优先",
+      "data_models": [
+        {
+          "name": "User",
+          "fields": [
+            "user_id: 用户唯一标识",
+            "name: 用户姓名",
+            "age: 年龄（可选）",
+            "created_at: 创建时间",
+            "last_active: 最后活跃时间"
+          ]
+        },
+        {
+          "name": "SleepProfile",
+          "fields": [
+            "user_id: 关联用户ID",
+            "ideal_sleep_duration: 理想睡眠时长（小时）",
+            "wake_up_time: 起床时间",
+            "preparation_time: 睡前准备时间（分钟）",
+            "sleep_goal: 睡眠目标",
+            "reminder_preferences: 提醒偏好设置"
+          ]
+        },
+        {
+          "name": "SleepRecord",
+          "fields": [
+            "record_id: 记录ID",
+            "user_id: 用户ID",
+            "date: 日期",
+            "planned_bedtime: 计划睡觉时间",
+            "actual_bedtime: 实际睡觉时间",
+            "reminder_sent: 提醒发送时间",
+            "user_response: 用户响应",
+            "sleep_quality_rating: 睡眠质量评分（可选）"
+          ]
+        },
+        {
+          "name": "ReminderTemplate",
+          "fields": [
+            "template_id: 模板ID",
+            "category: 提醒类别",
+            "content: 提醒内容模板",
+            "style: 提醒风格",
+            "variables: 可变参数列表"
+          ]
+        }
+      ],
+      "data_persistence": [
+        "SQLite本地数据库存储用户数据",
+        "JSON配置文件存储系统设置",
+        "加密存储敏感信息",
+        "定期数据备份机制"
+      ]
+    },
+    "integration_architecture": {
+      "internal_integrations": [
+        {
+          "source": "SleepReminderAgent",
+          "target": "UserProfileManager",
+          "interface": "用户配置管理API",
+          "data_flow": "用户偏好设置和查询"
+        },
+        {
+          "source": "SleepReminderAgent",
+          "target": "SleepCalculator",
+          "interface": "时间计算API",
+          "data_flow": "睡眠时间计算请求和结果"
+        },
+        {
+          "source": "SleepReminderAgent",
+          "target": "ReminderGenerator",
+          "interface": "提醒生成API",
+          "data_flow": "提醒内容生成请求和结果"
+        },
+        {
+          "source": "SleepTracker",
+          "target": "SleepCalculator",
+          "interface": "历史数据API",
+          "data_flow": "睡眠历史数据用于优化计算"
+        },
+        {
+          "source": "ReminderGenerator",
+          "target": "KnowledgeBase",
+          "interface": "知识检索API",
+          "data_flow": "健康建议内容获取"
+        }
+      ],
+      "external_interfaces": [
+        {
+          "name": "用户界面接口",
+          "type": "UI/CLI",
+          "description": "支持图形界面和命令行界面",
+          "protocols": ["本地GUI", "命令行", "Web界面（可选）"]
+        },
+        {
+          "name": "系统通知接口",
+          "type": "Notification",
+          "description": "系统级通知服务集成",
+          "protocols": ["操作系统通知", "桌面提醒", "声音提醒"]
+        },
+        {
+          "name": "时间服务接口",
+          "type": "System Time",
+          "description": "系统时间和定时器服务",
+          "protocols": ["系统时钟", "定时器API", "时区处理"]
+        }
+      ]
+    },
+    "security_architecture": {
+      "privacy_protection": [
+        "用户数据本地存储，不上传到云端",
+        "敏感信息加密存储",
+        "最小化数据收集原则",
+        "用户数据完全控制权"
+      ],
+      "data_security": [
+        "数据库文件加密",
+        "配置文件权限控制",
+        "内存数据清理机制",
+        "安全的数据备份和恢复"
+      ],
+      "access_control": [
+        "用户身份验证（可选）",
+        "功能权限管理",
+        "数据访问日志记录",
+        "异常访问检测"
+      ]
+    },
+    "performance_architecture": {
+      "response_time_targets": [
+        "用户交互响应 < 500ms",
+        "提醒生成 < 2s",
+        "数据查询 < 1s",
+        "系统启动 < 3s"
+      ],
+      "scalability_considerations": [
+        "支持大量历史数据存储",
+        "高效的数据索引和查询",
+        "内存使用优化",
+        "CPU资源合理分配"
+      ],
+      "reliability_measures": [
+        "自动故障恢复机制",
+        "数据一致性保证",
+        "异常处理和日志记录",
+        "系统健康监控"
+      ]
+    },
+    "deployment_architecture": {
+      "deployment_model": "本地部署",
+      "supported_platforms": [
+        "Windows 10/11",
+        "macOS 10.15+",
+        "Linux (Ubuntu 18.04+)",
+        "跨平台Python环境"
+      ],
+      "installation_requirements": [
+        "Python 3.8+",
+        "SQLite 3.x",
+        "系统通知支持",
+        "100MB存储空间"
+      ],
+      "configuration_management": [
+        "环境配置自动检测",
+        "用户配置向导",
+        "配置文件管理",
+        "系统兼容性检查"
+      ]
+    },
+    "technology_stack": {
+      "programming_language": "Python 3.8+",
+      "core_frameworks": [
+        "asyncio: 异步任务处理",
+        "sqlite3: 本地数据存储",
+        "datetime: 时间处理",
+        "json: 配置文件处理"
+      ],
+      "ui_technologies": [
+        "tkinter: 跨平台GUI（主要）",
+        "argparse: 命令行接口",
+        "rich: 美化命令行输出（可选）"
+      ],
+      "utility_libraries": [
+        "schedule: 定时任务管理",
+        "plyer: 跨平台通知",
+        "cryptography: 数据加密",
+        "logging: 日志管理"
+      ]
+    }
+  },
+  "architecture_decisions": [
+    {
+      "decision": "选择单Agent架构",
+      "rationale": "功能相对集中，单个Agent能够有效协调所有模块，降低系统复杂度",
+      "alternatives": "多Agent架构",
+      "trade_offs": "简化了通信复杂度，但可能在功能扩展时需要重构"
+    },
+    {
+      "decision": "本地存储优先",
+      "rationale": "保护用户隐私，支持离线使用，减少网络依赖",
+      "alternatives": "云端存储",
+      "trade_offs": "增强了隐私保护，但失去了多设备同步能力"
+    },
+    {
+      "decision": "SQLite作为主要数据库",
+      "rationale": "轻量级、无需安装、支持ACID事务，适合本地应用",
+      "alternatives": "文件存储、内存数据库",
+      "trade_offs": "提供了结构化查询能力，但增加了一定的复杂度"
+    },
+    {
+      "decision": "Python作为开发语言",
+      "rationale": "跨平台支持好，生态丰富，开发效率高，适合AI应用",
+      "alternatives": "Java、JavaScript、Go",
+      "trade_offs": "开发效率高，但运行性能相对较低"
+    }
+  ],
+  "implementation_roadmap": [
+    {
+      "phase": "核心框架搭建",
+      "duration": "1-2周",
+      "deliverables": [
+        "SleepReminderAgent基础框架",
+        "数据模型定义",
+        "基础配置管理",
+        "核心接口定义"
+      ]
+    },
+    {
+      "phase": "核心功能实现",
+      "duration": "2-3周",
+      "deliverables": [
+        "用户档案管理模块",
+        "睡眠时间计算模块",
+        "基础提醒生成功能",
+        "定时任务管理"
+      ]
+    },
+    {
+      "phase": "高级功能开发",
+      "duration": "2周",
+      "deliverables": [
+        "睡眠习惯追踪",
+        "知识库集成",
+        "个性化提醒优化",
+        "数据分析功能"
+      ]
+    },
+    {
+      "phase": "用户界面和集成",
+      "duration": "1-2周",
+      "deliverables": [
+        "图形用户界面",
+        "系统通知集成",
+        "配置向导",
+        "帮助文档"
+      ]
+    },
+    {
+      "phase": "测试和优化",
+      "duration": "1周",
+      "deliverables": [
+        "功能测试",
+        "性能优化",
+        "错误处理完善",
+        "用户体验优化"
+      ]
+    }
+  ]
+}

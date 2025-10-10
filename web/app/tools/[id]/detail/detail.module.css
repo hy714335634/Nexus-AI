@@ -1,0 +1,74 @@
+.page {
+  display: grid;
+  gap: 24px;
+  color: #333;
+}
+
+.header {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
+}
+
+.title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--accent, #667eea);
+}
+
+.grid {
+  display: grid;
+  gap: 24px;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+}
+
+.card {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+  display: grid;
+  gap: 16px;
+}
+
+.cardTitle {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--accent, #667eea);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid rgba(215, 219, 255, 0.6);
+  font-size: 0.92rem;
+}
+
+.timeline {
+  display: grid;
+  gap: 12px;
+}
+
+.timelineItem {
+  background: rgba(102, 126, 234, 0.12);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: grid;
+  gap: 4px;
+}
+
+.badge {
+  background: rgba(102, 126, 234, 0.12);
+  color: var(--accent, #667eea);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}

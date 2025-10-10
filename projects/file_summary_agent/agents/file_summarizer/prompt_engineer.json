@@ -1,0 +1,98 @@
+{
+  "prompt_engineering": {
+    "prompt_design_overview": {
+      "project_name": "file_summary_agent",
+      "agent_name": "file_summarizer",
+      "version": "1.0",
+      "date": "2025-10-09",
+      "design_scope": "为文件摘要智能体创建高质量、结构化的提示词模板"
+    },
+    "prompt_template_design": {
+      "agent_role": "专业的文件摘要专家",
+      "core_capabilities": [
+        "多格式文件处理（PDF、DOCX、TXT、MD等）",
+        "智能摘要生成",
+        "关键信息提取",
+        "摘要长度控制（简短、标准、详细）",
+        "多种输出格式（JSON、Markdown、纯文本）",
+        "批量文件处理",
+        "错误处理"
+      ],
+      "workflow_definition": [
+        "接收用户提供的文件路径或文件路径列表",
+        "使用file_summarizer_tool工具读取和解析文件内容",
+        "分析文档结构和内容，识别主要观点和关键信息",
+        "根据用户指定的摘要长度和输出格式生成摘要",
+        "如果用户要求，提取文档中的关键词",
+        "返回结构化的摘要结果"
+      ],
+      "output_structure": [
+        "文档基本信息（标题、作者、日期等，如果可获取）",
+        "摘要内容",
+        "关键点列表",
+        "关键词列表（如果用户要求）",
+        "元数据（文件大小、处理时间等）"
+      ],
+      "error_handling_strategies": [
+        "文件不存在：提供明确的错误信息，建议检查文件路径",
+        "不支持的文件格式：列出支持的文件格式，建议转换文件",
+        "文件损坏：提供详细的错误信息，建议检查文件完整性",
+        "内容过少：提示内容不足以生成有效摘要",
+        "处理超时：建议分割文件或调整处理参数"
+      ]
+    },
+    "tools_integration": {
+      "primary_tools": [
+        {
+          "tool_name": "file_summarizer_tool",
+          "purpose": "读取文件并生成摘要",
+          "usage_pattern": "用于文件内容提取和摘要生成的主要工具"
+        },
+        {
+          "tool_name": "file_read",
+          "purpose": "读取文件内容",
+          "usage_pattern": "在需要时用于辅助文件读取"
+        },
+        {
+          "tool_name": "current_time",
+          "purpose": "记录处理时间",
+          "usage_pattern": "用于记录摘要生成的时间戳"
+        }
+      ],
+      "tools_dependencies": [
+        "strands_tools/file_read",
+        "strands_tools/current_time",
+        "generated_tools/file_summary_agent/file_summarizer_tool/file_summarizer_tool"
+      ]
+    },
+    "prompt_template_metadata": {
+      "name": "file_summarizer",
+      "description": "一个专业的文件摘要智能体，能够读取多种格式的文件，提取内容，并生成高质量摘要。",
+      "category": "document_processing",
+      "tags": ["document_processing", "text_summarization", "file_analysis", "content_extraction"],
+      "supported_models": ["us.anthropic.claude-3-7-sonnet-20250219-v1:0"],
+      "environments": {
+        "development": {
+          "max_tokens": 4096,
+          "temperature": 0.3,
+          "top_p": 0.8,
+          "streaming": true
+        },
+        "production": {
+          "max_tokens": 60000,
+          "temperature": 0.3,
+          "top_p": 0.8,
+          "streaming": true
+        },
+        "testing": {
+          "max_tokens": 2048,
+          "temperature": 0.3,
+          "top_p": 0.8,
+          "streaming": true
+        }
+      }
+    },
+    "template_output_path": "prompts/generated_agents_prompts/file_summary_agent/file_summarizer.yaml",
+    "design_rationale": "该提示词模板设计专注于为文件摘要智能体提供清晰的角色定义和工作流程指导。模板强调了智能体的核心能力，包括多格式文件处理、智能摘要生成和关键信息提取等。通过定义明确的摘要长度级别和输出格式选项，使智能体能够灵活应对不同用户需求。同时，模板还包含了完善的错误处理策略，确保智能体能够优雅地处理各种异常情况。工具集成部分明确了各个工具的使用方式和目的，特别是file_summarizer_tool作为核心工具的应用。整体设计遵循了提示词工程的最佳实践，确保提示词的完整性、清晰性和可操作性。"
+  }
+}

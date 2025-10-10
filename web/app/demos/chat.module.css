@@ -1,0 +1,152 @@
+.page {
+  display: grid;
+  gap: 24px;
+  color: #333;
+}
+
+.header {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
+  display: grid;
+  gap: 12px;
+}
+
+.title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--accent, #667eea);
+}
+
+.chatLayout {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 1.2fr);
+}
+
+.chatCard,
+.sideCard {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+  display: grid;
+  gap: 16px;
+}
+
+.messageList {
+  display: grid;
+  gap: 14px;
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.message {
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: grid;
+  gap: 6px;
+}
+
+.messageUser {
+  background: linear-gradient(45deg, #667eea, #764ba2);
+  color: #fff;
+  justify-self: end;
+}
+
+.messageAgent {
+  background: #f6f7ff;
+  border: 1px solid rgba(102, 126, 234, 0.18);
+  justify-self: start;
+}
+
+.messageMeta {
+  font-size: 0.82rem;
+  opacity: 0.7;
+}
+
+.messageContent {
+  line-height: 1.5;
+}
+
+.toolsBox {
+  background: rgba(102, 126, 234, 0.1);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: grid;
+  gap: 8px;
+}
+
+.inputArea {
+  display: grid;
+  gap: 12px;
+}
+
+.textarea {
+  border: 1px solid #d7dbff;
+  border-radius: 12px;
+  padding: 12px 14px;
+  min-height: 120px;
+  background: #f8f9ff;
+  font-size: 0.95rem;
+  color: #333;
+}
+
+.controls {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.select,
+.primaryButton,
+.secondaryButton {
+  border: none;
+  border-radius: 24px;
+  padding: 10px 16px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.select {
+  border: 1px solid #d7dbff;
+  background: #f8f9ff;
+  color: #333;
+}
+
+.primaryButton {
+  background: linear-gradient(45deg, var(--accent, #667eea), var(--accent-dark, #764ba2));
+  color: #fff;
+}
+
+.secondaryButton {
+  background: rgba(102, 126, 234, 0.12);
+  color: var(--accent, #667eea);
+}
+
+.sideCardTitle {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--accent, #667eea);
+}
+
+.timeline {
+  display: grid;
+  gap: 10px;
+}
+
+.timelineItem {
+  background: rgba(76, 175, 80, 0.12);
+  border-radius: 12px;
+  padding: 10px 12px;
+  color: #2e7d32;
+}
+
+@media (max-width: 1080px) {
+  .chatLayout {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+}
