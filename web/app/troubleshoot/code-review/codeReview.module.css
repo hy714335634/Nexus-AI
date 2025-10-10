@@ -1,0 +1,42 @@
+.page {
+  display: grid;
+  gap: 24px;
+  color: #333;
+}
+
+.card {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+  display: grid;
+  gap: 16px;
+}
+
+.title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--accent, #667eea);
+}
+
+.diffBlock {
+  background: #0f172a;
+  color: #cbd5f5;
+  border-radius: 12px;
+  padding: 16px;
+  font-family: SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+  font-size: 0.85rem;
+  min-height: 200px;
+}
+
+.alertList {
+  display: grid;
+  gap: 12px;
+}
+
+.alertItem {
+  background: rgba(244, 67, 54, 0.12);
+  border-radius: 12px;
+  padding: 12px 14px;
+  color: #c62828;
+}

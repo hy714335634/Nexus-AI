@@ -1,0 +1,157 @@
+.page {
+  display: grid;
+  gap: 24px;
+  color: #333;
+}
+
+.header {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
+  display: grid;
+  gap: 18px;
+}
+
+.headerTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.titleGroup {
+  display: grid;
+  gap: 6px;
+}
+
+.title {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--accent, #667eea);
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.primaryButton,
+.secondaryButton {
+  border: none;
+  border-radius: 24px;
+  padding: 10px 20px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.primaryButton {
+  background: linear-gradient(45deg, var(--accent, #667eea), var(--accent-dark, #764ba2));
+  color: #fff;
+}
+
+.secondaryButton {
+  background: rgba(102, 126, 234, 0.12);
+  color: var(--accent, #667eea);
+  border: 1px solid rgba(102, 126, 234, 0.28);
+}
+
+.statsGrid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.statCard {
+  background: rgba(102, 126, 234, 0.12);
+  border-radius: 16px;
+  padding: 16px;
+  text-align: center;
+}
+
+.statValue {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--accent, #667eea);
+}
+
+.toolSection,
+.mcpSection {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+  display: grid;
+  gap: 20px;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sectionTitle {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--accent, #667eea);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table thead {
+  background: rgba(102, 126, 234, 0.12);
+}
+
+.table th,
+.table td {
+  padding: 14px;
+  text-align: left;
+  font-size: 0.92rem;
+  border-bottom: 1px solid rgba(215, 219, 255, 0.6);
+}
+
+.table tbody tr:hover {
+  background: rgba(102, 126, 234, 0.08);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: rgba(102, 126, 234, 0.12);
+  color: var(--accent, #667eea);
+}
+
+.quickGrid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.quickCard {
+  background: rgba(102, 126, 234, 0.12);
+  border-radius: 14px;
+  padding: 16px;
+  display: grid;
+  gap: 8px;
+}
+
+.quickLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: var(--accent, #667eea);
+}

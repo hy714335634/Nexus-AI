@@ -1,0 +1,147 @@
+.page {
+  display: grid;
+  gap: 24px;
+  color: #333;
+}
+
+.header {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
+  display: grid;
+  gap: 12px;
+}
+
+.title {
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: var(--accent, #667eea);
+}
+
+.agentCard {
+  background: linear-gradient(45deg, #4caf50, #8bc34a);
+  color: #fff;
+  border-radius: 20px;
+  padding: 24px;
+  display: grid;
+  gap: 12px;
+}
+
+.agentInfo {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.reviewLayout {
+  display: grid;
+  gap: 24px;
+  grid-template-columns: minmax(0, 2.2fr) minmax(0, 1.3fr);
+}
+
+.queueCard,
+.contextCard {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+  display: grid;
+  gap: 16px;
+}
+
+.queueList {
+  display: grid;
+  gap: 12px;
+}
+
+.queueItem {
+  background: rgba(102, 126, 234, 0.12);
+  border-radius: 14px;
+  padding: 12px 14px;
+  display: grid;
+  gap: 6px;
+}
+
+.contextTabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.contextButton {
+  border: none;
+  border-radius: 999px;
+  padding: 8px 16px;
+  background: rgba(102, 126, 234, 0.12);
+  color: var(--accent, #667eea);
+}
+
+.contextButtonActive {
+  background: linear-gradient(45deg, var(--accent, #667eea), var(--accent-dark, #764ba2));
+  color: #fff;
+}
+
+.contextBody {
+  background: #0f172a;
+  color: #cbd5f5;
+  border-radius: 12px;
+  padding: 18px;
+  font-family: SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+  min-height: 220px;
+}
+
+.feedbackCard {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+  display: grid;
+  gap: 16px;
+}
+
+.field {
+  display: grid;
+  gap: 8px;
+}
+
+.label {
+  font-weight: 600;
+  color: #555;
+}
+
+.textarea,
+.select {
+  border: 1px solid #d7dbff;
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: #f8f9ff;
+  font-size: 0.95rem;
+  color: #333;
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+}
+
+.primaryButton,
+.secondaryButton {
+  border: none;
+  border-radius: 24px;
+  padding: 12px 20px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.primaryButton {
+  background: linear-gradient(45deg, var(--accent, #667eea), var(--accent-dark, #764ba2));
+  color: #fff;
+}
+
+.secondaryButton {
+  background: rgba(102, 126, 234, 0.12);
+  color: var(--accent, #667eea);
+}

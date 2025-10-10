@@ -1,0 +1,6 @@
+project:
+  created_date: '2025-10-08T13:48:22.736679+00:00'
+  description: 一个能够帮助用户生成睡觉提醒的智能体，提供个性化的睡眠时间建议和提醒功能。
+  name: sleep_reminder
+  updated_date: '2025-10-08T14:20:07.402951+00:00'
+  version: 1.0.0

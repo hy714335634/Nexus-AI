@@ -6,6 +6,7 @@ from .agent_deployment_service import (
     AgentDeploymentError,
     DeploymentResult,
 )
+from .build_dashboard_service import BuildDashboardService
 
 
 __all__ = [
@@ -14,4 +15,5 @@ __all__ = [
     "AgentDeploymentService",
     "AgentDeploymentError",
     "DeploymentResult",
+    "BuildDashboardService",
 ]

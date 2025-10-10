@@ -1,0 +1,190 @@
+/*!*************************************************************************************************************************************************************************************************************************************************************!*\
+  !*** css ./node_modules/next/dist/build/webpack/loaders/css-loader/src/index.js??ruleSet[1].rules[11].oneOf[12].use[2]!./node_modules/next/dist/build/webpack/loaders/postcss-loader/src/index.js??ruleSet[1].rules[11].oneOf[12].use[3]!./app/globals.css ***!
+  \*************************************************************************************************************************************************************************************************************************************************************/
+:root {
+  color-scheme: light dark;
+  --background: #0b0b0f;
+  --foreground: #f5f5f7;
+  --primary: #4f46e5;
+  --muted: #6b7280;
+  --border: #1f2937;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: #0b0b0f;
+  color: var(--foreground);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font: inherit;
+}
+
+main {
+  width: 100%;
+}
+
+@keyframes pulse {
+  0% { transform: translateX(-100%); }
+  50% { transform: translateX(50%); }
+  100% { transform: translateX(120%); }
+}
+
+/*!***************************************************************************************************************************************************************************************************************************************************************************!*\
+  !*** css ./node_modules/next/dist/build/webpack/loaders/css-loader/src/index.js??ruleSet[1].rules[11].oneOf[7].use[2]!./node_modules/next/dist/build/webpack/loaders/postcss-loader/src/index.js??ruleSet[1].rules[11].oneOf[7].use[3]!./components/app-shell.module.css ***!
+  \***************************************************************************************************************************************************************************************************************************************************************************/
+.app-shell_shell__v1l0I {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  min-height: 100vh;
+  background: #05060a;
+}
+
+.app-shell_sidebar__UP6vv {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 32px 24px;
+  border-right: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(14, 14, 26, 0.95), rgba(5, 6, 10, 0.95));
+}
+
+.app-shell_brand__35qZF {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.app-shell_brandTitle___Kc0I {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.app-shell_brandSubtitle__sKbhc {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.app-shell_nav__J1lgV {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.app-shell_navLink__nR5sf {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: var(--muted);
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.app-shell_navLinkActive__yBi_o {
+  background: rgba(79, 70, 229, 0.16);
+  color: #eef2ff;
+}
+
+.app-shell_navLink__nR5sf:hover {
+  background: rgba(79, 70, 229, 0.12);
+  color: #eef2ff;
+}
+
+.app-shell_navLabel__P83Kh {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.app-shell_main__z_OED {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.app-shell_mainHeader__E_WRm {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 32px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(8, 8, 12, 0.7);
+  -webkit-backdrop-filter: blur(16px);
+          backdrop-filter: blur(16px);
+}
+
+.app-shell_mainTitle__pZBiC {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.app-shell_headerActions__Mteqn {
+  display: flex;
+  gap: 12px;
+}
+
+.app-shell_headerButton__ot_wp {
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: var(--primary);
+  color: #eef2ff;
+  font-size: 14px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.app-shell_headerButton__ot_wp:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 32px rgba(79, 70, 229, 0.35);
+}
+
+.app-shell_content__kPj4f {
+  padding: 32px;
+}
+
+.app-shell_tagline__9OIv7 {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+@media (max-width: 960px) {
+  .app-shell_shell__v1l0I {
+    grid-template-columns: 1fr;
+  }
+
+  .app-shell_sidebar__UP6vv {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .app-shell_nav__J1lgV {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .app-shell_mainHeader__E_WRm {
+    position: -webkit-sticky;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+}
+

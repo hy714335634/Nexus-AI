@@ -3,311 +3,312 @@
     "design_overview": {
       "project_name": "fitness_advisor",
       "version": "1.0",
-      "date": "2025-10-03",
-      "design_scope": "设计一个单Agent架构的智能健身顾问系统，能够基于用户个人信息和健身目标生成个性化的健身建议，包括锻炼计划、饮食建议和进度跟踪指导",
+      "date": "2025-10-08",
+      "design_scope": "智能健身建议生成系统的完整架构设计，包括单Agent架构、数据模型、交互流程和技术实现方案",
       "design_principles": [
-        "单一职责原则：Agent专注于健身建议生成",
-        "个性化优先：所有建议基于用户个人情况定制",
-        "安全第一：确保运动安全，避免伤害风险",
-        "科学性：基于运动生理学和营养学原理",
-        "易用性：简洁直观的交互界面",
-        "可扩展性：支持未来功能扩展"
+        "单一职责原则 - Agent专注于健身建议生成",
+        "用户安全优先 - 所有建议必须考虑安全性",
+        "个性化定制 - 基于用户信息提供定制化建议",
+        "科学性保证 - 建议基于运动科学理论",
+        "简洁易用 - 交互界面简单直观"
       ],
       "key_decisions": [
         "采用单Agent架构，简化系统复杂度",
-        "基于规则和知识库的建议生成算法",
-        "结构化的用户信息收集流程",
-        "模块化的功能设计便于维护扩展",
-        "内置安全检查和风险评估机制"
+        "集成多个专业工具支持健身建议生成",
+        "使用结构化数据模型确保信息完整性",
+        "实现分层安全检查机制",
+        "支持渐进式信息收集和建议优化"
       ],
       "workflow_type": "single_agent",
       "recommended_templates": [
-        "业务逻辑处理Agent模板",
-        "个性化推荐系统模板",
-        "用户画像分析模板"
+        "business_logic_agent_template",
+        "consultation_agent_template",
+        "personalized_recommendation_agent_template"
       ]
     },
     "architecture": {
-      "system_context": "智能健身顾问系统作为独立的AI Agent，接收用户的个人信息和健身需求，通过内置的健身知识库和算法逻辑，生成个性化的健身建议。系统不依赖外部健身数据源，所有建议基于内置知识和用户输入生成。",
-      "agent_topology": "单Agent拓扑结构：用户 ↔ 健身顾问Agent ↔ 内置知识库。Agent作为中心节点处理所有用户交互和建议生成逻辑。",
-      "interaction_model": "同步交互模型：用户发起请求 → Agent处理并生成建议 → 返回结构化建议给用户。支持多轮对话以收集详细信息和提供个性化建议。",
+      "system_context": "智能健身建议生成系统作为独立的AI Agent，接收用户的个人信息和健身需求，通过内置的专业知识库和算法逻辑，生成个性化的健身计划、营养建议和安全指导。系统不依赖外部健身数据源，完全基于用户输入和内置专业知识进行推理。",
+      "agent_topology": "单Agent拓扑结构：用户 ↔ fitness_advisor_agent ↔ 内置工具集（用户信息管理、健身计划生成、营养建议、安全检查、问答支持）",
+      "interaction_model": "请求-响应模型：用户通过自然语言与Agent交互，Agent调用相应工具处理请求，返回结构化的建议和指导。支持多轮对话和渐进式信息收集。",
       "technology_stack": {
         "sdk": "Strands SDK",
         "runtime": "Local",
-        "integrations": ["AWS Bedrock AI推理引擎", "内置健身知识库", "用户数据存储"]
+        "integrations": [
+          "AWS Bedrock AI推理引擎",
+          "本地数据存储",
+          "Python运动科学计算库"
+        ]
       }
     },
     "agents": [
       {
         "name": "fitness_advisor_agent",
-        "purpose": "智能健身顾问，提供个性化健身建议和指导",
+        "purpose": "为用户提供个性化、科学、安全的健身建议和指导",
         "responsibilities": [
-          "收集和分析用户个人信息（年龄、性别、身高、体重、健身经验等）",
-          "评估用户健身目标和期望（减肥、增肌、塑形、提高体能等）",
-          "生成个性化的锻炼计划（动作选择、组数次数、强度安排）",
-          "提供配套的饮食建议和营养指导",
-          "根据用户反馈调整运动强度和计划",
-          "提供进度跟踪方法和指导",
-          "确保运动安全，提供安全提醒和注意事项",
-          "科普健身知识，解答用户疑问",
-          "根据进度和反馈优化和调整训练计划"
+          "收集和管理用户基本信息（年龄、性别、身高、体重、健身经验等）",
+          "分析用户健身目标并评估可行性",
+          "生成个性化运动计划，包括具体动作、强度、频率安排",
+          "提供配套的营养建议和饮食指导",
+          "计算适合的运动强度和训练频率",
+          "建议进度跟踪方法和评估标准",
+          "提供运动安全注意事项和风险预防",
+          "回答用户的健身相关问题"
         ],
         "interfaces": {
           "inputs": [
-            "用户基本信息（年龄、性别、身高、体重、健康状况）",
-            "健身经验和背景信息",
-            "健身目标和期望效果",
-            "时间安排和可用设备",
+            "用户基本信息（年龄、性别、身高、体重、健身经验）",
+            "健身目标（减重、增肌、塑形、提高体能等）",
+            "时间安排和设备限制",
+            "健康状况和运动限制",
             "饮食偏好和限制",
-            "用户反馈和进度报告"
+            "具体健身问题和咨询"
           ],
           "outputs": [
-            "个性化锻炼计划（详细的训练安排）",
-            "饮食建议和营养指导",
-            "运动强度和频率建议",
-            "进度跟踪方法和指标",
-            "安全提醒和注意事项",
-            "健身知识科普内容",
-            "计划调整建议和优化方案"
+            "个性化运动计划（详细训练方案）",
+            "营养建议（食物推荐和摄入量）",
+            "训练强度和频率建议",
+            "进度跟踪方法和评估标准",
+            "安全注意事项和预防措施",
+            "专业问题解答和指导建议"
           ]
         },
         "dependencies": [
-          "内置健身动作数据库",
-          "营养知识库",
-          "安全规则引擎",
-          "用户画像分析模块"
+          "用户信息管理工具",
+          "健身计划生成工具",
+          "营养建议工具",
+          "安全检查工具",
+          "BMI和基础代谢率计算工具"
         ],
         "implementation_notes": [
-          "使用结构化的信息收集流程确保数据完整性",
-          "实现基于规则的建议生成算法",
-          "内置安全检查机制防止不当建议",
-          "支持多轮对话以获取详细用户需求",
-          "实现动态计划调整逻辑"
+          "使用结构化提示词确保建议的专业性和一致性",
+          "集成运动科学知识库，包含各种运动的标准参数",
+          "实现多层安全检查，确保建议不会造成健康风险",
+          "支持渐进式信息收集，允许用户分步提供信息",
+          "建立清晰的边界，明确不提供医疗诊断和治疗建议"
         ],
-        "recommended_template": "业务逻辑处理Agent模板"
+        "recommended_template": "business_logic_agent_template"
       }
     ],
     "data_models": [
       {
         "name": "UserProfile",
-        "schema": "{\n  \"basic_info\": {\n    \"age\": \"integer\",\n    \"gender\": \"string\",\n    \"height\": \"float\",\n    \"weight\": \"float\",\n    \"activity_level\": \"string\"\n  },\n  \"fitness_background\": {\n    \"experience_level\": \"string\",\n    \"previous_injuries\": \"array\",\n    \"current_fitness_level\": \"string\",\n    \"available_equipment\": \"array\"\n  },\n  \"goals\": {\n    \"primary_goal\": \"string\",\n    \"target_weight\": \"float\",\n    \"timeline\": \"string\",\n    \"specific_areas\": \"array\"\n  },\n  \"constraints\": {\n    \"available_time\": \"string\",\n    \"days_per_week\": \"integer\",\n    \"health_conditions\": \"array\",\n    \"dietary_restrictions\": \"array\"\n  }\n}",
+        "schema": "{\n  \"basic_info\": {\n    \"age\": \"integer\",\n    \"gender\": \"string\",\n    \"height\": \"float (cm)\",\n    \"weight\": \"float (kg)\",\n    \"bmi\": \"float (calculated)\"\n  },\n  \"fitness_info\": {\n    \"experience_level\": \"string (beginner/intermediate/advanced)\",\n    \"current_activity\": \"string\",\n    \"available_time\": \"string\",\n    \"equipment_access\": \"array of strings\"\n  },\n  \"health_info\": {\n    \"health_conditions\": \"array of strings\",\n    \"injuries_history\": \"array of strings\",\n    \"medications\": \"array of strings\",\n    \"limitations\": \"array of strings\"\n  },\n  \"preferences\": {\n    \"workout_types\": \"array of strings\",\n    \"dietary_preferences\": \"array of strings\",\n    \"dietary_restrictions\": \"array of strings\"\n  }\n}",
         "validation_rules": [
-          "年龄必须在13-80岁之间",
-          "身高体重必须在合理范围内",
-          "健身目标必须明确且可量化",
-          "时间安排必须现实可行"
+          "年龄必须在13-100岁之间",
+          "身高必须在100-250cm之间",
+          "体重必须在30-300kg之间",
+          "BMI自动计算并验证合理性",
+          "健康状况信息必须完整填写"
         ],
-        "relationships": ["关联WorkoutPlan和NutritionPlan"]
+        "relationships": [
+          "与FitnessGoal模型关联",
+          "与WorkoutPlan模型关联",
+          "与NutritionPlan模型关联"
+        ]
+      },
+      {
+        "name": "FitnessGoal",
+        "schema": "{\n  \"primary_goal\": \"string (weight_loss/muscle_gain/body_shaping/endurance/strength)\",\n  \"secondary_goals\": \"array of strings\",\n  \"target_timeline\": \"string\",\n  \"specific_targets\": {\n    \"weight_target\": \"float (optional)\",\n    \"body_fat_target\": \"float (optional)\",\n    \"performance_targets\": \"object (optional)\"\n  },\n  \"motivation_level\": \"string (low/medium/high)\",\n  \"commitment_level\": \"string (casual/regular/intensive)\"\n}",
+        "validation_rules": [
+          "必须至少有一个主要目标",
+          "目标时间线必须现实可行",
+          "具体目标数值必须在健康范围内"
+        ],
+        "relationships": [
+          "依赖UserProfile模型",
+          "影响WorkoutPlan和NutritionPlan生成"
+        ]
       },
       {
         "name": "WorkoutPlan",
-        "schema": "{\n  \"plan_id\": \"string\",\n  \"user_id\": \"string\",\n  \"duration_weeks\": \"integer\",\n  \"weekly_schedule\": {\n    \"days\": \"array\",\n    \"sessions_per_week\": \"integer\"\n  },\n  \"exercises\": [\n    {\n      \"name\": \"string\",\n      \"target_muscles\": \"array\",\n      \"sets\": \"integer\",\n      \"reps\": \"string\",\n      \"rest_time\": \"string\",\n      \"intensity\": \"string\",\n      \"instructions\": \"string\",\n      \"safety_notes\": \"string\"\n    }\n  ],\n  \"progression\": {\n    \"weekly_adjustments\": \"string\",\n    \"intensity_progression\": \"string\"\n  }\n}",
+        "schema": "{\n  \"plan_overview\": {\n    \"duration\": \"string\",\n    \"frequency\": \"string\",\n    \"intensity_level\": \"string\"\n  },\n  \"weekly_schedule\": {\n    \"monday\": \"workout_session\",\n    \"tuesday\": \"workout_session\",\n    \"wednesday\": \"workout_session\",\n    \"thursday\": \"workout_session\",\n    \"friday\": \"workout_session\",\n    \"saturday\": \"workout_session\",\n    \"sunday\": \"workout_session\"\n  },\n  \"workout_session\": {\n    \"type\": \"string\",\n    \"duration\": \"integer (minutes)\",\n    \"exercises\": \"array of exercise objects\",\n    \"warm_up\": \"array of exercises\",\n    \"cool_down\": \"array of exercises\"\n  },\n  \"exercise\": {\n    \"name\": \"string\",\n    \"sets\": \"integer\",\n    \"reps\": \"string\",\n    \"weight\": \"string (optional)\",\n    \"rest_time\": \"string\",\n    \"instructions\": \"string\",\n    \"safety_notes\": \"string\"\n  }\n}",
         "validation_rules": [
-          "每个动作必须包含安全说明",
-          "强度设置必须适合用户水平",
-          "休息时间必须合理",
-          "计划持续时间不超过12周"
+          "每周至少安排3天休息",
+          "运动强度必须适合用户水平",
+          "必须包含热身和放松环节",
+          "安全注意事项必须完整"
         ],
-        "relationships": ["基于UserProfile生成，关联ProgressTracking"]
+        "relationships": [
+          "基于UserProfile和FitnessGoal生成",
+          "与SafetyGuidelines模型关联"
+        ]
       },
       {
         "name": "NutritionPlan",
-        "schema": "{\n  \"plan_id\": \"string\",\n  \"user_id\": \"string\",\n  \"calorie_target\": \"integer\",\n  \"macronutrient_ratio\": {\n    \"protein_percent\": \"float\",\n    \"carbs_percent\": \"float\",\n    \"fat_percent\": \"float\"\n  },\n  \"meal_suggestions\": {\n    \"breakfast\": \"array\",\n    \"lunch\": \"array\",\n    \"dinner\": \"array\",\n    \"snacks\": \"array\"\n  },\n  \"hydration_target\": \"float\",\n  \"supplements\": \"array\",\n  \"dietary_guidelines\": \"array\"\n}",
+        "schema": "{\n  \"daily_calories\": \"integer\",\n  \"macros_distribution\": {\n    \"protein\": \"float (grams)\",\n    \"carbohydrates\": \"float (grams)\",\n    \"fats\": \"float (grams)\"\n  },\n  \"meal_suggestions\": {\n    \"breakfast\": \"array of meal options\",\n    \"lunch\": \"array of meal options\",\n    \"dinner\": \"array of meal options\",\n    \"snacks\": \"array of snack options\"\n  },\n  \"hydration_guide\": \"string\",\n  \"supplements_suggestions\": \"array of strings (optional)\",\n  \"timing_recommendations\": \"object\"\n}",
         "validation_rules": [
-          "卡路里目标必须基于用户基础代谢率计算",
-          "营养素比例必须科学合理",
-          "食物建议必须考虑用户限制",
-          "不得推荐未经验证的补剂"
+          "每日卡路里必须在合理范围内",
+          "宏营养素分配必须科学合理",
+          "必须考虑用户饮食限制和偏好",
+          "补剂建议必须保守和安全"
         ],
-        "relationships": ["基于UserProfile和健身目标生成"]
-      },
-      {
-        "name": "ProgressTracking",
-        "schema": "{\n  \"tracking_id\": \"string\",\n  \"user_id\": \"string\",\n  \"metrics\": {\n    \"weight_tracking\": \"boolean\",\n    \"body_measurements\": \"array\",\n    \"strength_metrics\": \"array\",\n    \"endurance_metrics\": \"array\"\n  },\n  \"tracking_frequency\": \"string\",\n  \"measurement_instructions\": \"array\",\n  \"progress_indicators\": \"array\",\n  \"adjustment_triggers\": \"array\"\n}",
-        "validation_rules": [
-          "跟踪指标必须与用户目标匹配",
-          "测量频率必须现实可行",
-          "指标必须可量化和客观",
-          "调整触发条件必须明确"
-        ],
-        "relationships": ["关联UserProfile和WorkoutPlan"]
+        "relationships": [
+          "基于UserProfile和FitnessGoal生成",
+          "与WorkoutPlan协调配合"
+        ]
       }
     ],
     "interaction_flows": [
       {
-        "name": "用户信息收集流程",
-        "description": "系统引导用户提供个人信息和健身背景，建立用户画像",
+        "name": "初次用户信息收集流程",
+        "description": "新用户首次使用系统时的信息收集和建议生成流程",
         "steps": [
           {
-            "step": "欢迎用户并说明信息收集目的",
+            "step": "欢迎和介绍",
             "agent": "fitness_advisor_agent",
-            "action": "display_welcome_message",
-            "data": "欢迎信息和隐私说明"
+            "action": "向用户介绍系统功能和信息收集目的",
+            "data": "系统介绍文本"
           },
           {
-            "step": "收集基本身体信息",
+            "step": "基本信息收集",
             "agent": "fitness_advisor_agent",
-            "action": "collect_basic_info",
-            "data": "年龄、性别、身高、体重、活动水平"
+            "action": "收集用户年龄、性别、身高、体重等基本信息",
+            "data": "UserProfile.basic_info"
           },
           {
-            "step": "收集健身背景信息",
+            "step": "健身经验评估",
             "agent": "fitness_advisor_agent",
-            "action": "collect_fitness_background",
-            "data": "经验水平、既往伤病、当前状态、可用设备"
+            "action": "了解用户健身经验、当前活动水平和可用时间",
+            "data": "UserProfile.fitness_info"
           },
           {
-            "step": "验证信息完整性和合理性",
+            "step": "健康状况确认",
             "agent": "fitness_advisor_agent",
-            "action": "validate_user_data",
-            "data": "验证结果和错误提示"
+            "action": "询问健康状况、伤病史和运动限制",
+            "data": "UserProfile.health_info"
           },
           {
-            "step": "生成用户画像",
+            "step": "目标设定",
             "agent": "fitness_advisor_agent",
-            "action": "create_user_profile",
-            "data": "结构化的用户画像数据"
+            "action": "帮助用户明确健身目标和期望时间线",
+            "data": "FitnessGoal"
+          },
+          {
+            "step": "偏好收集",
+            "agent": "fitness_advisor_agent",
+            "action": "了解用户运动偏好和饮食限制",
+            "data": "UserProfile.preferences"
+          },
+          {
+            "step": "安全评估",
+            "agent": "fitness_advisor_agent",
+            "action": "基于收集信息进行安全风险评估",
+            "data": "安全评估结果"
+          },
+          {
+            "step": "计划生成",
+            "agent": "fitness_advisor_agent",
+            "action": "生成个性化运动计划和营养建议",
+            "data": "WorkoutPlan + NutritionPlan"
           }
         ]
       },
       {
-        "name": "健身计划生成流程",
-        "description": "基于用户信息和目标生成个性化的健身计划",
+        "name": "健身咨询问答流程",
+        "description": "用户提出健身相关问题的处理流程",
         "steps": [
           {
-            "step": "分析用户目标和约束",
+            "step": "问题接收",
             "agent": "fitness_advisor_agent",
-            "action": "analyze_goals_constraints",
-            "data": "目标分析结果和可行性评估"
+            "action": "接收并理解用户问题",
+            "data": "用户问题文本"
           },
           {
-            "step": "选择适合的训练方式",
+            "step": "问题分类",
             "agent": "fitness_advisor_agent",
-            "action": "select_training_approach",
-            "data": "训练方式和强度级别"
+            "action": "判断问题类型（运动技术、营养、安全、计划调整等）",
+            "data": "问题分类结果"
           },
           {
-            "step": "生成具体锻炼动作",
+            "step": "个人信息关联",
             "agent": "fitness_advisor_agent",
-            "action": "generate_exercises",
-            "data": "动作列表、组数次数、强度安排"
+            "action": "结合用户个人信息提供针对性回答",
+            "data": "UserProfile + FitnessGoal"
           },
           {
-            "step": "安排训练周期和进度",
+            "step": "专业解答",
             "agent": "fitness_advisor_agent",
-            "action": "schedule_training_cycle",
-            "data": "周训练安排和进度规划"
+            "action": "基于专业知识提供准确回答",
+            "data": "专业解答内容"
           },
           {
-            "step": "添加安全提醒和注意事项",
+            "step": "安全提醒",
             "agent": "fitness_advisor_agent",
-            "action": "add_safety_guidelines",
-            "data": "安全提醒和风险防范措施"
+            "action": "如涉及安全问题，提供相应安全提醒",
+            "data": "安全注意事项"
           },
           {
-            "step": "生成完整训练计划",
+            "step": "后续建议",
             "agent": "fitness_advisor_agent",
-            "action": "compile_workout_plan",
-            "data": "结构化的完整训练计划"
+            "action": "提供相关的后续建议或计划调整建议",
+            "data": "后续建议内容"
           }
         ]
       },
       {
-        "name": "饮食建议生成流程",
-        "description": "根据健身目标和用户限制生成饮食建议",
+        "name": "计划调整优化流程",
+        "description": "根据用户反馈调整健身计划的流程",
         "steps": [
           {
-            "step": "计算营养需求",
+            "step": "反馈收集",
             "agent": "fitness_advisor_agent",
-            "action": "calculate_nutrition_needs",
-            "data": "卡路里需求和营养素比例"
+            "action": "收集用户对当前计划的反馈和困难",
+            "data": "用户反馈信息"
           },
           {
-            "step": "考虑饮食偏好和限制",
+            "step": "进度评估",
             "agent": "fitness_advisor_agent",
-            "action": "apply_dietary_constraints",
-            "data": "调整后的营养方案"
+            "action": "评估用户当前健身进度和目标达成情况",
+            "data": "进度评估结果"
           },
           {
-            "step": "生成食物建议",
+            "step": "问题分析",
             "agent": "fitness_advisor_agent",
-            "action": "suggest_foods",
-            "data": "推荐食物列表和搭配建议"
+            "action": "分析计划执行中的问题和改进空间",
+            "data": "问题分析报告"
           },
           {
-            "step": "制定饮食指导原则",
+            "step": "计划调整",
             "agent": "fitness_advisor_agent",
-            "action": "create_dietary_guidelines",
-            "data": "饮食原则和注意事项"
-          }
-        ]
-      },
-      {
-        "name": "计划调整流程",
-        "description": "根据用户反馈和进度调整训练计划",
-        "steps": [
-          {
-            "step": "收集用户反馈",
-            "agent": "fitness_advisor_agent",
-            "action": "collect_user_feedback",
-            "data": "训练感受、困难点、进度情况"
+            "action": "根据反馈调整运动计划或营养建议",
+            "data": "调整后的WorkoutPlan/NutritionPlan"
           },
           {
-            "step": "分析反馈和进度数据",
+            "step": "调整说明",
             "agent": "fitness_advisor_agent",
-            "action": "analyze_progress",
-            "data": "进度评估和问题识别"
-          },
-          {
-            "step": "确定调整策略",
-            "agent": "fitness_advisor_agent",
-            "action": "determine_adjustments",
-            "data": "调整方向和具体措施"
-          },
-          {
-            "step": "更新训练计划",
-            "agent": "fitness_advisor_agent",
-            "action": "update_workout_plan",
-            "data": "调整后的训练计划"
-          },
-          {
-            "step": "解释调整原因",
-            "agent": "fitness_advisor_agent",
-            "action": "explain_adjustments",
-            "data": "调整说明和预期效果"
+            "action": "向用户解释调整原因和预期效果",
+            "data": "调整说明文档"
           }
         ]
       }
     ],
     "security_considerations": [
-      "用户健康信息加密存储，遵循HIPAA等隐私法规",
-      "不提供医疗诊断，明确声明建议仅供参考",
-      "实施输入验证防止恶意数据注入",
-      "建立用户数据访问控制和审计机制",
-      "确保AI生成内容的安全性，避免有害建议"
+      "用户健康信息严格保密，不存储敏感医疗数据",
+      "所有健身建议必须经过安全检查，避免高风险运动推荐",
+      "明确系统边界，不提供医疗诊断和治疗建议",
+      "对特殊健康状况用户提供额外安全提醒",
+      "建立紧急情况处理机制，建议用户咨询专业人士"
     ],
     "error_handling": [
-      "用户信息不完整时提供友好提示和补充指导",
-      "检测到高风险健康状况时建议咨询医生",
-      "AI推理失败时提供备用建议生成机制",
-      "用户输入异常时进行数据清洗和纠错",
-      "系统故障时保存用户数据并提供恢复机制"
+      "输入数据验证失败时，提供清晰的错误提示和修正建议",
+      "健康风险检测时，立即停止建议生成并提供安全警告",
+      "系统无法理解用户需求时，请求澄清或提供选项",
+      "计划生成失败时，提供基础通用建议并建议人工咨询",
+      "数据不完整时，引导用户补充必要信息"
     ],
     "performance_considerations": [
-      "计划生成响应时间控制在10秒以内",
-      "使用缓存机制提高常见查询响应速度",
-      "优化AI推理模型减少计算资源消耗",
-      "实施负载均衡支持多用户并发访问",
-      "定期清理和归档历史数据保持系统性能"
+      "优化提示词长度，确保响应时间在3秒内",
+      "使用缓存机制存储常用的运动和营养数据",
+      "实现增量信息收集，避免一次性收集过多信息",
+      "优化计划生成算法，提高生成效率和准确性"
     ],
     "monitoring_strategy": [
-      "监控系统响应时间和可用性指标",
-      "跟踪用户满意度和建议采纳率",
-      "记录AI生成建议的质量和准确性",
-      "监控用户使用模式和功能偏好",
-      "建立异常检测机制识别系统问题",
-      "定期评估和更新健身知识库内容"
+      "监控用户满意度和建议采纳率",
+      "跟踪系统响应时间和错误率",
+      "记录用户常见问题和系统改进需求",
+      "监控安全相关的警告和处理情况",
+      "定期评估建议的科学性和有效性"
     ]
   },
-  "design_rationale": "本系统设计采用单Agent架构，主要基于以下考虑：1）需求分析显示这是一个功能相对集中的业务场景，单Agent能够有效处理所有健身建议相关任务；2）单Agent架构简化了系统复杂度，降低了开发和维护成本；3）健身建议生成需要综合考虑用户的多个维度信息，单Agent更容易保持上下文一致性；4）用户交互模式相对简单，主要是信息收集和建议提供，不需要复杂的Agent协作机制。系统设计重点关注个性化、安全性和科学性，通过结构化的数据模型和清晰的交互流程确保用户获得高质量的健身指导。技术架构基于Strands SDK和AWS Bedrock，支持本地运行和云端AI推理，具备良好的扩展性和可维护性。"
+  "design_rationale": "本系统设计采用单Agent架构，主要基于以下考虑：1）需求分析显示这是一个专业领域的咨询型应用，单一Agent能够更好地保持专业性和一致性；2）健身建议生成需要综合考虑多个因素，单Agent架构便于统一处理和优化；3）用户交互相对简单，主要是信息收集和建议提供，不需要复杂的多Agent协作；4）安全性要求高，单Agent架构便于实施统一的安全检查和风险控制。系统设计重点关注用户安全、建议的科学性和个性化程度，通过结构化的数据模型和清晰的交互流程，确保系统能够提供专业、安全、有效的健身指导服务。技术实现上采用Strands SDK和AWS Bedrock，确保系统的可靠性和扩展性。"
 }
