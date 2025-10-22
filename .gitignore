@@ -26,6 +26,7 @@ backup/
 .DS_Store
 .claude/
 .git/
+output/
 
 # IDE和编辑器文件
 .vscode/

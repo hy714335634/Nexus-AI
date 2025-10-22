@@ -1,0 +1,6 @@
+project:
+  created_date: '2025-10-20T03:08:28.388882+00:00'
+  description: 基于PubMed Central的学术文献智能检索、筛选和汇总智能体，支持通过AWS S3访问PMC开放数据
+  name: pubmed_literature_search_agent
+  updated_date: '2025-10-20T03:08:32.445141+00:00'
+  version: 1.0.0

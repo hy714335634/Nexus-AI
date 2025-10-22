@@ -1,0 +1,239 @@
+{
+  "system_design": {
+    "design_overview": {
+      "project_name": "clinical_medicine_expert_agent",
+      "version": "1.0",
+      "date": "2025-10-10",
+      "design_scope": "设计一个临床医学专家智能体系统，能够回答用户专业的生命科学和临床医学问题，尤其是药物研发领域相关问题，基于给定工具收集证据并提供严谨的回答和完整的思考过程",
+      "design_principles": [
+        "证据驱动：所有回答必须基于可靠的证据和数据",
+        "透明性：提供完整的思考过程和证据来源",
+        "专业性：确保医学和药物研发领域的专业准确性",
+        "谨慎性：在证据不足时明确告知用户",
+        "工具集成：有效整合和利用指定的工具集"
+      ],
+      "key_decisions": [
+        "采用单Agent架构设计，集中处理临床医学问答功能",
+        "基于PubMed文献搜索专家模板进行扩展和定制",
+        "集成指定的embedding搜索和知识图谱查询工具",
+        "设计专门的思考框架，确保回答的严谨性和透明度",
+        "实现证据不足情况的识别和处理机制"
+      ],
+      "workflow_type": "single_agent",
+      "recommended_templates": ["pubmed_literature_agent"]
+    },
+    "architecture": {
+      "system_context": "临床医学专家智能体作为一个独立的系统，接收用户的医学和药物研发问题，利用集成的工具收集证据，经过分析和推理后提供专业的回答。系统主要与用户直接交互，同时通过集成的工具与外部数据源（如向量数据库和知识图谱）进行交互。",
+      "agent_topology": "单Agent架构，由一个临床医学专家智能体负责处理所有用户请求，协调工具使用，并生成最终回答",
+      "interaction_model": "用户向Agent提出问题 → Agent分析问题类型和需求 → Agent选择并调用适当的工具收集证据 → Agent分析和整合证据 → Agent生成包含思考过程和证据的专业回答 → 用户接收回答并可能提出后续问题",
+      "technology_stack": {
+        "sdk": "Strands SDK",
+        "runtime": "Local",
+        "integrations": [
+          "S3向量数据库",
+          "Neo4j知识图谱",
+          "动态工具调用系统"
+        ]
+      }
+    },
+    "agents": [
+      {
+        "name": "clinical_medicine_expert",
+        "purpose": "作为临床医学专家，回答用户在生命科学和临床医学领域的专业问题，尤其是药物研发相关问题，基于证据提供严谨的回答",
+        "responsibilities": [
+          "理解和分析用户的医学和药物研发问题",
+          "选择并调用适当的工具收集相关证据",
+          "分析和整合收集到的证据",
+          "提供包含完整思考过程和证据来源的专业回答",
+          "在证据不足时明确告知用户",
+          "处理医学术语和专业概念"
+        ],
+        "interfaces": {
+          "inputs": [
+            "用户的医学和药物研发问题（自然语言）",
+            "可能的上下文信息和历史对话"
+          ],
+          "outputs": [
+            "包含思考过程的专业回答",
+            "证据来源和引用",
+            "工具使用说明和结果",
+            "证据不足时的明确声明"
+          ]
+        },
+        "dependencies": [
+          "embedding搜索工具",
+          "知识图谱查询工具",
+          "动态工具调用系统"
+        ],
+        "implementation_notes": [
+          "基于PubMed文献搜索专家模板进行扩展",
+          "增强系统提示词，强调证据收集和思考过程",
+          "实现证据质量评估机制",
+          "添加医学和药物研发专业知识指导"
+        ],
+        "recommended_template": "pubmed_literature_agent"
+      }
+    ],
+    "data_models": [
+      {
+        "name": "UserQuery",
+        "schema": "{ 'query_text': '用户问题文本', 'domain': '问题领域（临床医学/药物研发/其他）', 'context': '可选的上下文信息' }",
+        "validation_rules": [
+          "query_text不能为空",
+          "domain必须是预定义的医学领域之一"
+        ],
+        "relationships": ["输入到QueryAnalyzer"]
+      },
+      {
+        "name": "Evidence",
+        "schema": "{ 'source': '证据来源', 'content': '证据内容', 'relevance_score': '相关性分数', 'confidence_level': '可信度级别', 'tool_used': '使用的工具', 'timestamp': '获取时间' }",
+        "validation_rules": [
+          "source和content不能为空",
+          "relevance_score范围为0-1",
+          "confidence_level必须是预定义的级别之一"
+        ],
+        "relationships": ["由EvidenceCollector生成", "输入到ResponseGenerator"]
+      },
+      {
+        "name": "Response",
+        "schema": "{ 'answer_text': '回答文本', 'thinking_process': '思考过程', 'evidence_list': ['证据列表'], 'confidence_statement': '信心声明', 'limitations': '回答限制说明' }",
+        "validation_rules": [
+          "answer_text不能为空",
+          "thinking_process必须包含清晰的推理步骤",
+          "evidence_list必须包含至少一项证据（除非明确声明证据不足）"
+        ],
+        "relationships": ["由ResponseGenerator生成", "输出给用户"]
+      },
+      {
+        "name": "ToolRequest",
+        "schema": "{ 'tool_name': '工具名称', 'parameters': {'参数名': '参数值'}, 'purpose': '使用目的', 'query_context': '查询上下文' }",
+        "validation_rules": [
+          "tool_name必须是系统支持的工具之一",
+          "parameters必须符合工具的参数要求"
+        ],
+        "relationships": ["由EvidenceCollector生成", "输入到指定工具"]
+      }
+    ],
+    "interaction_flows": [
+      {
+        "name": "基本问答流程",
+        "description": "处理用户问题并提供基于证据的回答的主要流程",
+        "steps": [
+          {
+            "step": "接收用户问题",
+            "agent": "clinical_medicine_expert",
+            "action": "接收并解析用户输入的医学或药物研发问题",
+            "data": "UserQuery"
+          },
+          {
+            "step": "问题分析",
+            "agent": "clinical_medicine_expert",
+            "action": "分析问题类型、领域和关键概念",
+            "data": "分析后的UserQuery"
+          },
+          {
+            "step": "工具选择",
+            "agent": "clinical_medicine_expert",
+            "action": "根据问题类型选择适当的工具进行证据收集",
+            "data": "ToolRequest"
+          },
+          {
+            "step": "证据收集",
+            "agent": "clinical_medicine_expert",
+            "action": "调用选定的工具收集相关证据",
+            "data": "Evidence"
+          },
+          {
+            "step": "证据评估",
+            "agent": "clinical_medicine_expert",
+            "action": "评估收集到的证据的相关性和可信度",
+            "data": "带评分的Evidence"
+          },
+          {
+            "step": "证据整合",
+            "agent": "clinical_medicine_expert",
+            "action": "整合多个来源的证据，解决可能的冲突",
+            "data": "整合后的Evidence"
+          },
+          {
+            "step": "回答生成",
+            "agent": "clinical_medicine_expert",
+            "action": "基于证据生成包含思考过程的专业回答",
+            "data": "Response"
+          },
+          {
+            "step": "回答输出",
+            "agent": "clinical_medicine_expert",
+            "action": "将生成的回答呈现给用户",
+            "data": "格式化的Response"
+          }
+        ]
+      },
+      {
+        "name": "证据不足处理流程",
+        "description": "当无法收集到足够证据时的处理流程",
+        "steps": [
+          {
+            "step": "证据评估",
+            "agent": "clinical_medicine_expert",
+            "action": "评估收集到的证据是否充分",
+            "data": "Evidence"
+          },
+          {
+            "step": "不足判断",
+            "agent": "clinical_medicine_expert",
+            "action": "判断证据不足的原因（范围外/数据缺失/工具限制）",
+            "data": "证据不足原因"
+          },
+          {
+            "step": "替代工具尝试",
+            "agent": "clinical_medicine_expert",
+            "action": "尝试使用替代工具收集更多证据",
+            "data": "ToolRequest"
+          },
+          {
+            "step": "限制说明生成",
+            "agent": "clinical_medicine_expert",
+            "action": "生成关于证据不足的详细说明",
+            "data": "限制说明"
+          },
+          {
+            "step": "回答输出",
+            "agent": "clinical_medicine_expert",
+            "action": "向用户说明无法提供完整回答的原因",
+            "data": "带限制说明的Response"
+          }
+        ]
+      }
+    ],
+    "security_considerations": [
+      "不存储用户个人健康信息，确保隐私保护",
+      "避免提供可能被误解为医疗建议的内容",
+      "明确系统局限性，避免用户过度依赖",
+      "遵循医疗数据处理的相关法规和标准",
+      "工具调用权限控制，防止未授权访问"
+    ],
+    "error_handling": [
+      "工具调用失败时的优雅降级和重试机制",
+      "证据冲突时的处理策略和透明说明",
+      "问题超出范围时的明确提示和边界说明",
+      "证据不足时的明确声明和替代建议",
+      "系统错误时的用户友好提示"
+    ],
+    "performance_considerations": [
+      "优化工具调用顺序，减少不必要的API请求",
+      "实现证据缓存机制，提高常见问题的响应速度",
+      "批量处理证据收集请求，减少网络延迟",
+      "设置合理的超时限制，避免长时间等待",
+      "根据问题复杂度动态调整证据收集深度"
+    ],
+    "monitoring_strategy": [
+      "记录用户问题类型和分布，优化系统性能",
+      "监控工具调用成功率和响应时间",
+      "跟踪证据不足情况，识别系统知识缺口",
+      "收集用户反馈，持续改进回答质量",
+      "监控系统资源使用情况，确保稳定运行"
+    ]
+  },
+  "design_rationale": "本设计采用单Agent架构，主要基于以下考虑：1) 需求明确指向单一功能集中的临床医学专家角色；2) 所有功能（问题理解、证据收集、回答生成）都紧密相关，适合在单一Agent中实现；3) 单Agent架构简化了系统复杂度，便于维护和优化。\n\n选择PubMed文献搜索专家模板作为基础是因为：1) 该模板已经针对医学文献检索进行了优化；2) 具备证据收集和分析的基本框架；3) 与临床医学专家的角色高度匹配。我们需要扩展该模板以集成指定的工具集，并强化思考过程展示和证据评估能力。\n\n系统的核心价值在于提供基于证据的专业医学知识，特别是药物研发领域，因此设计中特别强调了证据收集、评估和整合的流程。同时，为了满足透明性要求，设计了详细的思考过程展示机制，确保用户能够理解回答的推理依据。\n\n考虑到证据不足情况的重要性，设计了专门的处理流程，确保系统能够清晰地表明自身的限制，避免提供不确定或错误的信息。这符合医学领域对准确性和可靠性的高要求。\n\n在工具集成方面，设计充分考虑了指定的七种工具，将它们分类为embedding搜索、知识图谱查询和动态工具调用三大类，并设计了统一的工具请求和响应模型，便于系统灵活调用和处理工具返回的结果。\n\n总体而言，该设计旨在创建一个专业、可靠且透明的临床医学专家智能体，能够基于证据回答用户的专业问题，同时清晰地展示思考过程和证据来源，在证据不足时能够明确告知用户，符合医学领域的严谨性要求。"
+}

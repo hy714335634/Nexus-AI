@@ -1,0 +1,291 @@
+{
+  "agent_code_development": {
+    "development_overview": {
+      "project_name": "company_info_search_agent",
+      "version": "1.0",
+      "date": "2025-09-30",
+      "development_scope": "开发一个能够读取Excel表格中的公司信息，通过多种搜索引擎查询公司详细信息，并将结果输出为Excel表格的智能体",
+      "design_principles": [
+        "模块化设计，确保各功能组件职责单一",
+        "健壮的错误处理，提供明确的错误信息",
+        "支持断点续传，确保大规模处理的可靠性",
+        "支持多搜索引擎集成和自动切换",
+        "实现分批处理策略，避免token限制和内存问题"
+      ],
+      "key_decisions": [
+        "基于deep_research_agent模板实现",
+        "使用类结构组织代码，提高可维护性",
+        "实现命令行界面，支持多种操作模式",
+        "集成日志系统，便于问题排查",
+        "使用环境变量管理API密钥，提高安全性"
+      ]
+    },
+    "agent_implementation": {
+      "agent_name": "company_info_search_agent",
+      "file_path": "agents/generated_agents/company_info_search_agent/company_info_search_agent.py",
+      "main_class": "CompanyInfoSearchAgent",
+      "entry_point": "main",
+      "dependencies": [
+        "nexus_utils.agent_factory",
+        "strands.telemetry",
+        "json",
+        "time",
+        "uuid",
+        "logging",
+        "os",
+        "pathlib"
+      ],
+      "imports": [
+        "from nexus_utils.agent_factory import create_agent_from_prompt_template",
+        "from strands.telemetry import StrandsTelemetry",
+        "import os",
+        "import json",
+        "import time",
+        "import uuid",
+        "import logging",
+        "from typing import Dict, List, Any, Optional, Union",
+        "from pathlib import Path"
+      ]
+    },
+    "core_functions": [
+      {
+        "function_name": "__init__",
+        "purpose": "初始化公司信息搜索智能体",
+        "parameters": [
+          {
+            "name": "agent_name",
+            "type": "str",
+            "description": "智能体名称",
+            "required": false
+          }
+        ],
+        "return_type": "None",
+        "return_description": "无返回值",
+        "implementation_notes": [
+          "设置默认配置参数",
+          "初始化智能体实例",
+          "确保输出目录存在"
+        ]
+      },
+      {
+        "function_name": "_create_agent",
+        "purpose": "创建智能体实例",
+        "parameters": [],
+        "return_type": "Any",
+        "return_description": "创建的智能体实例",
+        "implementation_notes": [
+          "使用agent_factory创建智能体",
+          "设置环境和版本参数",
+          "处理创建失败的异常"
+        ]
+      },
+      {
+        "function_name": "process",
+        "purpose": "处理公司信息搜索任务",
+        "parameters": [
+          {
+            "name": "excel_path",
+            "type": "str",
+            "description": "Excel文件路径",
+            "required": true
+          },
+          {
+            "name": "task_id",
+            "type": "Optional[str]",
+            "description": "任务ID，用于断点续传",
+            "required": false
+          },
+          {
+            "name": "search_engines",
+            "type": "Optional[List[str]]",
+            "description": "搜索引擎列表",
+            "required": false
+          },
+          {
+            "name": "api_key",
+            "type": "Optional[str]",
+            "description": "搜索API密钥",
+            "required": false
+          },
+          {
+            "name": "batch_size",
+            "type": "Optional[int]",
+            "description": "批处理大小",
+            "required": false
+          },
+          {
+            "name": "output_path",
+            "type": "Optional[str]",
+            "description": "输出文件路径",
+            "required": false
+          }
+        ],
+        "return_type": "Dict[str, Any]",
+        "return_description": "任务处理结果，包含任务ID、输出文件路径等信息",
+        "implementation_notes": [
+          "设置任务ID和配置参数",
+          "构建智能体输入请求",
+          "调用智能体处理请求",
+          "处理异常情况"
+        ]
+      },
+      {
+        "function_name": "resume_task",
+        "purpose": "恢复中断的任务",
+        "parameters": [
+          {
+            "name": "task_id",
+            "type": "str",
+            "description": "要恢复的任务ID",
+            "required": true
+          },
+          {
+            "name": "output_path",
+            "type": "Optional[str]",
+            "description": "输出文件路径",
+            "required": false
+          }
+        ],
+        "return_type": "Dict[str, Any]",
+        "return_description": "任务恢复结果",
+        "implementation_notes": [
+          "设置任务ID和输出路径",
+          "构建恢复任务的请求",
+          "调用智能体处理请求",
+          "处理异常情况"
+        ]
+      },
+      {
+        "function_name": "get_task_status",
+        "purpose": "获取任务状态",
+        "parameters": [
+          {
+            "name": "task_id",
+            "type": "str",
+            "description": "任务ID",
+            "required": true
+          }
+        ],
+        "return_type": "Dict[str, Any]",
+        "return_description": "任务状态信息",
+        "implementation_notes": [
+          "构建获取状态的请求",
+          "调用智能体处理请求",
+          "处理异常情况"
+        ]
+      },
+      {
+        "function_name": "main",
+        "purpose": "命令行入口函数",
+        "parameters": [],
+        "return_type": "None",
+        "return_description": "无返回值",
+        "implementation_notes": [
+          "解析命令行参数",
+          "创建智能体实例",
+          "根据子命令执行相应操作",
+          "输出处理结果"
+        ]
+      }
+    ],
+    "tool_integration": {
+      "custom_tools": [
+        "excel_reader: 读取Excel文件",
+        "search_engine_client: 多搜索引擎集成",
+        "company_search: 公司信息查询",
+        "cache_manager: 缓存和任务进度管理",
+        "excel_writer: 生成Excel输出"
+      ],
+      "system_tools": [
+        "file_read: 读取文件内容",
+        "file_write: 写入文件内容",
+        "current_time: 获取当前时间",
+        "http_request: 发送HTTP请求"
+      ],
+      "strands_tools": [
+        "strands.telemetry: 遥测数据收集"
+      ],
+      "integration_notes": [
+        "通过提示词模板集成工具，无需直接导入",
+        "使用环境变量管理API密钥",
+        "实现断点续传机制，支持任务恢复",
+        "支持多种搜索引擎的自动切换"
+      ]
+    },
+    "configuration": {
+      "environment_variables": [
+        "BYPASS_TOOL_CONSENT: 绕过工具使用确认",
+        "OTEL_EXPORTER_OTLP_ENDPOINT: 遥测数据导出端点",
+        "SERPAPI_KEY: SerpAPI密钥"
+      ],
+      "model_configuration": {
+        "model_name": "Claude Opus",
+        "max_tokens": 60000,
+        "temperature": 0.3,
+        "top_p": 0.8
+      },
+      "streaming_config": {
+        "enabled": true,
+        "chunk_size": 1024
+      }
+    },
+    "error_handling": {
+      "exception_types": [
+        "智能体创建异常",
+        "文件读写异常",
+        "API调用异常",
+        "参数验证异常"
+      ],
+      "error_responses": [
+        "结构化错误信息",
+        "详细错误日志",
+        "用户友好错误提示"
+      ],
+      "recovery_strategies": [
+        "任务断点续传",
+        "搜索引擎自动切换",
+        "分批处理结果保存"
+      ]
+    },
+    "testing": {
+      "test_cases": [
+        "基本功能测试：处理包含少量公司的Excel文件",
+        "断点续传测试：中断任务后恢复",
+        "错误处理测试：提供无效参数",
+        "大规模处理测试：处理包含大量公司的Excel文件"
+      ],
+      "test_scenarios": [
+        "使用有效API密钥进行搜索",
+        "不提供API密钥，使用备用搜索方法",
+        "测试不同搜索引擎组合",
+        "测试不同批处理大小"
+      ],
+      "validation_criteria": [
+        "输出Excel文件格式正确",
+        "所有公司信息都已处理",
+        "错误处理机制有效",
+        "断点续传功能正常工作"
+      ]
+    },
+    "deployment": {
+      "deployment_requirements": [
+        "Python 3.13+",
+        "nexus_utils库",
+        "strands库",
+        "pandas库（用于Excel处理）"
+      ],
+      "runtime_dependencies": [
+        "SerpAPI密钥（可选）",
+        "网络连接",
+        "文件系统权限"
+      ],
+      "performance_considerations": [
+        "大量公司处理时的内存使用",
+        "API调用频率限制",
+        "网络连接稳定性",
+        "缓存文件大小"
+      ]
+    },
+    "development_notes": "在开发过程中，我们采用了模块化设计原则，将智能体功能封装在CompanyInfoSearchAgent类中，提供了清晰的API接口。我们特别关注了错误处理和恢复机制，确保在处理大量公司信息时的可靠性。通过命令行界面，用户可以灵活地控制处理流程，包括初始处理、任务恢复和状态查询。我们还实现了日志系统，便于问题排查和监控。智能体使用提示词模板集成了多种工具，无需直接导入，简化了代码结构。为了提高安全性，API密钥通过环境变量管理，不会在代码或日志中暴露。整体设计遵循了最佳实践，确保代码的可维护性、可扩展性和可靠性。"
+  }
+}

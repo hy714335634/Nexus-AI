@@ -1,6 +1,0 @@
-project:
-  created_date: '2025-09-18T05:24:27.076925+00:00'
-  description: PubMed文献检索和分析智能体，能够基于用户问题检索相关文献，提取关键内容，生成总结和要点，并按相关度排序输出结果。
-  name: pubmed_literature_agent
-  updated_date: '2025-09-18T05:24:30.722162+00:00'
-  version: 1.0.0

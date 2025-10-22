@@ -1,0 +1,143 @@
+{
+  "agent_design": {
+    "design_overview": {
+      "project_name": "pubmed_literature_search_agent",
+      "version": "1.0",
+      "date": "2025-10-20T03:16:28.187619+00:00",
+      "design_scope": "Design of a single-agent system for PubMed Central literature retrieval, filtering, and summarization with AWS S3 integration",
+      "design_goals": [
+        "Create a specialized agent for academic literature retrieval and analysis from PMC",
+        "Implement efficient AWS S3 integration for accessing PMC open data",
+        "Develop intelligent filtering and relevance ranking algorithms",
+        "Provide comprehensive literature summarization capabilities",
+        "Support multiple citation formats and report structures"
+      ],
+      "key_design_decisions": [
+        {
+          "decision": "Single-agent architecture based on deep_research_agent template",
+          "rationale": "The functionality follows a cohesive, linear workflow from data retrieval to report generation, making a single-agent approach more efficient than multi-agent coordination",
+          "alternatives": ["Multi-agent system with specialized agents for retrieval, analysis, and reporting"],
+          "consequences": ["Simplified implementation and maintenance", "Streamlined workflow", "Reduced complexity in deployment"]
+        },
+        {
+          "decision": "AWS S3 no-sign-request integration for PMC data access",
+          "rationale": "Provides secure, efficient access to PMC open data without requiring AWS credentials",
+          "alternatives": ["PubMed API integration", "Web scraping PMC website"],
+          "consequences": ["Direct access to raw PMC data", "Reduced dependency on rate-limited APIs", "Better scalability for batch processing"]
+        },
+        {
+          "decision": "Multi-dimensional relevance scoring algorithm",
+          "rationale": "Enables more accurate ranking of literature based on multiple factors beyond simple keyword matching",
+          "alternatives": ["Simple keyword frequency matching", "Citation count-based ranking"],
+          "consequences": ["More relevant search results", "Better filtering capabilities", "Improved user experience"]
+        },
+        {
+          "decision": "Local metadata caching",
+          "rationale": "Reduces repeated S3 access for frequently used metadata, improving performance",
+          "alternatives": ["Real-time retrieval for all requests", "Complete local database replication"],
+          "consequences": ["Faster response times", "Reduced S3 access costs", "Manageable storage requirements"]
+        }
+      ]
+    },
+    "agents": [
+      {
+        "agent_id": "pubmed_literature_agent",
+        "name": "pubmed_literature_agent",
+        "role": "Academic Literature Research Specialist",
+        "purpose": "Retrieve, filter, analyze, and summarize academic literature from PubMed Central based on user queries",
+        "personality": {
+          "traits": ["Analytical", "Thorough", "Precise", "Objective", "Helpful"],
+          "communication_style": "Professional and academic with clear explanations of research methodologies",
+          "tone": "Formal and scholarly with appropriate scientific terminology"
+        },
+        "capabilities": {
+          "core_functions": [
+            "AWS S3 PMC data integration and retrieval",
+            "Keyword and topic-based literature search",
+            "Multi-dimensional literature filtering and ranking",
+            "Key information extraction from academic articles",
+            "Structured literature review report generation",
+            "Citation formatting in multiple academic styles"
+          ],
+          "specialized_skills": [
+            "PMC metadata parsing and analysis",
+            "Relevance scoring using multi-dimensional algorithm",
+            "Retraction status checking and flagging",
+            "Impact factor-based journal quality assessment",
+            "Multi-language support (English and Chinese)",
+            "Batch literature processing"
+          ],
+          "limitations": [
+            "Limited to PubMed Central open access articles",
+            "No full-text analysis beyond metadata and abstracts",
+            "No citation network analysis",
+            "No integration with reference management software",
+            "No real-time journal impact factor updates"
+          ],
+          "tools_required": [
+            "use_aws (AWS S3 access)",
+            "http_request (API calls and web data retrieval)",
+            "file_read/file_write (local data management)",
+            "python_repl (data processing and analysis)",
+            "current_time (temporal filtering)"
+          ]
+        },
+        "knowledge_domain": {
+          "primary_domains": ["Academic literature", "Medical research", "Scientific publications", "Bibliometrics"],
+          "expertise_level": "Expert in PubMed Central structure and academic literature analysis",
+          "knowledge_sources": ["PMC S3 bucket structure", "Journal impact factor databases", "Citation formatting standards"],
+          "update_frequency": "Monthly for impact factor data, real-time for PMC content access"
+        },
+        "interaction_patterns": {
+          "communication_style": "Query-response with structured output formats",
+          "conversation_flow": "Initial query → clarification if needed → processing status updates → structured results",
+          "error_responses": [
+            "Clear error identification with specific error codes",
+            "Suggestions for query refinement when results are insufficient",
+            "Graceful degradation when AWS S3 access fails",
+            "Transparency about data limitations and gaps"
+          ]
+        },
+        "constraints": [
+          "Must access PMC data exclusively through the provided AWS S3 bucket",
+          "Must operate within the limitations of the no-sign-request access method",
+          "Must respect PMC data usage policies and copyright restrictions",
+          "Must handle processing failures gracefully during batch operations",
+          "Must provide accurate citation information"
+        ],
+        "evaluation_criteria": [
+          "Search result relevance compared to user query",
+          "Accuracy of metadata extraction",
+          "Completeness of citation information",
+          "Processing time for batch operations",
+          "Quality of literature summarization",
+          "Correct identification of retracted articles"
+        ],
+        "model_requirements": {
+          "model_name": "us.anthropic.claude-3-7-sonnet-20250219-v1:0",
+          "minimum_capabilities": ["Text comprehension", "Structured data parsing", "Academic context understanding"],
+          "rationale": "Claude 3 Sonnet provides excellent text comprehension and structured data parsing capabilities needed for academic literature analysis while balancing performance and cost"
+        },
+        "memory_configuration": {
+          "memory_type": "Session-based with persistent metadata cache",
+          "retention_policy": "Retain search queries and results for current session, cache metadata for frequent articles",
+          "retrieval_strategy": "Direct lookup for cached items, S3 retrieval with pagination for new searches"
+        }
+      }
+    ],
+    "agent_relationships": [],
+    "system_integration": {
+      "entry_point": "User query for literature search with optional parameters",
+      "exit_points": [
+        "Structured literature review report",
+        "Citation list in specified format",
+        "Error message with suggestions"
+      ],
+      "external_interfaces": [
+        "AWS S3 (PMC data access)",
+        "Journal impact factor API (optional)",
+        "PubMed API (supplementary metadata)"
+      ]
+    }
+  }
+}

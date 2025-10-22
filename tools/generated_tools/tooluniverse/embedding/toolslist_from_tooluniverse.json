@@ -1,0 +1,3037 @@
+[
+  {
+    "tool_name": "OpenTargets_get_associated_targets_by_disease_efoId",
+    "desc": "OpenTargets_get_associated_targets_by_disease_efoId: Find targets associated with a specific disease or phenotype based on efoId.",
+    "genre": "OpenTarget"
+  },
+  {
+    "tool_name": "OpenTargets_get_diseases_phenotypes_by_target_ensembl",
+    "desc": "OpenTargets_get_diseases_phenotypes_by_target_ensembl: Find diseases or phenotypes associated with a specific target using ensemblId.",
+    "genre": "OpenTarget"
+  },
+  {
+    "tool_name": "OpenTargets_target_disease_evidence",
+    "desc": "OpenTargets_target_disease_evidence: Explore evidence that supports a specific target-disease association. Input is disease efoId and target ensemblID.",
+    "genre": "OpenTarget"
+  },
+  {
+    "tool_name": "OpenTargets_get_drug_warnings_by_chemblId",
+    "desc": "OpenTargets_get_drug_warnings_by_chemblId: Retrieve warnings for a specific drug using ChEMBL ID.",
+    "genre": "OpenTarget"
+  },
+  {
+    "tool_name": "OpenTargets_get_drug_mechanisms_of_action_by_chemblId",
+    "desc": "OpenTargets_get_drug_mechanisms_of_action_by_chemblId: Retrieve the mechanisms of action associated with a specific drug using chemblId.",
+    "genre": "OpenTarget"
+  },
+  {
+    "tool_name": "OpenTargets_get_associated_drugs_by_disease_efoId",
+    "desc": "OpenTargets_get_associated_drugs_by_disease_efoId: Retrieve known drugs associated with a specific disease by disease efoId.",
+    "genre": "OpenTarget"
+  },
+  {
+    "tool_name": "OpenTargets_get_similar_entities_by_disease_efoId",
+    "desc": "OpenTargets_get_similar_entities_by_disease_efoId: Retrieve similar entities for a given disease efoId using a model trained with PubMed.",
+    "genre": "OpenTarget"
+  },
+  {
+    "tool_name": "OpenTargets_get_similar_entities_by_drug_chemblId",
+    "desc": "OpenTargets_get_similar_entities_by_drug_chemblId: Retrieve similar entities for a given drug chemblId using a model trained with PubMed.",
+    "genre": "OpenTarget"
+  },
+  {
+    "tool_name": "OpenTargets_get_similar_entities_by_target_ensemblID",
+    "desc": "OpenTargets_get_similar_entities_by_target_ensemblID: Retrieve similar entities for a given target ensemblID using a model trained with PubMed.",
+    "genre": "OpenTarget"
+  },
+  {
+    "tool_name": "OpenTargets_get_associated_phenotypes_by_disease_efoId",
+    "desc": "OpenTargets_get_associated_phenotypes_by_disease_efoId: Find HPO phenotypes asosciated with the specified disease efoId.",
+    "genre": "OpenTarget"
+  },
+  {
+    "tool_name": "OpenTargets_get_drug_withdrawn_blackbox_status_by_chemblId",
+    "desc": "OpenTargets_get_drug_withdrawn_blackbox_status_by_chemblId: Find withdrawn and black-box warning statuses for a specific drug by chemblId.",
+    "genre": "OpenTarget"
+  },
+  {
+    "tool_name": "OpenTargets_search_category_counts_by_query_string",
+    "desc": "OpenTargets_search_category_counts_by_query_string: Get the count of entries in each entity category (disease, target, drug) based on a query string.",
+    "genre": "OpenTarget"
+  },
+  {
+    "tool_name": "OpenTargets_get_disease_id_description_by_name",
+    "desc": "OpenTargets_get_disease_id_description_by_name: Retrieve the efoId and additional details of a disease based on its name.",
+    "genre": "OpenTarget"
+  },
+  {
+    "tool_name": "OpenTargets_get_drug_id_description_by_name",
+    "desc": "OpenTargets_get_drug_id_description_by_name: Fetch the drug chemblId and description based on the drug generic name.",
+    "genre": "OpentargetToolDrugNameMatch"
+  },
+  {
+    "tool_name": "OpenTargets_get_drug_chembId_by_generic_name",
+    "desc": "OpenTargets_get_drug_chembId_by_generic_name: Fetch the drug chemblId and description based on the drug generic name.",
+    "genre": "OpentargetToolDrugNameMatch"
+  },
+  {
+    "tool_name": "OpenTargets_get_drug_indications_by_chemblId",
+    "desc": "OpenTargets_get_drug_indications_by_chemblId: Fetch indications (treatable phenotypes/diseases) for a given drug chemblId.",
+    "genre": "OpenTarget"
+  },
+  {
+    "tool_name": "OpenTargets_get_target_gene_ontology_by_ensemblID",
+    "desc": "OpenTargets_get_target_gene_ontology_by_ensemblID: Retrieve Gene Ontology annotations for a specific target by Ensembl ID.",
+    "genre": "OpenTarget"
+  },
+  {
+    "tool_name": "OpenTargets_get_target_homologues_by_ensemblID",
+    "desc": "OpenTargets_get_target_homologues_by_ensemblID: Fetch homologues for a specific target by Ensembl ID.",
+    "genre": "OpenTarget"
+  },
+  {
+    "tool_name": "OpenTargets_get_target_safety_profile_by_ensemblID",
+    "desc": "OpenTargets_get_target_safety_profile_by_ensemblID: Retrieve known target safety liabilities for a specific target Ensembl ID.",
+    "genre": "OpenTarget"
+  },
+  {
+    "tool_name": "OpenTargets_get_biological_mouse_models_by_ensemblID",
+    "desc": "OpenTargets_get_biological_mouse_models_by_ensemblID: Retrieve biological mouse models, including allelic compositions and genetic backgrounds, for a specific target.",
+    "genre": "OpenTarget"
+  },
+  {
+    "tool_name": "OpenTargets_get_target_genomic_location_by_ensemblID",
+    "desc": "OpenTargets_get_target_genomic_location_by_ensemblID: Retrieve genomic location data for a specific target, including chromosome, start, end, and strand.",
+    "genre": "OpenTarget"
+  },
+  {
+    "tool_name": "OpenTargets_get_target_subcellular_locations_by_ensemblID",
+    "desc": "OpenTargets_get_target_subcellular_locations_by_ensemblID: Retrieve information about subcellular locations for a specific target ensemblID.",
+    "genre": "OpenTarget"
+  },
+  {
+    "tool_name": "OpenTargets_get_target_synonyms_by_ensemblID",
+    "desc": "OpenTargets_get_target_synonyms_by_ensemblID: Retrieve synonyms for specified target, including alternative names and symbols, using given ensemblID.",
+    "genre": "OpenTarget"
+  },
+  {
+    "tool_name": "OpenTargets_get_target_tractability_by_ensemblID",
+    "desc": "OpenTargets_get_target_tractability_by_ensemblID: Retrieve tractability assessments, including modality and values, for a specific target ensembl ID.",
+    "genre": "OpenTarget"
+  },
+  {
+    "tool_name": "OpenTargets_get_target_classes_by_ensemblID",
+    "desc": "OpenTargets_get_target_classes_by_ensemblID: Retrieve the target classes associated with a specific target ensemblID.",
+    "genre": "OpenTarget"
+  },
+  {
+    "tool_name": "OpenTargets_get_target_enabling_packages_by_ensemblID",
+    "desc": "OpenTargets_get_target_enabling_packages_by_ensemblID: Retrieve the Target Enabling Packages (TEP) associated with a specific target ensemblID.",
+    "genre": "OpenTarget"
+  },
+  {
+    "tool_name": "OpenTargets_get_target_interactions_by_ensemblID",
+    "desc": "OpenTargets_get_target_interactions_by_ensemblID: Retrieve interaction data for a specific target ensemblID, including interaction partners and evidence.",
+    "genre": "OpenTarget"
+  },
+  {
+    "tool_name": "OpenTargets_get_disease_ancestors_parents_by_efoId",
+    "desc": "OpenTargets_get_disease_ancestors_parents_by_efoId: Retrieve the disease ancestors and parents in the ontology using the disease EFO ID.",
+    "genre": "OpenTarget"
+  },
+  {
+    "tool_name": "OpenTargets_get_disease_descendants_children_by_efoId",
+    "desc": "OpenTargets_get_disease_descendants_children_by_efoId: Retrieve the disease descendants and children in the ontology using the disease EFO ID.",
+    "genre": "OpenTarget"
+  },
+  {
+    "tool_name": "OpenTargets_get_disease_locations_by_efoId",
+    "desc": "OpenTargets_get_disease_locations_by_efoId: Retrieve the disease's direct location and indirect location disease terms and IDs using the disease EFO ID.",
+    "genre": "OpenTarget"
+  },
+  {
+    "tool_name": "OpenTargets_get_disease_synonyms_by_efoId",
+    "desc": "OpenTargets_get_disease_synonyms_by_efoId: Retrieve disease synonyms by its EFO ID.",
+    "genre": "OpenTarget"
+  },
+  {
+    "tool_name": "OpenTargets_get_disease_description_by_efoId",
+    "desc": "OpenTargets_get_disease_description_by_efoId: Retrieve disease description, name, database cros references, obsolete terms, and whether it's a therapeutic area, all using the specified efoId.",
+    "genre": "OpenTarget"
+  },
+  {
+    "tool_name": "OpenTargets_get_disease_therapeutic_areas_by_efoId",
+    "desc": "OpenTargets_get_disease_therapeutic_areas_by_efoId: Retrieve the therapeutic areas associated with a specific disease efoId.",
+    "genre": "OpenTarget"
+  },
+  {
+    "tool_name": "OpenTargets_get_drug_adverse_events_by_chemblId",
+    "desc": "OpenTargets_get_drug_adverse_events_by_chemblId: Retrieve significant adverse events reported for a specific drug chemblId.",
+    "genre": "OpenTarget"
+  },
+  {
+    "tool_name": "OpenTargets_get_known_drugs_by_drug_chemblId",
+    "desc": "OpenTargets_get_known_drugs_by_drug_chemblId: Get a list of known drugs and associated information using the specified chemblId.",
+    "genre": "OpenTarget"
+  },
+  {
+    "tool_name": "OpenTargets_get_parent_child_molecules_by_drug_chembl_ID",
+    "desc": "OpenTargets_get_parent_child_molecules_by_drug_chembl_ID: Get parent and child molecules of specified drug chemblId.",
+    "genre": "OpenTarget"
+  },
+  {
+    "tool_name": "OpenTargets_get_approved_indications_by_drug_chemblId",
+    "desc": "OpenTargets_get_approved_indications_by_drug_chemblId: Retrieve detailed information about multiple drugs using a list of ChEMBL IDs.",
+    "genre": "OpenTarget"
+  },
+  {
+    "tool_name": "OpenTargets_get_drug_description_by_chemblId",
+    "desc": "OpenTargets_get_drug_description_by_chemblId: Get drug name, year of first approval, type, cross references, and max clinical trial phase based on specified chemblId.",
+    "genre": "OpenTarget"
+  },
+  {
+    "tool_name": "OpenTargets_get_drug_synonyms_by_chemblId",
+    "desc": "OpenTargets_get_drug_synonyms_by_chemblId: Retrieve the synonyms associated with a specific drug chemblId.",
+    "genre": "OpenTarget"
+  },
+  {
+    "tool_name": "OpenTargets_get_drug_trade_names_by_chemblId",
+    "desc": "OpenTargets_get_drug_trade_names_by_chemblId: Retrieve the trade names associated with a specific drug chemblId.",
+    "genre": "OpenTarget"
+  },
+  {
+    "tool_name": "OpenTargets_get_drug_approval_status_by_chemblId",
+    "desc": "OpenTargets_get_drug_approval_status_by_chemblId: Retrieve the approval status of a specific drug chemblId.",
+    "genre": "OpenTarget"
+  },
+  {
+    "tool_name": "OpenTargets_get_chemical_probes_by_target_ensemblID",
+    "desc": "OpenTargets_get_chemical_probes_by_target_ensemblID: Retrieve chemical probes associated with a specific target using its ensemblID.",
+    "genre": "OpenTarget"
+  },
+  {
+    "tool_name": "OpenTargets_drug_pharmacogenomics_data",
+    "desc": "OpenTargets_drug_pharmacogenomics_data: Retrieve pharmacogenomics data for a specific drug, including evidence levels and genotype annotations.",
+    "genre": "OpenTarget"
+  },
+  {
+    "tool_name": "OpenTargets_get_associated_drugs_by_target_ensemblID",
+    "desc": "OpenTargets_get_associated_drugs_by_target_ensemblID: Get known drugs and information (e.g. id, name, MoA) associated with a specific target ensemblID, including clinical trial phase and mechanism of action of the drugs.",
+    "genre": "OpenTarget"
+  },
+  {
+    "tool_name": "OpenTargets_get_associated_diseases_by_drug_chemblId",
+    "desc": "OpenTargets_get_associated_diseases_by_drug_chemblId: Retrieve the list of diseases associated with a specific drug chemblId based on clinical trial data or post-marketed drugs.",
+    "genre": "OpenTarget"
+  },
+  {
+    "tool_name": "OpenTargets_get_associated_targets_by_drug_chemblId",
+    "desc": "OpenTargets_get_associated_targets_by_drug_chemblId: Retrieve the list of targets linked to a specific drug chemblId based on its mechanism of action.",
+    "genre": "OpenTarget"
+  },
+  {
+    "tool_name": "OpenTargets_multi_entity_search_by_query_string",
+    "desc": "OpenTargets_multi_entity_search_by_query_string: Perform a multi-entity search based on a query string, filtering by entity names and pagination settings.",
+    "genre": "OpenTarget"
+  },
+  {
+    "tool_name": "OpenTargets_get_gene_ontology_terms_by_goID",
+    "desc": "OpenTargets_get_gene_ontology_terms_by_goID: Retrieve Gene Ontology terms based on a list of GO IDs.",
+    "genre": "OpenTarget"
+  },
+  {
+    "tool_name": "OpenTargets_get_target_constraint_info_by_ensemblID",
+    "desc": "OpenTargets_get_target_constraint_info_by_ensemblID: Retrieve genetic constraint information for a specific target ensemblID, including expected and observed values, and scores.",
+    "genre": "OpenTarget"
+  },
+  {
+    "tool_name": "OpenTargets_get_publications_by_disease_efoId",
+    "desc": "OpenTargets_get_publications_by_disease_efoId: Retrieve publications related to a disease efoId, including PubMed IDs and publication dates.",
+    "genre": "OpenTarget"
+  },
+  {
+    "tool_name": "OpenTargets_get_publications_by_target_ensemblID",
+    "desc": "OpenTargets_get_publications_by_target_ensemblID: Retrieve publications related to a target ensemblID, including PubMed IDs and publication dates.",
+    "genre": "OpenTarget"
+  },
+  {
+    "tool_name": "OpenTargets_get_publications_by_drug_chemblId",
+    "desc": "OpenTargets_get_publications_by_drug_chemblId: Retrieve publications related to a drug chemblId, including PubMed IDs and publication dates.",
+    "genre": "OpenTarget"
+  },
+  {
+    "tool_name": "OpenTargets_get_target_id_description_by_name",
+    "desc": "OpenTargets_get_target_id_description_by_name: Get the ensemblId and description based on the target name.",
+    "genre": "OpenTarget"
+  },
+  {
+    "tool_name": "FDA_get_active_ingredient_info_by_drug_name",
+    "desc": "FDA_get_active_ingredient_info_by_drug_name: Fetch a list of active ingredients in a specific drug product.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_dosage_and_storage_information_by_drug_name",
+    "desc": "FDA_get_dosage_and_storage_information_by_drug_name: Retrieve dosage and storage information for a specific drug.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_names_by_abuse_info",
+    "desc": "FDA_get_drug_names_by_abuse_info: Retrieve drug names based on information about types of abuse and adverse reactions pertinent to those types of abuse. Warning: This tool only outputs a predefined limited number of drug names and does not cover all possible drugs. Use with caution.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_abuse_info_by_drug_name",
+    "desc": "FDA_get_abuse_info_by_drug_name: Retrieve information about types of abuse based on the drug name.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_names_by_accessories",
+    "desc": "FDA_get_drug_names_by_accessories: Retrieve drug names based on the accessories field information.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_accessories_info_by_drug_name",
+    "desc": "FDA_get_accessories_info_by_drug_name: Retrieve information about accessories based on the drug name.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_names_by_active_ingredient",
+    "desc": "FDA_get_drug_names_by_active_ingredient: Retrieve drug names based on the active ingredient information.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_manufacturer_name_NDC_number_by_drug_name",
+    "desc": "FDA_get_manufacturer_name_NDC_number_by_drug_name: Retrieve detailed information about a drug's active ingredient, FDA application number, manufacturer name, National Drug Code (NDC) number, and route of administration; all based on the drug name.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_names_by_application_number_NDC_number",
+    "desc": "FDA_get_drug_names_by_application_number_NDC_number: Retrieve drug names based on the specified FDA application number or National Drug Code (NDC) number.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_name_by_adverse_reaction",
+    "desc": "FDA_get_drug_name_by_adverse_reaction: Retrieve the drug name based on specific adverse reactions reported. Warning: This tool only outputs a predefined limited number of drug names and does not cover all possible drugs. Use with caution.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_adverse_reactions_by_drug_name",
+    "desc": "FDA_get_adverse_reactions_by_drug_name: Retrieve adverse reactions information based on the drug name.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_names_by_alarm",
+    "desc": "FDA_get_drug_names_by_alarm: Retrieve drug names based on the presence of specific alarms, which are related to adverse reaction events. Warning: This tool only outputs a predefined limited number of drug names and does not cover all possible drugs. Use with caution.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_alarms_by_drug_name",
+    "desc": "FDA_get_alarms_by_drug_name: Retrieve alarms based on the specified drug name.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_names_by_animal_pharmacology_info",
+    "desc": "FDA_get_drug_names_by_animal_pharmacology_info: Retrieve drug names based on animal pharmacology and toxicology information.  Warning: This tool only outputs a predefined limited number of drug names and does not cover all possible drugs. Use with caution.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_animal_pharmacology_info_by_drug_name",
+    "desc": "FDA_get_animal_pharmacology_info_by_drug_name: Retrieve animal pharmacology and toxicology information based on drug names.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_name_by_info_on_conditions_for_doctor_consultation",
+    "desc": "FDA_get_drug_name_by_info_on_conditions_for_doctor_consultation: Retrieve the drug names that require asking a doctor before use due to a patient's specific conditions and symptoms.  Warning: This tool only outputs a predefined limited number of drug names and does not cover all possible drugs. Use with caution.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_info_on_conditions_for_doctor_consultation_by_drug_name",
+    "desc": "FDA_get_info_on_conditions_for_doctor_consultation_by_drug_name: Get information about when a doctor should be consulted before using a specific drug.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_names_by_consulting_doctor_pharmacist_info",
+    "desc": "FDA_get_drug_names_by_consulting_doctor_pharmacist_info: Retrieve drug names based on information about when a doctor or pharmacist should be consulted regarding drug interactions. Warning: This tool only outputs a predefined limited number of drug names and does not cover all possible drugs. Use with caution.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_info_on_consulting_doctor_pharmacist_by_drug_name",
+    "desc": "FDA_get_info_on_consulting_doctor_pharmacist_by_drug_name: Get information about when a doctor or pharmacist should be consulted regarding drug interactions for a specific drug.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_names_by_assembly_installation_info",
+    "desc": "FDA_get_drug_names_by_assembly_installation_info: Retrieve drug names based on assembly or installation instructions. Warning: This tool only outputs a predefined limited number of drug names and does not cover all possible drugs. Use with caution.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_assembly_installation_info_by_drug_name",
+    "desc": "FDA_get_assembly_installation_info_by_drug_name: Retrieve assembly or installation instructions based on drug names.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_names_by_boxed_warning",
+    "desc": "FDA_get_drug_names_by_boxed_warning: Retrieve drug names that have specific boxed warnings and adverse effects.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_boxed_warning_info_by_drug_name",
+    "desc": "FDA_get_boxed_warning_info_by_drug_name: Retrieve boxed warning and adverse effects information for a specific drug.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_name_by_calibration_instructions",
+    "desc": "FDA_get_drug_name_by_calibration_instructions: Retrieve the drug name based on the calibration instructions provided.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_calibration_instructions_by_drug_name",
+    "desc": "FDA_get_calibration_instructions_by_drug_name: Retrieve calibration instructions based on the specified drug name.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drugs_by_carcinogenic_mutagenic_fertility",
+    "desc": "FDA_get_drugs_by_carcinogenic_mutagenic_fertility: Retrieve drug names based on the presence of carcinogenic, mutagenic, or fertility impairment information.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_carcinogenic_mutagenic_fertility_by_drug_name",
+    "desc": "FDA_get_carcinogenic_mutagenic_fertility_by_drug_name: Retrieve carcinogenic, mutagenic, or fertility impairment information based on the drug name.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_name_by_SPL_ID",
+    "desc": "FDA_get_drug_name_by_SPL_ID: Retrieve the drug name based on the FDA application number, NUI unique identifier, document ID of a specific version of the drug's Structured Product Label (SPL), or set ID of the drug's Structured Product Label that works across label versions.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_names_by_clinical_pharmacology",
+    "desc": "FDA_get_drug_names_by_clinical_pharmacology: Retrieve drug names based on clinical pharmacology information. Warning: This tool only outputs a predefined limited number of drug names and does not cover all possible drugs. Use with caution.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_clinical_pharmacology_by_drug_name",
+    "desc": "FDA_get_clinical_pharmacology_by_drug_name: Retrieve clinical pharmacology information based on drug names.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_names_by_clinical_studies",
+    "desc": "FDA_get_drug_names_by_clinical_studies: Retrieve drug names based on the presence of clinical studies information.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_clinical_studies_info_by_drug_name",
+    "desc": "FDA_get_clinical_studies_info_by_drug_name: Retrieve clinical studies information based on the drug name.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_names_by_contraindications",
+    "desc": "FDA_get_drug_names_by_contraindications: Retrieve drug names based on specific contraindications information.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_contraindications_by_drug_name",
+    "desc": "FDA_get_contraindications_by_drug_name: Retrieve contraindications information based on the drug name.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_names_by_controlled_substance_DEA_schedule",
+    "desc": "FDA_get_drug_names_by_controlled_substance_DEA_schedule: Retrieve drug names based on the Drug Enforcement Administration (DEA) schedule information.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_controlled_substance_DEA_schedule_info_by_drug_name",
+    "desc": "FDA_get_controlled_substance_DEA_schedule_info_by_drug_name: Retrieve information about the controlled substance Drug Enforcement Administratino (DEA) schedule for a specific drug.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_name_by_dependence_info",
+    "desc": "FDA_get_drug_name_by_dependence_info: Retrieve the drug name based on information about dependence characteristics.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_dependence_info_by_drug_name",
+    "desc": "FDA_get_dependence_info_by_drug_name: Retrieve information about dependence characteristics based on the drug name.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_names_by_disposal_info",
+    "desc": "FDA_get_drug_names_by_disposal_info: Retrieve drug names based on disposal and waste handling information.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_disposal_info_by_drug_name",
+    "desc": "FDA_get_disposal_info_by_drug_name: Retrieve disposal and waste handling information based on the drug name.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_name_by_dosage_info",
+    "desc": "FDA_get_drug_name_by_dosage_info: Retrieve the drug name based on dosage and administration information.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_names_by_dosage_forms_and_strengths_info",
+    "desc": "FDA_get_drug_names_by_dosage_forms_and_strengths_info: Retrieve drug names based on specific dosage forms and strengths information.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_dosage_forms_and_strengths_by_drug_name",
+    "desc": "FDA_get_dosage_forms_and_strengths_by_drug_name: Retrieve dosage forms and strengths information based on the drug name.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_names_by_abuse_dependence_info",
+    "desc": "FDA_get_drug_names_by_abuse_dependence_info: Retrieve the drug name based on information about drug abuse and dependence, including whether the drug is a controlled substances, the types of possible abuse, and adverse reactions relevant to those abuse types.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_abuse_dependence_info_by_drug_name",
+    "desc": "FDA_get_abuse_dependence_info_by_drug_name: Get information about drug abuse and dependence based on the drug name, specifically information on whether the drug is a controlled substances, the types of possible abuse, and adverse reactions relevant to those abuse types.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_names_by_lab_test_interference",
+    "desc": "FDA_get_drug_names_by_lab_test_interference: Retrieve drug names that have known interference with laboratory tests.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_lab_test_interference_info_by_drug_name",
+    "desc": "FDA_get_lab_test_interference_info_by_drug_name: Retrieve information about laboratory test interferences for a specific drug.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_names_by_drug_interactions",
+    "desc": "FDA_get_drug_names_by_drug_interactions: Retrieve a list of drug names that have the specified drug interactions.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_interactions_by_drug_name",
+    "desc": "FDA_get_drug_interactions_by_drug_name: Retrieve drug interactions based on the specified drug name.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_names_by_effective_time",
+    "desc": "FDA_get_drug_names_by_effective_time: Retrieve drug names based on the effective time of the labeling document.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_effective_time_by_drug_name",
+    "desc": "FDA_get_effective_time_by_drug_name: Retrieve effective time of the labeling document based on the drug name.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_name_by_environmental_warning",
+    "desc": "FDA_get_drug_name_by_environmental_warning: Retrieve the drug name based on the specified environmental warnings.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_environmental_warning_by_drug_name",
+    "desc": "FDA_get_environmental_warning_by_drug_name: Fetch environmental warnings for a specific drug based on its name.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_names_by_food_safety_warnings",
+    "desc": "FDA_get_drug_names_by_food_safety_warnings: Retrieve drug names based on specific food safety warnings.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_names_by_general_precautions",
+    "desc": "FDA_get_drug_names_by_general_precautions: Retrieve drug names based on specific general precautions information.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_general_precautions_by_drug_name",
+    "desc": "FDA_get_general_precautions_by_drug_name: Retrieve general precautions information based on the drug name.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_names_by_geriatric_use",
+    "desc": "FDA_get_drug_names_by_geriatric_use: Retrieve drug names that have specific information about geriatric use.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_geriatric_use_info_by_drug_name",
+    "desc": "FDA_get_geriatric_use_info_by_drug_name: Retrieve information about geriatric use based on the drug name.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_dear_health_care_provider_letter_info_by_drug_name",
+    "desc": "FDA_get_dear_health_care_provider_letter_info_by_drug_name: Fetch information about dear health care provider letters for a specific drug. The letters are sent by drug manufacturers to provide new or updated information about the drug.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_names_by_dear_health_care_provider_letter_info",
+    "desc": "FDA_get_drug_names_by_dear_health_care_provider_letter_info: Fetch drug names based on information about dear health care provider letters. The letters are sent by drug manufacturers to provide new or updated information about the drug.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_names_by_health_claim",
+    "desc": "FDA_get_drug_names_by_health_claim: Retrieve drug names based on specific health claims.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_health_claims_by_drug_name",
+    "desc": "FDA_get_health_claims_by_drug_name: Retrieve health claims associated with a specific drug name.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_name_by_document_id",
+    "desc": "FDA_get_drug_name_by_document_id: Retrieve the drug name based on the document ID.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_document_id_by_drug_name",
+    "desc": "FDA_get_document_id_by_drug_name: Retrieve the document ID based on the drug name.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_name_by_inactive_ingredient",
+    "desc": "FDA_get_drug_name_by_inactive_ingredient: Retrieve the drug name based on the inactive ingredient information.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_inactive_ingredient_info_by_drug_name",
+    "desc": "FDA_get_inactive_ingredient_info_by_drug_name: Fetch a list of inactive ingredients in a specific drug product based on the drug name.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_names_by_indication",
+    "desc": "FDA_get_drug_names_by_indication: Retrieve a list of drug names based on a specific indication or usage.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_indications_by_drug_name",
+    "desc": "FDA_get_indications_by_drug_name: Retrieve indications and usage information based on a specific drug name.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_names_by_information_for_owners_or_caregivers",
+    "desc": "FDA_get_drug_names_by_information_for_owners_or_caregivers: Retrieve drug names based on information for owners or caregivers.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_information_for_owners_or_caregivers_by_drug_name",
+    "desc": "FDA_get_information_for_owners_or_caregivers_by_drug_name: Retrieve specific information for owners or caregivers based on the drug name.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_info_for_patients_by_drug_name",
+    "desc": "FDA_get_info_for_patients_by_drug_name: Fetch information for patients based on the drug name.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_names_by_instructions_for_use",
+    "desc": "FDA_get_drug_names_by_instructions_for_use: Retrieve drug names based on specific instructions for use.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_instructions_for_use_by_drug_name",
+    "desc": "FDA_get_instructions_for_use_by_drug_name: Retrieve instructions for use information based on the drug name.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_retrieve_drug_name_by_device_use",
+    "desc": "FDA_retrieve_drug_name_by_device_use: Retrieve the drug name based on the intended use of the device.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_retrieve_device_use_by_drug_name",
+    "desc": "FDA_retrieve_device_use_by_drug_name: Retrieve the intended use of the device based on the drug name.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_names_by_child_safety_info",
+    "desc": "FDA_get_drug_names_by_child_safety_info: Retrieve drug names based on whether the product should be kept out of the reach of children and instructions about what to do in the case of accidental contact or ingestion.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_child_safety_info_by_drug_name",
+    "desc": "FDA_get_child_safety_info_by_drug_name: Retrieve child safety information for a specific drug based on its name.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_name_by_labor_and_delivery_info",
+    "desc": "FDA_get_drug_name_by_labor_and_delivery_info: Retrieve the drug name based on information about the drug’s use during labor or delivery.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_labor_and_delivery_info_by_drug_name",
+    "desc": "FDA_get_labor_and_delivery_info_by_drug_name: Retrieve information about the drug’s use during labor or delivery based on the drug name.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_names_by_lab_tests",
+    "desc": "FDA_get_drug_names_by_lab_tests: Retrieve drug names based on laboratory tests information.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_lab_tests_by_drug_name",
+    "desc": "FDA_get_lab_tests_by_drug_name: Retrieve laboratory tests information based on drug names.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_mechanism_of_action_by_drug_name",
+    "desc": "FDA_get_mechanism_of_action_by_drug_name: Retrieve the mechanism of action information for a specific drug.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_names_by_mechanism_of_action",
+    "desc": "FDA_get_drug_names_by_mechanism_of_action: Retrieve drug names based on the specified mechanism of action information.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_name_by_microbiology",
+    "desc": "FDA_get_drug_name_by_microbiology: Retrieve the drug name based on microbiology field information.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_microbiology_info_by_drug_name",
+    "desc": "FDA_get_microbiology_info_by_drug_name: Retrieve microbiology information based on the drug name.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_names_by_nonclinical_toxicology_info",
+    "desc": "FDA_get_drug_names_by_nonclinical_toxicology_info: Retrieve drug names based on nonclinical toxicology information.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_nonclinical_toxicology_info_by_drug_name",
+    "desc": "FDA_get_nonclinical_toxicology_info_by_drug_name: Retrieve nonclinical toxicology information based on drug names.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_names_by_nonteratogenic_effects",
+    "desc": "FDA_get_drug_names_by_nonteratogenic_effects: Retrieve drug names based on the presence of nonteratogenic effects information.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_nonteratogenic_effects_by_drug_name",
+    "desc": "FDA_get_nonteratogenic_effects_by_drug_name: Retrieve information about nonteratogenic effects based on the drug name.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_names_by_info_for_nursing_mothers",
+    "desc": "FDA_get_drug_names_by_info_for_nursing_mothers: Retrieve drug names based on information related to nursing mothers.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_info_for_nursing_mothers_by_drug_name",
+    "desc": "FDA_get_info_for_nursing_mothers_by_drug_name: Retrieve information about nursing mothers for a specific drug.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_name_by_other_safety_info",
+    "desc": "FDA_get_drug_name_by_other_safety_info: Retrieve the drug name based on the provided safety information. This tool looks through safety information that may not be specified in other fields.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_other_safety_info_by_drug_name",
+    "desc": "FDA_get_other_safety_info_by_drug_name: Retrieve safety information that may not be specified in other fields based on the provided drug name.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_names_by_overdosage_info",
+    "desc": "FDA_get_drug_names_by_overdosage_info: Retrieve drug names based on information about signs, symptoms, and laboratory findings of acute overdosage.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_overdosage_info_by_drug_name",
+    "desc": "FDA_get_overdosage_info_by_drug_name: Retrieve information about signs, symptoms, and laboratory findings of acute overdosage based on the drug name.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_name_by_principal_display_panel",
+    "desc": "FDA_get_drug_name_by_principal_display_panel: Retrieve the drug name based on the content of the principal display panel of the product package.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_principal_display_panel_by_drug_name",
+    "desc": "FDA_get_principal_display_panel_by_drug_name: Retrieve the content of the principal display panel of the product package based on the drug name.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_retrieve_drug_names_by_patient_medication_info",
+    "desc": "FDA_retrieve_drug_names_by_patient_medication_info: Retrieve drug names based on patient medication information, which is about safe use of the drug.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_retrieve_patient_medication_info_by_drug_name",
+    "desc": "FDA_retrieve_patient_medication_info_by_drug_name: Retrieve patient medication information (which is about safe use of the drug) based on drug names.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_names_by_pediatric_use",
+    "desc": "FDA_get_drug_names_by_pediatric_use: Retrieve drug names based on pediatric use information.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_pediatric_use_info_by_drug_name",
+    "desc": "FDA_get_pediatric_use_info_by_drug_name: Retrieve pediatric use information based on drug names.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_name_by_pharmacodynamics",
+    "desc": "FDA_get_drug_name_by_pharmacodynamics: Retrieve the drug name based on pharmacodynamics information.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_pharmacodynamics_by_drug_name",
+    "desc": "FDA_get_pharmacodynamics_by_drug_name: Retrieve pharmacodynamics information based on the drug name.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_name_by_pharmacogenomics",
+    "desc": "FDA_get_drug_name_by_pharmacogenomics: Retrieve the drug name based on pharmacogenomics field information.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_pharmacogenomics_info_by_drug_name",
+    "desc": "FDA_get_pharmacogenomics_info_by_drug_name: Retrieve pharmacogenomics information based on the drug name.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_names_by_pharmacokinetics",
+    "desc": "FDA_get_drug_names_by_pharmacokinetics: Retrieve drug names based on specific pharmacokinetics information, such as absorption, distribution, elimination, metabolism, drug interactions, and specific patient populations.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_pharmacokinetics_by_drug_name",
+    "desc": "FDA_get_pharmacokinetics_by_drug_name: Retrieve pharmacokinetics information (e.g. absorption, distribution, elimination, metabolism, drug interactions, and specific patient populations) for a specific drug based on its name.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_name_by_precautions",
+    "desc": "FDA_get_drug_name_by_precautions: Retrieve the drug name based on the precautions field information.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_precautions_by_drug_name",
+    "desc": "FDA_get_precautions_by_drug_name: Retrieve precautions information based on the drug name.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_names_by_pregnancy_effects_info",
+    "desc": "FDA_get_drug_names_by_pregnancy_effects_info: Retrieve drug names based on information about effects the drug may have on pregnant women or on a fetus.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_pregnancy_effects_info_by_drug_name",
+    "desc": "FDA_get_pregnancy_effects_info_by_drug_name: Retrieve information about the effects on pregnancy for a specific drug.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_name_by_pregnancy_or_breastfeeding_info",
+    "desc": "FDA_get_drug_name_by_pregnancy_or_breastfeeding_info: Retrieve the drug names based on pregnancy or breastfeeding information.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_pregnancy_or_breastfeeding_info_by_drug_name",
+    "desc": "FDA_get_pregnancy_or_breastfeeding_info_by_drug_name: Retrieve the pregnancy or breastfeeding information based on the specified drug name.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_contact_for_questions_info_by_drug_name",
+    "desc": "FDA_get_contact_for_questions_info_by_drug_name: Retrieve information on who to contact with questions about the drug based on the provided drug name.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_recent_changes_by_drug_name",
+    "desc": "FDA_get_recent_changes_by_drug_name: Retrieve recent major changes in labeling for a specific drug.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_name_by_reference",
+    "desc": "FDA_get_drug_name_by_reference: Retrieve the drug name based on the reference information provided in the drug labeling.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_reference_info_by_drug_name",
+    "desc": "FDA_get_reference_info_by_drug_name: Retrieve reference information based on the drug name provided.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_names_by_residue_warning",
+    "desc": "FDA_get_drug_names_by_residue_warning: Retrieve drug names based on the presence of residue warnings.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_residue_warning_by_drug_name",
+    "desc": "FDA_get_residue_warning_by_drug_name: Retrieve the residue warning based on drug name.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_names_by_risk",
+    "desc": "FDA_get_drug_names_by_risk: Retrieve drug names based on specific risk information, especially regarding pregnancy or breastfeeding.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_risk_info_by_drug_name",
+    "desc": "FDA_get_risk_info_by_drug_name: Retrieve risk information (especially regarding pregnancy or breastfeeding) based on the drug name.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_names_by_route",
+    "desc": "FDA_get_drug_names_by_route: Retrieve the drug names based on the route of administration.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_route_info_by_drug_name",
+    "desc": "FDA_get_route_info_by_drug_name: Retrieve the route of administration information based on the drug name.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_names_by_safe_handling_warning",
+    "desc": "FDA_get_drug_names_by_safe_handling_warning: Retrieve drug names that have specific safe handling warnings.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_safe_handling_warnings_by_drug_name",
+    "desc": "FDA_get_safe_handling_warnings_by_drug_name: Retrieve safe handling warnings for a specific drug based on its name.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_name_by_set_id",
+    "desc": "FDA_get_drug_name_by_set_id: Retrieve the drug name based on the Set ID of the labeling.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_names_by_spl_indexing_data_elements",
+    "desc": "FDA_get_drug_names_by_spl_indexing_data_elements: Retrieve drug names based on Structured Product Labeling (SPL) indexing data elements.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_spl_indexing_data_elements_by_drug_name",
+    "desc": "FDA_get_spl_indexing_data_elements_by_drug_name: Retrieve Structured Product Labeling (SPL) indexing data elements based on drug names.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_names_by_medication_guide",
+    "desc": "FDA_get_drug_names_by_medication_guide: Retrieve drug names based on the presence of specific information in the medication guide.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_medication_guide_info_by_drug_name",
+    "desc": "FDA_get_medication_guide_info_by_drug_name: Retrieve medication guide information based on the drug name.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_name_from_patient_package_insert",
+    "desc": "FDA_get_drug_name_from_patient_package_insert: Retrieve the drug name based on the information provided in the patient package insert.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_patient_package_insert_from_drug_name",
+    "desc": "FDA_get_patient_package_insert_from_drug_name: Retrieve the patient package insert information based on the drug name.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_names_by_ingredient",
+    "desc": "FDA_get_drug_names_by_ingredient: Retrieve drug names based on a specific ingredient present in the drug product.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_ingredients_by_drug_name",
+    "desc": "FDA_get_ingredients_by_drug_name: Retrieve a list of drug ingredients based on the drug name.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_spl_unclassified_section_by_drug_name",
+    "desc": "FDA_get_spl_unclassified_section_by_drug_name: Retrieve the SPL unclassified section information based on the drug name.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_name_by_stop_use_info",
+    "desc": "FDA_get_drug_name_by_stop_use_info: Retrieve the drug name based on the stop use information provided.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_stop_use_info_by_drug_name",
+    "desc": "FDA_get_stop_use_info_by_drug_name: Retrieve stop use information based on the drug name provided.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_name_by_storage_and_handling_info",
+    "desc": "FDA_get_drug_name_by_storage_and_handling_info: Retrieve the drug name based on storage and handling information.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_storage_and_handling_info_by_drug_name",
+    "desc": "FDA_get_storage_and_handling_info_by_drug_name: Retrieve storage and handling information based on the drug name.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_names_by_safety_summary",
+    "desc": "FDA_get_drug_names_by_safety_summary: Retrieve drug names based on the summary of safety and effectiveness information.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_safety_summary_by_drug_name",
+    "desc": "FDA_get_safety_summary_by_drug_name: Retrieve a summary of safety and effectiveness information based on the drug name.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_names_by_teratogenic_effects",
+    "desc": "FDA_get_drug_names_by_teratogenic_effects: Retrieve drug names based on specific teratogenic effects categories.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_teratogenic_effects_by_drug_name",
+    "desc": "FDA_get_teratogenic_effects_by_drug_name: Retrieve teratogenic effects information based on the drug name.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_names_by_population_use",
+    "desc": "FDA_get_drug_names_by_population_use: Retrieve drug names based on their use in specific populations, such as pregnant women, nursing mothers, pediatric patients, and geriatric patients.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_population_use_info_by_drug_name",
+    "desc": "FDA_get_population_use_info_by_drug_name: Retrieve information about the use of a drug in specific populations based on the drug name.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_user_safety_warning_by_drug_names",
+    "desc": "FDA_get_user_safety_warning_by_drug_names: Retrieve specific user safety warnings based on drug names.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_names_by_user_safety_warning",
+    "desc": "FDA_get_drug_names_by_user_safety_warning: Retrieve drug names that have specific user safety warnings.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_name_by_warnings",
+    "desc": "FDA_get_drug_name_by_warnings: Retrieve the drug names based on specific warning information.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_warnings_by_drug_name",
+    "desc": "FDA_get_warnings_by_drug_name: Retrieve warning information based on the drug name.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_warnings_and_cautions_by_drug_name",
+    "desc": "FDA_get_warnings_and_cautions_by_drug_name: Retrieve warnings and cautions information for a specific drug based on its name.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_names_by_warnings_and_cautions",
+    "desc": "FDA_get_drug_names_by_warnings_and_cautions: Retrieve drug names based on specific warnings and cautions information.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_when_using_info",
+    "desc": "FDA_get_when_using_info: Retrieve information about side effects and substances or activities to avoid while using a specific drug.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_brand_name_generic_name",
+    "desc": "FDA_get_brand_name_generic_name: Retrieve the brand name and generic name from generic name or brand name of a drug.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_do_not_use_info_by_drug_name",
+    "desc": "FDA_get_do_not_use_info_by_drug_name: Retrieve information about all contraindications for use based on the drug name.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_purpose_info_by_drug_name",
+    "desc": "FDA_get_purpose_info_by_drug_name: Retrieve about the drug product’s indications for use based on the drug name.",
+    "genre": "FDADrugLabel"
+  },
+  {
+    "tool_name": "FDA_get_drug_generic_name",
+    "desc": "FDA_get_drug_generic_name: Get the drug’s generic name based on the drug's generic or brand name.",
+    "genre": "FDADrugLabelGetDrugGenericNameTool"
+  },
+  {
+    "tool_name": "get_joint_associated_diseases_by_HPO_ID_list",
+    "desc": "get_joint_associated_diseases_by_HPO_ID_list: Retrieve diseases associated with a list of phenotypes or symptoms by a list of HPO IDs.",
+    "genre": "MonarchDiseasesForMultiplePheno"
+  },
+  {
+    "tool_name": "get_phenotype_by_HPO_ID",
+    "desc": "get_phenotype_by_HPO_ID: Retrieve a phenotype or symptom by its HPO ID.",
+    "genre": "Monarch"
+  },
+  {
+    "tool_name": "get_HPO_ID_by_phenotype",
+    "desc": "get_HPO_ID_by_phenotype: Retrieve the HPO ID of a phenotype or symptom.",
+    "genre": "Monarch"
+  },
+  {
+    "tool_name": "search_clinical_trials",
+    "desc": "search_clinical_trials: Search for clinical trials registered on clinicaltrials.gov based on title, conditions, interventions, outcome measures, and status. Returns a paginated list of studies, containing the NCT ID and description of each trial. You can then take the NCT IDs and use 'get_clinical_trials_*' tools to get detailed information about specific protocol fields for specific studies, or 'extract_clinical_trials_efficacy/safety' tools to get efficacy or adverse events results from specific studies. If you wish to see the next page of results, you can use the 'nextPageToken' value from the previous output of this tool and input it as the 'pageToken' parameter in the next query. Note that currently the search is limited to trials beyond phase 1.",
+    "genre": "ClinicalTrialsSearchTool"
+  },
+  {
+    "tool_name": "get_clinical_trial_descriptions",
+    "desc": "get_clinical_trial_descriptions: Retrieves detailed identification information for trials, including titles, phases, and descriptions, using their NCT IDs.",
+    "genre": "ClinicalTrialsDetailsTool"
+  },
+  {
+    "tool_name": "get_clinical_trial_status_and_dates",
+    "desc": "get_clinical_trial_status_and_dates: Retrieves trial status and start and completion dates, using their NCT IDs.",
+    "genre": "ClinicalTrialsDetailsTool"
+  },
+  {
+    "tool_name": "get_clinical_trial_conditions_and_interventions",
+    "desc": "get_clinical_trial_conditions_and_interventions: Retrieves the list of conditions or diseases and the interventions and arm groups that the clinical trials are focused on, using their NCT IDs.",
+    "genre": "ClinicalTrialsDetailsTool"
+  },
+  {
+    "tool_name": "get_clinical_trial_eligibility_criteria",
+    "desc": "get_clinical_trial_eligibility_criteria: Retrieves the eligibility criteria for the clinical trials, using their NCT IDs.",
+    "genre": "ClinicalTrialsDetailsTool"
+  },
+  {
+    "tool_name": "get_clinical_trial_locations",
+    "desc": "get_clinical_trial_locations: Retrieves the locations where the clinical trials are being conducted, using their NCT IDs.",
+    "genre": "ClinicalTrialsDetailsTool"
+  },
+  {
+    "tool_name": "get_clinical_trial_outcome_measures",
+    "desc": "get_clinical_trial_outcome_measures: Retrieves the outcome measures for the clinical trials, using their NCT IDs.",
+    "genre": "ClinicalTrialsDetailsTool"
+  },
+  {
+    "tool_name": "get_clinical_trial_references",
+    "desc": "get_clinical_trial_references: Retrieves the references (if any) for the clinical trials, using their NCT IDs.",
+    "genre": "ClinicalTrialsDetailsTool"
+  },
+  {
+    "tool_name": "extract_clinical_trial_outcomes",
+    "desc": "extract_clinical_trial_outcomes: Extracts detailed trial outcome results (e.g., overall survival months, p-values, etc.) from clinicaltrials.gov, using their NCT IDs.",
+    "genre": "ClinicalTrialsDetailsTool"
+  },
+  {
+    "tool_name": "extract_clinical_trial_adverse_events",
+    "desc": "extract_clinical_trial_adverse_events: Extracts detailed adverse event results from clinicaltrials.gov, using their NCT IDs.",
+    "genre": "ClinicalTrialsDetailsTool"
+  },
+  {
+    "tool_name": "FAERS_count_reactions_by_drug_event",
+    "desc": "FAERS_count_reactions_by_drug_event: Count the number of adverse reactions reported for a given drug, filtered by patient details, event seriousness, and reaction outcomes. Data source: FDA Adverse Event Reporting System (FAERS).",
+    "genre": "FDADrugAdverseEventTool"
+  },
+  {
+    "tool_name": "FAERS_count_drugs_by_drug_event",
+    "desc": "FAERS_count_drugs_by_drug_event: Count the number of different drugs involved in FDA adverse event reports, filtered by patient details, country, and seriousness. Data source: FDA Adverse Event Reporting System (FAERS).",
+    "genre": "FDADrugAdverseEventTool"
+  },
+  {
+    "tool_name": "FAERS_count_country_by_drug_event",
+    "desc": "FAERS_count_country_by_drug_event: Count the number of adverse event reports per country of occurrence, filtered by drug, patient demographics, and seriousness. Data source: FDA Adverse Event Reporting System (FAERS).",
+    "genre": "FDADrugAdverseEventTool"
+  },
+  {
+    "tool_name": "FAERS_count_reportercountry_by_drug_event",
+    "desc": "FAERS_count_reportercountry_by_drug_event: Count the number of FDA adverse event reports grouped by the country of the primary reporter. Data source: FDA Adverse Event Reporting System (FAERS).",
+    "genre": "FDADrugAdverseEventTool"
+  },
+  {
+    "tool_name": "FAERS_count_seriousness_by_drug_event",
+    "desc": "FAERS_count_seriousness_by_drug_event: Count the number of adverse event reports classified as serious or non-serious, filtered by drug and patient demographics. In results, term Serious means: 'The adverse event resulted in death, a life threatening condition, hospitalization, disability, congenital anomaly, or other serious condition', term Non-serious means 'The adverse event did not result in any of the above' Data source: FDA Adverse Event Reporting System (FAERS).",
+    "genre": "FDADrugAdverseEventTool"
+  },
+  {
+    "tool_name": "FAERS_count_outcomes_by_drug_event",
+    "desc": "FAERS_count_outcomes_by_drug_event: Count the outcome of adverse reactions (recovered, recovering, fatal, unresolved) filtered by drug, seriousness, and demographics. Data source: FDA Adverse Event Reporting System (FAERS).",
+    "genre": "FDADrugAdverseEventTool"
+  },
+  {
+    "tool_name": "FAERS_count_drug_routes_by_event",
+    "desc": "FAERS_count_drug_routes_by_event: Count the most common routes of administration for drugs involved in adverse event reports. Data source: FDA Adverse Event Reporting System (FAERS).",
+    "genre": "FDADrugAdverseEventTool"
+  },
+  {
+    "tool_name": "FAERS_count_patient_age_distribution",
+    "desc": "FAERS_count_patient_age_distribution: Analyze the age distribution of patients experiencing adverse events for a specific drug. The age groups are: Neonate (0-28 days), Infant (29 days - 23 months), Child (2-11 years), Adolescent (12-17 years), Adult (18-64 years), Elderly (65+ years). Data source: FDA Adverse Event Reporting System (FAERS).",
+    "genre": "FDADrugAdverseEventTool"
+  },
+  {
+    "tool_name": "FAERS_count_death_related_by_drug",
+    "desc": "FAERS_count_death_related_by_drug: Count adverse events associated with patient death for a given drug. Data source: FDA Adverse Event Reporting System (FAERS).",
+    "genre": "FDADrugAdverseEventTool"
+  },
+  {
+    "tool_name": "FAERS_count_additive_adverse_reactions",
+    "desc": "FAERS_count_additive_adverse_reactions: Additive multi-drug data: Aggregate adverse reaction counts across specified medicinal products, stratified by demographics, seriousness, and outcomes. Data source: FDA Adverse Event Reporting System (FAERS).",
+    "genre": "FDACountAdditiveReactionsTool"
+  },
+  {
+    "tool_name": "FAERS_count_additive_event_reports_by_country",
+    "desc": "FAERS_count_additive_event_reports_by_country: Additive multi-drug data: Aggregate report counts by country of occurrence across specified medicinal products. Data source: FDA Adverse Event Reporting System (FAERS).",
+    "genre": "FDACountAdditiveReactionsTool"
+  },
+  {
+    "tool_name": "FAERS_count_additive_reports_by_reporter_country",
+    "desc": "FAERS_count_additive_reports_by_reporter_country: Additive multi-drug data: Aggregate adverse event reports by primary reporter country across medicinal products. Data source: FDA Adverse Event Reporting System (FAERS).",
+    "genre": "FDACountAdditiveReactionsTool"
+  },
+  {
+    "tool_name": "FAERS_count_additive_seriousness_classification",
+    "desc": "FAERS_count_additive_seriousness_classification: Additive multi-drug data: Quantify serious vs non-serious classifications across medicinal products, annotated per regulatory definitions. Data source: FDA Adverse Event Reporting System (FAERS).",
+    "genre": "FDACountAdditiveReactionsTool"
+  },
+  {
+    "tool_name": "FAERS_count_additive_reaction_outcomes",
+    "desc": "FAERS_count_additive_reaction_outcomes: Additive multi-drug data: Determine reaction outcome counts (e.g., recovered, resolving, fatal) across medicinal products using standardized outcome mappings. Data source: FDA Adverse Event Reporting System (FAERS).",
+    "genre": "FDACountAdditiveReactionsTool"
+  },
+  {
+    "tool_name": "FAERS_count_additive_administration_routes",
+    "desc": "FAERS_count_additive_administration_routes: Additive multi-drug data: Enumerate and count administration routes for adverse events across specified medicinal products, using standardized route codes. Data source: FDA Adverse Event Reporting System (FAERS).",
+    "genre": "FDACountAdditiveReactionsTool"
+  },
+  {
+    "tool_name": "ChEMBL_search_similar_molecules",
+    "desc": "ChEMBL_search_similar_molecules: Search for molecules similar to a given SMILES, chembl_id, or compound or drug name, using the ChEMBL Web Services.",
+    "genre": "ChEMBLTool"
+  },
+  {
+    "tool_name": "EuropePMC_search_articles",
+    "desc": "EuropePMC_search_articles: Search for articles on Europe PMC including abstracts. The tool queries the Europe PMC web service using provided keywords and returns articles with details such as title, abstract, journal, publication year, and a URL to the full article.",
+    "genre": "EuropePMCTool"
+  },
+  {
+    "tool_name": "SemanticScholar_search_papers",
+    "desc": "SemanticScholar_search_papers: Search for papers on Semantic Scholar including abstracts. This tool queries the Semantic Scholar API using natural language keywords and returns papers with details such as title, abstract, publication year, journal (venue), and URL.",
+    "genre": "SemanticScholarTool"
+  },
+  {
+    "tool_name": "PubTator3_EntityAutocomplete",
+    "desc": "PubTator3_EntityAutocomplete: Provides suggestions for the best‐matching standardized PubTator IDs for a partial biomedical term (gene, disease, chemical, or variant). Use this tool first to convert free‐text names into the stable @IDs required by the other PubTator APIs.",
+    "genre": "PubTatorTool"
+  },
+  {
+    "tool_name": "PubTator3_LiteratureSearch",
+    "desc": "PubTator3_LiteratureSearch: Find PubMed articles that match a keyword, a PubTator entity ID (e.g. “@GENE_BRAF”), or an entity-to-entity relation expression (e.g. “relations:treat|@CHEMICAL_Doxorubicin|@DISEASE_Neoplasms”).",
+    "genre": "PubTatorTool"
+  },
+  {
+    "tool_name": "OSL_get_efo_id_by_disease_name",
+    "desc": "OSL_get_efo_id_by_disease_name: Tool to lookup Experimental Factor Ontology (EFO) IDs for diseases via the EMBL-EBI OLS API.",
+    "genre": "EFOTool"
+  },
+  {
+    "tool_name": "enrichr_gene_enrichment_analysis",
+    "desc": "enrichr_gene_enrichment_analysis: Perform gene enrichment analysis using Enrichr to find biological pathways, processes, and molecular functions associated with a list of genes. Returns connectivity paths between genes and enrichment terms.",
+    "genre": "EnrichrTool"
+  },
+  {
+    "tool_name": "humanbase_ppi_analysis",
+    "desc": "humanbase_ppi_analysis: Retrieve tissue-specific protein-protein interactions and biological processes from HumanBase. Returns a NetworkX graph of tissue specific protein-protein interactions and a list of associated biological processes involeed by the given genes from Gene Ontology.",
+    "genre": "HumanBaseTool"
+  },
+  {
+    "tool_name": "openalex_literature_search",
+    "desc": "openalex_literature_search: Search for academic literature using OpenAlex API. Retrieves papers with title, abstract, authors, publication year, and organizational affiliations based on search keywords.",
+    "genre": "OpenAlexTool"
+  },
+  {
+    "tool_name": "ScientificTextSummarizer",
+    "desc": "ScientificTextSummarizer: Summarizes biomedical research texts, abstracts, or papers with specified length and focus areas. Uses AI to extract key findings, methodology, and conclusions from complex biomedical literature.",
+    "genre": "AgenticTool"
+  },
+  {
+    "tool_name": "CodeQualityAnalyzer",
+    "desc": "CodeQualityAnalyzer: Analyzes code quality from multiple dimensions including algorithmic correctness, functional implementation capability, performance characteristics, and best practices. Provides detailed feedback and improvement suggestions.",
+    "genre": "AgenticTool"
+  },
+  {
+    "tool_name": "MedicalLiteratureReviewer",
+    "desc": "MedicalLiteratureReviewer: Conducts systematic reviews of medical literature on specific topics. Synthesizes findings from multiple studies and provides evidence-based conclusions with structured analysis and quality assessment.",
+    "genre": "AgenticTool"
+  },
+  {
+    "tool_name": "HypothesisGenerator",
+    "desc": "HypothesisGenerator: Generates research hypotheses based on provided background context, domain, and desired format. Uses AI to propose novel, testable hypotheses for scientific exploration.",
+    "genre": "AgenticTool"
+  },
+  {
+    "tool_name": "ExperimentalDesignScorer",
+    "desc": "ExperimentalDesignScorer: Assesses a proposed experimental design by assigning scores and structured feedback on hypothesis clarity, variable definitions, sample size, controls, randomization, measurement methods, statistical analysis, bias mitigation, ethical considerations, and overall feasibility.",
+    "genre": "AgenticTool"
+  },
+  {
+    "tool_name": "MedicalTermNormalizer",
+    "desc": "MedicalTermNormalizer: Identifies and corrects misspelled drug or disease names, returning a list of plausible standardized terms.",
+    "genre": "AgenticTool"
+  },
+  {
+    "tool_name": "NoveltySignificanceReviewer",
+    "desc": "NoveltySignificanceReviewer: Provides a structured peer-review of the work's originality and potential impact.",
+    "genre": "AgenticTool"
+  },
+  {
+    "tool_name": "LiteratureContextReviewer",
+    "desc": "LiteratureContextReviewer: Reviews coverage, relevance, and critical synthesis of prior scholarship.",
+    "genre": "AgenticTool"
+  },
+  {
+    "tool_name": "MethodologyRigorReviewer",
+    "desc": "MethodologyRigorReviewer: Evaluates design appropriateness, sampling, and procedural transparency.",
+    "genre": "AgenticTool"
+  },
+  {
+    "tool_name": "DataAnalysisValidityReviewer",
+    "desc": "DataAnalysisValidityReviewer: Checks statistical choices, assumption testing, and reporting transparency.",
+    "genre": "AgenticTool"
+  },
+  {
+    "tool_name": "ResultsInterpretationReviewer",
+    "desc": "ResultsInterpretationReviewer: Judges whether conclusions are data-justified and limitations addressed.",
+    "genre": "AgenticTool"
+  },
+  {
+    "tool_name": "WritingPresentationReviewer",
+    "desc": "WritingPresentationReviewer: Assesses clarity, organization, grammar, and visual presentation quality.",
+    "genre": "AgenticTool"
+  },
+  {
+    "tool_name": "ReproducibilityTransparencyReviewer",
+    "desc": "ReproducibilityTransparencyReviewer: Evaluates data, code, and protocol availability for replication.",
+    "genre": "AgenticTool"
+  },
+  {
+    "tool_name": "EthicalComplianceReviewer",
+    "desc": "EthicalComplianceReviewer: Checks adherence to ethical standards and disclosure practices.",
+    "genre": "AgenticTool"
+  },
+  {
+    "tool_name": "QuestionRephraser",
+    "desc": "QuestionRephraser: Generates three distinct paraphrases of a given question while ensuring answer options remain valid and applicable.",
+    "genre": "AgenticTool"
+  },
+  {
+    "tool_name": "ProtocolOptimizer",
+    "desc": "ProtocolOptimizer: Reviews an initial protocol and delivers targeted revisions that improve clarity, feasibility, risk-management, and evaluation rigor.",
+    "genre": "AgenticTool"
+  },
+  {
+    "tool_name": "TestCaseGenerator",
+    "desc": "TestCaseGenerator: Generates diverse and representative ToolUniverse tool call dictionaries for a given tool based on its parameter schema. Each tool call should be a JSON object with 'name' (the tool's name) and 'arguments' (a dict of input arguments), covering different parameter combinations, edge cases, and typical usage. Can generate targeted test cases based on previous optimization feedback.",
+    "genre": "AgenticTool"
+  },
+  {
+    "tool_name": "DescriptionAnalyzer",
+    "desc": "DescriptionAnalyzer: Analyzes a tool's original description and the results of multiple test cases, then suggests an improved description that is more accurate, comprehensive, and user-friendly. Optionally provides a rationale for the changes.",
+    "genre": "AgenticTool"
+  },
+  {
+    "tool_name": "ArgumentDescriptionOptimizer",
+    "desc": "ArgumentDescriptionOptimizer: Optimizes the descriptions of tool arguments/parameters based on test case results and actual usage patterns. Provides improved descriptions that are more accurate and user-friendly.",
+    "genre": "AgenticTool"
+  },
+  {
+    "tool_name": "DescriptionQualityEvaluator",
+    "desc": "DescriptionQualityEvaluator: Evaluates the quality of tool descriptions and parameter descriptions, providing a score and specific feedback for improvements.",
+    "genre": "AgenticTool"
+  },
+  {
+    "tool_name": "ToolSpecificationGenerator",
+    "desc": "ToolSpecificationGenerator: Generates complete ToolUniverse-compliant tool specifications based on a description and analysis of similar existing tools. Creates comprehensive tool configurations including parameters, prompts, and metadata.",
+    "genre": "AgenticTool"
+  },
+  {
+    "tool_name": "AdvancedCodeQualityAnalyzer",
+    "desc": "AdvancedCodeQualityAnalyzer: Performs deep analysis of code quality including complexity, security, performance, and maintainability metrics with domain-specific expertise",
+    "genre": "AgenticTool"
+  },
+  {
+    "tool_name": "ToolImplementationGenerator",
+    "desc": "ToolImplementationGenerator: Generates domain-specific, functional code implementations based on tool descriptions and requirements with intelligent algorithm selection",
+    "genre": "AgenticTool"
+  },
+  {
+    "tool_name": "ToolSpecificationOptimizer",
+    "desc": "ToolSpecificationOptimizer: Optimizes tool specifications for clarity, completeness, and usability with comprehensive benchmarking against similar tools",
+    "genre": "AgenticTool"
+  },
+  {
+    "tool_name": "DomainExpertValidator",
+    "desc": "DomainExpertValidator: Provides domain-specific validation and expert recommendations for tools with deep expertise across scientific and technical domains",
+    "genre": "AgenticTool"
+  },
+  {
+    "tool_name": "ToolQualityEvaluator",
+    "desc": "ToolQualityEvaluator: Evaluates the quality of tool configurations and implementations. Provides detailed scoring and feedback for improvement.",
+    "genre": "AgenticTool"
+  },
+  {
+    "tool_name": "ToolOptimizer",
+    "desc": "ToolOptimizer: Optimizes tool configurations based on quality feedback. Improves tool specifications and implementations to address identified issues.",
+    "genre": "AgenticTool"
+  },
+  {
+    "tool_name": "CodeOptimizer",
+    "desc": "CodeOptimizer: Optimizes code implementation for tools based on quality evaluation. Takes tool configuration and quality evaluation results to produce improved source code.",
+    "genre": "AgenticTool"
+  },
+  {
+    "tool_name": "LabelGenerator",
+    "desc": "LabelGenerator: Generates relevant keyword labels for tools based on their name, description, parameters, and category. Creates a comprehensive list of tags for tool discovery and categorization.",
+    "genre": "AgenticTool"
+  },
+  {
+    "tool_name": "call_agentic_human",
+    "desc": "call_agentic_human: Produces a concise, practical answer that emulates how a well-informed human would respond to the question.",
+    "genre": "AgenticTool"
+  },
+  {
+    "tool_name": "ToolMetadataGenerator",
+    "desc": "ToolMetadataGenerator: Generates a JSON structure with the metadata of a tool in ToolUniverse, given the JSON configuration of the tool.",
+    "genre": "AgenticTool"
+  },
+  {
+    "tool_name": "ToolMetadataStandardizer",
+    "desc": "ToolMetadataStandardizer: Standardizes and groups semantically equivalent metadata strings (e.g., sources, tags) into canonical forms for consistent downstream usage.",
+    "genre": "AgenticTool"
+  },
+  {
+    "tool_name": "ToolRelationshipDetector",
+    "desc": "ToolRelationshipDetector: Analyzes a primary tool against a list of other tools to identify meaningful, directional data flow compatibilities for scientific workflows. Returns a list of compatible pairs with direction and rationale.",
+    "genre": "AgenticTool"
+  },
+  {
+    "tool_name": "drugbank_vocab_search",
+    "desc": "drugbank_vocab_search: Search the DrugBank vocabulary dataset for drugs by name, ID, synonyms, or other fields using text-based queries. Returns detailed drug information including DrugBank ID, common name, CAS number, UNII, and synonyms.",
+    "genre": "DatasetTool"
+  },
+  {
+    "tool_name": "drugbank_vocab_filter",
+    "desc": "drugbank_vocab_filter: Filter the DrugBank vocabulary dataset based on specific field criteria. Use simple field-value pairs to filter drugs by properties like names, IDs, and chemical identifiers.",
+    "genre": "DatasetTool"
+  },
+  {
+    "tool_name": "drugbank_full_search",
+    "desc": "drugbank_full_search: Search the cleaned DrugBank dataframe (one row per drug) by ID, common name, or synonym. Returns identifiers, ATC, main pharmacology text fields, and protein partners. For best results, it is recommended that one uses `drugbank_vocab_search` to obtain DrugBank ID from other keywords first, and use this tool with DrugBank ID.",
+    "genre": "DatasetTool"
+  },
+  {
+    "tool_name": "drugbank_links_search",
+    "desc": "drugbank_links_search: Search the cross-reference table linking DrugBank IDs to external identifiers (CAS, KEGG, PubChem, ChEBI, PharmGKB, UniProt, etc.) and web resources.",
+    "genre": "DatasetTool"
+  },
+  {
+    "tool_name": "dict_search",
+    "desc": "dict_search: Search the DICTrank dataset for drug-induced cardiotoxicity (DICT) risk information by trade name, generic name, or active ingredient. Searching with exact match is not recommeded.",
+    "genre": "DatasetTool"
+  },
+  {
+    "tool_name": "dili_search",
+    "desc": "dili_search: Search the DILIrank dataset for drug-induced liver-injury (DILI) risk information by compound name. Searching with exact match is not recommeded.",
+    "genre": "DatasetTool"
+  },
+  {
+    "tool_name": "diqt_search",
+    "desc": "diqt_search: Search the DIQTA dataset for drug-induced QT-interval prolongation risk information by generic name or DrugBank ID. Searching with exact match is not recommeded for generic name.",
+    "genre": "DatasetTool"
+  },
+  {
+    "tool_name": "AdverseEventPredictionQuestionGenerator",
+    "desc": "AdverseEventPredictionQuestionGenerator: Generates a set of personalized adverse‐event prediction questions for a given disease and drug, across multiple patient subgroups.",
+    "genre": "AgenticTool"
+  },
+  {
+    "tool_name": "AdverseEventICDMapper",
+    "desc": "AdverseEventICDMapper: Extracts adverse events from narrative clinical or pharmacovigilance text and maps each event to the most specific ICD-10-CM code.",
+    "genre": "AgenticTool"
+  },
+  {
+    "tool_name": "AdverseEventPredictionQuestionGeneratorWithContext",
+    "desc": "AdverseEventPredictionQuestionGeneratorWithContext: Generates a set of personalized adverse‐event prediction questions for a given disease and drug, incorporating additional context information such as patient medical history, clinical findings, or research data.",
+    "genre": "AgenticTool"
+  },
+  {
+    "tool_name": "DailyMed_search_spls",
+    "desc": "DailyMed_search_spls: Search SPL list using multiple filter conditions (drug_name/ndc/rxcui/setid) and return metadata + data array.",
+    "genre": "SearchSPLTool"
+  },
+  {
+    "tool_name": "DailyMed_get_spl_by_setid",
+    "desc": "DailyMed_get_spl_by_setid: Get complete label corresponding to SPL Set ID, returns content in XML or JSON format.",
+    "genre": "GetSPLBySetIDTool"
+  },
+  {
+    "tool_name": "HPA_search_genes_by_query",
+    "desc": "HPA_search_genes_by_query: Search for matching genes by gene name, keywords, or cell line names and return Ensembl ID list. This is the entry tool for many HPA query workflows.",
+    "genre": "HPASearchGenesTool"
+  },
+  {
+    "tool_name": "HPA_get_comparative_expression_by_gene_and_cellline",
+    "desc": "HPA_get_comparative_expression_by_gene_and_cellline: Compare the expression level differences of a gene between a specific cell line and healthy tissues using gene name and cell line name.",
+    "genre": "HPAGetComparativeExpressionTool"
+  },
+  {
+    "tool_name": "HPA_get_disease_expression_by_gene_tissue_disease",
+    "desc": "HPA_get_disease_expression_by_gene_tissue_disease: Compare the expression level of a gene in specific disease state versus healthy state using gene name, tissue type, and disease name.",
+    "genre": "HPAGetDiseaseExpressionTool"
+  },
+  {
+    "tool_name": "HPA_get_biological_processes_by_gene",
+    "desc": "HPA_get_biological_processes_by_gene: Get biological process information for a gene, with special focus on key processes like apoptosis, cell cycle, etc.",
+    "genre": "HPAGetBiologicalProcessTool"
+  },
+  {
+    "tool_name": "HPA_get_comprehensive_gene_details_by_ensembl_id",
+    "desc": "HPA_get_comprehensive_gene_details_by_ensembl_id: Get detailed in-depth information from gene page using Ensembl Gene ID, including image URLs, antibody data, protein expression, and comprehensive information. This is the core tool for retrieving all images (tissue immunohistochemistry, subcellular immunofluorescence).",
+    "genre": "HPAGetGenePageDetailsTool"
+  },
+  {
+    "tool_name": "HPA_get_cancer_prognostics_by_gene",
+    "desc": "HPA_get_cancer_prognostics_by_gene: Retrieve prognostic value of a gene across various cancer types, indicating if its expression level correlates with patient survival outcomes.",
+    "genre": "HPAGetCancerPrognosticsTool"
+  },
+  {
+    "tool_name": "HPA_get_protein_interactions_by_gene",
+    "desc": "HPA_get_protein_interactions_by_gene: Fetch known protein-protein interaction partners for a given gene from Human Protein Atlas database.",
+    "genre": "HPAGetProteinInteractionsTool"
+  },
+  {
+    "tool_name": "HPA_get_rna_expression_in_specific_tissues",
+    "desc": "HPA_get_rna_expression_in_specific_tissues: Query RNA expression levels (nTPM) for a specific gene in one or more user-specified tissues with precise tissue matching.",
+    "genre": "HPAGetRnaExpressionByTissueTool"
+  },
+  {
+    "tool_name": "HPA_get_contextual_biological_process_analysis",
+    "desc": "HPA_get_contextual_biological_process_analysis: Analyze a gene's biological processes in the context of a specific tissue or cell line by integrating functional annotation with expression data to determine functional relevance.",
+    "genre": "HPAGetContextualBiologicalProcessTool"
+  },
+  {
+    "tool_name": "HPA_get_rna_expression_by_source",
+    "desc": "HPA_get_rna_expression_by_source: Get RNA expression level (nTPM) for a gene in a specific biological source using optimized columns parameter. Supports tissue, blood, brain, and single_cell source types with comprehensive source mappings.",
+    "genre": "HPAGetRnaExpressionBySourceTool"
+  },
+  {
+    "tool_name": "HPA_get_subcellular_location",
+    "desc": "HPA_get_subcellular_location: Get annotated subcellular locations for a protein using optimized columns parameter. Retrieves both main and additional subcellular locations efficiently.",
+    "genre": "HPAGetSubcellularLocationTool"
+  },
+  {
+    "tool_name": "HPA_get_gene_basic_info_by_ensembl_id",
+    "desc": "HPA_get_gene_basic_info_by_ensembl_id: Get gene basic information and expression data from Human Protein Atlas using Ensembl Gene ID. Enhanced version now uses efficient JSON API.",
+    "genre": "HPAGetGeneJSONTool"
+  },
+  {
+    "tool_name": "HPA_get_gene_tsv_data_by_ensembl_id",
+    "desc": "HPA_get_gene_tsv_data_by_ensembl_id: Get detailed gene data in TSV format from Human Protein Atlas using Ensembl Gene ID (backward compatibility tool).",
+    "genre": "HPAGetGeneXMLTool"
+  },
+  {
+    "tool_name": "Reactome_get_pathway_reactions",
+    "desc": "Reactome_get_pathway_reactions: Query all Reactions contained under a Pathway using Pathway Stable ID. This is currently the only working Reactome tool.",
+    "genre": "ReactomeRESTTool"
+  },
+  {
+    "tool_name": "PubChem_get_associated_patents_by_CID",
+    "desc": "PubChem_get_associated_patents_by_CID: Get a list of patents associated with a specific compound CID.",
+    "genre": "PubChemRESTTool"
+  },
+  {
+    "tool_name": "PubChem_get_compound_properties_by_CID",
+    "desc": "PubChem_get_compound_properties_by_CID: Get a set of specified molecular properties through CID (Compound ID), such as molecular weight, IUPAC name, Canonical SMILES.",
+    "genre": "PubChemRESTTool"
+  },
+  {
+    "tool_name": "PubChem_get_CID_by_compound_name",
+    "desc": "PubChem_get_CID_by_compound_name: Retrieve corresponding CID list (IdentifierList) by chemical name.",
+    "genre": "PubChemRESTTool"
+  },
+  {
+    "tool_name": "PubChem_get_CID_by_SMILES",
+    "desc": "PubChem_get_CID_by_SMILES: Retrieve corresponding CID list by SMILES string.",
+    "genre": "PubChemRESTTool"
+  },
+  {
+    "tool_name": "PubChem_search_compounds_by_substructure",
+    "desc": "PubChem_search_compounds_by_substructure: Search for all CIDs in PubChem that contain the given substructure (SMILES).",
+    "genre": "PubChemRESTTool"
+  },
+  {
+    "tool_name": "PubChem_search_compounds_by_similarity",
+    "desc": "PubChem_search_compounds_by_similarity: Search by similarity (Tanimoto coefficient), returns CID list of compounds with similarity above threshold to given SMILES molecule, returns no more than 10 CIDs (MaxRecords=10)",
+    "genre": "PubChemRESTTool"
+  },
+  {
+    "tool_name": "PubChem_get_compound_2D_image_by_CID",
+    "desc": "PubChem_get_compound_2D_image_by_CID: Get 2D structure image (PNG format) of compound by CID.",
+    "genre": "PubChemRESTTool"
+  },
+  {
+    "tool_name": "PubChem_get_compound_synonyms_by_CID",
+    "desc": "PubChem_get_compound_synonyms_by_CID: Get complete list of synonyms for compound by CID.",
+    "genre": "PubChemRESTTool"
+  },
+  {
+    "tool_name": "PubChem_get_compound_xrefs_by_CID",
+    "desc": "PubChem_get_compound_xrefs_by_CID: Get external references (XRefs) for compound by CID, including links to ChEBI, DrugBank, KEGG, etc.",
+    "genre": "PubChemRESTTool"
+  },
+  {
+    "tool_name": "MedlinePlus_search_topics_by_keyword",
+    "desc": "MedlinePlus_search_topics_by_keyword: Search for relevant information in MedlinePlus Web Service by keyword across health topics or other sub-libraries (such as drugs, genetics, etc.).",
+    "genre": "MedlinePlusRESTTool"
+  },
+  {
+    "tool_name": "MedlinePlus_connect_lookup_by_code",
+    "desc": "MedlinePlus_connect_lookup_by_code: Look up corresponding MedlinePlus page information through MedlinePlus Connect Web Service using clinical/drug/test codes (such as ICD-10 CM, RXCUI, LOINC, etc.), supports JSON or XML format return.",
+    "genre": "MedlinePlusRESTTool"
+  },
+  {
+    "tool_name": "MedlinePlus_get_genetics_condition_by_name",
+    "desc": "MedlinePlus_get_genetics_condition_by_name: Get detailed information from MedlinePlus Genetics corresponding to genetic condition name, supports JSON or XML format return.",
+    "genre": "MedlinePlusRESTTool"
+  },
+  {
+    "tool_name": "MedlinePlus_get_genetics_gene_by_name",
+    "desc": "MedlinePlus_get_genetics_gene_by_name: Get detailed information from MedlinePlus Genetics corresponding to gene name, supports JSON or XML format return.",
+    "genre": "MedlinePlusRESTTool"
+  },
+  {
+    "tool_name": "MedlinePlus_get_genetics_index",
+    "desc": "MedlinePlus_get_genetics_index: Download index file (XML) of all genetics entries in MedlinePlus, get complete list in one call.",
+    "genre": "MedlinePlusRESTTool"
+  },
+  {
+    "tool_name": "UniProt_get_entry_by_accession",
+    "desc": "UniProt_get_entry_by_accession: Get the complete JSON entry for a specified UniProtKB accession.",
+    "genre": "UniProtRESTTool"
+  },
+  {
+    "tool_name": "UniProt_get_function_by_accession",
+    "desc": "UniProt_get_function_by_accession: Extract functional annotations from UniProtKB entry (Comment type = FUNCTION).",
+    "genre": "UniProtRESTTool"
+  },
+  {
+    "tool_name": "UniProt_get_recommended_name_by_accession",
+    "desc": "UniProt_get_recommended_name_by_accession: Extract the recommended protein name (recommendedName) from UniProtKB entry.",
+    "genre": "UniProtRESTTool"
+  },
+  {
+    "tool_name": "UniProt_get_alternative_names_by_accession",
+    "desc": "UniProt_get_alternative_names_by_accession: Extract all alternative names (alternativeNames) from UniProtKB entry.",
+    "genre": "UniProtRESTTool"
+  },
+  {
+    "tool_name": "UniProt_get_organism_by_accession",
+    "desc": "UniProt_get_organism_by_accession: Extract the organism scientific name from UniProtKB entry.",
+    "genre": "UniProtRESTTool"
+  },
+  {
+    "tool_name": "UniProt_get_subcellular_location_by_accession",
+    "desc": "UniProt_get_subcellular_location_by_accession: Extract subcellular localization annotations from UniProtKB entry (Comment type = SUBCELLULAR LOCATION).",
+    "genre": "UniProtRESTTool"
+  },
+  {
+    "tool_name": "UniProt_get_disease_variants_by_accession",
+    "desc": "UniProt_get_disease_variants_by_accession: Extract all variants (feature type = VARIANT) and their related annotations from UniProtKB entry.",
+    "genre": "UniProtRESTTool"
+  },
+  {
+    "tool_name": "UniProt_get_ptm_processing_by_accession",
+    "desc": "UniProt_get_ptm_processing_by_accession: Extract all PTM and processing sites from UniProtKB entry (feature type = MODIFIED RESIDUE or SIGNAL, etc.).",
+    "genre": "UniProtRESTTool"
+  },
+  {
+    "tool_name": "UniProt_get_sequence_by_accession",
+    "desc": "UniProt_get_sequence_by_accession: Extract the canonical sequence from UniProtKB entry.",
+    "genre": "UniProtRESTTool"
+  },
+  {
+    "tool_name": "UniProt_get_isoform_ids_by_accession",
+    "desc": "UniProt_get_isoform_ids_by_accession: Extract all splice isoform IDs from UniProtKB entry (isoformNames).",
+    "genre": "UniProtRESTTool"
+  },
+  {
+    "tool_name": "get_biopython_info",
+    "desc": "get_biopython_info: Get comprehensive information about Biopython – powerful tools for computational molecular biology and bioinformatics",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_scikit_bio_info",
+    "desc": "get_scikit_bio_info: Get comprehensive information about scikit-bio – bioinformatics library built on scientific Python stack",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_biotite_info",
+    "desc": "get_biotite_info: Get comprehensive information about Biotite – comprehensive computational molecular biology library",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_gget_info",
+    "desc": "get_gget_info: Get comprehensive information about gget – genomics command-line tool and Python package",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_trackpy_info",
+    "desc": "get_trackpy_info: Get comprehensive information about trackpy – particle tracking toolkit for Python",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_numba_info",
+    "desc": "get_numba_info: Get comprehensive information about Numba – JIT compiler for Python",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_flask_info",
+    "desc": "get_flask_info: Get comprehensive information about Flask - a lightweight WSGI web application framework",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_googlesearch_python_info",
+    "desc": "get_googlesearch_python_info: Get comprehensive information about googlesearch-python – Google search automation",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_cryosparc_tools_info",
+    "desc": "get_cryosparc_tools_info: Get comprehensive information about cryosparc-tools – interface to CryoSPARC cryo-EM processing",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_tskit_info",
+    "desc": "get_tskit_info: Get comprehensive information about tskit – tree sequence toolkit for population genetics",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_fanc_info",
+    "desc": "get_fanc_info: Get comprehensive information about FAN-C – framework for analyzing nuclear contacts",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_pybigwig_info",
+    "desc": "get_pybigwig_info: Get comprehensive information about pyBigWig – BigWig file access in Python",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_arxiv_info",
+    "desc": "get_arxiv_info: Get comprehensive information about arxiv – access to arXiv preprint repository",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_plip_info",
+    "desc": "get_plip_info: Get comprehensive information about PLIP – protein-ligand interaction profiler",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_pdbfixer_info",
+    "desc": "get_pdbfixer_info: Get comprehensive information about PDBFixer – protein structure preparation tool",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_prody_info",
+    "desc": "get_prody_info: Get comprehensive information about ProDy – protein dynamics analysis",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_mageck_info",
+    "desc": "get_mageck_info: Get comprehensive information about MAGeCK – CRISPR screen analysis toolkit",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_flowkit_info",
+    "desc": "get_flowkit_info: Get comprehensive information about FlowKit – flow cytometry analysis toolkit",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_poliastro_info",
+    "desc": "get_poliastro_info: Get comprehensive information about poliastro – astrodynamics library",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_scholarly_info",
+    "desc": "get_scholarly_info: Get comprehensive information about scholarly – Google Scholar data retrieval",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_flowio_info",
+    "desc": "get_flowio_info: Get comprehensive information about FlowIO – FCS file I/O for flow cytometry",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_ruptures_info",
+    "desc": "get_ruptures_info: Get comprehensive information about ruptures – change point detection library",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_loompy_info",
+    "desc": "get_loompy_info: Get comprehensive information about loompy – efficient storage for large omics datasets",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_requests_info",
+    "desc": "get_requests_info: Get comprehensive information about Requests - Python HTTP library for humans",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_pyscreener_info",
+    "desc": "get_pyscreener_info: Get comprehensive information about PyScreener – high-throughput virtual screening in Python",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_pykalman_info",
+    "desc": "get_pykalman_info: Get comprehensive information about PyKalman – Kalman filtering and smoothing",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_khmer_info",
+    "desc": "get_khmer_info: Get comprehensive information about khmer – nucleotide sequence k-mer analysis",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_pymed_info",
+    "desc": "get_pymed_info: Get comprehensive information about PyMed – PubMed access in Python",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_networkx_info",
+    "desc": "get_networkx_info: Get comprehensive information about NetworkX – network analysis library",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_msprime_info",
+    "desc": "get_msprime_info: Get comprehensive information about msprime – coalescent simulation framework",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_pymassspec_info",
+    "desc": "get_pymassspec_info: Get comprehensive information about PyMassSpec – mass spectrometry data analysis",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_pypdf2_info",
+    "desc": "get_pypdf2_info: Get comprehensive information about PyPDF2 – PDF manipulation library",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_pytdc_info",
+    "desc": "get_pytdc_info: Get comprehensive information about PyTDC – Therapeutics Data Commons in Python",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_lifelines_info",
+    "desc": "get_lifelines_info: Get comprehensive information about lifelines – survival analysis in Python",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_bioservices_info",
+    "desc": "get_bioservices_info: Get information about the bioservices package. Python package: bioservices",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_ete3_info",
+    "desc": "get_ete3_info: Get information about the ete3 package. Python package: ete3",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_dendropy_info",
+    "desc": "get_dendropy_info: Get information about the dendropy package. Python package: dendropy",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_pysam_info",
+    "desc": "get_pysam_info: Get comprehensive information about pysam – interface to SAM/BAM/CRAM files",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_pyfaidx_info",
+    "desc": "get_pyfaidx_info: Get comprehensive information about pyfaidx – efficient FASTA file indexing and random access",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_pyranges_info",
+    "desc": "get_pyranges_info: Get comprehensive information about PyRanges – efficient genomic interval operations",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_pybedtools_info",
+    "desc": "get_pybedtools_info: Get comprehensive information about pybedtools – Python wrapper for BEDTools",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_pyliftover_info",
+    "desc": "get_pyliftover_info: Get comprehensive information about PyLiftover – genomic coordinate conversion between assemblies",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_deeptools_info",
+    "desc": "get_deeptools_info: Get comprehensive information about deepTools – deep sequencing data processing",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_clair3_info",
+    "desc": "get_clair3_info: Get comprehensive information about Clair3 – variant calling for long-read sequencing",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_arboreto_info",
+    "desc": "get_arboreto_info: Get comprehensive information about Arboreto – gene regulatory network inference",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_cyvcf2_info",
+    "desc": "get_cyvcf2_info: Get comprehensive information about cyvcf2 – fast VCF/BCF file processing",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_gseapy_info",
+    "desc": "get_gseapy_info: Get comprehensive information about GSEApy – Gene Set Enrichment Analysis in Python",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_jcvi_info",
+    "desc": "get_jcvi_info: Get comprehensive information about JCVI – genome assembly and comparative genomics",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_pydeseq2_info",
+    "desc": "get_pydeseq2_info: Get comprehensive information about PyDESeq2 – RNA-seq differential expression analysis",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_cellxgene_census_info",
+    "desc": "get_cellxgene_census_info: Get comprehensive information about cellxgene-census – access to the CELLxGENE Census single-cell data",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_viennarna_info",
+    "desc": "get_viennarna_info: Get comprehensive information about ViennaRNA – RNA structure prediction and analysis",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_reportlab_info",
+    "desc": "get_reportlab_info: Get comprehensive information about ReportLab – PDF generation library",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_pyvcf_info",
+    "desc": "get_pyvcf_info: Get information about the pyvcf package. Python library for parsing and manipulating VCF files",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_kipoiseq_info",
+    "desc": "get_kipoiseq_info: Get information about the kipoiseq package. Kipoi sequence utilities for genomics deep learning",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_pyfasta_info",
+    "desc": "get_pyfasta_info: Get information about the pyfasta package. Python library for efficient random access to fasta subsequences",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_pyensembl_info",
+    "desc": "get_pyensembl_info: Get information about the pyensembl package. Python interface to Ensembl reference genome metadata",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_poretools_info",
+    "desc": "get_poretools_info: Get information about the poretools package. Python package: poretools",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_scanpy_info",
+    "desc": "get_scanpy_info: Get comprehensive information about Scanpy – scalable single-cell analysis in Python",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_anndata_info",
+    "desc": "get_anndata_info: Get comprehensive information about AnnData – annotated data for computational biology",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_mudata_info",
+    "desc": "get_mudata_info: Get comprehensive information about MuData – multimodal annotated data for computational biology",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_scvelo_info",
+    "desc": "get_scvelo_info: Get comprehensive information about scVelo – RNA velocity analysis in single cells",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_scrublet_info",
+    "desc": "get_scrublet_info: Get comprehensive information about Scrublet – single-cell doublet detection",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_souporcell_info",
+    "desc": "get_souporcell_info: Get comprehensive information about souporcell – scRNA-seq genotype clustering",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_pyscenic_info",
+    "desc": "get_pyscenic_info: Get comprehensive information about pySCENIC – single-cell regulatory network inference",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_tiledbsoma_info",
+    "desc": "get_tiledbsoma_info: Get comprehensive information about TileDB-SOMA – single-cell data storage with TileDB",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_scvi_tools_info",
+    "desc": "get_scvi_tools_info: Get information about the scvi-tools package. Deep probabilistic analysis of single-cell omics data",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_cellrank_info",
+    "desc": "get_cellrank_info: Get information about the cellrank package. Trajectory inference and cell fate mapping in single-cell data",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_velocyto_info",
+    "desc": "get_velocyto_info: Get information about the velocyto package. RNA velocity analysis for single cell RNA-seq data",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_scanorama_info",
+    "desc": "get_scanorama_info: Get information about the scanorama package. Batch correction and integration of single-cell data",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_palantir_info",
+    "desc": "get_palantir_info: Get information about the palantir package. Algorithm for modeling continuous cell state transitions",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_episcanpy_info",
+    "desc": "get_episcanpy_info: Get information about the episcanpy package. Epigenomics single cell analysis in Python",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_biopandas_info",
+    "desc": "get_biopandas_info: Get comprehensive information about BioPandas – pandas-based molecular structure analysis",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_openmm_info",
+    "desc": "get_openmm_info: Get comprehensive information about OpenMM – molecular dynamics simulation toolkit",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_mdanalysis_info",
+    "desc": "get_mdanalysis_info: Get comprehensive information about MDAnalysis – molecular dynamics trajectory analysis",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_ase_info",
+    "desc": "get_ase_info: Get comprehensive information about ASE (Atomic Simulation Environment) – a toolkit for building, running and analysing atomistic simulations.",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_pyscf_info",
+    "desc": "get_pyscf_info: Get comprehensive information about PySCF – a versatile quantum-chemistry framework in Python.",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_diffdock_info",
+    "desc": "get_diffdock_info: Get comprehensive information about DiffDock – diffusion model for molecular docking",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_descriptastorus_info",
+    "desc": "get_descriptastorus_info: Get comprehensive information about Descriptastorus – molecular descriptor calculation",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_mdtraj_info",
+    "desc": "get_mdtraj_info: Get information about the mdtraj package. Modern library for molecular dynamics trajectory analysis",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_nglview_info",
+    "desc": "get_nglview_info: Get information about the nglview package. Jupyter widget for molecular visualization",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_freesasa_info",
+    "desc": "get_freesasa_info: Get information about the freesasa package. Calculate solvent accessible surface areas of proteins",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_htmd_info",
+    "desc": "get_htmd_info: Get information about the htmd package. High throughput molecular dynamics platform",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_pyrosetta_info",
+    "desc": "get_pyrosetta_info: Get information about the pyrosetta package. Python interface to Rosetta macromolecular modeling suite",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_rdkit_info",
+    "desc": "get_rdkit_info: Get comprehensive information about RDKit – cheminformatics and machine learning toolkit",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_openbabel_info",
+    "desc": "get_openbabel_info: Get comprehensive information about OpenBabel – chemical format conversion and analysis",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_deepchem_info",
+    "desc": "get_deepchem_info: Get comprehensive information about DeepChem – an open-source toolkit that brings advanced AI/ML techniques to drug discovery, materials science and quantum chemistry.",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_dscribe_info",
+    "desc": "get_dscribe_info: Get comprehensive information about DScribe – a library for generating machine-learning descriptors for materials and molecules.",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_cobra_info",
+    "desc": "get_cobra_info: Get comprehensive information about COBRApy – constraint-based metabolic modeling",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_openchem_info",
+    "desc": "get_openchem_info: Get comprehensive information about OpenChem – deep learning toolkit for drug discovery",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_molvs_info",
+    "desc": "get_molvs_info: Get information about the molvs package. Molecule validation and standardization",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_chembl_webresource_client_info",
+    "desc": "get_chembl_webresource_client_info: Get information about the chembl-webresource-client package. Python client for ChEMBL web services",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_pubchempy_info",
+    "desc": "get_pubchempy_info: Get information about the pubchempy package. Python interface for PubChem REST API",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_mordred_info",
+    "desc": "get_mordred_info: Get information about the mordred package. Molecular descriptor calculator",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_datamol_info",
+    "desc": "get_datamol_info: Get information about the datamol package. Molecular manipulation made easy",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_molfeat_info",
+    "desc": "get_molfeat_info: Get information about the molfeat package. Simple and robust molecular featurization",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_scikit_learn_info",
+    "desc": "get_scikit_learn_info: Get comprehensive information about scikit-learn – simple and efficient tools for predictive data analysis",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_pytorch_info",
+    "desc": "get_pytorch_info: Get comprehensive information about PyTorch – an open source machine learning framework",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_torch_geometric_info",
+    "desc": "get_torch_geometric_info: Get comprehensive information about PyTorch Geometric – a high-performance library for graph neural networks widely used in molecular and materials science.",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_hyperopt_info",
+    "desc": "get_hyperopt_info: Get comprehensive information about Hyperopt – distributed hyperparameter optimization",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_umap_learn_info",
+    "desc": "get_umap_learn_info: Get comprehensive information about UMAP-learn – dimensionality reduction technique",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_statsmodels_info",
+    "desc": "get_statsmodels_info: Get comprehensive information about statsmodels – statistical modeling and econometrics",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_schnetpack_info",
+    "desc": "get_schnetpack_info: Get comprehensive information about SchNetPack – a deep-learning toolbox for molecules and materials built on PyTorch.",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_harmony_pytorch_info",
+    "desc": "get_harmony_pytorch_info: Get comprehensive information about harmony-pytorch – single-cell data integration",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_python_libsbml_info",
+    "desc": "get_python_libsbml_info: Get comprehensive information about python-libsbml – SBML (Systems Biology Markup Language) support",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_pymzml_info",
+    "desc": "get_pymzml_info: Get comprehensive information about pymzML – mzML file parser for mass spectrometry",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_faiss_info",
+    "desc": "get_faiss_info: Get comprehensive information about Faiss – efficient similarity search and clustering",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_hmmlearn_info",
+    "desc": "get_hmmlearn_info: Get comprehensive information about hmmlearn – Hidden Markov Models in Python",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_cobrapy_info",
+    "desc": "get_cobrapy_info: Get comprehensive information about COBRApy – constraint-based metabolic modeling",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_deepxde_info",
+    "desc": "get_deepxde_info: Get comprehensive information about DeepXDE – a library for physics-informed neural networks (PINNs) solving PDEs and inverse problems.",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_deeppurpose_info",
+    "desc": "get_deeppurpose_info: Get comprehensive information about DeepPurpose – deep learning toolkit for drug discovery",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_xgboost_info",
+    "desc": "get_xgboost_info: Get information about the xgboost package. Optimized gradient boosting framework",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_lightgbm_info",
+    "desc": "get_lightgbm_info: Get information about the lightgbm package. Fast gradient boosting framework",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_catboost_info",
+    "desc": "get_catboost_info: Get information about the catboost package. High-performance gradient boosting library",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_optuna_info",
+    "desc": "get_optuna_info: Get information about the optuna package. Hyperparameter optimization framework",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_skopt_info",
+    "desc": "get_skopt_info: Get information about the skopt package. Scikit-Optimize: sequential model-based optimization",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_imbalanced_learn_info",
+    "desc": "get_imbalanced_learn_info: Get information about the imbalanced-learn package. Python toolbox for imbalanced dataset learning",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_matplotlib_info",
+    "desc": "get_matplotlib_info: Get comprehensive information about Matplotlib – comprehensive library for creating visualizations in Python",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_seaborn_info",
+    "desc": "get_seaborn_info: Get comprehensive information about Seaborn – statistical data visualization",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_opencv_info",
+    "desc": "get_opencv_info: Get comprehensive information about OpenCV-Python – computer vision library",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_scikit_image_info",
+    "desc": "get_scikit_image_info: Get comprehensive information about scikit-image – image processing in Python",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_cellpose_info",
+    "desc": "get_cellpose_info: Get comprehensive information about Cellpose – cell segmentation algorithm",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_igraph_info",
+    "desc": "get_igraph_info: Get comprehensive information about igraph – network analysis and visualization",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_plantcv_info",
+    "desc": "get_plantcv_info: Get comprehensive information about PlantCV – plant phenotyping with image analysis",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_plotly_info",
+    "desc": "get_plotly_info: Get information about the plotly package. Interactive plotting library for Python",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_bokeh_info",
+    "desc": "get_bokeh_info: Get information about the bokeh package. Interactive visualization library for modern web browsers",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_altair_info",
+    "desc": "get_altair_info: Get information about the altair package. Declarative statistical visualization library",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_holoviews_info",
+    "desc": "get_holoviews_info: Get information about the holoviews package. Declarative data visualization in Python",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_datashader_info",
+    "desc": "get_datashader_info: Get information about the datashader package. Graphics pipeline system for creating meaningful visualizations of large datasets",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_pyvis_info",
+    "desc": "get_pyvis_info: Get information about the pyvis package. Python library for visualizing networks",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_numpy_info",
+    "desc": "get_numpy_info: Get comprehensive information about NumPy - the fundamental package for scientific computing with Python",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_scipy_info",
+    "desc": "get_scipy_info: Get comprehensive information about SciPy – fundamental algorithms for scientific computing",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_pandas_info",
+    "desc": "get_pandas_info: Get comprehensive information about pandas - powerful data structures and data analysis tools for Python",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_h5py_info",
+    "desc": "get_h5py_info: Get comprehensive information about h5py – HDF5 for Python",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_tqdm_info",
+    "desc": "get_tqdm_info: Get comprehensive information about tqdm – fast progress bars for Python",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_flowutils_info",
+    "desc": "get_flowutils_info: Get comprehensive information about FlowUtils – flow cytometry utilities and algorithms",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_cooler_info",
+    "desc": "get_cooler_info: Get comprehensive information about Cooler – sparse Hi-C contact matrix storage",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_tiledb_info",
+    "desc": "get_tiledb_info: Get comprehensive information about TileDB – modern database for array data",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_sympy_info",
+    "desc": "get_sympy_info: Get comprehensive information about SymPy – symbolic mathematics library",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_optlang_info",
+    "desc": "get_optlang_info: Get comprehensive information about optlang – optimization language for mathematical programming",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_dask_info",
+    "desc": "get_dask_info: Get information about the dask package. Parallel computing with task scheduling",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_zarr_info",
+    "desc": "get_zarr_info: Get information about the zarr package. Chunked, compressed, N-dimensional arrays",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_xarray_info",
+    "desc": "get_xarray_info: Get information about the xarray package. N-D labeled arrays and datasets in Python",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_cupy_info",
+    "desc": "get_cupy_info: Get information about the cupy package. NumPy-compatible array library accelerated with CUDA",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_joblib_info",
+    "desc": "get_joblib_info: Get information about the joblib package. Lightweight pipelining with Python functions",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_patsy_info",
+    "desc": "get_patsy_info: Get information about the patsy package. Python library for describing statistical models",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_astropy_info",
+    "desc": "get_astropy_info: Get information about the astropy package. Astronomy and astrophysics library",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_sunpy_info",
+    "desc": "get_sunpy_info: Get information about the sunpy package. Solar data analysis library",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_galpy_info",
+    "desc": "get_galpy_info: Get information about the galpy package. Galactic dynamics library",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_pyephem_info",
+    "desc": "get_pyephem_info: Get information about the pyephem package. Astronomical computations for Python",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_qutip_info",
+    "desc": "get_qutip_info: Get information about the qutip package. Quantum toolbox in Python",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_xesmf_info",
+    "desc": "get_xesmf_info: Get information about the xesmf package. Universal regridder for geospatial data",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_rasterio_info",
+    "desc": "get_rasterio_info: Get information about the rasterio package. Access to geospatial raster data",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_geopandas_info",
+    "desc": "get_geopandas_info: Get information about the geopandas package. Geospatial data manipulation and analysis",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_cartopy_info",
+    "desc": "get_cartopy_info: Get information about the cartopy package. Cartographic projections and geospatial data processing",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_netcdf4_info",
+    "desc": "get_netcdf4_info: Get information about the netcdf4 package. Python interface to netCDF C library",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_cftime_info",
+    "desc": "get_cftime_info: Get information about the cftime package. Time-handling functionality from netcdf4-python",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_pillow_info",
+    "desc": "get_pillow_info: Get information about the pillow package. Python Imaging Library fork",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_imageio_info",
+    "desc": "get_imageio_info: Get information about the imageio package. Python library for reading and writing image data",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_albumentations_info",
+    "desc": "get_albumentations_info: Get information about the albumentations package. Fast image augmentation library",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_mne_info",
+    "desc": "get_mne_info: Get information about the mne package. MEG and EEG data analysis",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_nilearn_info",
+    "desc": "get_nilearn_info: Get information about the nilearn package. Machine learning for neuroimaging",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_brian2_info",
+    "desc": "get_brian2_info: Get information about the brian2 package. Spiking neural network simulator",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_elephant_info",
+    "desc": "get_elephant_info: Get information about the elephant package. Electrophysiology analysis toolkit",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "get_neo_info",
+    "desc": "get_neo_info: Get information about the neo package. Representation of electrophysiology data",
+    "genre": "PackageTool"
+  },
+  {
+    "tool_name": "GO_search_terms",
+    "desc": "GO_search_terms: Searches for Gene Ontology (GO) terms by a keyword using the GOlr search engine. Returns GO terms and related biological entities.",
+    "genre": "GeneOntologyTool"
+  },
+  {
+    "tool_name": "GO_get_term_details",
+    "desc": "GO_get_term_details: Retrieves detailed information for a specific GO ID using the Biolink API, including definition, synonyms, and annotations.",
+    "genre": "GeneOntologyTool"
+  },
+  {
+    "tool_name": "GO_get_term_by_id",
+    "desc": "GO_get_term_by_id: Retrieves basic GO term information by ID using GOlr search.",
+    "genre": "GeneOntologyTool"
+  },
+  {
+    "tool_name": "GO_get_genes_for_term",
+    "desc": "GO_get_genes_for_term: Finds all genes/proteins associated with a specific Gene Ontology term using the Biolink API.",
+    "genre": "GeneOntologyTool"
+  },
+  {
+    "tool_name": "GO_get_annotations_for_gene",
+    "desc": "GO_get_annotations_for_gene: Finds all GO annotations for a specific gene/protein using GOlr search.",
+    "genre": "GeneOntologyTool"
+  },
+  {
+    "tool_name": "DrugSafetyAnalyzer",
+    "desc": "DrugSafetyAnalyzer: Comprehensive drug safety analysis combining adverse event data, literature review, and molecular information",
+    "genre": "ComposeTool"
+  },
+  {
+    "tool_name": "ToolDescriptionOptimizer",
+    "desc": "ToolDescriptionOptimizer: Optimizes a tool's description and parameter descriptions by generating test cases, executing them, analyzing the results, and suggesting improved descriptions for both the tool and its arguments. Optionally saves a comprehensive optimization report to a file without overwriting the original.",
+    "genre": "ComposeTool"
+  },
+  {
+    "tool_name": "ToolDiscover",
+    "desc": "ToolDiscover: Generates new ToolUniverse-compliant tools based on short descriptions through an intelligent discovery and refinement process. Automatically determines the optimal tool type and category, discovers similar existing tools, generates initial specifications, and iteratively refines the tool configuration using agentic optimization tools until it meets quality standards.",
+    "genre": "ComposeTool"
+  },
+  {
+    "tool_name": "LiteratureSearchTool",
+    "desc": "LiteratureSearchTool: Comprehensive literature search and summary tool that searches multiple databases (EuropePMC, OpenAlex, PubTator) and generates AI-powered summaries of research findings",
+    "genre": "ComposeTool"
+  },
+  {
+    "tool_name": "ComprehensiveDrugDiscoveryPipeline",
+    "desc": "ComprehensiveDrugDiscoveryPipeline: Complete end-to-end drug discovery workflow from disease to optimized candidates. Identifies targets, discovers lead compounds, screens for ADMET properties, assesses safety, and validates with literature.",
+    "genre": "ComposeTool"
+  },
+  {
+    "tool_name": "BiomarkerDiscoveryWorkflow",
+    "desc": "BiomarkerDiscoveryWorkflow: Discover and validate biomarkers for a specific disease condition using literature analysis, expression data, pathway enrichment, and clinical validation.",
+    "genre": "ComposeTool"
+  },
+  {
+    "tool_name": "ToolMetadataGenerationPipeline",
+    "desc": "ToolMetadataGenerationPipeline: Generates standardized metadata for a batch of ToolUniverse tool configurations by calling ToolMetadataGenerator, LabelGenerator, and ToolMetadataStandardizer for sources and tags.",
+    "genre": "ComposeTool"
+  },
+  {
+    "tool_name": "ToolGraphGenerationPipeline",
+    "desc": "ToolGraphGenerationPipeline: Generates a directed tool relationship graph among provided tool configs using ToolRelationshipDetector to infer data-flow compatibility.",
+    "genre": "ComposeTool"
+  },
+  {
+    "tool_name": "OpenTargets_get_disease_ids_by_name",
+    "desc": "OpenTargets_get_disease_ids_by_name: Given a disease or phenotype name, find all cross-referenced external IDs (e.g., OMIM, MONDO, MeSH, ICD10, UMLS, MedDRA, NCIt, Orphanet) using Open Targets GraphQL API.",
+    "genre": "OpenTarget"
+  },
+  {
+    "tool_name": "OpenTargets_get_disease_ids_by_efoId",
+    "desc": "OpenTargets_get_disease_ids_by_efoId: Given an EFO ID, retrieve all cross-referenced external disease IDs including MONDO, OMIM, MeSH, MedDRA, NCIt, ICD10, Orphanet, UMLS.",
+    "genre": "OpenTarget"
+  },
+  {
+    "tool_name": "OpenTargets_map_any_disease_id_to_all_other_ids",
+    "desc": "OpenTargets_map_any_disease_id_to_all_other_ids: Given any known disease or phenotype ID (EFO, OMIM, MONDO, UMLS, ICD10, MedDRA, etc.), return all known cross-referenced IDs including the EFO ID.",
+    "genre": "OpenTarget"
+  },
+  {
+    "tool_name": "disease_target_score",
+    "desc": "disease_target_score: Extract disease-target association scores from a specific data source using GraphQL API. This tool retrieves all targets associated with a disease and their scores from a specified datasource (e.g., chembl, eva, cancer_gene_census, etc.).",
+    "genre": "DiseaseTargetScoreTool"
+  },
+  {
+    "tool_name": "chembl_disease_target_score",
+    "desc": "chembl_disease_target_score: Extract disease-target association scores specifically from ChEMBL database. ChEMBL provides bioactivity data for drug-target interactions.",
+    "genre": "DiseaseTargetScoreTool"
+  },
+  {
+    "tool_name": "eva_disease_target_score",
+    "desc": "eva_disease_target_score: Extract disease-target association scores from EVA (European Variation Archive). EVA provides genetic variant data.",
+    "genre": "DiseaseTargetScoreTool"
+  },
+  {
+    "tool_name": "eva_somatic_disease_target_score",
+    "desc": "eva_somatic_disease_target_score: Extract disease-target association scores from EVA somatic mutations. This includes somatic variant data.",
+    "genre": "DiseaseTargetScoreTool"
+  },
+  {
+    "tool_name": "cancer_gene_census_disease_target_score",
+    "desc": "cancer_gene_census_disease_target_score: Extract disease-target association scores from Cancer Gene Census. This provides curated cancer gene data.",
+    "genre": "DiseaseTargetScoreTool"
+  },
+  {
+    "tool_name": "cancer_biomarkers_disease_target_score",
+    "desc": "cancer_biomarkers_disease_target_score: Extract disease-target association scores from cancer biomarkers data. This includes known cancer biomarkers.",
+    "genre": "DiseaseTargetScoreTool"
+  },
+  {
+    "tool_name": "europepmc_disease_target_score",
+    "desc": "europepmc_disease_target_score: Extract disease-target association scores from Europe PMC literature. This includes literature-based evidence.",
+    "genre": "DiseaseTargetScoreTool"
+  },
+  {
+    "tool_name": "expression_atlas_disease_target_score",
+    "desc": "expression_atlas_disease_target_score: Extract disease-target association scores from Expression Atlas. This provides gene expression data.",
+    "genre": "DiseaseTargetScoreTool"
+  },
+  {
+    "tool_name": "genomics_england_disease_target_score",
+    "desc": "genomics_england_disease_target_score: Extract disease-target association scores from Genomics England data. This includes clinical genomics evidence.",
+    "genre": "DiseaseTargetScoreTool"
+  },
+  {
+    "tool_name": "reactome_disease_target_score",
+    "desc": "reactome_disease_target_score: Extract disease-target association scores from Reactome pathway data. This includes pathway-based evidence.",
+    "genre": "DiseaseTargetScoreTool"
+  },
+  {
+    "tool_name": "mesh_get_subjects_by_pharmacological_action",
+    "desc": "mesh_get_subjects_by_pharmacological_action: Find MeSH (Medical Subject Heading) subjects with matching pharmacological actions.",
+    "genre": "XMLTool"
+  },
+  {
+    "tool_name": "mesh_get_subjects_by_subject_scope_or_definition",
+    "desc": "mesh_get_subjects_by_subject_scope_or_definition: Find MeSH (Medical Subject Heading) subjects with matching scopes (definitions).",
+    "genre": "XMLTool"
+  },
+  {
+    "tool_name": "mesh_get_subjects_by_subject_name",
+    "desc": "mesh_get_subjects_by_subject_name: Find MeSH (Medical Subject Heading) subjects with matching names.",
+    "genre": "XMLTool"
+  },
+  {
+    "tool_name": "mesh_get_subjects_by_subject_id",
+    "desc": "mesh_get_subjects_by_subject_id: Find MeSH (Medical Subject Heading) subjects with a matching subject ID (also called Descriptor UI).",
+    "genre": "XMLTool"
+  },
+  {
+    "tool_name": "drugbank_get_drug_basic_info_by_drug_name_or_drugbank_id",
+    "desc": "drugbank_get_drug_basic_info_by_drug_name_or_drugbank_id: Get basic drug information including name, description, CAS number, and approval status by drug name or DrugBank ID.",
+    "genre": "XMLTool"
+  },
+  {
+    "tool_name": "drugbank_get_indications_by_drug_name_or_drugbank_id",
+    "desc": "drugbank_get_indications_by_drug_name_or_drugbank_id: Get drug indications and therapeutic uses by drug name or DrugBank ID.",
+    "genre": "XMLTool"
+  },
+  {
+    "tool_name": "drugbank_get_drug_name_and_description_by_indication",
+    "desc": "drugbank_get_drug_name_and_description_by_indication: Get drug name, Drugbank ID, and description by its indication.",
+    "genre": "XMLTool"
+  },
+  {
+    "tool_name": "drugbank_get_pharmacology_by_drug_name_or_drugbank_id",
+    "desc": "drugbank_get_pharmacology_by_drug_name_or_drugbank_id: Get drug pharmacodynamics, mechanism of action, and pharmacokinetics by drug name or Drugbank ID.",
+    "genre": "XMLTool"
+  },
+  {
+    "tool_name": "drugbank_get_drug_name_description_pharmacology_by_mechanism_of_action",
+    "desc": "drugbank_get_drug_name_description_pharmacology_by_mechanism_of_action: Get drug name, ID, description, pharmacodynamics, mechanism of action, and pharmacokinetics by drug mechanism of action.",
+    "genre": "XMLTool"
+  },
+  {
+    "tool_name": "drugbank_get_drug_interactions_by_drug_name_or_drugbank_id",
+    "desc": "drugbank_get_drug_interactions_by_drug_name_or_drugbank_id: Get drug interactions and contraindications by drug name or DrugBank ID.",
+    "genre": "XMLTool"
+  },
+  {
+    "tool_name": "drugbank_get_targets_by_drug_name_or_drugbank_id",
+    "desc": "drugbank_get_targets_by_drug_name_or_drugbank_id: Get drug targets, enzymes, carriers, and transporters by drug name or DrugBank ID.",
+    "genre": "XMLTool"
+  },
+  {
+    "tool_name": "drugbank_get_drug_name_and_description_by_target_name",
+    "desc": "drugbank_get_drug_name_and_description_by_target_name: Get associated drug names and descriptions for a particular target, enzyme, carrier, or transporter protein.",
+    "genre": "XMLTool"
+  },
+  {
+    "tool_name": "drugbank_get_drug_products_by_name_or_drugbank_id",
+    "desc": "drugbank_get_drug_products_by_name_or_drugbank_id: Get commercial drug products, dosage forms, and pricing informatiomon by drug name or DrugBank ID.",
+    "genre": "XMLTool"
+  },
+  {
+    "tool_name": "drugbank_get_safety_by_drug_name_or_drugbank_id",
+    "desc": "drugbank_get_safety_by_drug_name_or_drugbank_id: Get drug toxicity, contraindications, and safety information by drug name or DrugBank ID.",
+    "genre": "XMLTool"
+  },
+  {
+    "tool_name": "drugbank_get_drug_chemistry_by_drug_name_or_drugbank_id",
+    "desc": "drugbank_get_drug_chemistry_by_drug_name_or_drugbank_id: Get drug chemical properties including molecular formula, weight, and structure by drug name or DrugBank ID.",
+    "genre": "XMLTool"
+  },
+  {
+    "tool_name": "drugbank_get_drug_references_by_drug_name_or_drugbank_id",
+    "desc": "drugbank_get_drug_references_by_drug_name_or_drugbank_id: Get drug literature references, patents, and external links by drug name or DrugBank ID.",
+    "genre": "XMLTool"
+  },
+  {
+    "tool_name": "drugbank_get_drug_pathways_and_reactions_by_drug_name_or_drugbank_id",
+    "desc": "drugbank_get_drug_pathways_and_reactions_by_drug_name_or_drugbank_id: Get drug pathways and metabolic reactions by drug name or DrugBank ID.",
+    "genre": "XMLTool"
+  },
+  {
+    "tool_name": "drugbank_get_drug_name_and_description_by_pathway_name",
+    "desc": "drugbank_get_drug_name_and_description_by_pathway_name: Get drug names and descriptions by pathway name.",
+    "genre": "XMLTool"
+  },
+  {
+    "tool_name": "drugbank_filter_drugs_by_name",
+    "desc": "drugbank_filter_drugs_by_name: Filter DrugBank records based on conditions applied to drug names. For example, find drugs whose names end with 'cillin' (penicillin antibiotics), contain 'mab', or are exactly 'Insulin'.",
+    "genre": "XMLTool"
+  },
+  {
+    "tool_name": "get_webpage_title",
+    "desc": "get_webpage_title: Fetch a webpage and return the content of its <title> tag.",
+    "genre": "URLHTMLTagTool"
+  },
+  {
+    "tool_name": "get_webpage_text_from_url",
+    "desc": "get_webpage_text_from_url: Render a URL as PDF and extract its text (JavaScript supported).",
+    "genre": "URLToPDFTextTool"
+  },
+  {
+    "tool_name": "get_protein_metadata_by_pdb_id",
+    "desc": "get_protein_metadata_by_pdb_id: Retrieve basic protein structure metadata, including structure title, experimental method, resolution, and initial release date.",
+    "genre": "RCSBTool"
+  },
+  {
+    "tool_name": "get_polymer_entity_ids_by_pdb_id",
+    "desc": "get_polymer_entity_ids_by_pdb_id: List polymer entity IDs for a given PDB ID. Useful for building further queries on individual polymer entities.",
+    "genre": "RCSBTool"
+  },
+  {
+    "tool_name": "get_polymer_entity_type_by_entity_id",
+    "desc": "get_polymer_entity_type_by_entity_id: Get the polymer entity type (e.g., Protein, DNA) using the polymer entity ID.",
+    "genre": "RCSBTool"
+  },
+  {
+    "tool_name": "get_source_organism_by_pdb_id",
+    "desc": "get_source_organism_by_pdb_id: Retrieve the scientific name of the source organism for a given PDB structure.",
+    "genre": "RCSBTool"
+  },
+  {
+    "tool_name": "get_citation_info_by_pdb_id",
+    "desc": "get_citation_info_by_pdb_id: Retrieve citation information (authors, journal, year) for a given PDB structure.",
+    "genre": "RCSBTool"
+  },
+  {
+    "tool_name": "get_sequence_lengths_by_pdb_id",
+    "desc": "get_sequence_lengths_by_pdb_id: Retrieve the sequence lengths of polymer entities for a given PDB structure.",
+    "genre": "RCSBTool"
+  },
+  {
+    "tool_name": "get_sequence_by_pdb_id",
+    "desc": "get_sequence_by_pdb_id: Retrieve amino acid or nucleotide sequence of polymer entities for a given PDB structure.",
+    "genre": "RCSBTool"
+  },
+  {
+    "tool_name": "get_mutation_annotations_by_pdb_id",
+    "desc": "get_mutation_annotations_by_pdb_id: Retrieve mutation annotations for a given PDB structure.",
+    "genre": "RCSBTool"
+  },
+  {
+    "tool_name": "get_em_3d_fitting_and_reconstruction_details",
+    "desc": "get_em_3d_fitting_and_reconstruction_details: Retrieve EM 3D fitting model details and associated 3D reconstruction info for a given PDB entry.",
+    "genre": "RCSBTool"
+  },
+  {
+    "tool_name": "get_assembly_summary",
+    "desc": "get_assembly_summary: Get key assembly composition and symmetry summary for an assembly associated with a PDB entry.",
+    "genre": "RCSBTool"
+  },
+  {
+    "tool_name": "get_assembly_info_by_pdb_id",
+    "desc": "get_assembly_info_by_pdb_id: Retrieve all associated biological assembly details for a given PDB structure.",
+    "genre": "RCSBTool"
+  },
+  {
+    "tool_name": "get_taxonomy_by_pdb_id",
+    "desc": "get_taxonomy_by_pdb_id: Get the scientific name and taxonomy of the organism(s) associated with a PDB entry.",
+    "genre": "RCSBTool"
+  },
+  {
+    "tool_name": "get_release_deposit_dates_by_pdb_id",
+    "desc": "get_release_deposit_dates_by_pdb_id: Get the release and deposition dates for a PDB entry.",
+    "genre": "RCSBTool"
+  },
+  {
+    "tool_name": "get_host_organism_by_pdb_id",
+    "desc": "get_host_organism_by_pdb_id: Get the host organism used for protein expression in a PDB entry.",
+    "genre": "RCSBTool"
+  },
+  {
+    "tool_name": "get_ec_number_by_entity_id",
+    "desc": "get_ec_number_by_entity_id: Retrieve the Enzyme Commission (EC) number(s) for an entity.",
+    "genre": "RCSBTool"
+  },
+  {
+    "tool_name": "get_gene_name_by_entity_id",
+    "desc": "get_gene_name_by_entity_id: Retrieve gene name(s) associated with a polymer entity.",
+    "genre": "RCSBTool"
+  },
+  {
+    "tool_name": "get_polymer_molecular_weight_by_entity_id",
+    "desc": "get_polymer_molecular_weight_by_entity_id: Retrieve the molecular weight of a polymer entity.",
+    "genre": "RCSBTool"
+  },
+  {
+    "tool_name": "get_ligand_bond_count_by_pdb_id",
+    "desc": "get_ligand_bond_count_by_pdb_id: Get the number of bonds for each ligand in a given PDB structure.",
+    "genre": "RCSBTool"
+  },
+  {
+    "tool_name": "get_crystal_growth_conditions_by_pdb_id",
+    "desc": "get_crystal_growth_conditions_by_pdb_id: Get information about the crystallization method and conditions for a structure.",
+    "genre": "RCSBTool"
+  },
+  {
+    "tool_name": "get_polymer_entity_annotations",
+    "desc": "get_polymer_entity_annotations: Retrieve functional annotations (Pfam domains, GO terms) and associated UniProt accession IDs for a polymer entity.",
+    "genre": "RCSBTool"
+  },
+  {
+    "tool_name": "get_oligosaccharide_descriptors_by_entity_id",
+    "desc": "get_oligosaccharide_descriptors_by_entity_id: Retrieve structural descriptors for branched entities (e.g., oligosaccharides) in a PDB entry.",
+    "genre": "RCSBTool"
+  },
+  {
+    "tool_name": "get_sequence_positional_features_by_instance_id",
+    "desc": "get_sequence_positional_features_by_instance_id: Retrieve sequence positional features (e.g., binding sites, motifs) for a polymer entity instance.",
+    "genre": "RCSBTool"
+  },
+  {
+    "tool_name": "get_crystallographic_properties_by_pdb_id",
+    "desc": "get_crystallographic_properties_by_pdb_id: Retrieve crystallographic properties such as unit cell dimensions and space group for a PDB entry.",
+    "genre": "RCSBTool"
+  },
+  {
+    "tool_name": "get_structure_validation_metrics_by_pdb_id",
+    "desc": "get_structure_validation_metrics_by_pdb_id: Retrieve structure validation metrics such as R-free, R-work, and clashscore for a PDB entry.",
+    "genre": "RCSBTool"
+  },
+  {
+    "tool_name": "get_structure_title_by_pdb_id",
+    "desc": "get_structure_title_by_pdb_id: Retrieve the structure title for a given PDB entry.",
+    "genre": "RCSBTool"
+  },
+  {
+    "tool_name": "get_polymer_entity_count_by_pdb_id",
+    "desc": "get_polymer_entity_count_by_pdb_id: Get the number of distinct polymer entities (chains) in a structure.",
+    "genre": "RCSBTool"
+  },
+  {
+    "tool_name": "get_emdb_ids_by_pdb_id",
+    "desc": "get_emdb_ids_by_pdb_id: Retrieve Electron Microscopy Data Bank (EMDB) identifiers linked to a PDB entry.",
+    "genre": "RCSBTool"
+  },
+  {
+    "tool_name": "get_uniprot_accession_by_entity_id",
+    "desc": "get_uniprot_accession_by_entity_id: Fetch UniProt accession numbers associated with a specific polymer entity.",
+    "genre": "RCSBTool"
+  },
+  {
+    "tool_name": "get_crystallization_ph_by_pdb_id",
+    "desc": "get_crystallization_ph_by_pdb_id: Fetch the pH used during crystallization of the sample.",
+    "genre": "RCSBTool"
+  },
+  {
+    "tool_name": "get_space_group_by_pdb_id",
+    "desc": "get_space_group_by_pdb_id: Get the crystallographic space group of the structure.",
+    "genre": "RCSBTool"
+  },
+  {
+    "tool_name": "get_protein_classification_by_pdb_id",
+    "desc": "get_protein_classification_by_pdb_id: Get the classification of the protein structure (e.g., transferase, oxidoreductase).",
+    "genre": "RCSBTool"
+  },
+  {
+    "tool_name": "get_structure_determination_software_by_pdb_id",
+    "desc": "get_structure_determination_software_by_pdb_id: Retrieve names of software used during structure determination.",
+    "genre": "RCSBTool"
+  },
+  {
+    "tool_name": "get_refinement_resolution_by_pdb_id",
+    "desc": "get_refinement_resolution_by_pdb_id: Retrieve the reported resolution from refinement data for X-ray structures.",
+    "genre": "RCSBTool"
+  },
+  {
+    "tool_name": "get_binding_affinity_by_pdb_id",
+    "desc": "get_binding_affinity_by_pdb_id: Retrieve binding affinity constants (Kd, Ki, IC50) associated with ligands in a PDB entry.",
+    "genre": "RCSBTool"
+  },
+  {
+    "tool_name": "get_ligand_smiles_by_chem_comp_id",
+    "desc": "get_ligand_smiles_by_chem_comp_id: Retrieve the SMILES chemical structure string for a given chemical component (ligand) ID.",
+    "genre": "RCSBTool"
+  },
+  {
+    "tool_name": "get_core_refinement_statistics",
+    "desc": "get_core_refinement_statistics: Retrieve essential refinement statistics for a given PDB structure including R-factors, occupancy, phase errors, and solvent model parameters.",
+    "genre": "RCSBTool"
+  },
+  {
+    "tool_name": "get_target_cofactor_info",
+    "desc": "get_target_cofactor_info: Retrieve essential cofactor information for a given target including cofactor IDs, mechanism of action, literature references, and resource metadata.",
+    "genre": "RCSBTool"
+  },
+  {
+    "tool_name": "get_chem_comp_audit_info",
+    "desc": "get_chem_comp_audit_info: Fetch audit history for a chemical component: action type, date, details, ordinal, and processing site.",
+    "genre": "RCSBTool"
+  },
+  {
+    "tool_name": "get_chem_comp_charge_and_ambiguity",
+    "desc": "get_chem_comp_charge_and_ambiguity: Retrieve the formal charge and ambiguity flag of a chemical component.",
+    "genre": "RCSBTool"
+  },
+  {
+    "tool_name": "ToolCompatibilityAnalyzer",
+    "desc": "ToolCompatibilityAnalyzer: Analyzes two tool specifications to determine if one tool's output can be used as input for another tool. Returns compatibility information and suggested parameter mappings.",
+    "genre": "AgenticTool"
+  },
+  {
+    "tool_name": "ToolGraphComposer",
+    "desc": "ToolGraphComposer: Builds a comprehensive graph of tool compatibility relationships in ToolUniverse. Analyzes all available tools and creates a directed graph showing which tools can be composed together.",
+    "genre": "ComposeTool"
+  },
+  {
+    "tool_name": "gwas_search_associations",
+    "desc": "gwas_search_associations: Search for GWAS associations by various criteria including EFO trait, rs ID, accession ID, with sorting and pagination support.",
+    "genre": "GWASAssociationSearch"
+  },
+  {
+    "tool_name": "gwas_search_studies",
+    "desc": "gwas_search_studies: Search for GWAS studies by various criteria including EFO trait, disease trait, cohort, GxE interactions, and summary statistics availability.",
+    "genre": "GWASStudySearch"
+  },
+  {
+    "tool_name": "gwas_search_snps",
+    "desc": "gwas_search_snps: Search for GWAS single nucleotide polymorphisms (SNPs) by rs ID or mapped gene.",
+    "genre": "GWASSNPSearch"
+  },
+  {
+    "tool_name": "gwas_get_association_by_id",
+    "desc": "gwas_get_association_by_id: Get a specific GWAS association by its unique identifier.",
+    "genre": "GWASAssociationByID"
+  },
+  {
+    "tool_name": "gwas_get_study_by_id",
+    "desc": "gwas_get_study_by_id: Get a specific GWAS study by its unique identifier.",
+    "genre": "GWASStudyByID"
+  },
+  {
+    "tool_name": "gwas_get_snp_by_id",
+    "desc": "gwas_get_snp_by_id: Get a specific GWAS SNP by its rs ID.",
+    "genre": "GWASSNPByID"
+  },
+  {
+    "tool_name": "gwas_get_variants_for_trait",
+    "desc": "gwas_get_variants_for_trait: Get all variants associated with a specific trait with pagination support.",
+    "genre": "GWASVariantsForTrait"
+  },
+  {
+    "tool_name": "gwas_get_associations_for_trait",
+    "desc": "gwas_get_associations_for_trait: Get all associations for a specific trait, sorted by p-value (most significant first).",
+    "genre": "GWASAssociationsForTrait"
+  },
+  {
+    "tool_name": "gwas_get_associations_for_snp",
+    "desc": "gwas_get_associations_for_snp: Get all associations for a specific SNP with optional sorting.",
+    "genre": "GWASAssociationsForSNP"
+  },
+  {
+    "tool_name": "gwas_get_studies_for_trait",
+    "desc": "gwas_get_studies_for_trait: Get studies for a specific trait with optional filters for cohort, GxE interactions, and summary statistics.",
+    "genre": "GWASStudiesForTrait"
+  },
+  {
+    "tool_name": "gwas_get_snps_for_gene",
+    "desc": "gwas_get_snps_for_gene: Get all SNPs mapped to a specific gene.",
+    "genre": "GWASSNPsForGene"
+  },
+  {
+    "tool_name": "gwas_get_associations_for_study",
+    "desc": "gwas_get_associations_for_study: Get all associations for a specific study, sorted by p-value.",
+    "genre": "GWASAssociationsForStudy"
+  },
+  {
+    "tool_name": "ADMETAI_predict_physicochemical_properties",
+    "desc": "ADMETAI_predict_physicochemical_properties: Predicts physicochemical properties (molecular weight, logP, hydrogen bond acceptors/donors, Lipinski, QED, stereo centers, TPSA) for a given list of molecules in SMILES format.",
+    "genre": "ADMETAITool"
+  },
+  {
+    "tool_name": "ADMETAI_predict_CYP_interactions",
+    "desc": "ADMETAI_predict_CYP_interactions: Predicts CYP enzyme interactions for a given list of molecules in SMILES format.",
+    "genre": "ADMETAITool"
+  },
+  {
+    "tool_name": "ADMETAI_predict_BBB_penetrance",
+    "desc": "ADMETAI_predict_BBB_penetrance: Predicts blood-brain barrier (BBB) penetrance for a given list of molecules in SMILES format.",
+    "genre": "ADMETAITool"
+  },
+  {
+    "tool_name": "ADMETAI_predict_toxicity",
+    "desc": "ADMETAI_predict_toxicity: Predicts toxicity endpoints (AMES, Carcinogens_Lagunin, ClinTox, DILI, LD50_Zhu, Skin_Reaction, hERG) for a given list of molecules in SMILES format.",
+    "genre": "ADMETAITool"
+  },
+  {
+    "tool_name": "ADMETAI_predict_bioavailability",
+    "desc": "ADMETAI_predict_bioavailability: Predicts bioavailability endpoints (Bioavailability_Ma, HIA_Hou, PAMPA_NCATS, Caco2_Wang, Pgp_Broccatelli) for a given list of molecules in SMILES format.",
+    "genre": "ADMETAITool"
+  },
+  {
+    "tool_name": "ADMETAI_predict_clearance_distribution",
+    "desc": "ADMETAI_predict_clearance_distribution: Predicts clearance and distribution endpoints (Clearance_Hepatocyte_AZ, Clearance_Microsome_AZ, Half_Life_Obach, VDss_Lombardo, PPBR_AZ) for a given list of molecules in SMILES format.",
+    "genre": "ADMETAITool"
+  },
+  {
+    "tool_name": "ADMETAI_predict_nuclear_receptor_activity",
+    "desc": "ADMETAI_predict_nuclear_receptor_activity: Predicts nuclear receptor activity endpoints (NR-AR-LBD, NR-AR, NR-AhR, NR-Aromatase, NR-ER-LBD, NR-ER, NR-PPAR-gamma) for a given list of molecules in SMILES format.",
+    "genre": "ADMETAITool"
+  },
+  {
+    "tool_name": "ADMETAI_predict_stress_response",
+    "desc": "ADMETAI_predict_stress_response: Predicts stress response endpoints (SR-ARE, SR-ATAD5, SR-HSE, SR-MMP, SR-p53) for a given list of molecules in SMILES format.",
+    "genre": "ADMETAITool"
+  },
+  {
+    "tool_name": "ADMETAI_predict_solubility_lipophilicity_hydration",
+    "desc": "ADMETAI_predict_solubility_lipophilicity_hydration: Predicts solubility, lipophilicity, and hydration endpoints (Solubility_AqSolDB, Lipophilicity_AstraZeneca, HydrationFreeEnergy_FreeSolv) for a given list of molecules in SMILES format.",
+    "genre": "ADMETAITool"
+  },
+  {
+    "tool_name": "alphafold_get_prediction",
+    "desc": "alphafold_get_prediction: Retrieve full AlphaFold 3D structure predictions for a given protein. Input must be a UniProt accession (e.g., 'P69905'), UniProt entry name (e.g., 'HBA_HUMAN'), or CRC64 checksum. Returns residue-level metadata including sequence, per-residue confidence scores (pLDDT), and structure download links (PDB, CIF, PAE). If you do not know the accession, first call `uniprot_search` to resolve it from a protein/gene name, or `UniProt_get_entry_by_accession` if you already have the accession and want UniProt details. For a quick overview, use `alphafold_get_summary`. For mutation/variant impact, see `alphafold_get_annotations.",
+    "genre": "AlphaFoldRESTTool"
+  },
+  {
+    "tool_name": "alphafold_get_summary",
+    "desc": "alphafold_get_summary: Retrieve summary details of AlphaFold 3D models for a given protein. Input must be a UniProt accession, entry name, or CRC64 checksum. Returns lightweight information such as sequence length, coverage, confidence scores, experimental method, resolution, oligomeric state, and structural entities. If you only know the protein/gene name, first use `uniprot_search` to find the accession. For full residue-level 3D predictions with downloadable coordinates, call `alphafold_get_prediction`. For curated variants, see `UniProt_get_disease_variants_by_accession`; for predicted mutation effects, use `alphafold_get_annotations`.",
+    "genre": "AlphaFoldRESTTool"
+  },
+  {
+    "tool_name": "alphafold_get_annotations",
+    "desc": "alphafold_get_annotations: Retrieve AlphaFold variant annotations (e.g., missense mutations) for a given UniProt accession (e.g., 'P69905'). Input must be a UniProt accession, entry name, or CRC64 checksum, along with an annotation type (currently only 'MUTAGEN'). Use this tool to explore predicted pathogenicity or functional effects of substitutions. If you only have a protein/gene name, resolve it with `uniprot_search`. For experimentally curated variants, use `UniProt_get_disease_variants_by_accession`. To view the full 3D structure, call `alphafold_get_prediction`; for overall model metadata, use `alphafold_get_summary`.",
+    "genre": "AlphaFoldRESTTool"
+  },
+  {
+    "tool_name": "ToolOutputSummarizer",
+    "desc": "ToolOutputSummarizer: AI-powered tool for summarizing long tool outputs, focusing on key information relevant to the original query",
+    "genre": "AgenticTool"
+  },
+  {
+    "tool_name": "OutputSummarizationComposer",
+    "desc": "OutputSummarizationComposer: Composes output summarization workflow by chunking long outputs, processing each chunk with AI summarization, and merging results",
+    "genre": "ComposeTool"
+  }
+]

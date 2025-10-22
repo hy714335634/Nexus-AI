@@ -1,0 +1,267 @@
+{
+  "system_design": {
+    "design_overview": {
+      "project_name": "pubmed_literature_search_agent",
+      "version": "1.0",
+      "date": "2025-10-20",
+      "design_scope": "Design of a single-agent system for PubMed Central literature retrieval, filtering, and summarization with AWS S3 integration",
+      "design_principles": [
+        "Data-centric architecture focused on efficient literature processing",
+        "Modular design with clear separation of concerns",
+        "Extensible framework to support future enhancements",
+        "Robust error handling for reliable operation",
+        "Optimized for academic research workflows"
+      ],
+      "key_decisions": [
+        "Single-agent architecture due to cohesive functionality and linear workflow",
+        "Integration with AWS S3 for PMC data access using no-sign-request method",
+        "Adoption of deep_research_agent template as foundation",
+        "Implementation of custom relevance scoring algorithm",
+        "Structured output format for literature reports"
+      ],
+      "workflow_type": "single_agent",
+      "recommended_templates": ["deep_research_agent"]
+    },
+    "architecture": {
+      "system_context": "The PubMed Literature Search Agent operates as a standalone system that interfaces with AWS S3 to access PMC open data, processes literature based on user queries, and generates structured reports. It maintains a local cache of metadata for performance optimization and uses external services for impact factor data.",
+      "agent_topology": "Single agent with multiple functional modules (retrieval, filtering, ranking, extraction, reporting)",
+      "interaction_model": "Synchronous request-response model with user providing search parameters and receiving structured literature reports",
+      "technology_stack": {
+        "sdk": "Strands SDK",
+        "runtime": "Local",
+        "integrations": [
+          "AWS S3 (PMC data access)",
+          "Journal Impact Factor API (optional)",
+          "PubMed API (supplementary metadata)"
+        ]
+      }
+    },
+    "agents": [
+      {
+        "name": "pubmed_literature_agent",
+        "purpose": "Retrieve, filter, analyze, and summarize academic literature from PubMed Central",
+        "responsibilities": [
+          "Access and process PMC data via AWS S3",
+          "Execute keyword and topic-based literature searches",
+          "Filter literature by time range, impact factor, and journal type",
+          "Rank literature by relevance using multi-dimensional scoring",
+          "Extract key information from articles",
+          "Generate structured literature review reports",
+          "Provide properly formatted citations"
+        ],
+        "interfaces": {
+          "inputs": [
+            "Search keywords and topics",
+            "Time range parameters",
+            "Journal filtering criteria",
+            "Impact factor thresholds",
+            "Sorting preferences",
+            "Report format options",
+            "Citation style preferences"
+          ],
+          "outputs": [
+            "Structured literature review reports",
+            "Citation lists in specified formats",
+            "Relevance-ranked article lists",
+            "Article metadata collections",
+            "Processing status updates"
+          ]
+        },
+        "dependencies": [
+          "AWS S3 SDK",
+          "Journal impact factor database",
+          "Citation formatting library"
+        ],
+        "implementation_notes": [
+          "Based on deep_research_agent template with customizations",
+          "Requires AWS S3 no-sign-request access implementation",
+          "Needs custom relevance scoring algorithm",
+          "Should implement local metadata caching for performance"
+        ],
+        "recommended_template": "deep_research_agent"
+      }
+    ],
+    "data_models": [
+      {
+        "name": "ArticleMetadata",
+        "schema": "JSON structure containing article metadata including PMID, title, authors, journal, publication date, abstract, keywords, impact factor, and retraction status",
+        "validation_rules": [
+          "PMID must be valid and unique",
+          "Publication date must be in ISO format",
+          "Required fields: title, authors, journal, publication date"
+        ],
+        "relationships": ["Referenced by SearchResult, CitationInfo"]
+      },
+      {
+        "name": "SearchQuery",
+        "schema": "JSON structure containing search parameters including keywords, topics, time range, journal filters, and impact factor thresholds",
+        "validation_rules": [
+          "At least one search keyword or topic required",
+          "Time range must be valid (start date before end date)",
+          "Impact factor threshold must be non-negative"
+        ],
+        "relationships": ["Generates SearchResult"]
+      },
+      {
+        "name": "SearchResult",
+        "schema": "JSON structure containing search results with relevance scores, article metadata, and filtering information",
+        "validation_rules": [
+          "Must contain at least metadata reference and relevance score",
+          "Relevance score must be between 0 and 100"
+        ],
+        "relationships": ["Contains ArticleMetadata", "Generated from SearchQuery"]
+      },
+      {
+        "name": "CitationInfo",
+        "schema": "JSON structure containing formatted citation in various styles (APA, MLA) based on article metadata",
+        "validation_rules": [
+          "Must contain at least one formatted citation style",
+          "Must reference valid ArticleMetadata"
+        ],
+        "relationships": ["References ArticleMetadata"]
+      },
+      {
+        "name": "LiteratureReport",
+        "schema": "JSON structure containing comprehensive literature review with metadata, summaries, and citations",
+        "validation_rules": [
+          "Must contain at least one article summary",
+          "Must include search parameters used"
+        ],
+        "relationships": ["Contains SearchResult", "Contains CitationInfo"]
+      }
+    ],
+    "interaction_flows": [
+      {
+        "name": "Basic Literature Search Flow",
+        "description": "Standard flow for keyword-based literature search and report generation",
+        "steps": [
+          {
+            "step": "Query Formation",
+            "agent": "pubmed_literature_agent",
+            "action": "Parse user input and create SearchQuery object",
+            "data": "User keywords, filters, and preferences"
+          },
+          {
+            "step": "PMC Data Access",
+            "agent": "pubmed_literature_agent",
+            "action": "Connect to AWS S3 and retrieve relevant article metadata",
+            "data": "PMC filelist.csv and article metadata"
+          },
+          {
+            "step": "Initial Filtering",
+            "agent": "pubmed_literature_agent",
+            "action": "Apply time range, journal type, and other filters",
+            "data": "Filtered article metadata"
+          },
+          {
+            "step": "Relevance Scoring",
+            "agent": "pubmed_literature_agent",
+            "action": "Calculate relevance scores using multi-dimensional algorithm",
+            "data": "Scored and ranked article list"
+          },
+          {
+            "step": "Content Extraction",
+            "agent": "pubmed_literature_agent",
+            "action": "Extract key information from top-ranked articles",
+            "data": "Article summaries and key points"
+          },
+          {
+            "step": "Citation Generation",
+            "agent": "pubmed_literature_agent",
+            "action": "Generate citations in requested formats",
+            "data": "Formatted citations"
+          },
+          {
+            "step": "Report Assembly",
+            "agent": "pubmed_literature_agent",
+            "action": "Compile literature review report with all components",
+            "data": "Structured literature report"
+          },
+          {
+            "step": "Result Delivery",
+            "agent": "pubmed_literature_agent",
+            "action": "Format and return final report to user",
+            "data": "Complete literature review"
+          }
+        ]
+      },
+      {
+        "name": "Batch Processing Flow",
+        "description": "Flow for processing multiple articles simultaneously",
+        "steps": [
+          {
+            "step": "Batch Query Formation",
+            "agent": "pubmed_literature_agent",
+            "action": "Parse user input for batch processing parameters",
+            "data": "Batch size, search criteria, processing priorities"
+          },
+          {
+            "step": "PMC Bulk Data Retrieval",
+            "agent": "pubmed_literature_agent",
+            "action": "Retrieve metadata for multiple articles in parallel",
+            "data": "Bulk article metadata"
+          },
+          {
+            "step": "Parallel Processing",
+            "agent": "pubmed_literature_agent",
+            "action": "Process articles in parallel batches",
+            "data": "Multiple article processing streams"
+          },
+          {
+            "step": "Progress Tracking",
+            "agent": "pubmed_literature_agent",
+            "action": "Monitor and report batch processing progress",
+            "data": "Processing status updates"
+          },
+          {
+            "step": "Error Handling",
+            "agent": "pubmed_literature_agent",
+            "action": "Identify and manage processing failures",
+            "data": "Error logs and recovery actions"
+          },
+          {
+            "step": "Results Aggregation",
+            "agent": "pubmed_literature_agent",
+            "action": "Combine results from all processed articles",
+            "data": "Aggregated processing results"
+          },
+          {
+            "step": "Batch Report Generation",
+            "agent": "pubmed_literature_agent",
+            "action": "Generate comprehensive report for all processed articles",
+            "data": "Batch literature review"
+          }
+        ]
+      }
+    ],
+    "security_considerations": [
+      "Use no-sign-request method for AWS S3 access to maintain security",
+      "Implement input validation to prevent injection attacks",
+      "Ensure compliance with PMC data usage policies",
+      "Avoid storing sensitive user queries permanently",
+      "Implement rate limiting for external API calls"
+    ],
+    "error_handling": [
+      "Implement graceful degradation when AWS S3 access fails",
+      "Provide clear error messages for failed searches",
+      "Continue batch processing despite individual article failures",
+      "Log errors for troubleshooting without exposing sensitive details",
+      "Implement automatic retry for transient failures"
+    ],
+    "performance_considerations": [
+      "Implement local metadata caching to reduce S3 access frequency",
+      "Use parallel processing for batch operations",
+      "Optimize relevance scoring algorithm for performance",
+      "Implement pagination for large result sets",
+      "Use lazy loading for article content"
+    ],
+    "monitoring_strategy": [
+      "Track search query performance metrics",
+      "Monitor AWS S3 access patterns and latency",
+      "Log processing errors and exceptions",
+      "Measure relevance scoring accuracy",
+      "Track user interaction patterns for optimization"
+    ]
+  },
+  "design_rationale": "The PubMed Literature Search Agent is designed as a single-agent system based on the deep_research_agent template because the functionality follows a cohesive, linear workflow from data retrieval to report generation. While the system performs multiple functions (search, filter, rank, extract, report), these are closely related aspects of a unified literature processing pipeline rather than distinct specialized roles requiring multi-agent coordination. The deep_research_agent template provides an excellent foundation as it already includes capabilities for information gathering, analysis, and report generation, which align well with the literature search requirements. The architecture emphasizes modularity to allow for future enhancements and extensions, such as additional filtering criteria or new citation formats. AWS S3 integration is implemented using the no-sign-request method to maintain security while accessing PMC open data. The relevance scoring algorithm is designed as a multi-dimensional system that considers keyword frequency, position, and context to provide accurate rankings. Performance optimization is achieved through local metadata caching and parallel processing for batch operations. The data models are structured to support the complete literature processing pipeline while maintaining clear relationships between different components. Error handling is comprehensive to ensure reliable operation even when external services are unavailable. The monitoring strategy focuses on key performance indicators to enable continuous improvement of the system."
+}

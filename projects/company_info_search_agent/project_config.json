@@ -1,0 +1,186 @@
+{
+  "project_name": "company_info_search_agent",
+  "validation_timestamp": "2025-09-30T08:42:55.877652+00:00",
+  "overall_status": "success",
+  "agent_scripts": [
+    {
+      "script_path": "agents/generated_agents/company_info_search_agent/company_info_search_agent.py",
+      "syntax_valid": true,
+      "dependencies": [
+        "os",
+        "json",
+        "time",
+        "uuid",
+        "logging",
+        "typing",
+        "pathlib",
+        "nexus_utils.agent_factory",
+        "strands.telemetry",
+        "argparse"
+      ],
+      "execution_params": [],
+      "argparse_params": [
+        {
+          "name": "--excel",
+          "type": "str",
+          "description": "Excel文件路径",
+          "required": true,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "--task-id",
+          "type": "str",
+          "description": "任务ID，用于断点续传，如果不提供则自动生成",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "--search-engines",
+          "type": "str",
+          "description": "搜索引擎列表，例如: google bing baidu duckduckgo",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "--api-key",
+          "type": "str",
+          "description": "搜索API密钥，如果不提供则尝试从环境变量获取",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "--batch-size",
+          "type": "int",
+          "description": "批处理大小，默认为5",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "--output",
+          "type": "str",
+          "description": "输出文件路径，如果不提供则自动生成",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "--task-id",
+          "type": "str",
+          "description": "要恢复的任务ID",
+          "required": true,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "--output",
+          "type": "str",
+          "description": "输出文件路径，如果不提供则自动生成",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "--task-id",
+          "type": "str",
+          "description": "任务ID",
+          "required": true,
+          "default": null,
+          "action": null
+        }
+      ],
+      "error_message": ""
+    }
+  ],
+  "prompt_files": [
+    {
+      "prompt_path": "generated_agents_prompts/company_info_search_agent/company_info_search_agent.yaml",
+      "tool_count": 25,
+      "valid": true,
+      "error_message": "",
+      "metadata": {
+        "tags": [
+          "data_analysis",
+          "web_search",
+          "company_research",
+          "excel_processing"
+        ],
+        "supported_models": [
+          "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
+        ],
+        "tools_dependencies": [
+          "strands_tools/file_read",
+          "strands_tools/file_write",
+          "strands_tools/current_time",
+          "strands_tools/http_request",
+          "generated_tools/company_info_search_agent/excel_reader/excel_reader",
+          "generated_tools/company_info_search_agent/excel_reader/excel_reader_batch",
+          "generated_tools/company_info_search_agent/excel_reader/excel_get_structure",
+          "generated_tools/company_info_search_agent/search_engine_client/multi_engine_search",
+          "generated_tools/company_info_search_agent/search_engine_client/serpapi_search",
+          "generated_tools/company_info_search_agent/search_engine_client/aws_bedrock_search",
+          "generated_tools/company_info_search_agent/search_engine_client/web_page_extractor",
+          "generated_tools/company_info_search_agent/company_search/company_search",
+          "generated_tools/company_info_search_agent/company_search/multi_engine_company_search",
+          "generated_tools/company_info_search_agent/company_search/company_info_extractor",
+          "generated_tools/company_info_search_agent/cache_manager/cache_company_info",
+          "generated_tools/company_info_search_agent/cache_manager/cache_task_progress",
+          "generated_tools/company_info_search_agent/cache_manager/get_company_info",
+          "generated_tools/company_info_search_agent/cache_manager/get_task_progress",
+          "generated_tools/company_info_search_agent/cache_manager/list_cached_companies",
+          "generated_tools/company_info_search_agent/cache_manager/export_results_to_csv",
+          "generated_tools/company_info_search_agent/cache_manager/generate_task_report",
+          "generated_tools/company_info_search_agent/excel_writer/excel_writer",
+          "generated_tools/company_info_search_agent/excel_writer/excel_append_sheet",
+          "generated_tools/company_info_search_agent/excel_writer/merge_csv_to_excel",
+          "generated_tools/company_info_search_agent/excel_writer/create_company_report"
+        ]
+      },
+      "agent_info": {
+        "name": "company_info_search_agent",
+        "description": "公司信息搜索与分析专家，能够读取Excel表格中的公司信息，通过多种搜索引擎查询公司详细信息，并将结果输出为Excel表格",
+        "category": "data_analysis"
+      }
+    }
+  ],
+  "generated_tools": [
+    {
+      "tool_path": "generated_tools/company_info_search_agent/cache_manager.py",
+      "syntax_valid": true,
+      "error_message": ""
+    },
+    {
+      "tool_path": "generated_tools/company_info_search_agent/excel_reader.py",
+      "syntax_valid": true,
+      "error_message": ""
+    },
+    {
+      "tool_path": "generated_tools/company_info_search_agent/search_engine_client.py",
+      "syntax_valid": true,
+      "error_message": ""
+    },
+    {
+      "tool_path": "generated_tools/company_info_search_agent/excel_writer.py",
+      "syntax_valid": true,
+      "error_message": ""
+    },
+    {
+      "tool_path": "generated_tools/company_info_search_agent/company_search.py",
+      "syntax_valid": true,
+      "error_message": ""
+    }
+  ],
+  "total_tools": 25,
+  "summary": {
+    "agent_scripts_count": 1,
+    "prompt_files_count": 1,
+    "generated_tool_files_count": 5,
+    "all_scripts_valid": true,
+    "all_tools_valid": true,
+    "all_prompts_valid": true
+  }
+}

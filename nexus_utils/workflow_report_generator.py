@@ -12,6 +12,39 @@ from datetime import datetime
 from typing import Dict, Any, List, Optional
 from dataclasses import dataclass, asdict
 
+# def extract_agent_result(agent_list: List[AgentResult]) -> Any:
+#     for i in agent_list:
+#         # metrics:
+#         # EventLoopMetrics(
+#         #     cycle_count=2, 
+#         #     tool_metrics={
+#         #         'calculator': ToolMetrics(
+#         #             tool={
+#         #                 'toolUseId': 'tooluse_tcu7yc8tTuiXU1hQ3tlxaw',
+#         #                 'name': 'calculator', 
+#         #                 'input': {'expression': '25 * 48'}
+#         #                 'input': {'expression': '25 * 48'}
+#         #             },
+#         #         call_count=1,
+#         #         success_count=1,
+#         #         error_count=0,
+#         #         total_time=0.009796857833862305
+#         #         )
+#         #     }, 
+#         #     cycle_durations=[2.1938259601593018], 
+#         #     traces=[
+#         #         <strands.telemetry.metrics.Trace object at 0x10f1027b0>,
+#         #         <strands.telemetry.metrics.Trace object at 0x10f115e00>
+#         #     ], 
+#         #     accumulated_usage={
+#         #         'inputTokens': 3998,
+#         #         'outputTokens': 87,
+#         #         'totalTokens': 4085
+#         #     }, 
+#         #     accumulated_metrics={'latencyMs': 3656}
+#         tool_metrics = i.metrics.tool_metrics
+
+
 
 @dataclass
 class StageMetrics:

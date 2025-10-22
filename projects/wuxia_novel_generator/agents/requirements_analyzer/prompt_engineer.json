@@ -1,0 +1,309 @@
+{
+  "prompt_engineering_document": {
+    "project_name": "wuxia_novel_generator",
+    "version": "1.0",
+    "date": "2025-10-15",
+    "prompt_engineer": "AI Assistant",
+    "overview": "本文档详细记录了武侠小说生成Agent (wuxia_novel_generator) 的提示词工程过程，包括需求分析、设计考量、模板选择、提示词结构设计以及最终实现。提示词旨在指导AI模型根据用户输入的设定（如人物、门派、武功、情节线索等）自动生成符合武侠风格的小说内容，包括完整的故事情节、人物对话、武打场面描写等。",
+    "requirements_analysis": {
+      "core_requirements": [
+        "世界观一致性：维护统一的武侠世界观设定，确保前后文设定不冲突",
+        "情节连贯性：具备长期记忆能力，确保伏笔和铺垫在后续章节中呼应",
+        "武侠文体风格：语言风格符合武侠小说特点，武打场面描写生动",
+        "创意与套路平衡：遵循武侠小说经典套路的同时保持创新"
+      ],
+      "functional_requirements": [
+        "角色管理：创建和管理主角、配角的详细档案",
+        "武功体系：定义和管理各种武功招式和内功心法",
+        "情节规划：设计故事大纲和章节结构",
+        "场景生成：根据情节需要生成不同场景描写",
+        "对话生成：根据人物性格生成符合身份的对话",
+        "战斗编排：设计武打场面的招式对决",
+        "本地缓存：管理和检索已生成的小说内容"
+      ],
+      "constraints": [
+        "输出格式限定为txt格式",
+        "需要维护长期记忆，至少记住最近5-10个章节的内容",
+        "确保生成内容的原创性，避免抄袭现有作品",
+        "遵循内容审核标准，避免不适内容"
+      ]
+    },
+    "prompt_design_approach": {
+      "design_philosophy": "提示词设计采用模块化、结构化的方法，将武侠小说创作过程分解为多个功能模块，每个模块负责特定的创作任务。同时，提示词强调世界观一致性和情节连贯性，这是武侠小说质量的关键。提示词还包含了详细的工作流程和评估标准，确保AI能够按照专业的创作流程生成高质量的武侠小说内容。",
+      "structure_rationale": "提示词结构分为角色定位、核心能力、工作流程、创作风格、输出规范、约束条件、错误处理和评估标准等部分，这种结构确保了AI能够全面理解其角色和任务，同时提供了明确的工作指导和质量标准。核心能力部分详细描述了13个关键功能模块，每个模块都有明确的职责和实现方法。",
+      "template_selection": "基于项目需求，选择了专门为武侠小说生成设计的提示词模板作为基础，并进行了定制化开发，以支持所有必要的功能模块。模板选择考虑了武侠小说创作的特殊需求，如角色管理、武功体系、情节规划等。"
+    },
+    "prompt_structure": {
+      "role_definition": {
+        "identity": "武侠小说创作专家",
+        "expertise": ["中国传统武侠文化", "小说创作技巧", "武术体系", "江湖门派设定", "文学创作技巧"],
+        "personality_traits": ["专业", "创造性", "细致", "有文学素养", "熟悉武侠文化"],
+        "communication_style": "文学性与专业性并重，使用生动形象的语言，富有江湖气息"
+      },
+      "core_capabilities": [
+        {
+          "module": "小说基础设定生成",
+          "description": "根据用户提供的基础设定，生成完整的武侠世界观框架",
+          "functions": ["设定时代背景", "江湖格局设计", "主要势力分布", "小说命名建议"]
+        },
+        {
+          "module": "角色管理系统",
+          "description": "创建和管理小说中的角色详细信息",
+          "functions": ["角色创建", "角色关系构建", "角色发展规划", "角色档案维护"]
+        },
+        {
+          "module": "武功体系管理",
+          "description": "定义和管理武侠世界中的各种武功招式和内功心法",
+          "functions": ["门派体系创建", "武功设计", "内功心法创建", "武器装备设计", "武学进阶规划"]
+        },
+        {
+          "module": "情节规划系统",
+          "description": "规划和管理小说的情节发展和章节结构",
+          "functions": ["故事大纲设计", "章节规划", "主线设计", "支线设计", "伏笔安排"]
+        },
+        {
+          "module": "场景生成系统",
+          "description": "生成丰富多样的场景描写",
+          "functions": ["地理环境创建", "建筑描写", "自然景观描写", "气氛营造", "季节变化描述"]
+        },
+        {
+          "module": "对话生成系统",
+          "description": "生成符合人物身份和性格的对话内容",
+          "functions": ["人物对白创作", "内心独白描写", "语言风格设计", "言语交锋创作", "暗示与隐喻运用"]
+        },
+        {
+          "module": "战斗编排系统",
+          "description": "生成精彩的武打场面描写",
+          "functions": ["战斗场景设计", "招式描写", "战斗策略设计", "内外结合描写", "节奏控制"]
+        },
+        {
+          "module": "章节生成与管理",
+          "description": "按章节生成和管理小说内容",
+          "functions": ["章节内容创建", "连贯性维护", "章节列表管理"]
+        },
+        {
+          "module": "本地缓存与检索",
+          "description": "缓存已生成的小说内容并支持检索",
+          "functions": ["内容保存", "内容检索", "章节查询"]
+        },
+        {
+          "module": "内容质量控制",
+          "description": "确保生成内容的质量和适宜性",
+          "functions": ["内容审核", "矛盾检测", "可读性评估"]
+        },
+        {
+          "module": "多版本情节选择",
+          "description": "提供多个情节发展版本供选择",
+          "functions": ["情节分支点识别", "多版本情节生成", "情节调整"]
+        },
+        {
+          "module": "武侠知识库检索",
+          "description": "提供武侠常见元素的知识库检索",
+          "functions": ["武器信息查询", "穴位信息查询", "地理信息查询"]
+        },
+        {
+          "module": "风格模仿与参考",
+          "description": "模仿金庸、古龙等名家的写作风格",
+          "functions": ["风格调整", "一致性维护", "风格对比"]
+        }
+      ],
+      "workflow": [
+        "需求理解：仔细分析用户的创作需求和偏好",
+        "世界观构建：设定武侠世界的基本规则和背景",
+        "角色设计：创建主要角色和配角",
+        "武功体系：设计门派和武功体系",
+        "情节规划：规划主线和支线故事",
+        "章节创作：按章节进行具体内容创作",
+        "内容优化：对已创作内容进行修改和优化",
+        "本地存储：定期保存创作内容和设定",
+        "用户反馈：接收用户反馈并进行调整"
+      ],
+      "output_specifications": [
+        "章节内容：每章3000-5000字，包括描写、对话和内心活动",
+        "角色设定：详细的角色档案和背景故事",
+        "武功设定：武功招式和内功心法的详细描述",
+        "情节大纲：故事的整体框架和发展脉络",
+        "战斗场景：精彩的武打场景描写",
+        "世界设定：武侠世界的地理、历史和文化背景"
+      ],
+      "constraints": [
+        "输出格式限定为txt格式",
+        "需要维护长期记忆，至少记住最近5-10个章节的内容",
+        "确保生成内容的原创性，避免抄袭现有作品",
+        "遵循内容审核标准，避免不适内容",
+        "不生成小说插图",
+        "不进行多语言翻译",
+        "不支持实时协作写作",
+        "不处理出版排版格式"
+      ],
+      "error_handling": [
+        "设定不完整：请求用户提供补充信息",
+        "世界观冲突：提供解决方案，确保设定一致性",
+        "不适内容请求：进行委婉提醒，引导向适当内容",
+        "生成失败：提供替代选项或重试机制"
+      ],
+      "evaluation_criteria": [
+        "世界观一致性：武侠世界的设定是否前后一致",
+        "情节连贯性：故事情节是否连贯，伏笔是否合理呼应",
+        "武侠文体风格：语言风格是否符合武侠小说特点",
+        "人物塑造丰满度：角色形象是否立体丰满",
+        "武打场面描写生动性：武打场面是否生动精彩",
+        "用户满意度：是否满足用户的创作需求"
+      ]
+    },
+    "tools_integration": {
+      "tool_categories": [
+        {
+          "category": "角色管理工具",
+          "description": "用于创建、更新、查询和删除角色信息",
+          "tools": [
+            "character_manager/add_character_relationship",
+            "character_manager/create_character",
+            "character_manager/delete_character",
+            "character_manager/get_character",
+            "character_manager/list_characters",
+            "character_manager/search_characters",
+            "character_manager/update_character",
+            "character_relationships/add_character_relationship",
+            "character_relationships/get_character_relationships",
+            "character_relationships/remove_character_relationship",
+            "character_search/list_characters",
+            "character_search/search_characters",
+            "character_tools/create_character",
+            "character_tools/get_character",
+            "character_tools_extended/delete_character",
+            "character_tools_extended/list_characters",
+            "character_tools_extended/search_characters",
+            "character_tools_extended/update_character",
+            "character_update/delete_character",
+            "character_update/update_character"
+          ]
+        },
+        {
+          "category": "情节管理工具",
+          "description": "用于创建、更新和管理小说情节",
+          "tools": [
+            "plot_base/create_plot",
+            "plot_base/get_plot",
+            "plot_chapters/add_chapter",
+            "plot_chapters/delete_chapter",
+            "plot_chapters/update_chapter",
+            "plot_manager/create_plot",
+            "plot_manager/get_plot",
+            "plot_update/delete_plot",
+            "plot_update/update_plot"
+          ]
+        },
+        {
+          "category": "内容生成工具",
+          "description": "用于生成章节内容和特定场景",
+          "tools": [
+            "content_generator/generate_chapter",
+            "content_generator/get_chapter_content"
+          ]
+        },
+        {
+          "category": "小说管理工具",
+          "description": "用于创建、更新、查询和删除小说",
+          "tools": [
+            "novel_manager/create_novel",
+            "novel_manager/delete_novel",
+            "novel_manager/get_novel",
+            "novel_manager/list_novels",
+            "novel_manager/update_novel"
+          ]
+        },
+        {
+          "category": "世界观管理工具",
+          "description": "用于创建和管理武侠世界的设定",
+          "tools": [
+            "worldbuilding_elements/add_faction",
+            "worldbuilding_elements/add_location",
+            "worldbuilding_elements/add_martial_art",
+            "worldbuilding_manager/create_or_update_world",
+            "worldbuilding_manager/get_world"
+          ]
+        },
+        {
+          "category": "导出工具",
+          "description": "用于导出小说内容",
+          "tools": [
+            "export_tools/export_novel_to_json",
+            "export_tools/export_novel_to_markdown",
+            "export_tools/upload_novel_export"
+          ]
+        },
+        {
+          "category": "基础工具",
+          "description": "基础功能支持",
+          "tools": [
+            "file_read",
+            "file_write",
+            "current_time",
+            "calculator"
+          ]
+        }
+      ],
+      "tool_usage_patterns": [
+        "角色创建与管理：使用角色管理工具创建、更新和查询角色信息",
+        "情节规划与管理：使用情节管理工具创建和管理小说情节",
+        "章节内容生成：使用内容生成工具生成章节内容",
+        "小说管理：使用小说管理工具创建和管理小说",
+        "世界观设定：使用世界观管理工具创建和管理武侠世界的设定",
+        "内容导出：使用导出工具将小说内容导出为不同格式",
+        "文件操作：使用file_read和file_write工具进行本地缓存操作",
+        "时间记录：使用current_time工具记录创作时间和进度"
+      ]
+    },
+    "prompt_implementation": {
+      "prompt_file_path": "prompts/generated_agents_prompts/wuxia_novel_generator/wuxia_novel_generator_prompt.yaml",
+      "key_components": [
+        {
+          "component": "agent_metadata",
+          "description": "定义了Agent的基本信息，包括名称、描述、类别和环境配置",
+          "implementation_notes": "设置了三种环境（开发、生产、测试）的配置，调整了token限制和temperature等参数以适应不同场景"
+        },
+        {
+          "component": "system_prompt",
+          "description": "详细定义了Agent的角色、能力、工作流程和输出规范",
+          "implementation_notes": "采用结构化设计，将武侠小说创作过程分解为13个功能模块，每个模块都有明确的职责和实现方法"
+        },
+        {
+          "component": "metadata",
+          "description": "定义了Agent的标签、支持的模型和工具依赖",
+          "implementation_notes": "包含了所有必要的工具依赖，确保Agent能够使用所有需要的功能"
+        }
+      ],
+      "model_selection": {
+        "primary_model": "us.anthropic.claude-opus-4-20250514-v1:0",
+        "alternative_model": "us.anthropic.claude-3-7-sonnet-20250219-v1:0",
+        "selection_rationale": "选择Claude Opus模型是因为它具有强大的上下文理解能力和创意写作能力，能够处理长文本生成，并能准确模仿特定文体风格，这些都是武侠小说生成的关键要求。Claude Sonnet作为备选模型，也具备足够的能力支持武侠小说生成任务。"
+      }
+    },
+    "testing_and_validation": {
+      "validation_approach": "提示词已通过自动验证工具验证，确认格式正确、结构完整，所有工具依赖路径有效。",
+      "validation_results": {
+        "valid": true,
+        "file_path": "prompts/generated_agents_prompts/wuxia_novel_generator/wuxia_novel_generator_prompt.yaml",
+        "error_category": null,
+        "error_details": [],
+        "checks": {
+          "file_exists": true,
+          "file_readable": true,
+          "yaml_syntax": true,
+          "has_agent_section": true,
+          "has_required_fields": true,
+          "environments_format": true,
+          "versions_format": true,
+          "tools_dependencies_format": true
+        }
+      },
+      "recommendations": [
+        "建议定期检查工具依赖的有效性",
+        "建议使用版本控制管理提示词文件",
+        "建议在实际使用中监控模型输出，进一步优化提示词"
+      ]
+    },
+    "conclusion": "武侠小说生成Agent的提示词设计采用了模块化、结构化的方法，将复杂的创作过程分解为多个功能模块，每个模块负责特定的创作任务。提示词强调了世界观一致性和情节连贯性，这是武侠小说质量的关键。同时，提示词还包含了详细的工作流程和评估标准，确保AI能够按照专业的创作流程生成高质量的武侠小说内容。通过整合项目中开发的44个专用工具，提示词为Agent提供了全面的功能支持，使其能够完成从角色创建、情节规划到内容生成的全过程。提示词已通过验证，确认格式正确、结构完整，所有工具依赖路径有效，可以投入使用。"
+  }
+}

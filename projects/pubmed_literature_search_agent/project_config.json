@@ -1,0 +1,190 @@
+{
+  "project_name": "pubmed_literature_search_agent",
+  "validation_timestamp": "2025-10-20T03:45:15.620599+00:00",
+  "overall_status": "success",
+  "agent_scripts": [
+    {
+      "script_path": "agents/generated_agents/pubmed_literature_search_agent/pubmed_literature_agent.py",
+      "syntax_valid": true,
+      "dependencies": [
+        "os",
+        "json",
+        "logging",
+        "typing",
+        "datetime",
+        "nexus_utils.agent_factory",
+        "strands.telemetry",
+        "argparse"
+      ],
+      "execution_params": [],
+      "argparse_params": [
+        {
+          "name": "-q",
+          "type": "str",
+          "description": "检索查询",
+          "required": false,
+          "default": "请检索关于COVID-19疫苗有效性的最新研究",
+          "action": null
+        },
+        {
+          "name": "-t",
+          "type": "str",
+          "description": "时间范围",
+          "required": false,
+          "default": "past 2 years",
+          "action": null
+        },
+        {
+          "name": "-j",
+          "type": "str",
+          "description": "期刊类型过滤",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "-i",
+          "type": "float",
+          "description": "最小影响因子",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "-m",
+          "type": "str",
+          "description": "操作模式",
+          "required": false,
+          "default": "search",
+          "action": null
+        },
+        {
+          "name": "-p",
+          "type": "str",
+          "description": "PMC ID (用于citation和extract模式)",
+          "required": false,
+          "default": null,
+          "action": null
+        }
+      ],
+      "error_message": ""
+    }
+  ],
+  "prompt_files": [
+    {
+      "prompt_path": "generated_agents_prompts/pubmed_literature_search_agent/pubmed_literature_agent.yaml",
+      "tool_count": 44,
+      "valid": true,
+      "error_message": "",
+      "metadata": {
+        "tags": [
+          "academic_research",
+          "literature_search",
+          "pubmed",
+          "literature_review",
+          "citation_management"
+        ],
+        "supported_models": [
+          "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
+        ],
+        "tools_dependencies": [
+          "strands_tools/use_aws",
+          "strands_tools/current_time",
+          "strands_tools/calculator",
+          "strands_tools/file_read",
+          "strands_tools/file_write",
+          "generated_tools/pubmed_literature_search_agent/pmc_s3_connector/pmc_s3_connect",
+          "generated_tools/pubmed_literature_search_agent/pmc_s3_connector/pmc_get_filelist_csv",
+          "generated_tools/pubmed_literature_search_agent/pmc_s3_connector/pmc_download_file",
+          "generated_tools/pubmed_literature_search_agent/pmc_s3_connector/pmc_search_files",
+          "generated_tools/pubmed_literature_search_agent/pmc_s3_connector/pmc_get_metadata_by_pmcid",
+          "generated_tools/pubmed_literature_search_agent/pmc_s3_connector/pmc_cache_status",
+          "generated_tools/pubmed_literature_search_agent/pmc_metadata_parser/parse_pmc_xml",
+          "generated_tools/pubmed_literature_search_agent/pmc_metadata_parser/parse_pmc_txt",
+          "generated_tools/pubmed_literature_search_agent/pmc_metadata_parser/extract_pmc_metadata_from_file",
+          "generated_tools/pubmed_literature_search_agent/pmc_metadata_parser/extract_pmc_sections",
+          "generated_tools/pubmed_literature_search_agent/pmc_metadata_parser/extract_pmc_keywords",
+          "generated_tools/pubmed_literature_search_agent/pmc_metadata_parser/extract_pmc_citations",
+          "generated_tools/pubmed_literature_search_agent/literature_searcher/search_literature",
+          "generated_tools/pubmed_literature_search_agent/literature_searcher/advanced_search",
+          "generated_tools/pubmed_literature_search_agent/literature_searcher/search_by_topic",
+          "generated_tools/pubmed_literature_search_agent/literature_searcher/search_by_pmcid",
+          "generated_tools/pubmed_literature_search_agent/literature_searcher/batch_search",
+          "generated_tools/pubmed_literature_search_agent/literature_filter/filter_by_time_range",
+          "generated_tools/pubmed_literature_search_agent/literature_filter/filter_by_journal_type",
+          "generated_tools/pubmed_literature_search_agent/literature_filter/filter_by_impact_factor",
+          "generated_tools/pubmed_literature_search_agent/literature_filter/filter_by_retraction_status",
+          "generated_tools/pubmed_literature_search_agent/literature_filter/combined_filter",
+          "generated_tools/pubmed_literature_search_agent/relevance_ranker/calculate_relevance_score",
+          "generated_tools/pubmed_literature_search_agent/relevance_ranker/rank_literature_by_relevance",
+          "generated_tools/pubmed_literature_search_agent/relevance_ranker/get_top_ranked_literature",
+          "generated_tools/pubmed_literature_search_agent/relevance_ranker/rank_by_custom_criteria",
+          "generated_tools/pubmed_literature_search_agent/relevance_ranker/cluster_by_topic",
+          "generated_tools/pubmed_literature_search_agent/citation_generator/generate_citation_apa",
+          "generated_tools/pubmed_literature_search_agent/citation_generator/generate_citation_mla",
+          "generated_tools/pubmed_literature_search_agent/citation_generator/generate_citation_chicago",
+          "generated_tools/pubmed_literature_search_agent/citation_generator/generate_citation_harvard",
+          "generated_tools/pubmed_literature_search_agent/citation_generator/generate_citation_vancouver",
+          "generated_tools/pubmed_literature_search_agent/citation_generator/generate_all_citations",
+          "generated_tools/pubmed_literature_search_agent/citation_generator/batch_generate_citations",
+          "generated_tools/pubmed_literature_search_agent/report_generator/generate_structured_report",
+          "generated_tools/pubmed_literature_search_agent/report_generator/generate_literature_review",
+          "generated_tools/pubmed_literature_search_agent/report_generator/generate_executive_summary",
+          "generated_tools/pubmed_literature_search_agent/report_generator/generate_topic_summary",
+          "generated_tools/pubmed_literature_search_agent/report_generator/generate_comparison_table"
+        ]
+      },
+      "agent_info": {
+        "name": "pubmed_literature_agent",
+        "description": "PubMed文献检索和汇总智能体，专门负责学术文献的智能检索、筛选和初步汇总工作",
+        "category": "academic_research"
+      }
+    }
+  ],
+  "generated_tools": [
+    {
+      "tool_path": "generated_tools/pubmed_literature_search_agent/relevance_ranker.py",
+      "syntax_valid": true,
+      "error_message": ""
+    },
+    {
+      "tool_path": "generated_tools/pubmed_literature_search_agent/literature_searcher.py",
+      "syntax_valid": true,
+      "error_message": ""
+    },
+    {
+      "tool_path": "generated_tools/pubmed_literature_search_agent/pmc_metadata_parser.py",
+      "syntax_valid": true,
+      "error_message": ""
+    },
+    {
+      "tool_path": "generated_tools/pubmed_literature_search_agent/pmc_s3_connector.py",
+      "syntax_valid": true,
+      "error_message": ""
+    },
+    {
+      "tool_path": "generated_tools/pubmed_literature_search_agent/report_generator.py",
+      "syntax_valid": true,
+      "error_message": ""
+    },
+    {
+      "tool_path": "generated_tools/pubmed_literature_search_agent/literature_filter.py",
+      "syntax_valid": true,
+      "error_message": ""
+    },
+    {
+      "tool_path": "generated_tools/pubmed_literature_search_agent/citation_generator.py",
+      "syntax_valid": true,
+      "error_message": ""
+    }
+  ],
+  "total_tools": 44,
+  "summary": {
+    "agent_scripts_count": 1,
+    "prompt_files_count": 1,
+    "generated_tool_files_count": 7,
+    "all_scripts_valid": true,
+    "all_tools_valid": true,
+    "all_prompts_valid": true
+  }
+}

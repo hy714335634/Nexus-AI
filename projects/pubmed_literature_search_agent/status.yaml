@@ -1,0 +1,61 @@
+project_info:
+- agents:
+  - created_date: '2025-10-20T03:09:04.315943+00:00'
+    description: 智能体：pubmed_literature_agent
+    last_updated: '2025-10-20T03:45:24.547792+00:00'
+    name: pubmed_literature_agent
+    pipeline:
+    - description: 需求分析阶段 - 分析用户需求，定义功能规格
+      doc_path: agents/pubmed_literature_agent/requirements_analyzer.json
+      stage: requirements_analyzer
+      status: true
+      updated_date: '2025-10-20T03:10:23.855802+00:00'
+    - description: 系统架构设计阶段 - 设计系统架构和技术方案
+      doc_path: agents/pubmed_literature_agent/system_architect.json
+      stage: system_architect
+      status: true
+      updated_date: '2025-10-20T03:13:12.183888+00:00'
+    - description: Agent设计阶段 - 设计智能体结构和交互模式
+      doc_path: agents/pubmed_literature_agent/agent_designer.json
+      stage: agent_designer
+      status: true
+      updated_date: '2025-10-20T03:17:11.237581+00:00'
+    - agent_artifact_path:
+      - prompts/generated_agents_prompts/pubmed_literature_search_agent/pubmed_literature_agent.yaml
+      description: 提示词工程阶段 - 设计和优化提示词模板
+      doc_path: agents/pubmed_literature_agent/prompt_engineer.json
+      stage: prompt_engineer
+      status: true
+      updated_date: '2025-10-20T03:40:14.068812+00:00'
+    - agent_artifact_path:
+      - tools/generated_tools/pubmed_literature_search_agent/pmc_s3_connector.py
+      - tools/generated_tools/pubmed_literature_search_agent/pmc_metadata_parser.py
+      - tools/generated_tools/pubmed_literature_search_agent/literature_searcher.py
+      - tools/generated_tools/pubmed_literature_search_agent/literature_filter.py
+      - tools/generated_tools/pubmed_literature_search_agent/relevance_ranker.py
+      - tools/generated_tools/pubmed_literature_search_agent/citation_generator.py
+      - tools/generated_tools/pubmed_literature_search_agent/report_generator.py
+      description: 工具开发阶段 - 开发必要的工具和函数
+      doc_path: ''
+      stage: tools_developer
+      status: true
+      updated_date: '2025-10-20T03:33:10.981694+00:00'
+    - agent_artifact_path:
+      - agents/generated_agents/pubmed_literature_search_agent/pubmed_literature_agent.py
+      description: Agent代码开发阶段 - 实现智能体代码
+      doc_path: ''
+      stage: agent_code_developer
+      status: true
+      updated_date: '2025-10-20T03:44:24.411100+00:00'
+    - description: Agent开发管理阶段 - 管理和协调开发流程
+      doc_path: ''
+      stage: agent_developer_manager
+      status: true
+      updated_date: '2025-10-20T03:45:24.547795+00:00'
+  description: 基于PubMed Central的学术文献智能检索、筛选和汇总智能体，支持通过AWS S3访问PMC开放数据
+  last_updated: '2025-10-20T03:45:24.547779+00:00'
+  name: pubmed_literature_search_agent
+  progress:
+  - completed: 7
+    total: 7
+  version: 1.0.0

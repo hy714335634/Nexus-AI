@@ -1,0 +1,255 @@
+{
+  "requirements_document": {
+    "feature_name": "PubMed Literature Search and Summarization Agent",
+    "version": "1.0",
+    "date": "2025-10-20",
+    "overview": "An intelligent agent specialized in academic literature retrieval, filtering, and preliminary summarization from PubMed Central (PMC). The system accesses PMC open access articles through AWS S3, processes them intelligently, and generates structured reports based on user queries.",
+    "business_value": "This agent significantly enhances research efficiency by automating literature search and summarization processes, reducing research preparation time from days to hours. It ensures comprehensive coverage of relevant literature with accurate citation information, providing researchers with a reliable and efficient tool for academic literature review.",
+    "workflow_complexity": "single_agent",
+    "recommended_agent_type": "data_analysis",
+    "scope": {
+      "included": [
+        "PubMed Central open access articles retrieval via AWS S3",
+        "Keyword and topic-based literature search",
+        "Time range filtering (default: past 10 years)",
+        "Impact factor sorting and priority filtering",
+        "Journal type filtering (OA, non-OA)",
+        "Multi-language support (English and Chinese)",
+        "Relevance-based literature ranking",
+        "Automatic low-quality literature filtering",
+        "Batch literature processing",
+        "Key information extraction (title, abstract, authors, journal, impact factor)",
+        "Structured literature review report generation",
+        "Complete citation information in multiple formats (APA, MLA)",
+        "Metadata extraction from PMC S3 data source"
+      ],
+      "excluded": [
+        "Full-text analysis beyond metadata and abstracts",
+        "Citation network analysis",
+        "Plagiarism detection",
+        "Real-time journal impact factor updates",
+        "Integration with reference management software",
+        "Custom machine learning model training",
+        "Collaborative literature review features",
+        "Non-PMC literature sources"
+      ]
+    },
+    "functional_requirements": [
+      {
+        "id": "FR-001",
+        "title": "AWS S3 PMC Data Integration",
+        "user_story": "As a researcher, I want the agent to access PubMed Central data via AWS S3, so that I can retrieve the most comprehensive and up-to-date open access articles.",
+        "acceptance_criteria": [
+          "WHEN the agent is initialized THEN it should establish connection to the PMC S3 bucket (arn:aws:s3:::pmc-oa-opendata)",
+          "WHEN accessing PMC data THEN the agent should use no-sign-request method",
+          "WHEN retrieving files THEN the agent should be able to access all directories (oa_comm/, oa_noncomm/, phe_timebound/)",
+          "WHEN processing articles THEN the agent should handle both txt/ and xml/ formats"
+        ],
+        "priority": "High",
+        "complexity": "High",
+        "dependencies": ["AWS S3 SDK", "PMC data structure knowledge"],
+        "assumptions": ["PMC S3 bucket structure remains stable"]
+      },
+      {
+        "id": "FR-002",
+        "title": "Keyword-based Literature Search",
+        "user_story": "As a researcher, I want to search for literature using keywords and topics, so that I can find relevant articles for my research.",
+        "acceptance_criteria": [
+          "WHEN I input search keywords THEN the agent should return a list of relevant articles",
+          "WHEN searching by topic THEN the agent should identify related subtopics and keywords",
+          "WHEN multiple keywords are provided THEN the agent should support boolean operators (AND, OR, NOT)",
+          "WHEN search results are returned THEN they should be ranked by relevance"
+        ],
+        "priority": "High",
+        "complexity": "Medium",
+        "dependencies": ["FR-001"],
+        "assumptions": ["PMC metadata includes keywords and topics"]
+      },
+      {
+        "id": "FR-003",
+        "title": "Time Range Filtering",
+        "user_story": "As a researcher, I want to filter articles by publication date, so that I can focus on recent research.",
+        "acceptance_criteria": [
+          "WHEN no time range is specified THEN the agent should default to the past 10 years",
+          "WHEN a custom time range is provided THEN the agent should filter articles accordingly",
+          "WHEN filtering by time THEN the agent should use publication date from metadata",
+          "WHEN displaying results THEN the agent should show the publication date for each article"
+        ],
+        "priority": "Medium",
+        "complexity": "Low",
+        "dependencies": ["FR-001"],
+        "assumptions": ["Publication dates are consistently available in metadata"]
+      },
+      {
+        "id": "FR-004",
+        "title": "Impact Factor and Journal Quality Filtering",
+        "user_story": "As a researcher, I want to filter articles by journal impact factor and quality, so that I can focus on high-quality research.",
+        "acceptance_criteria": [
+          "WHEN filtering by impact factor THEN the agent should support minimum threshold specification",
+          "WHEN sorting results THEN the agent should offer impact factor as a sorting option",
+          "WHEN journal quality is prioritized THEN the agent should consider additional metrics beyond impact factor",
+          "WHEN filtering by journal type THEN the agent should distinguish between OA and non-OA journals"
+        ],
+        "priority": "Medium",
+        "complexity": "Medium",
+        "dependencies": ["FR-001", "Journal impact factor database"],
+        "assumptions": ["Impact factor data is available or can be integrated"]
+      },
+      {
+        "id": "FR-005",
+        "title": "Multi-language Support",
+        "user_story": "As an international researcher, I want the agent to process both English and Chinese literature, so that I can access research in multiple languages.",
+        "acceptance_criteria": [
+          "WHEN searching literature THEN the agent should accept keywords in both English and Chinese",
+          "WHEN processing Chinese articles THEN the agent should correctly extract metadata",
+          "WHEN generating reports THEN the agent should maintain original language integrity",
+          "WHEN translating key information THEN the agent should provide accurate translations"
+        ],
+        "priority": "Medium",
+        "complexity": "High",
+        "dependencies": ["FR-001", "FR-002", "Language processing capabilities"],
+        "assumptions": ["PMC contains sufficient Chinese language articles"]
+      },
+      {
+        "id": "FR-006",
+        "title": "Relevance-based Ranking Algorithm",
+        "user_story": "As a researcher, I want search results ranked by relevance to my query, so that I can quickly find the most pertinent articles.",
+        "acceptance_criteria": [
+          "WHEN ranking articles THEN the agent should consider keyword frequency and position",
+          "WHEN calculating relevance THEN the agent should use a multi-dimensional scoring system",
+          "WHEN displaying results THEN the agent should show relevance scores",
+          "WHEN refining search THEN the agent should allow feedback to improve relevance"
+        ],
+        "priority": "High",
+        "complexity": "High",
+        "dependencies": ["FR-002"],
+        "assumptions": ["Text content is available for relevance analysis"]
+      },
+      {
+        "id": "FR-007",
+        "title": "Batch Literature Processing",
+        "user_story": "As a researcher, I want to process multiple articles simultaneously, so that I can efficiently analyze large sets of literature.",
+        "acceptance_criteria": [
+          "WHEN batch processing is requested THEN the agent should handle at least 100 articles simultaneously",
+          "WHEN processing in batch THEN the agent should maintain processing quality",
+          "WHEN batch processing completes THEN the agent should provide a summary report",
+          "WHEN errors occur during batch processing THEN the agent should continue with remaining articles"
+        ],
+        "priority": "Medium",
+        "complexity": "Medium",
+        "dependencies": ["FR-001", "FR-002"],
+        "assumptions": ["System has sufficient processing capacity"]
+      },
+      {
+        "id": "FR-008",
+        "title": "Key Information Extraction",
+        "user_story": "As a researcher, I want the agent to extract key information from articles, so that I can quickly understand their content without reading the full text.",
+        "acceptance_criteria": [
+          "WHEN processing an article THEN the agent should extract title, abstract, authors, journal, and impact factor",
+          "WHEN extracting information THEN the agent should maintain accuracy and completeness",
+          "WHEN information is missing THEN the agent should note the gaps",
+          "WHEN presenting extracted information THEN the agent should use a structured format"
+        ],
+        "priority": "High",
+        "complexity": "Medium",
+        "dependencies": ["FR-001"],
+        "assumptions": ["Key information is consistently available in metadata or text"]
+      },
+      {
+        "id": "FR-009",
+        "title": "Structured Literature Review Report Generation",
+        "user_story": "As a researcher, I want the agent to generate structured literature review reports, so that I can efficiently review and cite relevant research.",
+        "acceptance_criteria": [
+          "WHEN generating a report THEN the agent should include all key information",
+          "WHEN structuring the report THEN the agent should organize by relevance, date, or impact factor",
+          "WHEN creating reports THEN the agent should include citation information",
+          "WHEN a report is complete THEN the agent should provide it in a downloadable format"
+        ],
+        "priority": "High",
+        "complexity": "Medium",
+        "dependencies": ["FR-008"],
+        "assumptions": ["Extracted information is sufficient for meaningful reports"]
+      },
+      {
+        "id": "FR-010",
+        "title": "Citation Format Support",
+        "user_story": "As a researcher, I want citations in multiple formats, so that I can easily use them in my publications.",
+        "acceptance_criteria": [
+          "WHEN generating citations THEN the agent should support APA format",
+          "WHEN generating citations THEN the agent should support MLA format",
+          "WHEN generating citations THEN the agent should support other common academic formats",
+          "WHEN creating a citation THEN the agent should ensure all required information is included"
+        ],
+        "priority": "Medium",
+        "complexity": "Low",
+        "dependencies": ["FR-008"],
+        "assumptions": ["Citation information is available in metadata"]
+      },
+      {
+        "id": "FR-011",
+        "title": "Retraction Status Checking",
+        "user_story": "As a researcher, I want to know if articles have been retracted, so that I can avoid citing invalid research.",
+        "acceptance_criteria": [
+          "WHEN processing an article THEN the agent should check for retraction status",
+          "WHEN an article is retracted THEN the agent should clearly mark it as such",
+          "WHEN displaying search results THEN retracted articles should be visually distinct",
+          "WHEN generating reports THEN retracted articles should be excluded by default"
+        ],
+        "priority": "High",
+        "complexity": "Low",
+        "dependencies": ["FR-001"],
+        "assumptions": ["Retraction information is available in metadata"]
+      }
+    ],
+    "non_functional_requirements": {
+      "performance": [
+        "The agent should process search queries within 30 seconds",
+        "Batch processing of 100 articles should complete within 10 minutes",
+        "The system should handle at least 10 concurrent users"
+      ],
+      "security": [
+        "The agent should use no-sign-request method for AWS S3 access",
+        "User search queries should not be stored permanently",
+        "The system should comply with academic data usage policies"
+      ],
+      "usability": [
+        "The agent should provide clear error messages for failed searches",
+        "Search syntax should be intuitive and well-documented",
+        "Reports should be formatted for easy readability"
+      ],
+      "reliability": [
+        "The agent should maintain 99% uptime",
+        "The system should gracefully handle PMC S3 access failures",
+        "Regular updates should ensure compatibility with PMC data structure changes"
+      ]
+    },
+    "constraints": [
+      "The agent must access PMC data exclusively through the provided AWS S3 bucket",
+      "The system must operate within the limitations of the no-sign-request access method",
+      "The agent must respect PMC data usage policies and copyright restrictions",
+      "Processing capacity is limited by available computational resources"
+    ],
+    "assumptions": [
+      "PMC S3 bucket structure and access method will remain stable",
+      "Journal impact factor data can be obtained or integrated",
+      "PMC metadata is sufficiently structured for automated processing",
+      "Text and XML formats contain comparable information"
+    ],
+    "success_criteria": [
+      "The agent can successfully retrieve and process articles from PMC S3",
+      "Search results demonstrate high relevance to user queries",
+      "Generated reports contain accurate and complete information",
+      "Literature processing time is reduced by at least 70% compared to manual methods",
+      "Citation information is complete and correctly formatted"
+    ],
+    "glossary": {
+      "PMC": "PubMed Central, a free digital repository of biomedical and life sciences journal literature",
+      "OA": "Open Access, referring to research articles that are freely available",
+      "Impact Factor": "A measure reflecting the yearly average number of citations to recent articles published in a journal",
+      "APA": "American Psychological Association citation style",
+      "MLA": "Modern Language Association citation style",
+      "AWS S3": "Amazon Web Services Simple Storage Service, a cloud storage service"
+    }
+  },
+  "analysis_notes": "The PubMed Literature Search and Summarization Agent is evaluated as a single-agent system because its functionality, while comprehensive, follows a clear linear workflow from data retrieval to report generation. The agent's tasks are focused on a specific domain (PMC literature) with well-defined input/output relationships. While the system performs multiple functions (search, filter, rank, extract, report), these are closely related aspects of a unified literature processing pipeline rather than distinct specialized roles requiring multi-agent coordination. The data analysis agent type is recommended due to the system's focus on retrieving, processing, and analyzing structured data from the PMC repository. The key technical challenge lies in efficiently integrating with AWS S3 to access PMC data and implementing effective relevance ranking algorithms. The agent's value proposition centers on dramatically reducing literature review time while ensuring comprehensive coverage of relevant research."
+}

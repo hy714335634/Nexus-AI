@@ -1,0 +1,51 @@
+# Neo4j知识图谱配置
+neo4j:
+  # 数据库连接配置
+  uri: "bolt://localhost:7687"
+  username: "neo4j"
+  password: "neo4jneo4j"
+  
+  # 连接池配置
+  max_connection_lifetime: 3600  # 秒
+  max_connection_pool_size: 50
+  connection_acquisition_timeout: 60  # 秒
+  
+  # 查询配置
+  max_transaction_retry_time: 30  # 秒
+  default_timeout: 30  # 秒
+  
+  # 数据目录配置
+  data_directory: "tools/neo4j/neo4j_data"
+  logs_directory: "tools/neo4j/neo4j_logs"
+  import_directory: "tools/neo4j/neo4j_import"
+  plugins_directory: "tools/neo4j/neo4j_plugins"
+  
+  # Docker配置
+  docker:
+    image: "neo4j:latest"
+    container_name: "neo4j-container"
+    ports:
+      http: 7474
+      bolt: 7687
+    environment:
+      NEO4J_AUTH: "neo4j/neo4jneo4j"
+      NEO4J_dbms_security_procedures_unrestricted: "apoc.*"
+      NEO4J_dbms_security_procedures_allowlist: "apoc.*"
+  
+  # 知识图谱构建配置
+  knowledge_graph:
+    # 是否在启动时自动构建
+    auto_build: false
+    
+    # 构建选项
+    clear_database_before_build: true
+    create_indexes: true
+    create_constraints: true
+    
+    # 数据源配置
+    tooluniverse_data_path: ".venv/lib/python3.13/site-packages/tooluniverse/data"
+    
+    # 查询配置
+    max_search_results: 20
+    max_path_depth: 5
+    default_confidence_threshold: 0.3

@@ -1,0 +1,226 @@
+{
+  "project_name": "wuxia_novel_generator",
+  "validation_timestamp": "2025-10-20T03:05:17.449209+00:00",
+  "overall_status": "success",
+  "agent_scripts": [
+    {
+      "script_path": "agents/generated_agents/wuxia_novel_generator/wuxia_novel_generator.py",
+      "syntax_valid": true,
+      "dependencies": [
+        "os",
+        "json",
+        "logging",
+        "argparse",
+        "typing",
+        "datetime",
+        "nexus_utils.agent_factory",
+        "strands.telemetry",
+        "tools.generated_tools.wuxia_novel_generator.novel_manager",
+        "tools.generated_tools.wuxia_novel_generator.novel_manager",
+        "tools.generated_tools.wuxia_novel_generator.worldbuilding_manager",
+        "tools.generated_tools.wuxia_novel_generator.novel_manager",
+        "tools.generated_tools.wuxia_novel_generator.character_tools",
+        "tools.generated_tools.wuxia_novel_generator.character_search",
+        "tools.generated_tools.wuxia_novel_generator.plot_base",
+        "tools.generated_tools.wuxia_novel_generator.content_generator",
+        "tools.generated_tools.wuxia_novel_generator.plot_chapters",
+        "tools.generated_tools.wuxia_novel_generator.export_tools",
+        "tools.generated_tools.wuxia_novel_generator.export_tools"
+      ],
+      "execution_params": [],
+      "argparse_params": [
+        {
+          "name": "-e",
+          "type": "str",
+          "description": "运行环境 (development, production, testing)",
+          "required": false,
+          "default": "production",
+          "action": null
+        },
+        {
+          "name": "-m",
+          "type": "str",
+          "description": "使用的模型ID",
+          "required": false,
+          "default": "default",
+          "action": null
+        },
+        {
+          "name": "-i",
+          "type": "str",
+          "description": "测试输入内容",
+          "required": false,
+          "default": "请帮我创作一部以明朝为背景的武侠小说，主角是一位精通轻功的女侠。",
+          "action": null
+        }
+      ],
+      "error_message": ""
+    }
+  ],
+  "prompt_files": [
+    {
+      "prompt_path": "generated_agents_prompts/wuxia_novel_generator/wuxia_novel_generator_prompt.yaml",
+      "tool_count": 48,
+      "valid": true,
+      "error_message": "",
+      "metadata": {
+        "tags": [
+          "content_generation",
+          "creative_writing",
+          "wuxia_novel",
+          "character_management",
+          "plot_planning",
+          "scene_generation",
+          "dialogue_generation",
+          "combat_choreography",
+          "local_caching"
+        ],
+        "supported_models": [
+          "us.anthropic.claude-3-7-sonnet-20250219-v1:0",
+          "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
+        ],
+        "tools_dependencies": [
+          "strands_tools/file_read",
+          "strands_tools/file_write",
+          "strands_tools/current_time",
+          "strands_tools/calculator",
+          "generated_tools/wuxia_novel_generator/character_manager/add_character_relationship",
+          "generated_tools/wuxia_novel_generator/character_manager/create_character",
+          "generated_tools/wuxia_novel_generator/character_manager/delete_character",
+          "generated_tools/wuxia_novel_generator/character_manager/get_character",
+          "generated_tools/wuxia_novel_generator/character_manager/list_characters",
+          "generated_tools/wuxia_novel_generator/character_manager/search_characters",
+          "generated_tools/wuxia_novel_generator/character_manager/update_character",
+          "generated_tools/wuxia_novel_generator/character_relationships/add_character_relationship",
+          "generated_tools/wuxia_novel_generator/character_relationships/get_character_relationships",
+          "generated_tools/wuxia_novel_generator/character_relationships/remove_character_relationship",
+          "generated_tools/wuxia_novel_generator/character_search/list_characters",
+          "generated_tools/wuxia_novel_generator/character_search/search_characters",
+          "generated_tools/wuxia_novel_generator/character_tools/create_character",
+          "generated_tools/wuxia_novel_generator/character_tools/get_character",
+          "generated_tools/wuxia_novel_generator/character_tools_extended/delete_character",
+          "generated_tools/wuxia_novel_generator/character_tools_extended/list_characters",
+          "generated_tools/wuxia_novel_generator/character_tools_extended/search_characters",
+          "generated_tools/wuxia_novel_generator/character_tools_extended/update_character",
+          "generated_tools/wuxia_novel_generator/character_update/delete_character",
+          "generated_tools/wuxia_novel_generator/character_update/update_character",
+          "generated_tools/wuxia_novel_generator/content_generator/generate_chapter",
+          "generated_tools/wuxia_novel_generator/content_generator/get_chapter_content",
+          "generated_tools/wuxia_novel_generator/export_tools/export_novel_to_json",
+          "generated_tools/wuxia_novel_generator/export_tools/export_novel_to_markdown",
+          "generated_tools/wuxia_novel_generator/export_tools/upload_novel_export",
+          "generated_tools/wuxia_novel_generator/novel_manager/create_novel",
+          "generated_tools/wuxia_novel_generator/novel_manager/delete_novel",
+          "generated_tools/wuxia_novel_generator/novel_manager/get_novel",
+          "generated_tools/wuxia_novel_generator/novel_manager/list_novels",
+          "generated_tools/wuxia_novel_generator/novel_manager/update_novel",
+          "generated_tools/wuxia_novel_generator/plot_base/create_plot",
+          "generated_tools/wuxia_novel_generator/plot_base/get_plot",
+          "generated_tools/wuxia_novel_generator/plot_chapters/add_chapter",
+          "generated_tools/wuxia_novel_generator/plot_chapters/delete_chapter",
+          "generated_tools/wuxia_novel_generator/plot_chapters/update_chapter",
+          "generated_tools/wuxia_novel_generator/plot_manager/create_plot",
+          "generated_tools/wuxia_novel_generator/plot_manager/get_plot",
+          "generated_tools/wuxia_novel_generator/plot_update/delete_plot",
+          "generated_tools/wuxia_novel_generator/plot_update/update_plot",
+          "generated_tools/wuxia_novel_generator/worldbuilding_elements/add_faction",
+          "generated_tools/wuxia_novel_generator/worldbuilding_elements/add_location",
+          "generated_tools/wuxia_novel_generator/worldbuilding_elements/add_martial_art",
+          "generated_tools/wuxia_novel_generator/worldbuilding_manager/create_or_update_world",
+          "generated_tools/wuxia_novel_generator/worldbuilding_manager/get_world"
+        ]
+      },
+      "agent_info": {
+        "name": "wuxia_novel_generator",
+        "description": "武侠小说生成专家，能够根据用户输入的设定（如人物、门派、武功、情节线索等）自动生成符合武侠风格的小说内容，包括完整的故事情节、人物对话、武打场面描写等。",
+        "category": "content_generation"
+      }
+    }
+  ],
+  "generated_tools": [
+    {
+      "tool_path": "generated_tools/wuxia_novel_generator/plot_manager.py",
+      "syntax_valid": true,
+      "error_message": ""
+    },
+    {
+      "tool_path": "generated_tools/wuxia_novel_generator/character_relationships.py",
+      "syntax_valid": true,
+      "error_message": ""
+    },
+    {
+      "tool_path": "generated_tools/wuxia_novel_generator/worldbuilding_elements.py",
+      "syntax_valid": true,
+      "error_message": ""
+    },
+    {
+      "tool_path": "generated_tools/wuxia_novel_generator/worldbuilding_manager.py",
+      "syntax_valid": true,
+      "error_message": ""
+    },
+    {
+      "tool_path": "generated_tools/wuxia_novel_generator/plot_update.py",
+      "syntax_valid": true,
+      "error_message": ""
+    },
+    {
+      "tool_path": "generated_tools/wuxia_novel_generator/character_search.py",
+      "syntax_valid": true,
+      "error_message": ""
+    },
+    {
+      "tool_path": "generated_tools/wuxia_novel_generator/novel_manager.py",
+      "syntax_valid": true,
+      "error_message": ""
+    },
+    {
+      "tool_path": "generated_tools/wuxia_novel_generator/character_manager.py",
+      "syntax_valid": true,
+      "error_message": ""
+    },
+    {
+      "tool_path": "generated_tools/wuxia_novel_generator/plot_base.py",
+      "syntax_valid": true,
+      "error_message": ""
+    },
+    {
+      "tool_path": "generated_tools/wuxia_novel_generator/character_update.py",
+      "syntax_valid": true,
+      "error_message": ""
+    },
+    {
+      "tool_path": "generated_tools/wuxia_novel_generator/plot_chapters.py",
+      "syntax_valid": true,
+      "error_message": ""
+    },
+    {
+      "tool_path": "generated_tools/wuxia_novel_generator/character_tools_extended.py",
+      "syntax_valid": true,
+      "error_message": ""
+    },
+    {
+      "tool_path": "generated_tools/wuxia_novel_generator/character_tools.py",
+      "syntax_valid": true,
+      "error_message": ""
+    },
+    {
+      "tool_path": "generated_tools/wuxia_novel_generator/export_tools.py",
+      "syntax_valid": true,
+      "error_message": ""
+    },
+    {
+      "tool_path": "generated_tools/wuxia_novel_generator/content_generator.py",
+      "syntax_valid": true,
+      "error_message": ""
+    }
+  ],
+  "total_tools": 48,
+  "summary": {
+    "agent_scripts_count": 1,
+    "prompt_files_count": 1,
+    "generated_tool_files_count": 15,
+    "all_scripts_valid": true,
+    "all_tools_valid": true,
+    "all_prompts_valid": true
+  }
+}

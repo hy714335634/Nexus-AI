@@ -16,3 +16,4 @@ PyPDF2
 openpyxl
 tooluniverse
 setuptools
+neo4j

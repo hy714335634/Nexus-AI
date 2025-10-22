@@ -1,0 +1,322 @@
+{
+  "system_design": {
+    "design_overview": {
+      "project_name": "wuxia_novel_generator",
+      "version": "1.0",
+      "date": "2025-10-20",
+      "design_scope": "武侠小说生成Agent系统设计，包括角色管理、情节规划、武功体系、场景生成、对话生成、战斗编排等功能，以及本地缓存和检索能力",
+      "design_principles": [
+        "模块化设计：各功能模块职责单一，接口清晰",
+        "一致性维护：确保世界观、角色设定和情节的一致性",
+        "记忆管理：有效管理长文本和多章节的上下文",
+        "风格把控：保持武侠文学的特定风格和语言特点",
+        "用户交互：支持多轮对话和动态调整"
+      ],
+      "key_decisions": [
+        "采用单Agent架构，集中处理所有功能",
+        "使用本地文件系统进行缓存和状态管理",
+        "实现专门的角色管理和武功体系工具",
+        "设计章节管理机制，支持分章节生成和整体规划",
+        "基于内容生成器模板进行定制开发"
+      ],
+      "workflow_type": "single_agent",
+      "recommended_templates": ["content_generator_agent"]
+    },
+    "architecture": {
+      "system_context": "武侠小说生成Agent是一个创意内容生成系统，专注于武侠小说的自动创作。系统接收用户的设定输入（如人物、门派、武功、情节线索等），通过一系列工具和模块处理这些信息，生成符合武侠风格的小说内容，并维护世界观和情节的一致性。系统具备本地缓存和检索能力，支持长篇创作和续写功能。",
+      "agent_topology": "单Agent架构，由一个核心Agent（wuxia_novel_generator）负责处理所有功能，通过多个专用工具实现不同的功能模块。",
+      "interaction_model": "用户通过对话方式与Agent交互，提供创作设定和指令，Agent处理这些输入并生成相应的小说内容或执行管理操作。Agent维护一个持久化的状态，确保多轮对话中的连贯性和一致性。",
+      "technology_stack": {
+        "sdk": "Strands SDK",
+        "runtime": "Local",
+        "integrations": ["本地文件系统", "AWS Bedrock"]
+      }
+    },
+    "agents": [
+      {
+        "name": "wuxia_novel_generator",
+        "purpose": "创建一个专门用于武侠小说创作的智能Agent，能够根据用户输入的设定自动生成符合武侠风格的小说内容",
+        "responsibilities": [
+          "接收和处理用户的创作设定和指令",
+          "管理角色、门派、武功等小说元素",
+          "规划和生成小说情节和章节",
+          "维护世界观和情节的一致性",
+          "生成符合武侠风格的文本内容",
+          "管理本地缓存和检索功能"
+        ],
+        "interfaces": {
+          "inputs": [
+            "创作设定（人物、门派、武功、情节线索等）",
+            "章节生成指令",
+            "情节调整指令",
+            "角色管理指令",
+            "检索和查询指令"
+          ],
+          "outputs": [
+            "小说章节内容",
+            "角色信息摘要",
+            "情节规划概要",
+            "名称建议",
+            "状态确认信息"
+          ]
+        },
+        "dependencies": ["本地文件系统", "AWS Bedrock"],
+        "implementation_notes": [
+          "基于content_generator_agent模板进行定制",
+          "扩展系统提示词以包含武侠小说创作的专业知识",
+          "添加专用工具以支持武侠小说特有功能",
+          "实现缓存和状态管理机制"
+        ],
+        "recommended_template": "content_generator_agent"
+      }
+    ],
+    "data_models": [
+      {
+        "name": "Novel",
+        "schema": "{\"title\": \"小说标题\", \"author\": \"作者\", \"creation_date\": \"创建日期\", \"last_updated\": \"最后更新日期\", \"chapters\": [\"章节引用\"], \"settings\": {\"时代背景\": \"\", \"主要地点\": []}, \"summary\": \"小说概要\"}",
+        "validation_rules": ["标题不能为空", "至少包含一个章节"],
+        "relationships": ["包含多个Chapter", "包含多个Character", "包含多个MartialArt"]
+      },
+      {
+        "name": "Chapter",
+        "schema": "{\"chapter_id\": \"章节ID\", \"title\": \"章节标题\", \"content\": \"章节内容\", \"word_count\": \"字数\", \"key_events\": [\"关键事件\"], \"characters_involved\": [\"涉及角色引用\"], \"locations\": [\"场景地点\"], \"created_date\": \"创建日期\", \"last_updated\": \"最后更新日期\"}",
+        "validation_rules": ["内容字数应在3000-5000之间", "章节ID必须唯一"],
+        "relationships": ["属于一个Novel", "涉及多个Character", "包含多个Scene"]
+      },
+      {
+        "name": "Character",
+        "schema": "{\"character_id\": \"角色ID\", \"name\": \"姓名\", \"alias\": [\"别名\"], \"gender\": \"性别\", \"age\": \"年龄\", \"sect\": \"门派\", \"role\": \"角色类型\", \"personality\": [\"性格特点\"], \"appearance\": \"外貌描述\", \"background\": \"背景故事\", \"martial_arts\": [\"武功引用\"], \"weapons\": [\"兵器\"], \"relationships\": [{\"character_id\": \"相关角色ID\", \"relation_type\": \"关系类型\", \"description\": \"关系描述\"}], \"status\": \"当前状态\"}",
+        "validation_rules": ["角色ID必须唯一", "姓名不能为空", "关系引用必须指向有效的角色ID"],
+        "relationships": ["属于一个Novel", "掌握多个MartialArt", "与多个Character有关系"]
+      },
+      {
+        "name": "MartialArt",
+        "schema": "{\"martial_art_id\": \"武功ID\", \"name\": \"武功名称\", \"type\": \"类型(内功/外功/轻功/暗器等)\", \"sect\": \"所属门派\", \"level\": \"等级(1-10)\", \"description\": \"描述\", \"moves\": [\"招式名称\"], \"effects\": [\"效果\"], \"counters\": [\"克制武功引用\"], \"weaknesses\": [\"弱点\"], \"learning_difficulty\": \"学习难度(1-10)\"}",
+        "validation_rules": ["武功ID必须唯一", "武功名称不能为空", "等级必须在1-10之间"],
+        "relationships": ["属于一个Novel", "被多个Character掌握", "与多个MartialArt有克制关系"]
+      },
+      {
+        "name": "Sect",
+        "schema": "{\"sect_id\": \"门派ID\", \"name\": \"门派名称\", \"location\": \"所在地\", \"founding_date\": \"创建时间\", \"founder\": \"创始人\", \"current_leader\": \"当前掌门人\", \"martial_arts\": [\"门派武功引用\"], \"description\": \"门派描述\", \"relations\": [{\"sect_id\": \"相关门派ID\", \"relation_type\": \"关系类型\", \"description\": \"关系描述\"}]}",
+        "validation_rules": ["门派ID必须唯一", "门派名称不能为空"],
+        "relationships": ["属于一个Novel", "包含多个Character", "拥有多个MartialArt"]
+      },
+      {
+        "name": "Scene",
+        "schema": "{\"scene_id\": \"场景ID\", \"location\": \"地点\", \"time\": \"时间\", \"weather\": \"天气\", \"description\": \"场景描述\", \"atmosphere\": \"氛围\", \"characters_present\": [\"在场角色引用\"]}",
+        "validation_rules": ["场景ID必须唯一", "地点不能为空"],
+        "relationships": ["属于一个Chapter", "包含多个Character"]
+      },
+      {
+        "name": "Plot",
+        "schema": "{\"plot_id\": \"情节ID\", \"title\": \"情节标题\", \"type\": \"类型(主线/支线)\", \"description\": \"情节描述\", \"status\": \"状态(计划中/进行中/已完成)\", \"characters_involved\": [\"涉及角色引用\"], \"events\": [\"事件描述\"], \"chapters\": [\"相关章节引用\"], \"foreshadowing\": [\"伏笔\"], \"resolution\": \"解决方式\"}",
+        "validation_rules": ["情节ID必须唯一", "标题不能为空"],
+        "relationships": ["属于一个Novel", "涉及多个Character", "关联多个Chapter"]
+      },
+      {
+        "name": "NovelCache",
+        "schema": "{\"novel_id\": \"小说ID\", \"title\": \"小说标题\", \"chapter_index\": {\"章节ID\": \"文件路径\"}, \"character_index\": {\"角色ID\": \"角色数据\"}, \"martial_art_index\": {\"武功ID\": \"武功数据\"}, \"sect_index\": {\"门派ID\": \"门派数据\"}, \"last_accessed\": \"最后访问时间\", \"last_updated\": \"最后更新时间\"}",
+        "validation_rules": ["小说ID必须唯一", "标题不能为空"],
+        "relationships": ["关联一个Novel及其所有组件"]
+      }
+    ],
+    "interaction_flows": [
+      {
+        "name": "创建新小说",
+        "description": "用户提供基本设定，Agent创建新的武侠小说",
+        "steps": [
+          {
+            "step": "接收用户输入的基本设定",
+            "agent": "wuxia_novel_generator",
+            "action": "解析用户输入，提取关键设定信息",
+            "data": "用户提供的设定信息（时代背景、主要角色、基本情节等）"
+          },
+          {
+            "step": "生成小说名称建议",
+            "agent": "wuxia_novel_generator",
+            "action": "基于设定生成符合武侠风格的小说名称",
+            "data": "小说名称建议列表"
+          },
+          {
+            "step": "确认小说名称",
+            "agent": "wuxia_novel_generator",
+            "action": "用户确认或提供小说名称",
+            "data": "最终小说名称"
+          },
+          {
+            "step": "初始化小说数据",
+            "agent": "wuxia_novel_generator",
+            "action": "创建Novel对象，初始化基本设定",
+            "data": "Novel数据结构"
+          },
+          {
+            "step": "生成第一章内容",
+            "agent": "wuxia_novel_generator",
+            "action": "根据设定生成第一章内容",
+            "data": "Chapter数据结构"
+          },
+          {
+            "step": "创建本地缓存",
+            "agent": "wuxia_novel_generator",
+            "action": "将小说数据保存到本地缓存",
+            "data": "NovelCache数据结构"
+          },
+          {
+            "step": "返回结果给用户",
+            "agent": "wuxia_novel_generator",
+            "action": "展示第一章内容和小说信息",
+            "data": "格式化的小说章节内容"
+          }
+        ]
+      },
+      {
+        "name": "生成新章节",
+        "description": "用户请求生成小说的新章节",
+        "steps": [
+          {
+            "step": "接收用户请求",
+            "agent": "wuxia_novel_generator",
+            "action": "解析用户请求，确定小说标识",
+            "data": "小说标识和用户指令"
+          },
+          {
+            "step": "检索小说缓存",
+            "agent": "wuxia_novel_generator",
+            "action": "从本地缓存加载小说数据",
+            "data": "NovelCache数据结构"
+          },
+          {
+            "step": "分析现有内容",
+            "agent": "wuxia_novel_generator",
+            "action": "分析已有章节，提取关键情节和角色发展",
+            "data": "情节分析结果"
+          },
+          {
+            "step": "规划新章节",
+            "agent": "wuxia_novel_generator",
+            "action": "规划新章节的内容和发展方向",
+            "data": "章节规划"
+          },
+          {
+            "step": "生成章节内容",
+            "agent": "wuxia_novel_generator",
+            "action": "生成符合规划的章节内容",
+            "data": "Chapter数据结构"
+          },
+          {
+            "step": "更新小说缓存",
+            "agent": "wuxia_novel_generator",
+            "action": "将新章节添加到本地缓存",
+            "data": "更新后的NovelCache数据结构"
+          },
+          {
+            "step": "返回结果给用户",
+            "agent": "wuxia_novel_generator",
+            "action": "展示新章节内容",
+            "data": "格式化的小说章节内容"
+          }
+        ]
+      },
+      {
+        "name": "管理角色信息",
+        "description": "用户创建或更新小说角色信息",
+        "steps": [
+          {
+            "step": "接收用户角色管理指令",
+            "agent": "wuxia_novel_generator",
+            "action": "解析用户指令，确定操作类型（创建/更新/查询）",
+            "data": "角色管理指令和相关数据"
+          },
+          {
+            "step": "检索小说缓存",
+            "agent": "wuxia_novel_generator",
+            "action": "从本地缓存加载小说数据",
+            "data": "NovelCache数据结构"
+          },
+          {
+            "step": "执行角色操作",
+            "agent": "wuxia_novel_generator",
+            "action": "根据指令类型执行相应的角色操作",
+            "data": "Character数据结构"
+          },
+          {
+            "step": "验证一致性",
+            "agent": "wuxia_novel_generator",
+            "action": "检查角色信息与现有内容的一致性",
+            "data": "一致性验证结果"
+          },
+          {
+            "step": "更新小说缓存",
+            "agent": "wuxia_novel_generator",
+            "action": "将更新后的角色信息保存到本地缓存",
+            "data": "更新后的NovelCache数据结构"
+          },
+          {
+            "step": "返回结果给用户",
+            "agent": "wuxia_novel_generator",
+            "action": "确认操作结果，展示角色信息",
+            "data": "格式化的角色信息"
+          }
+        ]
+      },
+      {
+        "name": "检索章节内容",
+        "description": "用户查询特定章节的内容",
+        "steps": [
+          {
+            "step": "接收用户查询请求",
+            "agent": "wuxia_novel_generator",
+            "action": "解析用户请求，确定查询的小说和章节",
+            "data": "查询参数（小说标识、章节标识）"
+          },
+          {
+            "step": "检索小说缓存",
+            "agent": "wuxia_novel_generator",
+            "action": "从本地缓存加载小说数据",
+            "data": "NovelCache数据结构"
+          },
+          {
+            "step": "定位章节内容",
+            "agent": "wuxia_novel_generator",
+            "action": "根据章节标识定位章节内容",
+            "data": "Chapter数据结构"
+          },
+          {
+            "step": "返回结果给用户",
+            "agent": "wuxia_novel_generator",
+            "action": "展示查询的章节内容",
+            "data": "格式化的小说章节内容"
+          }
+        ]
+      }
+    ],
+    "security_considerations": [
+      "确保本地缓存的安全性，防止未授权访问",
+      "实施内容审核机制，避免生成不适当内容",
+      "保护用户创作内容的隐私",
+      "防止生成侵犯版权的内容"
+    ],
+    "error_handling": [
+      "处理缓存不存在或损坏的情况",
+      "处理用户输入不完整或不明确的情况",
+      "处理内容生成失败的情况",
+      "处理一致性检查失败的情况",
+      "提供友好的错误信息和恢复建议"
+    ],
+    "performance_considerations": [
+      "优化大型文本生成的响应时间，目标在30秒内生成一个标准章节",
+      "高效管理内存使用，特别是在处理长篇小说时",
+      "实现增量式上下文加载，只加载必要的历史内容",
+      "优化本地缓存的读写性能",
+      "实现异步处理机制，避免长时间阻塞用户交互"
+    ],
+    "monitoring_strategy": [
+      "记录用户交互和指令执行情况",
+      "监控内容生成质量和一致性",
+      "跟踪缓存使用和性能指标",
+      "实现自动恢复机制，防止状态丢失",
+      "提供调试模式，帮助识别和解决问题"
+    ]
+  },
+  "design_rationale": "武侠小说生成Agent采用单Agent架构设计，主要基于以下考虑：1）虽然功能丰富，但核心逻辑集中在内容生成和一致性维护上，不需要多Agent协作；2）单Agent架构简化了状态管理和数据共享，更容易维护世界观和情节的一致性；3）基于内容生成器模板进行定制开发，可以充分利用现有的内容生成能力。\n\n系统设计重点关注以下几个方面：1）模块化的数据模型，将小说元素（角色、武功、门派等）分离为独立实体，便于管理和维护一致性；2）完善的本地缓存和检索机制，支持长篇创作和续写功能；3）丰富的工具集，支持角色管理、情节规划、武功体系等特定功能；4）强调一致性检查和错误处理，确保生成内容的质量和连贯性。\n\n在实现方面，系统将基于Strands SDK和AWS Bedrock构建，利用本地文件系统进行缓存管理。通过扩展内容生成器模板的系统提示词和添加专用工具，使Agent具备武侠小说创作的专业能力。这种设计既满足了功能需求，又保持了架构的简洁性和可维护性。"
+}
