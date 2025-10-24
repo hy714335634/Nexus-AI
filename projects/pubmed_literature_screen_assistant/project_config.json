@@ -1,0 +1,92 @@
+{
+  "project_name": "pubmed_literature_assistant",
+  "validation_timestamp": "2025-10-23T09:10:45.811070+00:00",
+  "overall_status": "success",
+  "agent_scripts": [
+    {
+      "script_path": "agents/generated_agents/pubmed_literature_assistant/literature_assistant.py",
+      "syntax_valid": true,
+      "dependencies": [
+        "nexus_utils.agent_factory"
+      ],
+      "execution_params": [],
+      "argparse_params": [],
+      "error_message": ""
+    }
+  ],
+  "prompt_files": [
+    {
+      "prompt_path": "generated_agents_prompts/pubmed_literature_assistant/literature_assistant.yaml",
+      "tool_count": 21,
+      "valid": true,
+      "error_message": "",
+      "metadata": {
+        "tags": [
+          "research",
+          "literature",
+          "life_science",
+          "pubmed",
+          "pmc",
+          "literature_review"
+        ],
+        "supported_models": [
+          "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
+        ],
+        "tools_dependencies": [
+          "strands_tools/current_time",
+          "strands_tools/calculator",
+          "strands_tools/file_read",
+          "strands_tools/python_repl",
+          "generated_tools/pubmed_literature_assistant/literature_cache_manager/create_cache_manifest",
+          "generated_tools/pubmed_literature_assistant/literature_cache_manager/download_literature",
+          "generated_tools/pubmed_literature_assistant/literature_cache_manager/get_article_content",
+          "generated_tools/pubmed_literature_assistant/literature_cache_manager/update_article_status",
+          "generated_tools/pubmed_literature_assistant/literature_cache_manager/get_cache_manifest",
+          "generated_tools/pubmed_literature_assistant/literature_cache_manager/batch_update_articles",
+          "generated_tools/pubmed_literature_assistant/literature_cache_manager/generate_final_output",
+          "generated_tools/pubmed_literature_assistant/literature_analyzer/analyze_article_relevance",
+          "generated_tools/pubmed_literature_assistant/literature_analyzer/evaluate_citation_value",
+          "generated_tools/pubmed_literature_assistant/literature_analyzer/extract_article_summary",
+          "generated_tools/pubmed_literature_assistant/literature_analyzer/batch_analyze_articles",
+          "generated_tools/pubmed_literature_assistant/literature_analyzer/generate_literature_statistics",
+          "generated_tools/pubmed_literature_assistant/literature_output_formatter/format_cache_manifest",
+          "generated_tools/pubmed_literature_assistant/literature_output_formatter/format_final_output",
+          "generated_tools/pubmed_literature_assistant/literature_output_formatter/generate_json_output",
+          "generated_tools/pubmed_literature_assistant/literature_output_formatter/add_recommendations",
+          "generated_tools/pubmed_literature_assistant/literature_output_formatter/get_formatted_output"
+        ]
+      },
+      "agent_info": {
+        "name": "literature_assistant",
+        "description": "生命科学文献助手Agent，能根据用户给定的主题，进行文献检索和汇总工作，为客户编写综述提供重要依据",
+        "category": "research_assistant"
+      }
+    }
+  ],
+  "generated_tools": [
+    {
+      "tool_path": "generated_tools/pubmed_literature_assistant/literature_analyzer.py",
+      "syntax_valid": true,
+      "error_message": ""
+    },
+    {
+      "tool_path": "generated_tools/pubmed_literature_assistant/literature_cache_manager.py",
+      "syntax_valid": true,
+      "error_message": ""
+    },
+    {
+      "tool_path": "generated_tools/pubmed_literature_assistant/literature_output_formatter.py",
+      "syntax_valid": true,
+      "error_message": ""
+    }
+  ],
+  "total_tools": 21,
+  "summary": {
+    "agent_scripts_count": 1,
+    "prompt_files_count": 1,
+    "generated_tool_files_count": 3,
+    "all_scripts_valid": true,
+    "all_tools_valid": true,
+    "all_prompts_valid": true
+  }
+}

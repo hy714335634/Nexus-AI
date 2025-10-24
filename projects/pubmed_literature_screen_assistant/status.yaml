@@ -1,0 +1,62 @@
+agents: {}
+created_at: '2025-10-23T08:35:09.054722+00:00'
+last_updated: '2025-10-23T08:35:09.054732+00:00'
+project: pubmed_literature_assistant
+project_info:
+- agents:
+  - created_date: '2025-10-23T08:35:45.971913+00:00'
+    description: 智能体：literature_assistant
+    last_updated: '2025-10-23T09:11:00.502899+00:00'
+    name: literature_assistant
+    pipeline:
+    - description: 需求分析阶段 - 分析用户需求，定义功能规格
+      doc_path: projects/pubmed_literature_assistant/agents/literature_assistant/requirements_analyzer.json
+      stage: requirements_analyzer
+      status: true
+      updated_date: '2025-10-23T08:37:26.216526+00:00'
+    - description: 系统架构设计阶段 - 设计系统架构和技术方案
+      doc_path: projects/pubmed_literature_assistant/agents/literature_assistant/system_architect.json
+      stage: system_architect
+      status: true
+      updated_date: '2025-10-23T08:40:30.845623+00:00'
+    - description: Agent设计阶段 - 设计智能体结构和交互模式
+      doc_path: ''
+      stage: agent_designer
+      status: true
+      updated_date: '2025-10-23T08:42:21.616024+00:00'
+    - agent_artifact_path:
+      - prompts/generated_agents_prompts/pubmed_literature_assistant/literature_assistant.yaml
+      description: 提示词工程阶段 - 设计和优化提示词模板
+      doc_path: projects/pubmed_literature_assistant/agents/literature_assistant/prompt_engineer.json
+      stage: prompt_engineer
+      status: true
+      updated_date: '2025-10-23T08:59:21.701216+00:00'
+    - agent_artifact_path:
+      - tools/generated_tools/pubmed_literature_assistant/literature_cache_manager.py
+      - tools/generated_tools/pubmed_literature_assistant/literature_analyzer.py
+      - tools/generated_tools/pubmed_literature_assistant/literature_output_formatter.py
+      description: 工具开发阶段 - 开发必要的工具和函数
+      doc_path: ''
+      stage: tools_developer
+      status: true
+      updated_date: '2025-10-23T08:52:40.005016+00:00'
+    - agent_artifact_path:
+      - agents/generated_agents/pubmed_literature_assistant/literature_assistant.py
+      description: Agent代码开发阶段 - 实现智能体代码
+      doc_path: ''
+      stage: agent_code_developer
+      status: true
+      updated_date: '2025-10-23T09:09:58.775099+00:00'
+    - description: Agent开发管理阶段 - 管理和协调开发流程
+      doc_path: projects/pubmed_literature_assistant/agents/literature_assistant/agent_developer_manager.json
+      stage: agent_developer_manager
+      status: true
+      updated_date: '2025-10-23T09:11:00.502902+00:00'
+  description: 生命科学文献助手Agent，能根据用户给定的主题，进行文献检索和汇总工作，为客户编写综述提供重要依据
+  last_updated: '2025-10-23T09:11:00.502889+00:00'
+  name: pubmed_literature_assistant
+  progress:
+  - completed: 7
+    total: 7
+  version: 1.0.0
+status: initialized

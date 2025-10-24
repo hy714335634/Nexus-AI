@@ -112,6 +112,10 @@ def fetch_pubmed_summaries(id_list: List[str], database: str = "pubmed") -> str:
     """
     使用 ESummary 批量获取文献概要（标题、作者、期刊、日期等）。
     
+    **注意：ESummary API不返回摘要和作者信息**。如需获取摘要，请使用：
+    1. fetch_pubmed_abstracts() - 使用EFetch获取摘要
+    2. 从PMC S3获取全文 - 使用pmc_get_article_by_id()等工具
+    
     Args:
         id_list (List[str]): ID列表
         database (str): 数据库类型 ("pubmed" 或 "pmc")
@@ -157,8 +161,6 @@ def fetch_pubmed_summaries(id_list: List[str], database: str = "pubmed") -> str:
                 uids = data.get("result", {}).get("uids", [])
                 for uid in uids:
                     item = data["result"].get(uid, {})
-                    
-                    # 规范化元数据
                     authors = [
                         {"full_name": a.get("name", "")} for a in item.get("authors", []) if a.get("name")
                     ]
@@ -176,10 +178,10 @@ def fetch_pubmed_summaries(id_list: List[str], database: str = "pubmed") -> str:
                     # 根据数据库类型设置ID字段
                     if database == "pubmed":
                         result_item["pmid"] = uid
-                        result_item["abstract"] = item.get("elocationid", "")  # ESummary不含完整摘要
                     else:  # pmc
                         result_item["pmcid"] = f"PMC{uid}"  # 重新添加PMC前缀
-                        result_item["abstract"] = item.get("elocationid", "")
+                    # ESummary不返回摘要，设置为空字符串
+                    result_item["abstract"] = ""
                     
                     results.append(result_item)
                 
@@ -191,6 +193,86 @@ def fetch_pubmed_summaries(id_list: List[str], database: str = "pubmed") -> str:
     except Exception as e:
         logger.error(f"ESummary失败: {e}")
         return json.dumps({"status": "error", "message": f"ESummary失败: {e}"}, ensure_ascii=False)
+
+
+@tool
+def fetch_pubmed_abstracts(id_list: List[str], database: str = "pubmed") -> str:
+    """
+    使用 EFetch 获取文献的摘要信息。
+    
+    Args:
+        id_list (List[str]): ID列表
+        database (str): 数据库类型 ("pubmed" 或 "pmc")
+    """
+    try:
+        if not id_list:
+            return json.dumps({"status": "success", "results": []}, ensure_ascii=False)
+
+        # 验证数据库参数
+        if database not in ["pubmed", "pmc"]:
+            return json.dumps({
+                "status": "error", 
+                "message": "数据库参数必须是 'pubmed' 或 'pmc'"
+            }, ensure_ascii=False)
+
+        # 对于PMC数据库，需要移除PMC前缀
+        if database == "pmc":
+            processed_ids = []
+            for id_val in id_list:
+                if id_val.startswith("PMC"):
+                    processed_ids.append(id_val[3:])  # 移除PMC前缀
+                else:
+                    processed_ids.append(id_val)
+            id_list = processed_ids
+
+        # EFetch 支持批量，分批以避免URL过长
+        batch_size = 200
+        results: List[Dict[str, Any]] = []
+        api_key = os.environ.get("NCBI_API_KEY")
+        
+        with _get_session() as s:
+            for i in range(0, len(id_list), batch_size):
+                batch = id_list[i:i+batch_size]
+                params = {
+                    "db": database,
+                    "id": ",".join(batch),
+                    "rettype": "abstract",
+                    "retmode": "xml",
+                }
+                if api_key:
+                    params["api_key"] = api_key
+                
+                r = s.get(f"{NCBI_BASE}/efetch.fcgi", params=params, timeout=DEFAULT_TIMEOUT)
+                r.raise_for_status()
+                xml_content = r.text
+                
+                # 解析XML获取摘要
+                import xml.etree.ElementTree as ET
+                try:
+                    root = ET.fromstring(xml_content)
+                    for article in root.findall(".//PubmedArticle"):
+                        pmid_elem = article.find(".//PMID")
+                        pmid = pmid_elem.text if pmid_elem is not None else ""
+                        
+                        abstract_elem = article.find(".//AbstractText")
+                        abstract = abstract_elem.text if abstract_elem is not None else ""
+                        
+                        if pmid:
+                            results.append({
+                                "pmid": pmid if database == "pubmed" else f"PMC{pmid}",
+                                "abstract": abstract
+                            })
+                except ET.ParseError:
+                    logger.warning("无法解析EFetch XML响应")
+                
+                # 友好限速
+                if i + batch_size < len(id_list):
+                    time.sleep(0.34)
+
+        return json.dumps({"status": "success", "results": results}, ensure_ascii=False)
+    except Exception as e:
+        logger.error(f"EFetch失败: {e}")
+        return json.dumps({"status": "error", "message": f"EFetch失败: {e}"}, ensure_ascii=False)
 
 
 @tool

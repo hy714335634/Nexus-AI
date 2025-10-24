@@ -21,11 +21,13 @@ PubMed文献检索和汇总智能体
 import os
 import json
 import logging
+import uuid
 from typing import Dict, List, Any, Optional, Union
 from datetime import datetime
 
 from nexus_utils.agent_factory import create_agent_from_prompt_template
 from strands.telemetry import StrandsTelemetry
+from strands.session.file_session_manager import FileSessionManager
 
 # 配置日志
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -40,7 +42,7 @@ strands_telemetry.setup_otlp_exporter()
 class PubMedLiteratureAgent:
     """PubMed文献检索和汇总智能体类"""
     
-    def __init__(self, env: str = "production", version: str = "latest", model_id: str = "default"):
+    def __init__(self, session_manager=None, env: str = "production", version: str = "latest", model_id: str = "default"):
         """
         初始化PubMed文献检索和汇总智能体
         
@@ -52,6 +54,7 @@ class PubMedLiteratureAgent:
         self.env = env
         self.version = version
         self.model_id = model_id
+        self.session_manager = session_manager
         
         # 智能体参数
         self.agent_params = {
@@ -61,11 +64,12 @@ class PubMedLiteratureAgent:
         }
         
         # 智能体配置路径
-        self.agent_config_path = "generated_agents_prompts/pubmed_literature_search_agent/pubmed_literature_agent"
+        self.agent_config_path = "generated_agents_prompts/pubmed_literature_writing_agent/pubmed_literature_writing_agent"
         
         # 创建智能体实例
         self.agent = create_agent_from_prompt_template(
             agent_name=self.agent_config_path,
+            session_manager=self.session_manager,
             **self.agent_params
         )
         
@@ -263,7 +267,7 @@ def create_pubmed_literature_agent(env: str = "production", version: str = "late
     
     # 使用agent_factory创建智能体
     return create_agent_from_prompt_template(
-        agent_name="generated_agents_prompts/pubmed_literature_search_agent/pubmed_literature_agent",
+        agent_name="generated_agents_prompts/pubmed_literature_writing_agent/pubmed_literature_writing_agent",
         **agent_params
     )
 
@@ -291,10 +295,24 @@ if __name__ == "__main__":
     parser.add_argument('--ncbi_api_key', type=str,
                        default=None,
                        help='可选：指定NCBI_API_KEY以提升PubMed API吞吐（也可通过环境变量NCBI_API_KEY设置）')
+    parser.add_argument('--session_id', type=str,
+                       default=None,
+                       help='可选：指定session_id')
     parser.add_argument('-p', '--pmcid', type=str,
                        default=None,
                        help='PMC ID (用于citation和extract模式)')
     args = parser.parse_args()
+    
+    session_id = None
+    if args.session_id:
+        session_id = args.session_id
+    else:
+        session_id = str(uuid.uuid4())
+        print(f"🔑 未指定session_id，生成新的session_id: {session_id}")
+    session_manager = FileSessionManager(
+        session_id=session_id,
+        storage_dir="./.cache/session_cache"
+    )
     
     # 创建智能体
     agent_params = {
@@ -314,7 +332,7 @@ if __name__ == "__main__":
             print('ℹ️ 未设置 NCBI_API_KEY。可通过导出环境变量或 --ncbi_api_key 指定以提升API配额与吞吐')
 
     # 使用类封装创建智能体（方案A）
-    agent_class = PubMedLiteratureAgent(**agent_params)
+    agent_class = PubMedLiteratureAgent(session_manager=session_manager, **agent_params)
     print(f"✅ PubMed文献检索和汇总智能体创建成功: {agent_class.agent.name}")
     
     # 根据模式执行不同操作

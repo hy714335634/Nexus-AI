@@ -1,0 +1,289 @@
+{
+  "agent_code_development": {
+    "development_overview": {
+      "project_name": "pubmed_literature_assistant",
+      "version": "1.0",
+      "date": "2025-10-23",
+      "development_scope": "开发生命科学文献助手Agent，实现文献检索、下载、分析和汇总功能",
+      "design_principles": [
+        "模块化设计，分离关注点",
+        "错误处理和恢复机制",
+        "灵活的参数配置",
+        "命令行接口支持",
+        "会话管理和状态保持"
+      ],
+      "key_decisions": [
+        "使用LiteratureAssistant类封装核心功能",
+        "基于Strands SDK和Agent Factory创建智能体",
+        "实现多种操作模式（处理、分析、状态、汇总、清除）",
+        "提供命令行接口和API接口",
+        "集成文献缓存管理和分析工具"
+      ]
+    },
+    "agent_implementation": {
+      "agent_name": "literature_assistant",
+      "file_path": "agents/generated_agents/pubmed_literature_assistant/literature_assistant.py",
+      "main_class": "LiteratureAssistant",
+      "entry_point": "__main__",
+      "dependencies": [
+        "nexus_utils.agent_factory",
+        "strands.session.file_session_manager"
+      ],
+      "imports": [
+        "os",
+        "json",
+        "logging",
+        "uuid",
+        "pathlib.Path",
+        "nexus_utils.agent_factory.create_agent_from_prompt_template",
+        "strands.session.file_session_manager.FileSessionManager"
+      ]
+    },
+    "core_functions": [
+      {
+        "function_name": "__init__",
+        "purpose": "初始化生命科学文献助手",
+        "parameters": [
+          {
+            "name": "session_manager",
+            "type": "FileSessionManager",
+            "description": "会话管理器",
+            "required": false
+          },
+          {
+            "name": "env",
+            "type": "str",
+            "description": "环境配置 (development, production, testing)",
+            "required": false
+          },
+          {
+            "name": "version",
+            "type": "str",
+            "description": "智能体版本",
+            "required": false
+          },
+          {
+            "name": "model_id",
+            "type": "str",
+            "description": "使用的模型ID",
+            "required": false
+          }
+        ],
+        "return_type": "None",
+        "return_description": "无返回值",
+        "implementation_notes": [
+          "创建智能体实例",
+          "初始化缓存目录",
+          "配置日志"
+        ]
+      },
+      {
+        "function_name": "process_literature_request",
+        "purpose": "处理文献检索和分析请求",
+        "parameters": [
+          {
+            "name": "topic",
+            "type": "str",
+            "description": "研究主题",
+            "required": true
+          },
+          {
+            "name": "params",
+            "type": "Dict[str, Any]",
+            "description": "额外参数，如时间范围、期刊类型、最小影响因子",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "智能体响应",
+        "implementation_notes": [
+          "构建结构化请求",
+          "添加详细指导步骤",
+          "处理异常情况"
+        ]
+      },
+      {
+        "function_name": "analyze_specific_articles",
+        "purpose": "分析指定的文章列表",
+        "parameters": [
+          {
+            "name": "pmcids",
+            "type": "List[str]",
+            "description": "PMC ID列表",
+            "required": true
+          },
+          {
+            "name": "topic",
+            "type": "str",
+            "description": "研究主题，用于相关性评估",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "分析结果",
+        "implementation_notes": [
+          "规范化PMCID格式",
+          "构建分析请求",
+          "处理异常情况"
+        ]
+      },
+      {
+        "function_name": "get_cache_status",
+        "purpose": "获取缓存状态",
+        "parameters": [],
+        "return_type": "str",
+        "return_description": "缓存状态信息",
+        "implementation_notes": [
+          "使用literature_cache_manager工具获取缓存统计信息",
+          "处理异常情况"
+        ]
+      },
+      {
+        "function_name": "generate_literature_summary",
+        "purpose": "生成文献汇总报告",
+        "parameters": [
+          {
+            "name": "output_format",
+            "type": "str",
+            "description": "输出格式，默认为json",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "文献汇总报告",
+        "implementation_notes": [
+          "使用literature_output_formatter工具生成格式化输出",
+          "处理异常情况"
+        ]
+      },
+      {
+        "function_name": "clear_cache",
+        "purpose": "清除文献缓存",
+        "parameters": [
+          {
+            "name": "confirm",
+            "type": "bool",
+            "description": "确认清除",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "操作结果",
+        "implementation_notes": [
+          "确认机制防止误操作",
+          "使用literature_cache_manager工具清除缓存",
+          "处理异常情况"
+        ]
+      }
+    ],
+    "tool_integration": {
+      "custom_tools": [
+        "literature_cache_manager.create_cache_manifest",
+        "literature_cache_manager.download_literature",
+        "literature_cache_manager.get_article_content",
+        "literature_cache_manager.update_article_status",
+        "literature_cache_manager.get_cache_manifest",
+        "literature_cache_manager.batch_update_articles",
+        "literature_cache_manager.generate_final_output",
+        "literature_analyzer.analyze_article_relevance",
+        "literature_analyzer.evaluate_citation_value",
+        "literature_analyzer.extract_article_summary",
+        "literature_analyzer.batch_analyze_articles",
+        "literature_analyzer.generate_literature_statistics",
+        "literature_output_formatter.format_cache_manifest",
+        "literature_output_formatter.format_final_output",
+        "literature_output_formatter.generate_json_output",
+        "literature_output_formatter.add_recommendations",
+        "literature_output_formatter.get_formatted_output"
+      ],
+      "system_tools": [
+        "current_time",
+        "calculator",
+        "file_read",
+        "python_repl"
+      ],
+      "strands_tools": [
+        "FileSessionManager"
+      ],
+      "integration_notes": [
+        "使用提示词模板中定义的工具依赖",
+        "通过智能体请求中的指令引导工具使用",
+        "处理工具调用可能的异常情况"
+      ]
+    },
+    "configuration": {
+      "environment_variables": [
+        "BYPASS_TOOL_CONSENT",
+        "OTEL_EXPORTER_OTLP_ENDPOINT"
+      ],
+      "model_configuration": {
+        "model_name": "us.anthropic.claude-3-7-sonnet-20250219-v1:0",
+        "max_tokens": 60000,
+        "temperature": 0.3,
+        "top_p": 0.8
+      },
+      "streaming_config": {
+        "enabled": true,
+        "chunk_size": 1024
+      }
+    },
+    "error_handling": {
+      "exception_types": [
+        "文献处理请求异常",
+        "文章分析异常",
+        "缓存状态获取异常",
+        "文献汇总报告生成异常",
+        "缓存清除异常"
+      ],
+      "error_responses": [
+        "详细的错误信息返回",
+        "日志记录错误详情"
+      ],
+      "recovery_strategies": [
+        "捕获并处理所有异常",
+        "返回用户友好的错误消息"
+      ]
+    },
+    "testing": {
+      "test_cases": [
+        "基本文献检索请求",
+        "带参数的文献检索请求",
+        "特定PMCID文章分析",
+        "缓存状态查询",
+        "文献汇总报告生成",
+        "缓存清除操作"
+      ],
+      "test_scenarios": [
+        "正常流程测试",
+        "异常处理测试",
+        "参数验证测试"
+      ],
+      "validation_criteria": [
+        "功能正确性",
+        "错误处理有效性",
+        "输出格式符合要求"
+      ]
+    },
+    "deployment": {
+      "deployment_requirements": [
+        "Python 3.13+",
+        "Strands SDK",
+        "AWS Bedrock访问权限",
+        "足够的磁盘空间用于缓存"
+      ],
+      "runtime_dependencies": [
+        "nexus_utils",
+        "strands",
+        "boto3",
+        "logging",
+        "pathlib"
+      ],
+      "performance_considerations": [
+        "大量文献处理时的内存使用",
+        "并行下载时的网络带宽",
+        "缓存管理的磁盘空间"
+      ]
+    },
+    "development_notes": "生命科学文献助手的开发遵循了模块化设计原则，将核心功能封装在LiteratureAssistant类中，并提供了便捷的创建函数。智能体使用Strands SDK和Agent Factory创建，确保与平台的一致性。实现了多种操作模式，包括文献处理、特定文章分析、缓存状态查询、文献汇总报告生成和缓存清除。每个功能都有完善的错误处理机制，确保在异常情况下能够提供有用的反馈。命令行接口支持多种参数配置，方便用户使用。代码结构清晰，注释完善，便于维护和扩展。"
+  }
+}

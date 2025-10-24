@@ -486,7 +486,16 @@ def get_agent_class_by_type(agent_type: str) -> Optional[Type]:
     return None
 
 
-def create_agent_from_prompt_template(agent_name: str, env="production", version="latest", model_id="default", enable_logging=False, state=None, session_manager=None, nocallback=False, **agent_params) -> Optional[Agent]:
+def create_agent_from_prompt_template(
+    agent_name: str,
+    env="production",
+    version="latest",
+    model_id="default",
+    enable_logging=False,
+    state=None,
+    session_manager=None,
+    nocallback=False,
+    **agent_params) -> Optional[Agent]:
     """
     直接从提示词模板创建 agent，支持多级相对路径
     

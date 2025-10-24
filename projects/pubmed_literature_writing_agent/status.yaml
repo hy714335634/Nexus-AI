@@ -52,10 +52,52 @@ project_info:
       stage: agent_developer_manager
       status: true
       updated_date: '2025-10-20T03:45:24.547795+00:00'
+  - created_date: '2025-10-23T07:32:23.226312+00:00'
+    description: 智能体：scientific_research_expert
+    last_updated: '2025-10-23T07:32:23.226351+00:00'
+    name: scientific_research_expert
+    pipeline:
+    - description: 需求分析阶段 - 分析用户需求，定义功能规格
+      doc_path: ''
+      stage: requirements_analyzer
+      status: false
+      updated_date: null
+    - description: 系统架构设计阶段 - 设计系统架构和技术方案
+      doc_path: ''
+      stage: system_architect
+      status: false
+      updated_date: null
+    - description: Agent设计阶段 - 设计智能体结构和交互模式
+      doc_path: ''
+      stage: agent_designer
+      status: false
+      updated_date: null
+    - agent_artifact_path:
+      - prompts/generated_agents_prompts/scientific_research_expert/scientific_research_expert.yaml
+      description: 提示词工程阶段 - 设计和优化提示词模板
+      doc_path: agents/scientific_research_expert/prompt_engineer.json
+      stage: prompt_engineer
+      status: true
+      updated_date: '2025-10-23T07:32:23.226354+00:00'
+    - description: 工具开发阶段 - 开发必要的工具和函数
+      doc_path: ''
+      stage: tools_developer
+      status: false
+      updated_date: null
+    - description: Agent代码开发阶段 - 实现智能体代码
+      doc_path: ''
+      stage: agent_code_developer
+      status: false
+      updated_date: null
+    - description: Agent开发管理阶段 - 管理和协调开发流程
+      doc_path: ''
+      stage: agent_developer_manager
+      status: false
+      updated_date: null
   description: 基于PubMed Central的学术文献智能检索、筛选和汇总智能体，支持通过AWS S3访问PMC开放数据
-  last_updated: '2025-10-20T03:45:24.547779+00:00'
+  last_updated: '2025-10-23T07:32:23.226293+00:00'
   name: pubmed_literature_search_agent
   progress:
-  - completed: 7
-    total: 7
+  - completed: 8
+    total: 14
   version: 1.0.0

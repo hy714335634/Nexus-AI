@@ -32,3 +32,8 @@
 **Agent名称**: pubmed_literature_agent
 **开发阶段**: agent_code_developer
 
+
+## prompt_engineer - 2025-10-23 07:32:08 UTC
+**Agent名称**: scientific_research_expert
+**开发阶段**: prompt_engineer
+

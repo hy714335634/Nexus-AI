@@ -1,0 +1,357 @@
+{
+  "tool_development": {
+    "development_overview": {
+      "project_name": "pubmed_literature_assistant",
+      "version": "1.0",
+      "date": "2025-10-23",
+      "development_scope": "开发生命科学文献助手所需的工具，支持文献检索、下载、分析和汇总功能",
+      "design_principles": [
+        "模块化设计，分离关注点",
+        "可扩展性，支持未来功能扩展",
+        "容错性，具备完善的错误处理机制",
+        "可观测性，支持监控和日志",
+        "安全性，遵循最佳安全实践"
+      ],
+      "key_decisions": [
+        "复用现有PMC文献搜索工具作为基础",
+        "实现本地缓存管理以提高效率",
+        "采用并行下载机制提升性能",
+        "实现文献相关性和质量评估算法",
+        "采用标准JSON结构输出结果"
+      ]
+    },
+    "tools": [
+      {
+        "tool_name": "download_literature",
+        "description": "下载多篇文献并更新缓存清单",
+        "function_signature": "download_literature(pmcids: List[str], format_type: str = \"xml\", max_workers: int = 5) -> str",
+        "parameters": [
+          {
+            "name": "pmcids",
+            "type": "List[str]",
+            "description": "PMC ID列表",
+            "required": true
+          },
+          {
+            "name": "format_type",
+            "type": "str",
+            "description": "文件格式 (xml, txt)",
+            "required": false
+          },
+          {
+            "name": "max_workers",
+            "type": "int",
+            "description": "最大并行下载数",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的下载结果",
+        "dependencies": ["pubmed_literature_search_agent.pmc_s3_connector"],
+        "implementation_notes": [
+          "使用线程池实现并行下载",
+          "支持文献缓存以避免重复下载",
+          "自动更新缓存清单"
+        ],
+        "error_handling": [
+          "处理网络连接错误",
+          "处理文件系统错误",
+          "处理并行执行异常"
+        ],
+        "usage_examples": [
+          "download_literature([\"PMC1234567\", \"PMC7654321\"], format_type=\"xml\", max_workers=3)"
+        ]
+      },
+      {
+        "tool_name": "create_cache_manifest",
+        "description": "创建或更新缓存清单",
+        "function_signature": "create_cache_manifest(query: str, articles: List[Dict[str, Any]] = None) -> str",
+        "parameters": [
+          {
+            "name": "query",
+            "type": "str",
+            "description": "搜索查询",
+            "required": true
+          },
+          {
+            "name": "articles",
+            "type": "List[Dict[str, Any]]",
+            "description": "文章元数据列表",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的操作结果",
+        "dependencies": [],
+        "implementation_notes": [
+          "维护缓存清单JSON结构",
+          "支持增量更新",
+          "自动计算统计信息"
+        ],
+        "error_handling": [
+          "处理JSON解析错误",
+          "处理文件系统错误"
+        ],
+        "usage_examples": [
+          "create_cache_manifest(\"cancer therapy\", articles=[{\"pmcid\": \"PMC1234567\", \"title\": \"Cancer Research\"}])"
+        ]
+      },
+      {
+        "tool_name": "analyze_article_relevance",
+        "description": "分析文章与主题的相关性",
+        "function_signature": "analyze_article_relevance(pmcid: str, topic: str, subtopics: List[str] = None) -> str",
+        "parameters": [
+          {
+            "name": "pmcid",
+            "type": "str",
+            "description": "PMC ID",
+            "required": true
+          },
+          {
+            "name": "topic",
+            "type": "str",
+            "description": "研究主题",
+            "required": true
+          },
+          {
+            "name": "subtopics",
+            "type": "List[str]",
+            "description": "子主题列表",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的相关性分析结果",
+        "dependencies": [],
+        "implementation_notes": [
+          "提取文章内容并分析与主题的相关性",
+          "计算相关性分数和质量分数",
+          "提供引用建议"
+        ],
+        "error_handling": [
+          "处理文件不存在错误",
+          "处理内容解析错误"
+        ],
+        "usage_examples": [
+          "analyze_article_relevance(\"PMC1234567\", \"cancer immunotherapy\", [\"checkpoint inhibitors\", \"CAR-T\"])"
+        ]
+      },
+      {
+        "tool_name": "extract_article_summary",
+        "description": "提取文章摘要和关键信息",
+        "function_signature": "extract_article_summary(pmcid: str) -> str",
+        "parameters": [
+          {
+            "name": "pmcid",
+            "type": "str",
+            "description": "PMC ID",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的文章摘要和关键信息",
+        "dependencies": [],
+        "implementation_notes": [
+          "提取主要发现、研究方法和关键结论",
+          "使用正则表达式从文章内容中提取关键信息",
+          "支持XML和TXT格式"
+        ],
+        "error_handling": [
+          "处理文件不存在错误",
+          "处理内容解析错误"
+        ],
+        "usage_examples": [
+          "extract_article_summary(\"PMC1234567\")"
+        ]
+      },
+      {
+        "tool_name": "format_final_output",
+        "description": "格式化最终输出",
+        "function_signature": "format_final_output(output_data: Dict[str, Any] = None) -> str",
+        "parameters": [
+          {
+            "name": "output_data",
+            "type": "Dict[str, Any]",
+            "description": "最终输出数据",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的格式化最终输出",
+        "dependencies": [],
+        "implementation_notes": [
+          "验证输出格式符合规范",
+          "自动修复常见格式问题",
+          "生成标准化的JSON输出"
+        ],
+        "error_handling": [
+          "处理格式验证错误",
+          "处理JSON解析错误"
+        ],
+        "usage_examples": [
+          "format_final_output()"
+        ]
+      },
+      {
+        "tool_name": "batch_analyze_articles",
+        "description": "批量分析多篇文章的相关性",
+        "function_signature": "batch_analyze_articles(pmcids: List[str], topic: str, subtopics: List[str] = None, max_workers: int = 3) -> str",
+        "parameters": [
+          {
+            "name": "pmcids",
+            "type": "List[str]",
+            "description": "PMC ID列表",
+            "required": true
+          },
+          {
+            "name": "topic",
+            "type": "str",
+            "description": "研究主题",
+            "required": true
+          },
+          {
+            "name": "subtopics",
+            "type": "List[str]",
+            "description": "子主题列表",
+            "required": false
+          },
+          {
+            "name": "max_workers",
+            "type": "int",
+            "description": "最大并行工作线程数",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的批量分析结果",
+        "dependencies": [],
+        "implementation_notes": [
+          "使用线程池实现并行分析",
+          "按相关性分数排序结果",
+          "提供汇总统计"
+        ],
+        "error_handling": [
+          "处理并行执行异常",
+          "处理单篇文章分析失败的情况"
+        ],
+        "usage_examples": [
+          "batch_analyze_articles([\"PMC1234567\", \"PMC7654321\"], \"cancer immunotherapy\", [\"checkpoint inhibitors\"])"
+        ]
+      },
+      {
+        "tool_name": "generate_literature_statistics",
+        "description": "生成文献统计信息",
+        "function_signature": "generate_literature_statistics(pmcids: List[str] = None) -> str",
+        "parameters": [
+          {
+            "name": "pmcids",
+            "type": "List[str]",
+            "description": "PMC ID列表",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的文献统计信息",
+        "dependencies": [],
+        "implementation_notes": [
+          "计算年份分布、期刊分布、作者分布和关键词分布",
+          "支持从缓存清单加载文章列表",
+          "对分布结果进行排序"
+        ],
+        "error_handling": [
+          "处理缓存清单加载失败的情况",
+          "处理单篇文章统计失败的情况"
+        ],
+        "usage_examples": [
+          "generate_literature_statistics()"
+        ]
+      },
+      {
+        "tool_name": "generate_json_output",
+        "description": "生成JSON格式的输出",
+        "function_signature": "generate_json_output(query: str, articles: List[Dict[str, Any]], statistics: Dict[str, Any] = None) -> str",
+        "parameters": [
+          {
+            "name": "query",
+            "type": "str",
+            "description": "搜索查询",
+            "required": true
+          },
+          {
+            "name": "articles",
+            "type": "List[Dict[str, Any]]",
+            "description": "文章列表",
+            "required": true
+          },
+          {
+            "name": "statistics",
+            "type": "Dict[str, Any]",
+            "description": "统计信息",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的输出",
+        "dependencies": [],
+        "implementation_notes": [
+          "提取被引用的文章",
+          "自动计算统计信息",
+          "验证输出格式"
+        ],
+        "error_handling": [
+          "处理格式验证错误",
+          "处理JSON解析错误"
+        ],
+        "usage_examples": [
+          "generate_json_output(\"cancer therapy\", articles=[{\"pmcid\": \"PMC1234567\", \"title\": \"Cancer Research\"}])"
+        ]
+      }
+    ],
+    "code_quality": {
+      "code_standards": [
+        "遵循PEP 8编码规范",
+        "使用类型注解提高代码可读性",
+        "提供详细的文档字符串",
+        "使用有意义的变量和函数名称",
+        "适当的代码注释"
+      ],
+      "testing_strategy": [
+        "单元测试关键功能",
+        "边界条件测试",
+        "错误处理测试",
+        "集成测试"
+      ],
+      "performance_considerations": [
+        "并行下载和分析提高效率",
+        "本地缓存减少重复操作",
+        "优化文本处理算法",
+        "控制内存使用"
+      ],
+      "security_measures": [
+        "安全的文件操作",
+        "输入验证",
+        "错误信息不泄露敏感信息",
+        "遵循PMC使用条款"
+      ]
+    },
+    "integration_details": {
+      "aws_services": [
+        "AWS S3 (通过boto3访问PMC开放数据)"
+      ],
+      "external_libraries": [
+        "boto3",
+        "requests",
+        "concurrent.futures"
+      ],
+      "api_endpoints": [
+        "PMC API"
+      ],
+      "data_formats": [
+        "JSON",
+        "XML",
+        "TXT"
+      ]
+    },
+    "development_notes": "工具开发过程中重点关注了文献处理流程的完整性和效率。通过复用现有PMC文献搜索工具作为基础，避免了重复开发基础功能，同时针对本项目需求开发了专门的缓存管理、文献分析和输出格式化工具。实现了并行下载和分析机制，显著提高了处理效率，特别是在处理大量文献时。文献相关性分析算法考虑了主题匹配、子主题匹配和文章质量等多个维度，提供了全面的评估结果。输出格式严格遵循规范，确保与需求中指定的JSON结构一致。所有工具都实现了完善的错误处理机制，确保在各种异常情况下仍能提供有用的结果。"
+  }
+}

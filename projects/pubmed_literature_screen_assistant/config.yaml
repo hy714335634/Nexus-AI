@@ -1,0 +1,6 @@
+project:
+  created_date: '2025-10-23T08:35:09.052712+00:00'
+  description: 生命科学文献助手Agent，能根据用户给定的主题，进行文献检索和汇总工作，为客户编写综述提供重要依据
+  name: pubmed_literature_assistant
+  updated_date: '2025-10-23T08:42:33.843539+00:00'
+  version: 1.0.0

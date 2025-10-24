@@ -1,0 +1,259 @@
+{
+  "system_design": {
+    "design_overview": {
+      "project_name": "pubmed_literature_assistant",
+      "version": "1.0",
+      "date": "2025-10-23",
+      "design_scope": "设计生命科学文献助手系统，支持文献检索、下载、分析和汇总功能，为编写综述提供支持",
+      "design_principles": [
+        "模块化设计，分离关注点",
+        "可扩展性，支持未来功能扩展",
+        "容错性，具备完善的错误处理机制",
+        "可观测性，支持监控和日志",
+        "安全性，遵循最佳安全实践"
+      ],
+      "key_decisions": [
+        "采用单Agent架构，简化系统复杂度",
+        "使用PubMed文献搜索专家模板作为基础",
+        "采用本地文件系统进行文献缓存",
+        "使用JSON结构化数据存储和输出",
+        "实现多阶段文献处理流程"
+      ],
+      "workflow_type": "single_agent",
+      "recommended_templates": ["pubmed_literature_agent"]
+    },
+    "architecture": {
+      "system_context": "生命科学文献助手是一个专门为科研工作者设计的智能代理系统，能够根据用户提供的研究主题，自动执行文献检索、下载、分析和汇总工作。系统通过PMC API获取文献数据，下载文献全文到本地缓存，进行深度分析和相关性评估，最终生成结构化的文献汇总报告。",
+      "agent_topology": "单Agent架构，由一个核心Agent负责整个工作流程，从文献检索到结果输出",
+      "interaction_model": "用户通过提供研究主题与Agent交互，Agent执行完整的文献处理流程并返回结构化结果",
+      "technology_stack": {
+        "sdk": "Strands SDK",
+        "runtime": "Local",
+        "integrations": [
+          "PMC API",
+          "本地文件系统",
+          "AWS Bedrock"
+        ]
+      }
+    },
+    "agents": [
+      {
+        "name": "literature_assistant",
+        "purpose": "根据用户提供的研究主题，执行文献检索、下载、分析和汇总工作，为编写综述提供支持",
+        "responsibilities": [
+          "主题分析与检索策略制定",
+          "PMC文献检索与筛选",
+          "文献全文下载与本地缓存",
+          "缓存清单生成与管理",
+          "文献全文阅读与相关性分析",
+          "文献引用评估与筛选",
+          "文献内容摘要与关键信息提取",
+          "结构化JSON结果输出"
+        ],
+        "interfaces": {
+          "inputs": [
+            "研究主题（字符串）",
+            "可选参数：时间范围、期刊类型、最小影响因子"
+          ],
+          "outputs": [
+            "缓存清单（JSON格式）",
+            "最终输出结果（JSON格式）"
+          ]
+        },
+        "dependencies": [
+          "PMC检索工具",
+          "本地文件系统"
+        ],
+        "implementation_notes": [
+          "使用提示词工程实现主题分析和检索策略制定",
+          "通过PMC API工具执行文献检索",
+          "使用文件操作工具实现文献下载和缓存",
+          "通过大语言模型能力实现文献相关性分析",
+          "使用JSON处理工具实现结构化数据管理"
+        ],
+        "recommended_template": "pubmed_literature_agent"
+      }
+    ],
+    "data_models": [
+      {
+        "name": "缓存清单（cache_manifest.json）",
+        "schema": "{\"metadata\": {\"query\": \"字符串\", \"query_time\": \"字符串\", \"total_articles\": \"整数\", \"downloaded_articles\": \"整数\", \"analyzed_articles\": \"整数\", \"cited_articles\": \"整数\"}, \"articles\": [{\"pmcid\": \"字符串\", \"pmid\": \"字符串\", \"doi\": \"字符串\", \"title\": \"字符串\", \"authors\": [{\"full_name\": \"字符串\", \"affiliations\": [\"字符串\"]}], \"journal\": {\"name\": \"字符串\", \"impact_factor\": \"浮点数\"}, \"publication_date\": \"字符串\", \"abstract\": [\"字符串\"], \"keywords\": [\"字符串\"], \"download_status\": {\"status\": \"字符串\", \"file_path\": \"字符串\", \"download_time\": \"字符串\"}, \"analysis_status\": {\"status\": \"字符串\", \"relevance_score\": \"浮点数\", \"relevance_reason\": \"字符串\", \"quality_score\": \"浮点数\"}, \"citation_status\": {\"should_cite\": \"布尔值\", \"citation_reason\": \"字符串\", \"citation_priority\": \"字符串\"}, \"content_summary\": {\"main_findings\": \"字符串\", \"methodology\": \"字符串\", \"key_conclusions\": \"字符串\"}, \"bibliography\": {\"apa\": \"字符串\", \"mla\": \"字符串\"}}]}",
+        "validation_rules": [
+          "query字段不能为空",
+          "query_time必须是有效的日期时间格式",
+          "total_articles必须是非负整数",
+          "downloaded_articles必须小于等于total_articles",
+          "analyzed_articles必须小于等于downloaded_articles",
+          "cited_articles必须小于等于analyzed_articles",
+          "pmcid必须是有效的PMC ID格式",
+          "relevance_score必须在0到1之间",
+          "quality_score必须在0到1之间",
+          "should_cite必须是布尔值"
+        ],
+        "relationships": ["与最终输出结果数据模型关联，提供引用文献的基础数据"]
+      },
+      {
+        "name": "最终输出结果（final_output.json）",
+        "schema": "{\"metadata\": {\"query\": \"字符串\", \"query_time\": \"字符串\", \"completion_time\": \"字符串\", \"total_cited\": \"整数\"}, \"execution_summary\": {\"search_strategy\": {\"keywords\": [\"字符串\"], \"time_range\": \"字符串\"}, \"download_summary\": {\"successful\": \"整数\", \"failed\": \"整数\"}, \"analysis_summary\": {\"highly_relevant\": \"整数\", \"moderately_relevant\": \"整数\"}}, \"cited_articles\": [{\"pmcid\": \"字符串\", \"title\": \"字符串\", \"authors\": \"字符串\", \"journal\": \"字符串\", \"relevance_score\": \"浮点数\", \"citation_reason\": \"字符串\", \"bibliography\": {\"apa\": \"字符串\"}}], \"statistics\": {\"year_distribution\": {\"年份\": \"整数\"}, \"journal_distribution\": {\"期刊名\": \"整数\"}, \"quality_distribution\": {\"评级\": \"整数\"}}, \"recommendations\": {\"additional_search_terms\": [\"字符串\"], \"missing_topics\": [\"字符串\"]}, \"cache_location\": \"字符串\"}",
+        "validation_rules": [
+          "query字段不能为空",
+          "query_time和completion_time必须是有效的日期时间格式",
+          "total_cited必须是非负整数且不少于20",
+          "successful和failed必须是非负整数",
+          "highly_relevant和moderately_relevant必须是非负整数",
+          "relevance_score必须在0到1之间",
+          "cache_location必须是有效的路径"
+        ],
+        "relationships": ["基于缓存清单数据模型，提供汇总和统计信息"]
+      }
+    ],
+    "interaction_flows": [
+      {
+        "name": "文献检索与分析流程",
+        "description": "从用户输入研究主题到生成最终结果的完整流程",
+        "steps": [
+          {
+            "step": "主题分析",
+            "agent": "literature_assistant",
+            "action": "分析用户提供的研究主题，识别关键概念和术语",
+            "data": "研究主题字符串"
+          },
+          {
+            "step": "检索策略制定",
+            "agent": "literature_assistant",
+            "action": "根据主题分析结果制定检索策略，包括关键词组合和筛选条件",
+            "data": "检索策略对象"
+          },
+          {
+            "step": "PMC文献检索",
+            "agent": "literature_assistant",
+            "action": "调用PMC检索工具执行文献检索，获取文献列表",
+            "data": "文献元数据列表"
+          },
+          {
+            "step": "初步筛选与排序",
+            "agent": "literature_assistant",
+            "action": "根据影响因子、发表时间和摘要相关性进行初步筛选和排序",
+            "data": "筛选后的文献列表"
+          },
+          {
+            "step": "创建缓存清单",
+            "agent": "literature_assistant",
+            "action": "创建初始缓存清单，记录文献元数据",
+            "data": "缓存清单JSON对象"
+          },
+          {
+            "step": "文献全文下载",
+            "agent": "literature_assistant",
+            "action": "下载文献全文到本地缓存目录",
+            "data": "文献全文文件"
+          },
+          {
+            "step": "更新下载状态",
+            "agent": "literature_assistant",
+            "action": "更新缓存清单中的下载状态",
+            "data": "更新后的缓存清单"
+          },
+          {
+            "step": "文献全文分析",
+            "agent": "literature_assistant",
+            "action": "阅读文献全文，评估相关性和质量",
+            "data": "分析结果"
+          },
+          {
+            "step": "更新分析状态",
+            "agent": "literature_assistant",
+            "action": "更新缓存清单中的分析状态",
+            "data": "更新后的缓存清单"
+          },
+          {
+            "step": "引用评估",
+            "agent": "literature_assistant",
+            "action": "评估文献是否应被引用，确定引用优先级",
+            "data": "引用评估结果"
+          },
+          {
+            "step": "更新引用状态",
+            "agent": "literature_assistant",
+            "action": "更新缓存清单中的引用状态",
+            "data": "更新后的缓存清单"
+          },
+          {
+            "step": "内容摘要提取",
+            "agent": "literature_assistant",
+            "action": "提取文献的主要发现、研究方法和关键结论",
+            "data": "内容摘要"
+          },
+          {
+            "step": "更新内容摘要",
+            "agent": "literature_assistant",
+            "action": "更新缓存清单中的内容摘要",
+            "data": "更新后的缓存清单"
+          },
+          {
+            "step": "引用格式生成",
+            "agent": "literature_assistant",
+            "action": "生成标准的引用格式",
+            "data": "引用格式"
+          },
+          {
+            "step": "更新引用格式",
+            "agent": "literature_assistant",
+            "action": "更新缓存清单中的引用格式",
+            "data": "更新后的缓存清单"
+          },
+          {
+            "step": "统计信息生成",
+            "agent": "literature_assistant",
+            "action": "生成文献分布统计信息",
+            "data": "统计信息"
+          },
+          {
+            "step": "推荐信息生成",
+            "agent": "literature_assistant",
+            "action": "生成额外搜索词和缺失主题建议",
+            "data": "推荐信息"
+          },
+          {
+            "step": "最终结果生成",
+            "agent": "literature_assistant",
+            "action": "生成符合规范的最终输出结果",
+            "data": "最终输出JSON对象"
+          }
+        ]
+      }
+    ],
+    "security_considerations": [
+      "确保文献下载和缓存遵循PMC使用条款和版权规定",
+      "缓存目录应有适当的访问权限控制",
+      "敏感信息（如API密钥）应通过环境变量或安全存储方式提供",
+      "避免在日志中记录敏感信息",
+      "确保JSON输出不包含潜在的注入风险"
+    ],
+    "error_handling": [
+      "网络连接中断时，应保存已处理的结果并提供恢复机制",
+      "PMC API限流或失败时，实现退避重试策略",
+      "文献下载失败时，记录失败原因并继续处理其他文献",
+      "文件操作错误时，提供清晰的错误信息并尝试恢复",
+      "JSON解析错误时，提供详细的错误位置和原因",
+      "确保即使部分处理失败，仍能生成有用的输出结果"
+    ],
+    "performance_considerations": [
+      "实现并行下载机制，提高文献获取效率",
+      "使用增量处理方式，避免一次性加载过多数据",
+      "缓存已处理的文献分析结果，避免重复分析",
+      "优化文本处理算法，提高文献分析效率",
+      "监控内存使用，避免处理大量文献时内存溢出",
+      "定期清理临时文件，避免磁盘空间占用过多"
+    ],
+    "monitoring_strategy": [
+      "记录详细的操作日志，包括检索、下载、分析和输出阶段",
+      "跟踪处理时间和资源使用情况",
+      "记录API调用次数和响应时间",
+      "监控文件系统使用情况",
+      "实现处理进度反馈机制",
+      "记录错误和异常情况，便于问题诊断"
+    ]
+  },
+  "design_rationale": "本设计采用单Agent架构，主要考虑到整个文献处理流程具有连贯性，各功能之间有明确的依赖关系，可由单个Agent完成。选择PubMed文献搜索专家模板作为基础，因为该模板专为医学和生命科学文献检索设计，完全匹配需求中的PMC文献检索、下载、缓存管理功能，内置了完整的PubMed API集成、文献相关性分析、内容提取和结构化输出功能。\n\n系统设计遵循模块化原则，将文献处理流程分为多个清晰的步骤，包括主题分析、检索策略制定、文献检索、下载、分析和结果输出。每个步骤都有明确的输入输出和责任边界，便于开发和维护。同时，系统设计考虑了可扩展性，支持未来添加更多功能，如支持其他数据库、增强分析能力等。\n\n数据模型设计严格遵循需求中指定的JSON结构规范，确保输出符合预期格式。同时，添加了详细的验证规则，确保数据的完整性和有效性。交互流程设计详细描述了从用户输入到最终输出的完整处理流程，明确了每个步骤的责任和数据流向。\n\n错误处理和性能考虑是设计的重要部分，确保系统能够处理各种异常情况，并在处理大量文献时保持良好的性能。监控策略设计确保系统运行状态可观测，便于问题诊断和性能优化。\n\n总体而言，本设计旨在创建一个高效、可靠、易于扩展的生命科学文献助手系统，满足科研工作者对文献检索和分析的需求，为编写综述提供全面的支持。"
+}
