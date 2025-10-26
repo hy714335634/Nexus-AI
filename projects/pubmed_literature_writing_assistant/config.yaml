@@ -1,0 +1,6 @@
+project:
+  created_date: '2025-10-26T02:09:19.643174+00:00'
+  description: 一个科研文献编写智能体，能根据用户提供材料和思路进行文献综述的编写工作，支持处理大量PubMed文献并生成高质量文献综述
+  name: pubmed_literature_writing_assistant
+  updated_date: '2025-10-26T02:09:25.006704+00:00'
+  version: 1.0.0

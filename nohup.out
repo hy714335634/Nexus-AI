@@ -1,0 +1,17 @@
+Creating agent 'generated_agents_prompts/pubmed_literature_writing_assistant/pubmed_literature_writing_assistant' from prompt template...
+Loaded prompt template for 'generated_agents_prompts/pubmed_literature_writing_assistant/pubmed_literature_writing_assistant', version: latest
+Successfully imported 7 tools
+Using supported model: us.anthropic.claude-3-7-sonnet-20250219-v1:0
+✅Successfully created agent 'generated_agents_prompts/pubmed_literature_writing_assistant/pubmed_literature_writing_assistant' from prompt template
+Agent has 7 tools available
+----------------------------------------------------------------------------------------------------
+✅ PubMed文献编写智能体创建成功
+📝 开始生成文献综述: 研究ID=literature_search_20251024
+I'll analyze the new paper and update the literature review by integrating its content into the existing review. Let me first examine the paper to understand its key findings and relevance to the ADMET prediction tools research.
+
+The new paper "Machine learning and molecular dynamics reveal anti-osteoporosis potential of dietary flavonoids" is highly relevant to our literature review as it demonstrates a practical application of machine learning algorithms and ADMET analysis in drug discovery, specifically for identifying potential anti-osteoporosis compounds from dietary flavonoids.
+
+Let me update the literature review by integrating this new information:
+Tool #1: save_literature_content
+📋 处理结果:
+文献综述生成过程中发生错误: An error occurred (internalServerException) when calling the ConverseStream operation: The system encountered an unexpected error during processing. Try your request again.

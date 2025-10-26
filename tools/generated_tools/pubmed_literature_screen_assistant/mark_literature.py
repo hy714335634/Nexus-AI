@@ -30,6 +30,7 @@ def mark_literature(pmc_ids: list, research_id: str, reasoning: dict = None, aut
     try:
         base_dir = Path(f".cache/pmc_literature/{research_id}")
         meta_dir = base_dir / "meta_data"
+        analysis_dir = base_dir / "analysis_results"
         paper_dir = base_dir / "paper"
         manifest_file = base_dir / "manifest.json"
         
@@ -61,6 +62,25 @@ def mark_literature(pmc_ids: list, research_id: str, reasoning: dict = None, aut
             with open(meta_file, 'r', encoding='utf-8') as f:
                 metadata = json.load(f)
             
+            # 尝试从analysis_results中获取impact_factor
+            impact_factor = 0
+            analysis_file = analysis_dir / f"{pmc_id}.json"
+            if analysis_file.exists():
+                try:
+                    with open(analysis_file, 'r', encoding='utf-8') as f:
+                        analysis = json.load(f)
+                        impact_factor_raw = analysis.get("impact_factor", 0)
+                        # 转换为数值类型（如果是字符串）
+                        if isinstance(impact_factor_raw, str):
+                            try:
+                                impact_factor = float(impact_factor_raw)
+                            except (ValueError, TypeError):
+                                impact_factor = 0
+                        else:
+                            impact_factor = float(impact_factor_raw) if impact_factor_raw else 0
+                except Exception:
+                    pass
+            
             # 提取年份
             pub_date = metadata.get("publication_date", "")
             year = pub_date.split()[0] if pub_date else "unknown"
@@ -72,7 +92,7 @@ def mark_literature(pmc_ids: list, research_id: str, reasoning: dict = None, aut
             lit_entry = {
                 "pmcid": pmc_id,
                 "title": metadata.get("title", ""),
-                "impact_factor": metadata.get("impact_factor", 0),
+                "impact_factor": impact_factor,
                 "reasoning": reasoning.get(pmc_id, ""),
                 "is_fulltext_cached": is_cached
             }
@@ -82,25 +102,57 @@ def mark_literature(pmc_ids: list, research_id: str, reasoning: dict = None, aut
             if lit_entry["impact_factor"]:
                 impact_factors.append(float(lit_entry["impact_factor"]))
         
-        # 更新manifest结构
-        manifest["marked_literature"]["by_year"] = {}
+        # 合并新的文献到现有manifest中，避免重复
+        existing_pmcids = set()
+        if "marked_literature" in manifest and "by_year" in manifest["marked_literature"]:
+            for year_data in manifest["marked_literature"]["by_year"].values():
+                for lit in year_data.get("literature", []):
+                    existing_pmcids.add(lit.get("pmcid"))
         
-        for year in sorted(by_year.keys(), reverse=True):
-            year_lits = by_year[year]
+        # 添加新文献（过滤掉已存在的）
+        new_year_data = defaultdict(list)
+        for year, lits in by_year.items():
+            for lit in lits:
+                if lit["pmcid"] not in existing_pmcids:
+                    new_year_data[year].append(lit)
+                    existing_pmcids.add(lit["pmcid"])
+        
+        # 合并到现有manifest中
+        if "marked_literature" not in manifest:
+            manifest["marked_literature"] = {"by_year": {}}
+        if "by_year" not in manifest["marked_literature"]:
+            manifest["marked_literature"]["by_year"] = {}
+        
+        for year in sorted(new_year_data.keys(), reverse=True):
+            year_lits = new_year_data[year]
             year_ifs = [lit["impact_factor"] for lit in year_lits if lit["impact_factor"]]
             
-            manifest["marked_literature"]["by_year"][year] = {
-                "total_count": len(year_lits),
-                "average_impact_factor": sum(year_ifs) / len(year_ifs) if year_ifs else 0,
-                "literature": year_lits
-            }
+            if year in manifest["marked_literature"]["by_year"]:
+                # 合并到现有年份
+                manifest["marked_literature"]["by_year"][year]["literature"].extend(year_lits)
+                manifest["marked_literature"]["by_year"][year]["total_count"] = len(manifest["marked_literature"]["by_year"][year]["literature"])
+                all_year_ifs = [lit["impact_factor"] for lit in manifest["marked_literature"]["by_year"][year]["literature"] if lit["impact_factor"]]
+                manifest["marked_literature"]["by_year"][year]["average_impact_factor"] = sum(all_year_ifs) / len(all_year_ifs) if all_year_ifs else 0
+            else:
+                # 新建年份
+                manifest["marked_literature"]["by_year"][year] = {
+                    "total_count": len(year_lits),
+                    "average_impact_factor": sum(year_ifs) / len(year_ifs) if year_ifs else 0,
+                    "literature": year_lits
+                }
+        
+        # 重新计算所有年份的统计信息
+        all_year_data = manifest["marked_literature"]["by_year"]
+        total_count = sum(len(data["literature"]) for data in all_year_data.values())
+        all_impact_factors = []
+        for data in all_year_data.values():
+            all_impact_factors.extend([lit["impact_factor"] for lit in data["literature"] if lit["impact_factor"]])
         
         # 更新统计信息
-        total_count = sum(len(lits) for lits in by_year.values())
         manifest["statistics"] = {
             "total_count": total_count,
-            "by_year": {year: len(lits) for year, lits in by_year.items()},
-            "average_impact_factor": sum(impact_factors) / len(impact_factors) if impact_factors else 0
+            "by_year": {year: data["total_count"] for year, data in all_year_data.items()},
+            "average_impact_factor": sum(all_impact_factors) / len(all_impact_factors) if all_impact_factors else 0
         }
         
         # 保存manifest
@@ -109,14 +161,9 @@ def mark_literature(pmc_ids: list, research_id: str, reasoning: dict = None, aut
         
         return json.dumps({
             "status": "success",
-            "marked_count": total_count,
+            "marked_count": manifest["statistics"]["total_count"],
             "statistics": manifest["statistics"]
         }, ensure_ascii=False)
-        
-    except Exception as e:
-        return json.dumps({"status": "error", "message": str(e)}, ensure_ascii=False)
-
-
         
     except Exception as e:
         return json.dumps({"status": "error", "message": str(e)}, ensure_ascii=False)

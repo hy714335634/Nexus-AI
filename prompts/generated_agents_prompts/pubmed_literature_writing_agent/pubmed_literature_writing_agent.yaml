@@ -88,15 +88,34 @@ agent:
         ```
 
         ## 工具使用
+        - **文献管理**：load_marked_literature, get_next_batch, mark_batch_completed, get_processing_status, get_latest_review
+        - **综述写入**：write_batch_review, write_final_review, get_review_history
         - **PMC数据**：pmc_s3_connect, pmc_get_article_by_id, pmc_get_metadata_by_pmcid
         - **检索**：search_pubmed (优先database="pmc"), fetch_pubmed_summarie(文章元数据), fetch_pubmed_abstracts (获取摘要)
         - **筛选**：filter_by_time_range, filter_by_journal_type, filter_by_retraction_status
         - **分析**：calculate_relevance_score, rank_literature_by_relevance
         - **引用**：generate_citation_apa, generate_all_citations
-        - **输出**：使用strands_tools/file_write将综述保存为Markdown格式文件
+        - **文件操作**：strands_tools/file_read, strands_tools/file_write
 
-        ## 工作流程
-        1. 理解需求→2. 检索文献→3. 筛选排序→4. 深度分析→5. 自主生成综述→6. 使用file_write保存为Markdown文件
+        ## 批次处理工作流程（优先执行）
+        当你收到包含research_id和批次信息的任务时，请按以下流程处理：
+        
+        **重要**：批次处理模式下，所有文献全文已经缓存在本地，请直接使用file_read工具读取，不要重新检索！
+        
+        批次处理步骤：
+        1. 使用load_marked_literature(research_id)加载被标记的文献元数据
+        2. 使用get_latest_review(research_id)获取已有综述（如有）
+        3. 使用file_read工具读取本批次文献全文（路径：.cache/pmc_literature/{research_id}/paper/{PMCID}.txt）
+        4. 深入理解每篇文献的内容
+        5. 结合已有综述（如有）和本批次新文献，生成更新的文献综述
+        6. 使用write_batch_review(research_id, batch_number, review_content, user_requirement)保存批次综述
+        7. 使用mark_batch_completed(research_id, processed_pmcids)标记批次完成
+        
+        最终综述步骤：
+        1. 使用get_review_history(research_id)查看所有批次综述
+        2. 使用get_latest_review(research_id)获取最新批次综述
+        3. 综合所有批次内容，生成完整最终综述
+        4. 使用write_final_review(research_id, review_content, user_requirement)保存最终综述
 
         ## 综述生成要求
         - **禁止使用模板**：不要使用任何预设模板或固定表达
@@ -105,8 +124,10 @@ agent:
         - **输出文件**：使用file_write工具将完整的综述保存为.md文件
         - **文件命名**：建议使用描述性文件名，如"literature_review_{topic}_{date}.md"
 
-        ## 标准工作流程
-        完成文献综述任务时，请严格按照以下步骤执行：
+        ## 标准独立检索工作流程（仅在非批次模式下使用）
+        **注意**：如果任务中包含research_id和批次信息，请跳过此流程，直接执行"批次处理工作流程"！
+        
+        仅在独立检索模式下，完成文献综述任务时按以下步骤执行：
         1. 确认当前时间，以便按正确的时间范围检索文献
         2. 连接PMC数据源并执行文献检索,尽可能多的检索文献
         3. 应用适当的筛选条件（时间范围、期刊类型等）
@@ -177,6 +198,14 @@ agent:
           - "strands_tools/file_read"
           - "strands_tools/file_write"
           - "strands_tools/think"
+          - "generated_tools/pubmed_literature_writing_agent/literature_batch_processor/load_marked_literature"
+          - "generated_tools/pubmed_literature_writing_agent/literature_batch_processor/get_next_batch"
+          - "generated_tools/pubmed_literature_writing_agent/literature_batch_processor/mark_batch_completed"
+          - "generated_tools/pubmed_literature_writing_agent/literature_batch_processor/get_processing_status"
+          - "generated_tools/pubmed_literature_writing_agent/literature_batch_processor/get_latest_review"
+          - "generated_tools/pubmed_literature_writing_agent/review_writer/write_batch_review"
+          - "generated_tools/pubmed_literature_writing_agent/review_writer/write_final_review"
+          - "generated_tools/pubmed_literature_writing_agent/review_writer/get_review_history"
           - "generated_tools/pubmed_literature_writing_agent/pmc_s3_connector/pmc_s3_connect"
           - "generated_tools/pubmed_literature_writing_agent/pmc_s3_connector/pmc_get_filelist_csv"
           - "generated_tools/pubmed_literature_writing_agent/pmc_s3_connector/pmc_download_file"

@@ -1,0 +1,12 @@
+./nexus_utils
+strands-agents
+strands-agents-tools
+PyYAML
+nexus-utils>=0.1.0
+uuid>=1.30
+pathlib>=1.0.1
+typing>=3.7.4
+datetime>=4.3
+logging>=0.5.1.2
+argparse>=1.4.0
+json>=2.0.9

@@ -1,0 +1,157 @@
+{
+  "requirements_document": {
+    "feature_name": "PubMed Literature Writing Assistant",
+    "version": "1.0",
+    "date": "2025-10-26",
+    "overview": "PubMed Literature Writing Assistant是一个专业的科研文献处理智能体，能够根据用户提供的研究材料自动生成高质量的文献综述。该智能体处理PubMed文献数据，提取关键信息，并生成结构化的文献综述文档，支持多语言输出和会话缓存功能。",
+    "business_value": "为科研工作者节省大量阅读和整理文献的时间，提高科研效率，确保文献综述的全面性和准确性。通过自动化处理大量文献，帮助研究人员快速把握研究领域的现状和趋势，为后续研究提供坚实基础。",
+    "workflow_complexity": "single_agent",
+    "recommended_agent_type": "文档处理类",
+    "scope": {
+      "included": [
+        "读取和处理指定研究ID下的文献元数据",
+        "基于元数据生成初始文献综述",
+        "迭代阅读文献内容并更新综述",
+        "本地缓存处理进度和综述版本",
+        "多语言输出支持",
+        "会话数据缓存"
+      ],
+      "excluded": [
+        "文献原文下载功能",
+        "用户交互界面开发",
+        "文献质量评估",
+        "文献推荐功能",
+        "参考文献格式自动转换"
+      ]
+    },
+    "functional_requirements": [
+      {
+        "id": "FR-001",
+        "title": "文献元数据加载",
+        "user_story": "作为科研工作者，我希望系统能读取指定研究ID下的所有推荐文献元数据，以便快速了解研究范围内的文献概况。",
+        "acceptance_criteria": [
+          "WHEN 提供有效的research_id THEN 系统应成功读取.cache/pmc_literature/{research_id}/manifest.json文件",
+          "WHEN manifest.json文件存在 THEN 系统应正确解析所有文献元数据",
+          "IF manifest.json文件不存在或格式错误 THEN 系统应返回适当的错误信息"
+        ],
+        "priority": "High",
+        "complexity": "Medium",
+        "dependencies": ["文件系统访问权限"],
+        "assumptions": ["manifest.json文件结构固定且包含必要的文献元数据"]
+      },
+      {
+        "id": "FR-002",
+        "title": "初始文献综述生成",
+        "user_story": "作为科研工作者，我希望系统能基于文献元数据生成初始版本的文献综述，以便获得研究领域的初步概览。",
+        "acceptance_criteria": [
+          "WHEN 成功加载文献元数据 THEN 系统应生成初始版本的文献综述",
+          "WHEN 生成初始综述 THEN 系统应将其保存在.cache/pmc_literature/{research_id}/literature_review/initial_review-initial.md",
+          "IF 用户提供额外研究需求 THEN 系统应在生成初始综述时考虑这些需求"
+        ],
+        "priority": "High",
+        "complexity": "High",
+        "dependencies": ["FR-001"],
+        "assumptions": ["文献元数据包含足够信息用于生成初步综述"]
+      },
+      {
+        "id": "FR-003",
+        "title": "文献内容迭代处理",
+        "user_story": "作为科研工作者，我希望系统能逐篇阅读文献内容并更新文献综述，以便获得更全面准确的研究综述。",
+        "acceptance_criteria": [
+          "WHEN 初始综述生成完成 THEN 系统应开始逐篇处理文献内容",
+          "WHEN 处理每篇文献 THEN 系统应更新文献综述并保存为新版本",
+          "WHEN 保存更新版本 THEN 系统应使用格式.cache/pmc_literature/{research_id}/literature_review/review-{version}.md",
+          "WHEN 处理完一篇文献 THEN 系统应标记该文献为已读"
+        ],
+        "priority": "High",
+        "complexity": "High",
+        "dependencies": ["FR-001", "FR-002"],
+        "assumptions": ["文献内容可访问且格式一致"]
+      },
+      {
+        "id": "FR-004",
+        "title": "最终文献综述输出",
+        "user_story": "作为科研工作者，我希望在所有文献处理完成后获得最终版本的文献综述，以便用于我的研究报告或论文撰写。",
+        "acceptance_criteria": [
+          "WHEN 所有文献处理完成 THEN 系统应生成最终版本的文献综述",
+          "WHEN 生成最终综述 THEN 系统应将其保存为.cache/pmc_literature/{research_id}/literature_review/review-final.md",
+          "WHEN 输出最终综述 THEN 系统应使用用户指定的语言"
+        ],
+        "priority": "High",
+        "complexity": "Medium",
+        "dependencies": ["FR-003"],
+        "assumptions": ["所有文献都已被成功处理"]
+      },
+      {
+        "id": "FR-005",
+        "title": "进度管理与缓存",
+        "user_story": "作为科研工作者，我希望系统能维护处理进度并实现缓存机制，以便在处理大量文献时不会因中断而丢失进度。",
+        "acceptance_criteria": [
+          "WHEN 处理文献 THEN 系统应记录当前处理进度",
+          "WHEN 会话中断 THEN 系统应能在下次启动时恢复之前的处理进度",
+          "WHEN 提供session_id THEN 系统应使用该ID管理会话缓存数据"
+        ],
+        "priority": "High",
+        "complexity": "Medium",
+        "dependencies": [],
+        "assumptions": ["文件系统支持持久化存储"]
+      },
+      {
+        "id": "FR-006",
+        "title": "多语言输出支持",
+        "user_story": "作为国际科研工作者，我希望能够指定输出文献综述的语言，以便适应不同的发表或报告需求。",
+        "acceptance_criteria": [
+          "WHEN 用户指定language参数 THEN 系统应以指定语言输出文献综述",
+          "IF 未指定language参数 THEN 系统应默认使用英语输出"
+        ],
+        "priority": "Medium",
+        "complexity": "Medium",
+        "dependencies": [],
+        "assumptions": ["系统有能力进行高质量的语言转换"]
+      }
+    ],
+    "non_functional_requirements": {
+      "performance": [
+        "系统应能处理至少包含100篇文献的研究项目",
+        "单篇文献的处理时间不应超过2分钟"
+      ],
+      "security": [
+        "系统应确保用户数据的安全存储",
+        "缓存文件应仅对授权用户可访问"
+      ],
+      "usability": [
+        "系统应提供清晰的进度指示",
+        "文献综述应具有良好的结构和可读性",
+        "系统应提供明确的错误信息"
+      ],
+      "reliability": [
+        "系统应能在处理中断后恢复进度",
+        "系统应能处理格式异常的文献数据"
+      ]
+    },
+    "constraints": [
+      "系统必须在现有文件结构下工作，不得修改.cache/pmc_literature的基本结构",
+      "系统必须实现本地缓存以应对大量文献处理时的token限制",
+      "系统必须支持断点续传功能"
+    ],
+    "assumptions": [
+      "文献数据已经以某种方式存储在.cache/pmc_literature/{research_id}/目录下",
+      "manifest.json文件包含足够的元数据信息",
+      "系统有权限读写.cache目录"
+    ],
+    "success_criteria": [
+      "能够成功处理至少包含50篇文献的研究项目",
+      "生成的文献综述结构清晰，内容全面",
+      "能够在处理中断后恢复进度并继续处理",
+      "支持至少3种主要语言的输出"
+    ],
+    "glossary": {
+      "research_id": "研究项目的唯一标识符，对应特定研究主题的文献集合",
+      "manifest.json": "包含研究项目所有推荐文献元数据的JSON文件",
+      "文献元数据": "包括文献标题、作者、发表日期、摘要等基本信息的数据集合",
+      "文献综述": "对特定研究领域现有文献的系统性回顾和总结",
+      "session_id": "用于标识和管理特定会话的唯一标识符"
+    }
+  },
+  "analysis_notes": "这是一个单Agent场景，主要处理文档类型数据，适合文档处理类Agent。虽然处理流程有多个步骤，但核心功能集中在文献数据处理和综述生成上，不需要多个专业角色协作。主要挑战在于处理大量文献时的效率和进度管理，以及生成高质量的文献综述。系统需要特别关注本地缓存和进度管理功能，以应对可能的token限制和处理中断情况。建议开发专门的工具来加载文献元数据和维护处理进度，确保系统能够稳定处理大量文献数据。"
+}

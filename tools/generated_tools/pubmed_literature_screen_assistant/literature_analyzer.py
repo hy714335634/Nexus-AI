@@ -16,6 +16,7 @@ Literature Analysis Agent
 import os
 import json
 import logging
+import re
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 
@@ -33,6 +34,32 @@ os.environ["BYPASS_TOOL_CONSENT"] = "true"
 os.environ["OTEL_EXPORTER_OTLP_ENDPOINT"] = "http://localhost:4318"
 strands_telemetry = StrandsTelemetry()
 strands_telemetry.setup_otlp_exporter()
+
+
+def preprocess_fulltext(content: str, max_length: int = 100000) -> str:
+    """
+    预处理全文内容，去除引用部分
+    
+    Args:
+        content: 原始全文内容
+        
+    Returns:
+        清理后的内容
+    """
+    if len(content) > max_length:
+        logger.warning(f"文件过大 ({len(content)} 字符)，截断到 {max_length} 字符")
+        content = content[:max_length] + "\n\n...[内容已截断以符合模型上下文限制]"
+    if not content:
+        return ""
+    
+    # 1. 去除引用部分（==== Refs之后的所有内容）
+    refs_pattern = r'====\s*Refs.*'
+    content = re.sub(refs_pattern, '', content, flags=re.DOTALL | re.IGNORECASE)
+    
+    # 2. 去除过多的空行（连续3个以上空行合并为2个）
+    content = re.sub(r'\n{3,}', '\n\n', content)
+    
+    return content.strip()
 
 
 class LiteratureAnalyzerAgent:
@@ -82,8 +109,23 @@ class LiteratureAnalyzerAgent:
         Returns:
             分析结果（包含答案内容和文献引用说明）
         """
-        response = self.agent(user_query)    
-        return response.message
+        response = self.agent(user_query)
+        
+        # 处理response.message可能是字典的情况
+        message = response.message
+        if isinstance(message, dict):
+            # 提取content中的text内容
+            if "content" in message:
+                text_parts = []
+                for item in message["content"]:
+                    if isinstance(item, dict) and "text" in item:
+                        text_parts.append(item["text"])
+                return "\n".join(text_parts)
+            else:
+                # 如果不是标准格式，转为JSON字符串
+                return json.dumps(message, ensure_ascii=False)
+        else:
+            return str(message)
     
     def answer_question(self, question: str, pmc_ids: List[str]) -> str:
         """
@@ -175,6 +217,12 @@ def analyze_literature_with_query(research_id: str, user_query: str, pmc_ids: Li
     if fulltext_content['status'] == "error":
         return fulltext_content['message']
     
+    # 预处理全文内容，去除引用部分
+    raw_content = fulltext_content['results'][0]['content']
+    preprocessed_content = preprocess_fulltext(raw_content)
+    
+    logger.info(f"原文长度: {len(raw_content)}, 预处理后长度: {len(preprocessed_content)}")
+    
     prompt = f"""
     ============================
     research_topic: {user_query}
@@ -183,7 +231,7 @@ def analyze_literature_with_query(research_id: str, user_query: str, pmc_ids: Li
     ============================
     research_id: {research_id}
     ============================
-    fulltext_content: {fulltext_content['results'][0]['content']}
+    fulltext_content: {preprocessed_content}
     ============================
     
     请分析这篇文献与研究主题的相关性，并判断是否应该标记为相关文献。
@@ -194,24 +242,14 @@ def analyze_literature_with_query(research_id: str, user_query: str, pmc_ids: Li
     3. 不要生成综述或报告内容
     4. 只提供判断理由和关键发现，不生成文章内容
     
-    请严格按照以下JSON格式输出（只输出JSON，不要添加任何其他文字）：
-    {{
-      "pmcid": "{pmc_ids[0]}",
-      "should_mark": true/false,
-      "relevance_score": 0.0-1.0,
-      "reasoning": "详细判断理由",
-      "key_findings": ["发现1", "发现2"],
-      "relevance_aspects": {{
-        "topic_match": "高/中/低",
-        "methodology": "相关/部分相关/不相关",
-        "conclusions": "有价值/部分有价值/无价值"
-      }},
-      "recommendation": "强烈推荐标记/推荐标记/不推荐标记",
-      "confidence": "高/中/低"
-    }}
+    请严格按照默认JSON格式输出（只输出JSON，不要添加任何其他文字）
     """
     agent = LiteratureAnalyzerAgent(env=env)
     response = agent.analyze_literature(prompt)
+    
+    # 确保response是字符串
+    if not isinstance(response, str):
+        response = str(response)
     
     logger.info(f"analyze_literature_with_query raw response: {response[:200]}...")
     
