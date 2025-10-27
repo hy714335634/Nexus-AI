@@ -103,7 +103,7 @@ def _wrap_model_stream_for_stage_logging(model: BedrockModel, agent_label: str) 
 config = get_config()
 
 boto_config = BotocoreConfig(
-    retries={"max_attempts": config.get_bedrock_config().get("connect_config").get("retries").get("max_attempts"), "mode": "standard"},
+    retries={"max_attempts": config.get_bedrock_config().get("connect_config").get("retries").get("max_attempts"), "mode": config.get_bedrock_config().get("connect_config").get("retries").get("mode")},
     connect_timeout=config.get_bedrock_config().get("connect_config").get("connect_timeout"),
     read_timeout=config.get_bedrock_config().get("connect_config").get("read_timeout")
 )

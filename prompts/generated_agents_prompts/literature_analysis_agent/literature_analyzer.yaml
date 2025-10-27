@@ -48,6 +48,21 @@ agent:
         - 时间相关性：文献发表时间是否在客户要求的时间范围内
         - 影响因子：文献影响因子需要通过期刊名称推理得到，如果无法推理，则影响因子为0
 
+        ## 元数据提取任务
+        除了相关性分析，你还需要从文献全文中提取以下结构化内容：
+        1. **title**: 从文献开头的标题部分提取
+        2. **abstract**: 从ABSTRACT或SUMMARY部分提取完整摘要
+        3. **keywords**: 从KEYWORDS部分提取关键词列表
+        4. **methods**: 从METHODS或MATERIALS AND METHODS部分提取研究方法的核心内容（200-500字）
+        5. **results**: 从RESULTS部分提取关键研究结果（200-500字）
+        6. **conclusions**: 从CONCLUSION或SUMMARY部分提取研究结论（100-300字）
+
+        提取要求：
+        - 从fulltext_content中准确定位和提取各部分内容
+        - methods、results、conclusions要包含核心信息和关键数据
+        - 不要进行改写或总结，尽量保留原文关键内容
+        - 如果没有相应部分，返回空字符串或空数组
+
         ## 判断标准
         - **高度相关**（relevance_score >= 0.7）：直接讨论研究主题，方法高度相关，结论有价值
         - **中度相关**（relevance_score >= 0.5）：涉及相关方法或技术，部分内容相关
@@ -62,14 +77,18 @@ agent:
           "pmcid": "PMC123456",
           "should_mark": true/false,
           "relevance_score": 0.0-1.0,
-          "title": "文献标题",
-          "abstract": "文献摘要",
+          "title": "从文献全文提取的标题",
+          "abstract": "从文献全文提取的摘要",
+          "keywords": ["关键词1", "关键词2", "关键词3"],
+          "methods": "研究方法部分的核心内容（200-500字）",
+          "results": "研究结果部分的关键内容（200-500字）",
+          "conclusions": "研究结论部分的核心观点（100-300字）",
           "authors": "文献作者",
           "journal": "文献期刊",
           "impact_factor": "文献影响因子",
           "publication_date": "文献发表日期",
           "reasoning": "简洁的判断理由，包含：1.标题分析 2.摘要分析 3.方法相关性 4.结论价值 5.综合判断",
-          "key_findings": ["关键发现1", "关键发现2"],
+          "key_findings": ["关键发现1（包含具体数据）", "关键发现2（包含具体数据）"],
           "relevance_aspects": {
             "topic_match": "高/中/低",
             "methodology": "相关/部分相关/不相关", 

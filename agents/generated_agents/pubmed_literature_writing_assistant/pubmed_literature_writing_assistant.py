@@ -25,6 +25,7 @@ from datetime import datetime
 
 from nexus_utils.agent_factory import create_agent_from_prompt_template
 from strands.telemetry import StrandsTelemetry
+from tools.system_tools.qcli_integration import call_q_cli
 
 # 配置日志
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -62,9 +63,10 @@ class PubmedLiteratureWritingAssistant:
         
         # 智能体配置路径
         self.agent_config_path = "generated_agents_prompts/pubmed_literature_writing_assistant/pubmed_literature_writing_assistant"
-        
-        # 创建智能体实例
-        self.agent = create_agent_from_prompt_template(
+    
+    def _create_agent(self):
+        """创建新的智能体实例"""
+        return create_agent_from_prompt_template(
             agent_name=self.agent_config_path,
             **self.agent_params
         )
@@ -211,17 +213,62 @@ class PubmedLiteratureWritingAssistant:
     def _get_latest_review(self, research_id: str) -> Optional[str]:
         """获取最新生成的综述内容"""
         try:
+            # 方法1：优先从status文件读取当前版本路径
+            status = self._get_processing_status(research_id)
+            if status and status.get("version_file_path"):
+                version_path = status["version_file_path"]
+                # 处理相对路径和绝对路径
+                if not os.path.isabs(version_path):
+                    file_path = Path(version_path)
+                else:
+                    file_path = Path(version_path)
+                
+                if file_path.exists():
+                    logger.info(f"从status读取版本文件: {version_path}")
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                    return content
+            
+            # 方法2：解析文件名中的版本号，按版本排序
             reviews_dir = Path(".cache/pmc_literature") / research_id / "reviews"
             
             if not reviews_dir.exists():
                 return None
             
-            review_files = sorted(reviews_dir.glob("review_*.md"), key=lambda x: x.stat().st_mtime, reverse=True)
+            # 解析所有文件，提取版本号
+            def extract_version(filename: str) -> tuple:
+                """提取版本号和优先级
+                返回: (priority, version_number, timestamp_str)
+                initial=0, 数字版本直接比较"""
+                name = filename.name
+                if name.startswith("review_initial_"):
+                    timestamp = name.replace("review_initial_", "").replace(".md", "")
+                    return (0, 0, timestamp)
+                elif name.startswith("review_v"):
+                    # review_v{version}_{timestamp}.md
+                    parts = name.replace("review_v", "").replace(".md", "").split("_")
+                    if parts:
+                        try:
+                            version_num = int(parts[0])
+                            timestamp = "_".join(parts[1:]) if len(parts) > 1 else ""
+                            return (1, version_num, timestamp)
+                        except:
+                            return (2, 0, name)  # 无法解析，放到最后
+                elif name.startswith("review_final_"):
+                    timestamp = name.replace("review_final_", "").replace(".md", "")
+                    return (3, 999999, timestamp)  # final 放到最后但优先级最高
+                return (4, -1, name)  # 未知格式
             
+            review_files = list(reviews_dir.glob("review_*.md"))
             if not review_files:
                 return None
             
-            latest_file = review_files[0]
+            # 按版本号排序
+            sorted_files = sorted(review_files, key=extract_version)
+            
+            latest_file = sorted_files[-1]  # 获取版本号最大的
+            logger.info(f"获取最新版本文件: {latest_file.name}")
+            
             with open(latest_file, 'r', encoding='utf-8') as f:
                 content = f.read()
             
@@ -317,27 +364,199 @@ class PubmedLiteratureWritingAssistant:
         """标记所有文献元数据已处理"""
         return self._update_processing_status(research_id, "initial_marker", "initial")
     
+    def _retry_agent_call(self, agent_input: str, max_retries: int = 3, retry_delay: int = 60):
+        """
+        带重试机制的 Agent 调用
+        
+        Args:
+            agent_input: 输入给 Agent 的内容
+            max_retries: 最大重试次数，默认3次
+            retry_delay: 重试间隔（秒），默认5秒
+            
+        Returns:
+            AgentResult 对象
+        """
+        for attempt in range(1, max_retries + 1):
+            agent_response = None
+            try:
+                logger.info(f"调用 Agent（尝试 {attempt}/{max_retries}）")
+                # 每次调用前创建新的agent实例
+                agent = self._create_agent()
+                agent_response = agent(agent_input)
+                
+                # 验证响应
+                if hasattr(agent_response, 'message') and agent_response.message:
+                    logger.info(f"✅ Agent 调用成功（尝试 {attempt}）")
+                    return agent_response
+                elif hasattr(agent_response, 'content') and agent_response.content:
+                    logger.info(f"✅ Agent 调用成功（尝试 {attempt}）")
+                    return agent_response
+                else:
+                    raise ValueError("Agent 响应无效")
+                    
+            except Exception as e:
+                logger.warning(f"⚠️ Agent 调用失败（尝试 {attempt}/{max_retries}）: {str(e)}")
+                
+                if attempt < max_retries:
+                    logger.info(f"等待 {retry_delay} 秒后重试...")
+                    # 只有在agent_response存在时才打印metrics
+                    if agent_response and hasattr(agent_response, 'metrics'):
+                        print("="*100)
+                        print(f"Total tokens: {agent_response.metrics.accumulated_usage}")
+                        print(f"Execution time: {sum(agent_response.metrics.cycle_durations):.2f} seconds")
+                        print(f"Tools used: {list(agent_response.metrics.tool_metrics.keys())}")
+                    sleep(retry_delay)
+                else:
+                    logger.error(f"❌ Agent 调用失败，已达最大重试次数: {str(e)}")
+                    raise
+        
+        # 如果所有重试都失败
+        raise Exception(f"Agent 调用失败，已重试 {max_retries} 次")
+    
+    def _extract_agent_text(self, agent_response: Any) -> str:
+        """从 Agent 响应中提取文本内容"""
+        # 首先检查是否是字典格式（Strands框架的标准消息格式）
+        if isinstance(agent_response, dict):
+            if 'content' in agent_response:
+                # 格式：{'role': 'assistant', 'content': [{'text': '...'}]}
+                content_list = agent_response['content']
+                if isinstance(content_list, list):
+                    texts = []
+                    for item in content_list:
+                        if isinstance(item, dict) and 'text' in item:
+                            texts.append(item['text'])
+                        elif isinstance(item, str):
+                            texts.append(item)
+                    return '\n'.join(texts)
+                elif isinstance(content_list, str):
+                    return content_list
+            elif 'message' in agent_response:
+                return str(agent_response['message'])
+            else:
+                return str(agent_response)
+        elif hasattr(agent_response, 'message'):
+            message = agent_response.message
+            # 如果message是字典格式（Strands框架的标准消息格式）
+            if isinstance(message, dict):
+                if 'content' in message:
+                    content_list = message['content']
+                    if isinstance(content_list, list):
+                        texts = []
+                        for item in content_list:
+                            if isinstance(item, dict) and 'text' in item:
+                                texts.append(item['text'])
+                            elif isinstance(item, str):
+                                texts.append(item)
+                        return '\n'.join(texts)
+                    elif isinstance(content_list, str):
+                        return content_list
+            return str(message)
+        elif hasattr(agent_response, 'content'):
+            content = agent_response.content
+            if isinstance(content, str):
+                return content
+            elif isinstance(content, list):
+                texts = []
+                for item in content:
+                    if isinstance(item, dict) and 'text' in item:
+                        texts.append(item['text'])
+                return '\n'.join(texts)
+            elif isinstance(content, dict):
+                # content 本身是一个字典 {'role': 'assistant', 'content': [...]}
+                content_list = content.get('content', [])
+                if isinstance(content_list, list):
+                    texts = []
+                    for item in content_list:
+                        if isinstance(item, dict) and 'text' in item:
+                            texts.append(item['text'])
+                        elif isinstance(item, str):
+                            texts.append(item)
+                    return '\n'.join(texts)
+                elif isinstance(content_list, str):
+                    return content_list
+            else:
+                return str(content)
+        else:
+            # 尝试从字符串表示中提取内容
+            str_repr = str(agent_response)
+            # 如果看起来是字典的字符串表示，尝试提取其中的文本
+            if str_repr.startswith("{'") and 'content' in str_repr:
+                # 尝试解析这个字典的字符串表示
+                try:
+                    import ast
+                    parsed = ast.literal_eval(str_repr)
+                    if isinstance(parsed, dict) and 'content' in parsed:
+                        content_list = parsed['content']
+                        if isinstance(content_list, list):
+                            texts = []
+                            for item in content_list:
+                                if isinstance(item, dict) and 'text' in item:
+                                    texts.append(item['text'])
+                            if texts:
+                                return '\n'.join(texts)
+                except:
+                    pass
+            return str_repr
+    
     def _parse_agent_json_result(self, agent_response: str) -> Optional[Dict]:
         """解析Agent返回的JSON结果"""
         try:
             # 打印Agent响应用于调试
             logger.info(f"Agent响应前500字符: {agent_response[:500]}")
             
-            # 方法1: 尝试提取```json代码块中的JSON
-            json_match = re.search(r'```json\s*(\{.*?\})\s*```', agent_response, re.DOTALL)
-            if json_match:
-                json_str = json_match.group(1)
+            # 方法1: 查找```json和```之间的所有内容（更健壮的方法）
+            json_block_match = re.search(r'```json\s*([\s\S]*?)\s*```', agent_response)
+            if json_block_match:
+                json_str = json_block_match.group(1).strip()
                 logger.info("从```json代码块中提取JSON")
                 try:
-                    return json.loads(json_str)
+                    result = json.loads(json_str)
+                    logger.info(f"成功解析JSON: status={result.get('status')}")
+                    return result
                 except Exception as e:
                     logger.error(f"解析代码块中的JSON失败: {str(e)}")
             
-            # 方法2: 查找完整的JSON对象（支持多行和嵌套）
-            # 使用更健壮的方法来匹配完整的JSON对象
+            # 方法2: 从后往前查找，找到最后一个完整的JSON对象
+            # Agent通常会在最后返回JSON结果，这样可以避免匹配到中间思考过程的JSON片段
+            logger.info("尝试从后往前查找JSON对象")
+            json_end = -1
+            json_start = -1
+            brace_count = 0
+            
+            # 从后往前找最后一个}
+            for i in range(len(agent_response) - 1, -1, -1):
+                if agent_response[i] == '}':
+                    json_end = i + 1
+                    brace_count = 1
+                    # 现在从i-1开始往前找匹配的{
+                    for j in range(i - 1, -1, -1):
+                        char = agent_response[j]
+                        if char == '}':
+                            brace_count += 1
+                        elif char == '{':
+                            brace_count -= 1
+                            if brace_count == 0:
+                                json_start = j
+                                # 找到了一个完整的JSON对象
+                                json_str = agent_response[json_start:json_end]
+                                json_str = json_str.strip()
+                                logger.info(f"从后往前找到JSON对象（前200字符）: {json_str[:200]}...")
+                                try:
+                                    result = json.loads(json_str)
+                                    logger.info(f"成功解析JSON: status={result.get('status')}")
+                                    # 验证是否包含预期的字段
+                                    if 'status' in result:
+                                        return result
+                                except Exception as e:
+                                    logger.warning(f"解析JSON对象失败: {str(e)}")
+                                break
+                    # 如果找到了一个完整的JSON，退出外层循环
+                    if json_start >= 0:
+                        break
+            
+            # 方法3: 向前兼容，从前往后查找第一个JSON对象
             json_start = agent_response.find('{')
             if json_start >= 0:
-                # 从第一个{开始，找到匹配的}
                 brace_count = 0
                 json_end = -1
                 for i in range(json_start, len(agent_response)):
@@ -400,7 +619,6 @@ class PubmedLiteratureWritingAssistant:
                     logger.info("所有文献未处理，生成初始版本")
                     
                     metadata = self._load_literature_metadata(research_id)
-                    
                     if not metadata:
                         return "无法加载文献元数据"
                     
@@ -428,15 +646,18 @@ class PubmedLiteratureWritingAssistant:
 """
                     
                     logger.info("调用Agent生成初始版本")
-                    agent_response = self.agent(agent_input)
+                    agent_response = self._retry_agent_call(agent_input)
 
                     print("="*100)
                     # Access metrics through the AgentResult
-                    print(f"Total tokens: {agent_response.metrics.accumulated_usage['totalTokens']}")
+                    print(f"Total tokens: {agent_response.metrics.accumulated_usage}")
                     print(f"Execution time: {sum(agent_response.metrics.cycle_durations):.2f} seconds")
                     print(f"Tools used: {list(agent_response.metrics.tool_metrics.keys())}")
                     
-                    result = self._parse_agent_json_result(agent_response)
+                    agent_text = self._extract_agent_text(agent_response)
+                    result = self._parse_agent_json_result(agent_text)
+                    print("="*100)
+                    print(f"解析结果: {result}")
                     
                     
                     if result and result.get("status") == "success":
@@ -486,27 +707,24 @@ class PubmedLiteratureWritingAssistant:
                         try:
                             next_version = int(current_version) + 1
                         except:
-                            next_version = 1
+                            next_version = 1                    
+                    lit_metadata = pending_literature.get('metadata', {})
+                    processed_fulltext = self._remove_reference_from_literature(pending_literature['fulltext'])
                     
                     agent_input = f"""
-
+====================项目基础信息====================
 研究ID: {research_id}
+现有版本文献地址: {status.get('version_file_path', 'N/A')}
+新文献地址: .cache/pmc_literature/{research_id}/paper/{lit_id}.txt
 输出语言: {language}
-========================================
-请基于现有文献综述，整合以下新文献的内容：
+====================现有文献综述内容====================
 **现有文献综述内容:**
 {latest_review}
-
-**新文献信息:**
+====================新文献元数据及全文内容====================
+**新文献元数据:**
 - PMCID: {lit_id}
-- 标题: {pending_literature['metadata'].get('title', 'N/A')}
-- 作者: {pending_literature['metadata'].get('authors', 'N/A')}
-- 年份: {pending_literature['metadata'].get('year', 'N/A')}
-
-**文献全文:**
-{pending_literature['fulltext'][:60000]}...
-========================================
-请更新文献综述，整合新文献的内容，并在完成后以JSON格式返回结果：
+- metadata: {json.dumps(lit_metadata, ensure_ascii=False, indent=2)}
+====================输出要求====================
 {{
     "status": "success",
     "research_id": "{research_id}",
@@ -515,20 +733,26 @@ class PubmedLiteratureWritingAssistant:
     "file_path": "保存的文件路径",
     "message": "成功更新综述"
 }}
+============================================================
+请基于现有文献综述，判断整合新文献的内容是否必要，若必要则整合新文献的内容，并在完成后以JSON格式返回结果
+如需要更详细内容，请使用工具extract_literature_content获取
 """
-                    
+                    print(f"agent_input: {agent_input}")
                     logger.info(f"调用Agent处理文献 {lit_id}")
-                    agent_response = self.agent(agent_input)
+                    agent_response = self._retry_agent_call(agent_input)
                     
-                    result = self._parse_agent_json_result(agent_response)
+                    # 从 AgentResult 对象中提取文本内容
+                    agent_text = self._extract_agent_text(agent_response)
+                    result = self._parse_agent_json_result(agent_text)
+                    print("="*100)
+                    print(f"agent_text: {agent_text[:500]}")
 
                     print("="*100)
-                    # Access metrics through the AgentResult
-                    print(f"Total tokens: {agent_response.metrics.accumulated_usage['totalTokens']}")
+                    print(f"Total tokens: {agent_response.metrics.accumulated_usage}")
                     print(f"Execution time: {sum(agent_response.metrics.cycle_durations):.2f} seconds")
                     print(f"Tools used: {list(agent_response.metrics.tool_metrics.keys())}")
-                    
-                    # 打印解析结果用于调试
+                    print(result)
+                    print("="*100)
                     if result:
                         logger.info(f"✅ 成功解析Agent JSON结果: status={result.get('status')}")
                         logger.info(f"   文件路径: {result.get('file_path')}")
@@ -556,6 +780,11 @@ class PubmedLiteratureWritingAssistant:
                                                           None)
                     else:
                         all_results.append(f"❌ 处理文献 {lit_id} 失败")
+                        print("="*100)
+                        print(f"Total tokens: {agent_response.metrics.accumulated_usage}")
+                        print(f"Execution time: {sum(agent_response.metrics.cycle_durations):.2f} seconds")
+                        print(f"Tools used: {list(agent_response.metrics.tool_metrics.keys())}")
+                        print("="*100)
                         break
                 
                 elif pending_count == 0:
@@ -585,7 +814,7 @@ class PubmedLiteratureWritingAssistant:
                 else:
                     logger.warning("未知状态，停止处理")
                     break
-                sleep(30)
+                sleep(60)
             
             
             return "\n" + "="*80 + "\n" + "\n".join(all_results)
@@ -593,6 +822,15 @@ class PubmedLiteratureWritingAssistant:
         except Exception as e:
             logger.error(f"文献综述生成失败: {str(e)}")
             return f"文献综述生成过程中发生错误: {str(e)}"
+
+    def _remove_reference_from_literature(self, literature: str) -> str:
+        """移除文献中的参考文献"""
+        # 按==== Refs分割，删除==== Refs之后的所有内容
+        refs = literature.split('==== Refs')
+
+        # 保留==== Body到==== Refs之间的内容
+        body = refs[0].split('==== Body')[1].strip()
+        return body
 
     def get_review_status(self, research_id: str) -> str:
         """获取文献综述处理状态"""

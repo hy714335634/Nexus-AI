@@ -565,8 +565,58 @@ def get_pre_generated_literature(research_id: str) -> str:
                 "has_content": False
             }, ensure_ascii=False)
         
-        # 获取所有综述文件
-        review_files = sorted(reviews_dir.glob("review_*.md"), key=lambda x: x.stat().st_mtime, reverse=True)
+        # 方法1：尝试从status文件读取当前版本路径
+        status_file = research_dir / "step4.status"
+        if status_file.exists():
+            try:
+                with open(status_file, 'r', encoding='utf-8') as f:
+                    status = json.load(f)
+                
+                if status.get("version_file_path"):
+                    version_path = status["version_file_path"]
+                    file_path = Path(version_path) if not os.path.isabs(version_path) else Path(version_path)
+                    
+                    if file_path.exists():
+                        with open(file_path, 'r', encoding='utf-8') as f:
+                            content = f.read()
+                        
+                        return json.dumps({
+                            "status": "success",
+                            "message": "从status获取最新综述成功",
+                            "has_content": True,
+                            "file_path": str(file_path),
+                            "file_name": file_path.name,
+                            "content": content,
+                            "file_size": len(content)
+                        }, ensure_ascii=False)
+            except Exception:
+                pass  # 如果status读取失败，继续用文件排序方法
+        
+        # 方法2：按文件名中的版本号排序
+        def extract_version(filename: str) -> tuple:
+            """提取版本号和优先级
+            返回: (priority, version_number, timestamp_str)
+            initial=0, 数字版本直接比较"""
+            name = filename.name
+            if name.startswith("review_initial_"):
+                timestamp = name.replace("review_initial_", "").replace(".md", "")
+                return (0, 0, timestamp)
+            elif name.startswith("review_v"):
+                # review_v{version}_{timestamp}.md
+                parts = name.replace("review_v", "").replace(".md", "").split("_")
+                if parts:
+                    try:
+                        version_num = int(parts[0])
+                        timestamp = "_".join(parts[1:]) if len(parts) > 1 else ""
+                        return (1, version_num, timestamp)
+                    except:
+                        return (2, 0, name)  # 无法解析，放到最后
+            elif name.startswith("review_final_"):
+                timestamp = name.replace("review_final_", "").replace(".md", "")
+                return (3, 999999, timestamp)  # final 放到最后但优先级最高
+            return (4, -1, name)  # 未知格式
+        
+        review_files = list(reviews_dir.glob("review_*.md"))
         
         if not review_files:
             return json.dumps({
@@ -575,8 +625,10 @@ def get_pre_generated_literature(research_id: str) -> str:
                 "has_content": False
             }, ensure_ascii=False)
         
-        # 读取最新的综述文件
-        latest_file = review_files[0]
+        # 按版本号排序
+        sorted_files = sorted(review_files, key=extract_version)
+        latest_file = sorted_files[-1]  # 获取版本号最大的
+        
         with open(latest_file, 'r', encoding='utf-8') as f:
             content = f.read()
         

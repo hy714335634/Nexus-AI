@@ -13,7 +13,7 @@ except ImportError:
 
 
 @tool
-def mark_literature(pmc_ids: list, research_id: str, reasoning: dict = None, auto_download: bool = True) -> str:
+def mark_literature(pmc_ids: list, research_id: str, reasoning: dict = None, auto_download: bool = False) -> str:
     """
     标记文献并维护manifest.json文件，按发表年度分组和相关度排序
     标记时自动下载全文
