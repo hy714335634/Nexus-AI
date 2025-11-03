@@ -127,40 +127,85 @@ graph TD
 
 Nexus-AI 已经成功构建了多个实用的AI代理，展示了平台的强大能力：
 
-#### 🏗️ AWS架构生成器 (aws_architecture_generator)
-- **功能**：将自然语言描述转换为专业的AWS架构图
-- **特点**：支持IT技术栈映射、架构验证、可视化优化
-- **应用场景**：云架构设计、技术方案展示、系统规划
+#### 📊 AWS相关Agent
 
-#### 💰 AWS定价代理 (aws_pricing_agent)
-- **功能**：根据资源需求提供AWS服务配置推荐和实时报价
-- **特点**：支持EC2、EBS、S3、RDS等多种AWS服务，具备销售思维分析
-- **应用场景**：成本估算、方案报价、资源配置优化
+**AWS架构生成器 (aws_architecture_generator)**
+- 将自然语言描述转换为专业的AWS架构图
+- 支持IT技术栈映射、架构验证
 
-#### 📄 HTML转PPT代理 (html2pptx)
-- **功能**：将HTML文档智能转换为PPTX演示文稿
-- **特点**：保留原始样式、支持自定义模板、语义优先处理
-- **应用场景**：文档转换、演示文稿制作、内容迁移
+**AWS网络分析器 (aws_network_analyzer)**
+- 自动化采集AWS网络资源配置信息
+- 生成网络架构拓扑图
+- 支持合规性评估和多格式输出
 
-#### 📰 新闻检索代理 (news_retrieval_agent)
-- **功能**：基于用户关注话题检索热门新闻
-- **特点**：多平台聚合、热度排序、智能摘要生成
-- **应用场景**：信息收集、舆情监控、内容聚合
+**AWS定价代理 (aws_pricing_agent)**
+- 根据资源需求提供AWS服务配置推荐
+- 支持EC2、EBS、S3、RDS等多种AWS服务
 
-#### 📋 PDF内容提取代理 (pdf_content_extractor)
-- **功能**：从PDF文件中提取文本内容
-- **特点**：多模态处理、断点续传、批量处理
-- **应用场景**：文档数字化、内容提取、信息整理
+#### 📝 文档处理Agent
 
-#### 📊 PPT转Markdown代理 (ppt_to_markdown)
-- **功能**：将PPT文件转换为Markdown格式
-- **特点**：保持结构层次、格式转换、批量处理
-- **应用场景**：文档转换、内容迁移、格式标准化
+**HTML转PPT代理 (html2pptx)**
+- 将HTML文档转换为PPTX演示文稿
+- 保留原始样式、支持自定义模板
 
-#### 🔬 PubMed文献检索代理 (pubmed_literature_agent)
-- **功能**：检索和分析医学文献
-- **特点**：智能查询优化、相关性排序、摘要生成
-- **应用场景**：学术研究、文献调研、知识发现
+**PDF内容提取代理 (pdf_content_extractor)**
+- 从PDF文件中提取文本内容
+- 支持多模态处理和批量处理
+
+**PPT转Markdown代理 (ppt_to_markdown)**
+- 将PPT文件转换为Markdown格式
+- 保持结构层次
+
+**文件摘要代理 (file_summary_agent)**
+- 支持多种文件格式摘要生成
+- 支持批量处理和关键词提取
+
+#### 🔍 检索与分析Agent
+
+**新闻检索代理 (news_retrieval_agent)**
+- 基于用户关注话题检索热门新闻
+- 多平台聚合、智能摘要生成
+
+**公司信息搜索代理 (company_info_search_agent)**
+- 读取Excel表格中的公司信息
+- 通过多种搜索引擎查询公司详细信息
+- 支持批量处理和结果输出
+
+#### 🎨 内容生成Agent
+
+**Logo设计代理 (logo_design_agent)**
+- 分析用户需求并生成logo设计
+- 生成高质量logo图像和设计说明报告
+
+**武侠小说生成器 (wuxia_novel_generator)**
+- 根据设定生成符合武侠风格的小说
+- 维护世界观一致性和情节连贯性
+
+#### 🔬 医学相关Agent
+
+**PubMed文献工作流**
+- **检索代理**：检索和分析医学文献
+- **编写助手**：生成文献综述，支持断点续传
+- **筛选助手**：批量文献检索、分析和标记
+- **审核助手**：评估文献质量，提供修改建议
+- **主编助手**：模拟期刊主编视角进行评审
+- **优化工作流**：整合编写、审核、主编流程
+
+**临床医学专家 (clinical_medicine_expert_agent)**
+- 回答临床医学和生命科学领域问题
+- 提供基于证据的专业回答
+
+**临床试验检索代理 (clinicaltrials_search_agent)**
+- 智能检索ClinicalTrials.gov数据
+- 从临床开发角度分析和呈现结果
+
+**疾病HPO映射代理 (disease_hpo_mapping_agent)**
+- 从医生主诉中提取疾病名称
+- 关联到HPO ID
+
+**医学文档翻译代理 (medical_document_translation_agent)**
+- 精准翻译医学专业文档
+- 支持医学词库管理和质量控制
 
 ### 🏗️ 企业级架构
 
@@ -228,7 +273,7 @@ Nexus-AI/
 
 1. **克隆项目**
 ```bash
-git clone https://github.com/your-org/nexus-ai.git
+git clone https://github.com/hy714335634/Nexus-AI.git
 cd nexus-ai
 ```
 

@@ -9,7 +9,7 @@ agent:
       top_p: 0.8
       streaming: True
     production:
-      max_tokens: 30000
+      max_tokens: 5000
       temperature: 0.2
       top_p: 0.8
       streaming: True
@@ -111,4 +111,4 @@ agent:
           - "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
         tools_dependencies:
           - "strands_tools/current_time"
-          - "strands_tools/think"
+          # - "strands_tools/think"

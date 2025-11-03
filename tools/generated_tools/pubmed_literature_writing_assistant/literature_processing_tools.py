@@ -16,6 +16,38 @@ from datetime import datetime
 import threading
 from strands import tool
 
+@tool
+def count_literature_content(file_path: str) -> str:
+    """
+    统计指定文件的文献综述内容字数，并给出建议
+    
+    Args:
+        file_path (str): 文件路径
+    Returns:
+        str: JSON格式统计结果
+    """
+    with open(file_path, 'r', encoding='utf-8') as f:
+        content = f.read()
+    count = len(content)
+    print(f"文献综述内容字数: {count}")
+    if count > 80000:
+        return json.dumps({
+            "status": "error",
+            "message": "文献综述内容字数过长，建议减少内容长度至80000字以下",
+            "count": count
+        }, ensure_ascii=False)
+    elif count < 20000:
+        return json.dumps({
+            "status": "error",
+            "message": "文献综述内容过于简短，请补充必要详细内容",
+            "count": count
+        }, ensure_ascii=False)
+    else:
+        return json.dumps({
+            "status": "success",
+            "message": "文献综述内容字数统计成功",
+            "count": count
+        }, ensure_ascii=False)
 
 @tool
 def save_literature_content(research_id: str, content: str, version: str) -> str:

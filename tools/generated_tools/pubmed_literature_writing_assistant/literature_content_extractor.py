@@ -35,7 +35,7 @@ strands_telemetry = StrandsTelemetry()
 strands_telemetry.setup_otlp_exporter()
 
 
-def preprocess_fulltext(content: str, max_length: int = 100000) -> str:
+def preprocess_fulltext(content: str, max_length: int = 120000) -> str:
     """
     预处理全文内容
     
@@ -100,52 +100,44 @@ class LiteratureContentExtractorAgent:
         
         logger.info(f"文献内容提取智能体初始化完成: {self.agent.name}")
     
-    def extract_content(self, user_query: str, fulltext_content: str) -> str:
+    def extract_content(self, user_query: str, fulltext_content: str, language: str = "English") -> str:
         """
         根据用户需求提取文献内容
         
         Args:
-            user_query: 用户需求描述
+            user_query: 用户问题/需求描述
             fulltext_content: 文献全文内容
-            
+            language: 输出语言，默认为英文
+
         Returns:
-            提取的markdown格式内容
+            markdown格式结果
         """
         prompt = f"""
-请根据以下用户需求，从文献全文中提取相关的原文内容：
+请根据以下用户需求，从文献全文中提取相关的原文内容，或回答用户问题：
 
-用户需求：
+用户问题/需求：
 {user_query}
+
+要求输出语言：{language}
 
 文献全文：
 {fulltext_content}
-
-请提取与用户需求相关的所有原文内容，以markdown格式返回。确保：
-1. 内容准确，不要改写
-2. 包含相关的表格、数据、结论
-3. 按逻辑顺序组织
-4. 标注内容来源位置
+==========================================
 """
         
         response = self.agent(prompt)
+        logger.info("="*100)
+        logger.info("信息提取任务:{user_query}")
+        logger.info(response.metrics.accumulated_usage)
+        logger.info(response.message)
+        logger.info("="*100)
         
-        # 处理response.message可能是字典的情况
         message = response.message
-        if isinstance(message, dict):
-            if "content" in message:
-                text_parts = []
-                for item in message["content"]:
-                    if isinstance(item, dict) and "text" in item:
-                        text_parts.append(item["text"])
-                return "\n".join(text_parts)
-            else:
-                return json.dumps(message, ensure_ascii=False)
-        else:
-            return str(message)
+        return str(message['content'][0]['text'])
 
 
 @tool
-def extract_literature_content(pmcid: str, user_requirement: str, research_id: str, env: str = "production") -> str:
+def extract_literature_content(pmcid: str, user_requirement: str, research_id: str, language: str = "English", env: str = "production") -> str:
     """
     从指定文献中提取关键信息和内容
     
@@ -153,6 +145,7 @@ def extract_literature_content(pmcid: str, user_requirement: str, research_id: s
         pmcid: PMC ID（单个）
         user_requirement: 需求描述，例如："请提取文章中关于xxx工具对比分析内容，以及总结的结论"
         research_id: 研究项目ID
+        language: 语言，默认为英文
         
     Returns:
         提取的markdown格式内容
@@ -188,14 +181,15 @@ def extract_literature_content(pmcid: str, user_requirement: str, research_id: s
         
         # 创建内容提取智能体并执行提取
         extractor = LiteratureContentExtractorAgent(env=env)
-        extracted_content = extractor.extract_content(user_requirement, preprocessed_content)
-        
+        extracted_content = extractor.extract_content(user_requirement, preprocessed_content, language)
+
         # 添加文献信息头部
         result = f"""# 文献内容提取结果
 
 **文献ID**: {pmcid}  
-**提取需求**: {user_requirement}  
-**提取时间**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+**用户问题/提取需求**: {user_requirement}  
+**语言**: {language}
+**处理时间**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 
 ---
 
@@ -214,7 +208,7 @@ def extract_literature_content(pmcid: str, user_requirement: str, research_id: s
 
 
 @tool
-def extract_multiple_literature_content(pmcids: List[str], user_requirement: str, research_id: str, env: str = "production") -> str:
+def extract_multiple_literature_content(pmcids: List[str], user_requirement: str, research_id: str, language: str = "English", env: str = "production") -> str:
     """
     从多篇文献中提取用户需要的内容
     
@@ -222,10 +216,11 @@ def extract_multiple_literature_content(pmcids: List[str], user_requirement: str
         pmcids: PMC ID列表
         user_requirement: 用户需求描述
         research_id: 研究项目ID
+        language: 语言，默认为英文
         env: 环境配置，默认为production
         
     Returns:
-        提取的markdown格式内容（多篇文献合并）
+        与用户问题/需求相关的文献内容汇总，markdown格式
     """
     try:
         results = []
@@ -241,6 +236,7 @@ def extract_multiple_literature_content(pmcids: List[str], user_requirement: str
 **文献数量**: {len(pmcids)}  
 **文献ID列表**: {', '.join(pmcids)}  
 **提取需求**: {user_requirement}  
+**语言**: {language}
 **提取时间**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 
 ---

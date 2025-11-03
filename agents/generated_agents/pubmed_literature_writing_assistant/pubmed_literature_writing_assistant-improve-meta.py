@@ -670,6 +670,24 @@ class PubmedLiteratureWritingAssistant:
                         # 如果文献数量不超过限制，记录所有文献ID
                         selected_pmc_ids = [item.get("pmcid") for item in all_analysis_results if item.get("pmcid")]
                     
+                    # 将all_analysis_results中的元数据字段进行处理，仅保留以下字段：
+                    # pmcid、relevance_score、abstract、conclusions、impact_factor、publication_date、reasoning、key_findings
+                    filtered_analysis_results = []
+                    for item in all_analysis_results:
+                        filtered_item = {
+                            "pmcid": item.get("pmcid"),
+                            "relevance_score": item.get("relevance_score"),
+                            "abstract": item.get("abstract"),
+                            "conclusions": item.get("conclusions"),
+                            "impact_factor": item.get("impact_factor"),
+                            "publication_date": item.get("publication_date"),
+                            "reasoning": item.get("reasoning"),
+                            "key_findings": item.get("key_findings")
+                        }
+                        filtered_analysis_results.append(filtered_item)
+                    
+                    all_analysis_results = filtered_analysis_results
+                    
                     logger.info(f"加载了 {len(all_analysis_results)} 个分析结果用于初始版本")
                     
                     agent_input = f"""
@@ -700,6 +718,7 @@ class PubmedLiteratureWritingAssistant:
     "message": "成功生成初始版本"
 }}
 ```
+**注意:** 请生成内容详细、有逻辑性、有深度的文献综述，不要罗列词条和内容，不能全部都是引用句子。
 ============================================================
 """
                     
@@ -785,7 +804,7 @@ class PubmedLiteratureWritingAssistant:
 你的任务：
 1. 结合文献元数据及之前的分析结果，以及当前版本文献内容，分析判断是否需要引用或已被引用
 2. 针对疑问或不明确的内容，使用工具获取更加详细的内容、表格、结论等
-3. 如需引用或该文献已被引用，至少使用一次工具获取详细内容，并合理的将结果内容整合到现有综述中，详细补充和更新相关内容
+3. 若该文献具备引用价值，请结合以后内容完成整合，可以对之前的内容进行删除和更新，也可以仅补充新内容
 4. 使用`file_write`工具将更新后的综述内容保存到文件
 5. **必须**以JSON格式返回结果，不要返回其他内容：
 ```json
