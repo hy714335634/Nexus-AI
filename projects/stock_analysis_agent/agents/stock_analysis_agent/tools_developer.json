@@ -1,0 +1,968 @@
+{
+  "tool_development": {
+    "development_overview": {
+      "project_name": "stock_analysis_agent",
+      "version": "1.0",
+      "date": "2025-11-07",
+      "development_scope": "为股票分析智能体开发全套财务分析和估值工具，支持多数据源财报抓取、深度财务分析、多种估值方法和专业报告生成",
+      "design_principles": [
+        "模块化设计，每个工具文件专注特定功能领域",
+        "数据驱动，所有分析基于真实财务数据",
+        "多源集成，支持Alpha Vantage、Yahoo Finance、FRED等多个数据源",
+        "缓存优化，减少API调用，提高响应速度",
+        "完整类型注解，确保代码可维护性",
+        "健壮错误处理，提供清晰的错误信息",
+        "结构化输出，统一JSON格式便于后续处理"
+      ],
+      "key_decisions": [
+        "使用Alpha Vantage作为主要财报数据源，Yahoo Finance作为补充",
+        "实现本地文件缓存机制，默认缓存时间24小时（市场数据1小时）",
+        "采用多种估值方法（DCF、相对估值、DDM等）提供全面估值分析",
+        "支持多种报告格式（JSON、Markdown、HTML）满足不同需求",
+        "所有工具函数返回JSON格式，便于智能体处理和链式调用"
+      ]
+    },
+    "tools": [
+      {
+        "tool_name": "fetch_financial_statements",
+        "description": "获取公司财务报表数据，支持损益表、资产负债表和现金流量表，优先使用缓存",
+        "function_signature": "fetch_financial_statements(symbol: str, statement_type: str = \"income\", period: str = \"annual\") -> str",
+        "parameters": [
+          {
+            "name": "symbol",
+            "type": "str",
+            "description": "股票代码，例如 'AAPL' 或 '600000.SS'",
+            "required": true
+          },
+          {
+            "name": "statement_type",
+            "type": "str",
+            "description": "报表类型：'income'(损益表)、'balance'(资产负债表)、'cash'(现金流量表)",
+            "required": false
+          },
+          {
+            "name": "period",
+            "type": "str",
+            "description": "期间类型：'annual'(年度)、'quarterly'(季度)",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的财务报表数据，包括多期报表、货币单位、数据来源等",
+        "dependencies": ["requests", "json", "os", "time", "hashlib", "logging"],
+        "implementation_notes": [
+          "使用Alpha Vantage API获取财务报表数据",
+          "实现智能缓存机制，24小时内重复请求使用缓存",
+          "支持中美股市场，自动识别股票代码格式",
+          "完整的错误处理和API响应验证"
+        ],
+        "error_handling": [
+          "捕获网络请求异常",
+          "验证API响应格式",
+          "处理API限流和错误消息",
+          "缓存读写异常处理"
+        ],
+        "usage_examples": [
+          "fetch_financial_statements('AAPL', 'income', 'annual')",
+          "fetch_financial_statements('TSLA', 'balance', 'quarterly')"
+        ]
+      },
+      {
+        "tool_name": "fetch_company_overview",
+        "description": "获取公司基本信息和关键财务指标，包括行业分类、市值、PE、ROE等",
+        "function_signature": "fetch_company_overview(symbol: str) -> str",
+        "parameters": [
+          {
+            "name": "symbol",
+            "type": "str",
+            "description": "股票代码",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的公司概览数据，包含30+关键指标",
+        "dependencies": ["requests", "Alpha Vantage API"],
+        "implementation_notes": [
+          "一次性获取公司所有基本面数据",
+          "包含估值、盈利能力、财务健康度等多维度指标",
+          "缓存24小时"
+        ],
+        "error_handling": ["API响应验证", "股票代码有效性检查"],
+        "usage_examples": ["fetch_company_overview('AAPL')"]
+      },
+      {
+        "tool_name": "fetch_earnings_data",
+        "description": "获取公司历史盈利数据和EPS信息",
+        "function_signature": "fetch_earnings_data(symbol: str) -> str",
+        "parameters": [
+          {
+            "name": "symbol",
+            "type": "str",
+            "description": "股票代码",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的盈利数据，包括年度和季度EPS",
+        "dependencies": ["Alpha Vantage API"],
+        "implementation_notes": ["提供年度和季度盈利数据", "支持EPS趋势分析"],
+        "error_handling": ["API错误处理", "数据格式验证"],
+        "usage_examples": ["fetch_earnings_data('MSFT')"]
+      },
+      {
+        "tool_name": "fetch_analyst_estimates",
+        "description": "获取华尔街分析师对公司的预测数据",
+        "function_signature": "fetch_analyst_estimates(symbol: str) -> str",
+        "parameters": [
+          {
+            "name": "symbol",
+            "type": "str",
+            "description": "股票代码",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的分析师预测数据",
+        "dependencies": ["requests", "Yahoo Finance API"],
+        "implementation_notes": [
+          "使用Yahoo Finance获取分析师预测",
+          "包含盈利趋势、财务数据、推荐趋势"
+        ],
+        "error_handling": ["API响应处理", "数据解析错误处理"],
+        "usage_examples": ["fetch_analyst_estimates('GOOGL')"]
+      },
+      {
+        "tool_name": "fetch_market_data",
+        "description": "获取股票历史价格和交易量数据",
+        "function_signature": "fetch_market_data(symbol: str, interval: str = \"1d\", range_period: str = \"1y\") -> str",
+        "parameters": [
+          {
+            "name": "symbol",
+            "type": "str",
+            "description": "股票代码",
+            "required": true
+          },
+          {
+            "name": "interval",
+            "type": "str",
+            "description": "数据间隔：'1d'、'1wk'、'1mo'",
+            "required": false
+          },
+          {
+            "name": "range_period",
+            "type": "str",
+            "description": "时间范围：'1mo'、'3mo'、'6mo'、'1y'、'2y'、'5y'、'10y'、'ytd'、'max'",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的市场数据，包括OHLCV",
+        "dependencies": ["Yahoo Finance API"],
+        "implementation_notes": [
+          "支持多种时间间隔和范围",
+          "缓存1小时（市场数据更新频繁）",
+          "提供完整的OHLCV数据"
+        ],
+        "error_handling": ["网络异常处理", "数据格式验证"],
+        "usage_examples": ["fetch_market_data('AAPL', '1d', '1y')"]
+      },
+      {
+        "tool_name": "validate_financial_data",
+        "description": "验证财务数据的完整性和有效性",
+        "function_signature": "validate_financial_data(data: str) -> str",
+        "parameters": [
+          {
+            "name": "data",
+            "type": "str",
+            "description": "JSON格式的财务数据",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的验证结果，包括错误、警告和完整性评分",
+        "dependencies": ["json"],
+        "implementation_notes": [
+          "检查必需字段完整性",
+          "验证数值合理性",
+          "计算数据完整性得分",
+          "识别异常财务指标"
+        ],
+        "error_handling": ["JSON解析错误", "数据类型错误"],
+        "usage_examples": ["validate_financial_data(financial_json)"]
+      },
+      {
+        "tool_name": "fetch_key_metrics",
+        "description": "提取和计算公司关键财务指标",
+        "function_signature": "fetch_key_metrics(symbol: str) -> str",
+        "parameters": [
+          {
+            "name": "symbol",
+            "type": "str",
+            "description": "股票代码",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的关键财务指标，分类为估值、盈利能力、增长和风险指标",
+        "dependencies": ["fetch_company_overview"],
+        "implementation_notes": [
+          "整合多个数据源",
+          "分类组织指标",
+          "提供多维度分析视角"
+        ],
+        "error_handling": ["数据获取失败处理", "指标计算异常处理"],
+        "usage_examples": ["fetch_key_metrics('NVDA')"]
+      },
+      {
+        "tool_name": "fetch_macro_economic_data",
+        "description": "获取宏观经济指标数据",
+        "function_signature": "fetch_macro_economic_data(indicator: str = \"GDP\") -> str",
+        "parameters": [
+          {
+            "name": "indicator",
+            "type": "str",
+            "description": "经济指标：'GDP'、'INFLATION'、'INTEREST_RATE'、'UNEMPLOYMENT'",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的宏观经济数据",
+        "dependencies": ["FRED API"],
+        "implementation_notes": [
+          "使用FRED API获取权威经济数据",
+          "缓存7天（宏观数据更新较慢）",
+          "支持多种经济指标"
+        ],
+        "error_handling": ["API密钥验证", "数据获取失败处理"],
+        "usage_examples": ["fetch_macro_economic_data('GDP')"]
+      },
+      {
+        "tool_name": "calculate_financial_ratios",
+        "description": "计算各类财务比率",
+        "function_signature": "calculate_financial_ratios(financial_data: str, statement_type: str = \"income\") -> str",
+        "parameters": [
+          {
+            "name": "financial_data",
+            "type": "str",
+            "description": "JSON格式的财务报表数据",
+            "required": true
+          },
+          {
+            "name": "statement_type",
+            "type": "str",
+            "description": "报表类型",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的财务比率分析结果",
+        "dependencies": ["json"],
+        "implementation_notes": [
+          "支持损益表、资产负债表、现金流量表比率计算",
+          "自动处理多期数据",
+          "提供比率趋势分析"
+        ],
+        "error_handling": ["数据解析错误", "除零错误处理"],
+        "usage_examples": ["calculate_financial_ratios(income_statement, 'income')"]
+      },
+      {
+        "tool_name": "analyze_profitability",
+        "description": "深度分析公司盈利能力",
+        "function_signature": "analyze_profitability(financial_data: str) -> str",
+        "parameters": [
+          {
+            "name": "financial_data",
+            "type": "str",
+            "description": "JSON格式的损益表数据",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的盈利能力分析，包括利润率、趋势和摘要",
+        "dependencies": ["json"],
+        "implementation_notes": [
+          "计算毛利率、营业利润率、净利率、EBITDA利润率",
+          "分析多期趋势",
+          "生成文字摘要"
+        ],
+        "error_handling": ["数据缺失处理", "计算异常处理"],
+        "usage_examples": ["analyze_profitability(income_data)"]
+      },
+      {
+        "tool_name": "analyze_liquidity",
+        "description": "分析公司短期偿债能力和流动性",
+        "function_signature": "analyze_liquidity(balance_sheet: str) -> str",
+        "parameters": [
+          {
+            "name": "balance_sheet",
+            "type": "str",
+            "description": "JSON格式的资产负债表数据",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的流动性分析，包括流动比率、速动比率、现金比率",
+        "dependencies": ["json"],
+        "implementation_notes": [
+          "计算流动比率、速动比率、现金比率",
+          "评估流动性状况（优秀/良好/一般/较差）",
+          "提供趋势分析"
+        ],
+        "error_handling": ["除零保护", "数据验证"],
+        "usage_examples": ["analyze_liquidity(balance_sheet)"]
+      },
+      {
+        "tool_name": "analyze_solvency",
+        "description": "分析公司长期偿债能力",
+        "function_signature": "analyze_solvency(balance_sheet: str) -> str",
+        "parameters": [
+          {
+            "name": "balance_sheet",
+            "type": "str",
+            "description": "JSON格式的资产负债表数据",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的偿债能力分析",
+        "dependencies": ["json"],
+        "implementation_notes": [
+          "计算资产负债率、产权比率、权益乘数",
+          "评估偿债能力水平",
+          "识别财务风险"
+        ],
+        "error_handling": ["数据完整性检查", "计算保护"],
+        "usage_examples": ["analyze_solvency(balance_sheet)"]
+      },
+      {
+        "tool_name": "analyze_efficiency",
+        "description": "分析公司运营效率",
+        "function_signature": "analyze_efficiency(financial_data: str, balance_sheet: str) -> str",
+        "parameters": [
+          {
+            "name": "financial_data",
+            "type": "str",
+            "description": "JSON格式的损益表数据",
+            "required": true
+          },
+          {
+            "name": "balance_sheet",
+            "type": "str",
+            "description": "JSON格式的资产负债表数据",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的运营效率分析",
+        "dependencies": ["json"],
+        "implementation_notes": [
+          "计算资产周转率、存货周转率、应收账款周转率",
+          "转换为周转天数便于理解",
+          "匹配损益表和资产负债表数据"
+        ],
+        "error_handling": ["数据匹配处理", "除零保护"],
+        "usage_examples": ["analyze_efficiency(income_data, balance_data)"]
+      },
+      {
+        "tool_name": "analyze_growth",
+        "description": "分析公司增长性",
+        "function_signature": "analyze_growth(financial_data: str) -> str",
+        "parameters": [
+          {
+            "name": "financial_data",
+            "type": "str",
+            "description": "JSON格式的损益表数据",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的增长性分析，包括增长率和平均增长率",
+        "dependencies": ["json"],
+        "implementation_notes": [
+          "计算营收、净利润、营业利润的同比增长率",
+          "计算平均增长率",
+          "需要至少两期数据"
+        ],
+        "error_handling": ["数据期数检查", "除零保护"],
+        "usage_examples": ["analyze_growth(income_data)"]
+      },
+      {
+        "tool_name": "calculate_dcf_valuation",
+        "description": "使用DCF模型计算公司内在价值",
+        "function_signature": "calculate_dcf_valuation(free_cash_flows: List[float], discount_rate: float, terminal_growth_rate: float, shares_outstanding: float) -> str",
+        "parameters": [
+          {
+            "name": "free_cash_flows",
+            "type": "List[float]",
+            "description": "预测的未来自由现金流列表",
+            "required": true
+          },
+          {
+            "name": "discount_rate",
+            "type": "float",
+            "description": "折现率（WACC），小数形式",
+            "required": true
+          },
+          {
+            "name": "terminal_growth_rate",
+            "type": "float",
+            "description": "永续增长率，小数形式",
+            "required": true
+          },
+          {
+            "name": "shares_outstanding",
+            "type": "float",
+            "description": "流通股数",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的DCF估值结果，包括企业价值和每股价值",
+        "dependencies": ["json"],
+        "implementation_notes": [
+          "计算预测期现金流现值",
+          "计算终值并折现",
+          "得出企业价值和每股价值",
+          "完整的参数验证"
+        ],
+        "error_handling": ["参数范围验证", "计算溢出保护"],
+        "usage_examples": ["calculate_dcf_valuation([100, 110, 121, 133, 146], 0.10, 0.03, 1000000)"]
+      },
+      {
+        "tool_name": "calculate_relative_valuation",
+        "description": "使用相对估值法计算股票价值",
+        "function_signature": "calculate_relative_valuation(target_metrics: Dict[str, float], peer_metrics: List[Dict[str, float]], valuation_multiples: List[str]) -> str",
+        "parameters": [
+          {
+            "name": "target_metrics",
+            "type": "Dict[str, float]",
+            "description": "目标公司的财务指标",
+            "required": true
+          },
+          {
+            "name": "peer_metrics",
+            "type": "List[Dict[str, float]]",
+            "description": "可比公司的财务指标列表",
+            "required": true
+          },
+          {
+            "name": "valuation_multiples",
+            "type": "List[str]",
+            "description": "估值倍数列表，如['pe', 'pb', 'ps']",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的相对估值结果",
+        "dependencies": ["json"],
+        "implementation_notes": [
+          "计算可比公司平均估值倍数",
+          "应用倍数到目标公司",
+          "支持P/E、P/B、P/S等多种倍数"
+        ],
+        "error_handling": ["空数据处理", "倍数计算保护"],
+        "usage_examples": ["calculate_relative_valuation(target, peers, ['pe', 'pb'])"]
+      },
+      {
+        "tool_name": "calculate_wacc",
+        "description": "计算加权平均资本成本",
+        "function_signature": "calculate_wacc(equity_weight: float, debt_weight: float, cost_of_equity: float, cost_of_debt: float, tax_rate: float) -> str",
+        "parameters": [
+          {
+            "name": "equity_weight",
+            "type": "float",
+            "description": "权益占比",
+            "required": true
+          },
+          {
+            "name": "debt_weight",
+            "type": "float",
+            "description": "债务占比",
+            "required": true
+          },
+          {
+            "name": "cost_of_equity",
+            "type": "float",
+            "description": "权益成本",
+            "required": true
+          },
+          {
+            "name": "cost_of_debt",
+            "type": "float",
+            "description": "债务成本",
+            "required": true
+          },
+          {
+            "name": "tax_rate",
+            "type": "float",
+            "description": "税率",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的WACC计算结果",
+        "dependencies": ["json"],
+        "implementation_notes": [
+          "验证权益和债务占比之和为1",
+          "考虑税盾效应",
+          "提供详细计算过程"
+        ],
+        "error_handling": ["参数验证", "计算检查"],
+        "usage_examples": ["calculate_wacc(0.7, 0.3, 0.12, 0.05, 0.25)"]
+      },
+      {
+        "tool_name": "calculate_capm",
+        "description": "使用CAPM模型计算权益成本",
+        "function_signature": "calculate_capm(risk_free_rate: float, beta: float, market_return: float) -> str",
+        "parameters": [
+          {
+            "name": "risk_free_rate",
+            "type": "float",
+            "description": "无风险利率",
+            "required": true
+          },
+          {
+            "name": "beta",
+            "type": "float",
+            "description": "贝塔系数",
+            "required": true
+          },
+          {
+            "name": "market_return",
+            "type": "float",
+            "description": "市场预期回报率",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的权益成本计算结果",
+        "dependencies": ["json"],
+        "implementation_notes": [
+          "实现标准CAPM公式",
+          "计算市场风险溢价",
+          "提供详细计算步骤"
+        ],
+        "error_handling": ["参数验证"],
+        "usage_examples": ["calculate_capm(0.03, 1.2, 0.10)"]
+      },
+      {
+        "tool_name": "calculate_peg_ratio",
+        "description": "计算PEG比率评估成长股估值",
+        "function_signature": "calculate_peg_ratio(pe_ratio: float, earnings_growth_rate: float) -> str",
+        "parameters": [
+          {
+            "name": "pe_ratio",
+            "type": "float",
+            "description": "市盈率",
+            "required": true
+          },
+          {
+            "name": "earnings_growth_rate",
+            "type": "float",
+            "description": "盈利增长率（百分比）",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的PEG比率分析",
+        "dependencies": ["json"],
+        "implementation_notes": [
+          "计算PEG比率",
+          "提供估值水平评估",
+          "给出解释指南"
+        ],
+        "error_handling": ["增长率验证", "除零保护"],
+        "usage_examples": ["calculate_peg_ratio(25, 15)"]
+      },
+      {
+        "tool_name": "calculate_dividend_discount_model",
+        "description": "使用股利折现模型计算股票价值",
+        "function_signature": "calculate_dividend_discount_model(dividends: List[float], growth_rate: float, required_return: float) -> str",
+        "parameters": [
+          {
+            "name": "dividends",
+            "type": "List[float]",
+            "description": "历史股利列表",
+            "required": true
+          },
+          {
+            "name": "growth_rate",
+            "type": "float",
+            "description": "股利增长率",
+            "required": true
+          },
+          {
+            "name": "required_return",
+            "type": "float",
+            "description": "要求回报率",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的DDM估值结果",
+        "dependencies": ["json"],
+        "implementation_notes": [
+          "使用Gordon增长模型",
+          "计算历史增长率",
+          "适用于稳定派息公司"
+        ],
+        "error_handling": ["参数关系验证", "历史数据分析"],
+        "usage_examples": ["calculate_dividend_discount_model([2.5, 2.3, 2.1], 0.05, 0.10)"]
+      },
+      {
+        "tool_name": "calculate_price_targets",
+        "description": "综合多种估值方法计算目标价格",
+        "function_signature": "calculate_price_targets(current_price: float, valuations: Dict[str, float], confidence_level: str = \"medium\") -> str",
+        "parameters": [
+          {
+            "name": "current_price",
+            "type": "float",
+            "description": "当前股价",
+            "required": true
+          },
+          {
+            "name": "valuations",
+            "type": "Dict[str, float]",
+            "description": "不同估值方法的结果",
+            "required": true
+          },
+          {
+            "name": "confidence_level",
+            "type": "str",
+            "description": "置信水平：'low'、'medium'、'high'",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的目标价格分析和投资建议",
+        "dependencies": ["json"],
+        "implementation_notes": [
+          "计算平均估值和标准差",
+          "根据置信水平设置价格区间",
+          "计算潜在回报",
+          "生成投资建议"
+        ],
+        "error_handling": ["估值数据验证", "统计计算保护"],
+        "usage_examples": ["calculate_price_targets(150, {'dcf': 180, 'pe': 175}, 'medium')"]
+      },
+      {
+        "tool_name": "sensitivity_analysis",
+        "description": "分析关键变量对估值的敏感性",
+        "function_signature": "sensitivity_analysis(base_valuation: float, variable_name: str, variable_range: List[float], impact_factor: float) -> str",
+        "parameters": [
+          {
+            "name": "base_valuation",
+            "type": "float",
+            "description": "基准估值",
+            "required": true
+          },
+          {
+            "name": "variable_name",
+            "type": "str",
+            "description": "变量名称",
+            "required": true
+          },
+          {
+            "name": "variable_range",
+            "type": "List[float]",
+            "description": "变量取值范围",
+            "required": true
+          },
+          {
+            "name": "impact_factor",
+            "type": "float",
+            "description": "影响系数",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的敏感性分析结果",
+        "dependencies": ["json"],
+        "implementation_notes": [
+          "计算不同变量值下的估值",
+          "识别最敏感的范围",
+          "评估敏感性水平"
+        ],
+        "error_handling": ["变量范围验证", "计算异常处理"],
+        "usage_examples": ["sensitivity_analysis(100, 'discount_rate', [0.08, 0.10, 0.12], -5)"]
+      },
+      {
+        "tool_name": "generate_executive_summary",
+        "description": "生成执行摘要",
+        "function_signature": "generate_executive_summary(symbol: str, analysis_data: Dict[str, Any]) -> str",
+        "parameters": [
+          {
+            "name": "symbol",
+            "type": "str",
+            "description": "股票代码",
+            "required": true
+          },
+          {
+            "name": "analysis_data",
+            "type": "Dict[str, Any]",
+            "description": "完整的分析数据",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的执行摘要",
+        "dependencies": ["json"],
+        "implementation_notes": [
+          "提取关键信息",
+          "评估财务健康度",
+          "生成投资建议",
+          "识别风险因素"
+        ],
+        "error_handling": ["数据提取异常处理"],
+        "usage_examples": ["generate_executive_summary('AAPL', full_analysis)"]
+      },
+      {
+        "tool_name": "generate_financial_analysis_report",
+        "description": "生成综合财务分析报告",
+        "function_signature": "generate_financial_analysis_report(symbol: str, profitability: str, liquidity: str, solvency: str, efficiency: str, growth: str) -> str",
+        "parameters": [
+          {
+            "name": "symbol",
+            "type": "str",
+            "description": "股票代码",
+            "required": true
+          },
+          {
+            "name": "profitability",
+            "type": "str",
+            "description": "盈利能力分析结果",
+            "required": true
+          },
+          {
+            "name": "liquidity",
+            "type": "str",
+            "description": "流动性分析结果",
+            "required": true
+          },
+          {
+            "name": "solvency",
+            "type": "str",
+            "description": "偿债能力分析结果",
+            "required": true
+          },
+          {
+            "name": "efficiency",
+            "type": "str",
+            "description": "运营效率分析结果",
+            "required": true
+          },
+          {
+            "name": "growth",
+            "type": "str",
+            "description": "增长性分析结果",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的综合财务分析报告",
+        "dependencies": ["json"],
+        "implementation_notes": [
+          "整合五大维度分析",
+          "计算各维度评分",
+          "生成综合评价"
+        ],
+        "error_handling": ["数据解析错误", "评分计算保护"],
+        "usage_examples": ["generate_financial_analysis_report('AAPL', profit_json, liquid_json, ...)"]
+      },
+      {
+        "tool_name": "generate_valuation_report",
+        "description": "生成估值分析报告",
+        "function_signature": "generate_valuation_report(symbol: str, dcf_result: str, relative_valuation: str, current_price: float) -> str",
+        "parameters": [
+          {
+            "name": "symbol",
+            "type": "str",
+            "description": "股票代码",
+            "required": true
+          },
+          {
+            "name": "dcf_result",
+            "type": "str",
+            "description": "DCF估值结果",
+            "required": true
+          },
+          {
+            "name": "relative_valuation",
+            "type": "str",
+            "description": "相对估值结果",
+            "required": true
+          },
+          {
+            "name": "current_price",
+            "type": "float",
+            "description": "当前股价",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的估值报告",
+        "dependencies": ["json"],
+        "implementation_notes": [
+          "整合多种估值方法",
+          "计算目标价格和潜在回报",
+          "生成投资建议"
+        ],
+        "error_handling": ["估值数据验证", "回报计算保护"],
+        "usage_examples": ["generate_valuation_report('AAPL', dcf_json, relative_json, 150.0)"]
+      },
+      {
+        "tool_name": "prepare_chart_data",
+        "description": "准备图表展示数据",
+        "function_signature": "prepare_chart_data(data_type: str, data: str) -> str",
+        "parameters": [
+          {
+            "name": "data_type",
+            "type": "str",
+            "description": "数据类型：'profitability'、'liquidity'、'growth'",
+            "required": true
+          },
+          {
+            "name": "data",
+            "type": "str",
+            "description": "原始分析数据",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的图表数据",
+        "dependencies": ["json"],
+        "implementation_notes": [
+          "转换为标准图表格式",
+          "支持折线图、柱状图",
+          "提供多系列数据"
+        ],
+        "error_handling": ["数据解析错误", "格式转换异常"],
+        "usage_examples": ["prepare_chart_data('profitability', profit_json)"]
+      },
+      {
+        "tool_name": "export_report",
+        "description": "导出分析报告为文件",
+        "function_signature": "export_report(symbol: str, report_data: str, format_type: str = \"json\") -> str",
+        "parameters": [
+          {
+            "name": "symbol",
+            "type": "str",
+            "description": "股票代码",
+            "required": true
+          },
+          {
+            "name": "report_data",
+            "type": "str",
+            "description": "报告数据",
+            "required": true
+          },
+          {
+            "name": "format_type",
+            "type": "str",
+            "description": "导出格式：'json'、'markdown'、'html'",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的导出结果",
+        "dependencies": ["json", "os"],
+        "implementation_notes": [
+          "支持JSON、Markdown、HTML格式",
+          "自动生成文件名",
+          "保存到reports目录"
+        ],
+        "error_handling": ["文件写入错误", "格式转换异常"],
+        "usage_examples": ["export_report('AAPL', report_json, 'markdown')"]
+      },
+      {
+        "tool_name": "generate_comparison_report",
+        "description": "生成多公司对比报告",
+        "function_signature": "generate_comparison_report(symbols: List[str], metrics: List[str], companies_data: List[Dict[str, Any]]) -> str",
+        "parameters": [
+          {
+            "name": "symbols",
+            "type": "List[str]",
+            "description": "股票代码列表",
+            "required": true
+          },
+          {
+            "name": "metrics",
+            "type": "List[str]",
+            "description": "对比指标列表",
+            "required": true
+          },
+          {
+            "name": "companies_data",
+            "type": "List[Dict[str, Any]]",
+            "description": "各公司财务数据",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的对比报告",
+        "dependencies": ["json"],
+        "implementation_notes": [
+          "构建对比表格",
+          "计算各指标排名",
+          "识别最优公司"
+        ],
+        "error_handling": ["数据数量验证", "指标提取异常"],
+        "usage_examples": ["generate_comparison_report(['AAPL', 'MSFT'], ['pe_ratio', 'roe'], data_list)"]
+      }
+    ],
+    "code_quality": {
+      "code_standards": [
+        "遵循PEP 8代码规范",
+        "完整的类型注解（Python 3.13+）",
+        "详细的文档字符串（Google风格）",
+        "清晰的函数命名和变量命名",
+        "模块化设计，职责分离",
+        "统一的错误处理模式",
+        "统一的JSON返回格式"
+      ],
+      "testing_strategy": [
+        "使用真实API进行集成测试",
+        "验证缓存机制正确性",
+        "测试边界条件和异常情况",
+        "验证计算结果准确性",
+        "测试多数据源切换"
+      ],
+      "performance_considerations": [
+        "实现智能缓存减少API调用",
+        "批量数据处理优化",
+        "避免重复计算",
+        "合理的缓存过期时间设置",
+        "异步请求支持（可扩展）"
+      ],
+      "security_measures": [
+        "API密钥从环境变量读取",
+        "输入参数验证",
+        "防止SQL注入和XSS（虽然不涉及数据库和Web）",
+        "敏感数据不记录到日志",
+        "安全的文件操作"
+      ]
+    },
+    "integration_details": {
+      "aws_services": [],
+      "external_libraries": [
+        "requests - HTTP请求",
+        "json - JSON处理",
+        "logging - 日志记录",
+        "datetime - 时间处理",
+        "hashlib - 缓存键生成",
+        "pathlib - 路径操作"
+      ],
+      "api_endpoints": [
+        "Alpha Vantage API - 财务报表和公司概览",
+        "Yahoo Finance API - 市场数据和分析师预测",
+        "FRED API - 宏观经济数据"
+      ],
+      "data_formats": [
+        "JSON - 统一的输入输出格式",
+        "Markdown - 报告导出格式",
+        "HTML - 报告导出格式"
+      ]
+    },
+    "development_notes": "本工具集为股票分析智能体提供了完整的财务分析和估值能力。开发过程中的关键决策包括：1) 选择多个数据源以确保数据可靠性和覆盖面；2) 实现本地缓存机制以提高性能和减少API调用成本；3) 采用模块化设计，将数据获取、分析、估值和报告生成分离到不同文件；4) 所有工具返回结构化JSON，便于智能体处理和链式调用；5) 提供多种估值方法（DCF、相对估值、DDM等）以支持全面的估值分析；6) 实现完整的财务分析维度（盈利能力、流动性、偿债能力、运营效率、增长性）；7) 支持多种报告格式导出，满足不同场景需求。工具集已完全实现，可直接用于生产环境。"
+  }
+}

@@ -1,0 +1,195 @@
+{
+  "requirements_document": {
+    "feature_name": "PubMed Literature Editor Assistant",
+    "version": "1.0",
+    "date": "2025-10-30",
+    "overview": "一个专业的科研期刊主编Agent，能够模拟顶级期刊（如Nature、Science）主编的视角，对用户提供的学术文献进行专业评审。系统将结合用户提供的文献全文和在线PMC文献检索工具，提供结构化的评审反馈，指导作者进行修正和更新。",
+    "business_value": "为学术作者提供专业的期刊主编视角评审，提高论文发表质量和接受率；节省真实主编时间，提供初步筛选和改进建议；标准化学术评审流程，提供一致性的评审标准和反馈。",
+    "workflow_complexity": "single_agent",
+    "recommended_agent_type": "业务逻辑类",
+    "scope": {
+      "included": [
+        "接收并分析用户提供的完整文献",
+        "使用PMC文献检索工具查询相关参考资料",
+        "从顶级期刊主编视角进行内容审核",
+        "评估研究话题和角度的适合性和吸引力",
+        "提供结构化JSON格式的评审结果",
+        "生成具体的修改建议",
+        "支持research_id参数指定工作目录",
+        "维护处理状态和缓存文件"
+      ],
+      "excluded": [
+        "不进行文献的语法或拼写检查",
+        "不提供全文改写服务",
+        "不代替作者进行实质性内容创作",
+        "不进行抄袭检测",
+        "不提供期刊投稿渠道或直接发表服务",
+        "不保证文章一定能被特定期刊接受"
+      ]
+    },
+    "functional_requirements": [
+      {
+        "id": "FR-001",
+        "title": "文献内容分析",
+        "user_story": "作为一名研究者，我希望系统能够分析我提供的完整文献内容，以便获得专业的主编视角评审。",
+        "acceptance_criteria": [
+          "WHEN 用户提供完整文献 THEN 系统应能正确解析文献的各个部分（标题、摘要、引言、方法、结果、讨论等）",
+          "WHEN 文献包含图表或特殊格式 THEN 系统应能识别并考虑这些内容在评审中的作用",
+          "IF 文献格式不完整或有错误 THEN 系统应提供相关提示并尽可能继续分析"
+        ],
+        "priority": "High",
+        "complexity": "High",
+        "dependencies": ["PMC文献检索工具"],
+        "assumptions": ["用户提供的文献格式可被系统正确解析"]
+      },
+      {
+        "id": "FR-002",
+        "title": "PMC文献检索集成",
+        "user_story": "作为一名研究者，我希望系统能够检索PMC文献库中的相关文献，以便评估我的研究在当前学术环境中的定位。",
+        "acceptance_criteria": [
+          "WHEN 系统分析用户文献 THEN 应自动提取关键词和研究主题用于PMC检索",
+          "WHEN 执行PMC检索 THEN 系统应返回相关度最高的文献参考",
+          "WHEN 检索结果可用 THEN 系统应将这些信息整合到评审过程中",
+          "IF PMC检索服务不可用 THEN 系统应提供适当提示并继续基于用户提供的文献进行评审"
+        ],
+        "priority": "High",
+        "complexity": "Medium",
+        "dependencies": ["PMC API访问权限"],
+        "assumptions": ["PMC API服务稳定可用"]
+      },
+      {
+        "id": "FR-003",
+        "title": "主编视角评审",
+        "user_story": "作为一名研究者，我希望获得模拟顶级期刊主编的专业评审意见，以便了解我的文章是否符合高水平期刊的要求。",
+        "acceptance_criteria": [
+          "WHEN 评审文献 THEN 系统应从研究新颖性、方法学严谨性、结果可靠性、讨论深度等多个维度进行评估",
+          "WHEN 生成评审意见 THEN 系统应模拟Nature、Science等顶级期刊主编的专业视角和标准",
+          "WHEN 提供评审结果 THEN 系统应包含对文章整体质量的评估以及是否推荐发表的意见"
+        ],
+        "priority": "High",
+        "complexity": "High",
+        "dependencies": ["文献内容分析功能"],
+        "assumptions": ["系统能够准确模拟顶级期刊主编的评审标准和思维方式"]
+      },
+      {
+        "id": "FR-004",
+        "title": "话题和角度评估",
+        "user_story": "作为一名研究者，我希望系统能评估我的研究话题和角度是否合适、有吸引力，以便提高文章被接受的可能性。",
+        "acceptance_criteria": [
+          "WHEN 评估研究话题 THEN 系统应分析其时效性、重要性和对学术领域的潜在贡献",
+          "WHEN 评估研究角度 THEN 系统应考虑其创新性、独特性和与当前研究热点的关联度",
+          "WHEN 提供评估结果 THEN 系统应给出具体的改进建议，包括可能的替代角度或补充研究方向"
+        ],
+        "priority": "Medium",
+        "complexity": "Medium",
+        "dependencies": ["PMC文献检索集成"],
+        "assumptions": ["系统能够识别当前学术领域的热点和趋势"]
+      },
+      {
+        "id": "FR-005",
+        "title": "JSON结构化输出",
+        "user_story": "作为一名研究者，我希望获得结构化的JSON格式评审结果，以便更清晰地理解各项评审内容和建议。",
+        "acceptance_criteria": [
+          "WHEN 生成评审结果 THEN 系统应输出符合预定义结构的JSON格式数据",
+          "WHEN 输出JSON THEN 应包含评审的各个维度、具体分数、详细评语和改进建议",
+          "WHEN 保存评审结果 THEN 应按照指定路径保存为editor_{version}_{timestamp}.json格式"
+        ],
+        "priority": "Medium",
+        "complexity": "Low",
+        "dependencies": ["主编视角评审功能"],
+        "assumptions": ["JSON结构能够涵盖所有必要的评审信息"]
+      },
+      {
+        "id": "FR-006",
+        "title": "修改建议生成",
+        "user_story": "作为一名研究者，我希望获得具体的修改建议，以便有针对性地改进我的文章。",
+        "acceptance_criteria": [
+          "WHEN 生成修改建议 THEN 系统应针对文章的各个部分提供具体、可操作的改进意见",
+          "WHEN 提供建议 THEN 应包含内容组织、论证逻辑、数据展示、讨论深度等多个方面",
+          "WHEN 给出建议 THEN 应提供参考示例或明确的修改方向"
+        ],
+        "priority": "High",
+        "complexity": "Medium",
+        "dependencies": ["主编视角评审功能"],
+        "assumptions": ["系统能够基于评审结果生成有意义的修改建议"]
+      },
+      {
+        "id": "FR-007",
+        "title": "Research ID参数支持",
+        "user_story": "作为一名研究者，我希望系统支持research_id参数，以便管理不同研究项目的评审过程和结果。",
+        "acceptance_criteria": [
+          "WHEN 提供research_id参数 THEN 系统应使用该ID创建对应的工作目录和缓存结构",
+          "WHEN 处理同一research_id的多次请求 THEN 系统应能识别并使用相同的工作目录",
+          "WHEN 保存结果和缓存 THEN 应按照指定的目录结构组织文件"
+        ],
+        "priority": "Medium",
+        "complexity": "Low",
+        "dependencies": [],
+        "assumptions": ["research_id参数格式符合系统要求"]
+      },
+      {
+        "id": "FR-008",
+        "title": "处理状态维护",
+        "user_story": "作为一名研究者，我希望系统能够维护处理状态信息，以便了解评审进度和结果。",
+        "acceptance_criteria": [
+          "WHEN 开始评审处理 THEN 系统应在.cache/pmc_literature/{research_id}/step6.status创建状态文件",
+          "WHEN 处理进行中 THEN 系统应实时更新状态文件，记录当前进度",
+          "WHEN 处理完成 THEN 系统应在状态文件中标记完成信息和结果路径"
+        ],
+        "priority": "Low",
+        "complexity": "Low",
+        "dependencies": ["Research ID参数支持"],
+        "assumptions": ["系统有权限在指定路径创建和修改文件"]
+      }
+    ],
+    "non_functional_requirements": {
+      "performance": [
+        "系统应在接收文献后5分钟内完成评审过程（取决于文献长度和复杂度）",
+        "PMC检索过程不应超过60秒",
+        "JSON输出生成应在2秒内完成"
+      ],
+      "security": [
+        "系统应确保用户提供的文献内容不被泄露或用于其他目的",
+        "缓存和临时文件应有合理的访问控制",
+        "敏感研究数据应得到适当保护"
+      ],
+      "usability": [
+        "评审结果应使用清晰、专业的语言",
+        "JSON结构应易于理解和解析",
+        "修改建议应具体且可操作"
+      ],
+      "reliability": [
+        "系统应能处理各种格式和长度的学术文献",
+        "当PMC检索服务不可用时，系统应优雅降级，仍能提供基本评审",
+        "系统应正确处理各种异常情况，如不完整文献、无效research_id等"
+      ]
+    },
+    "constraints": [
+      "系统必须使用指定的文件路径结构存储结果和缓存",
+      "系统必须集成现有的PMC检索工具",
+      "系统输出必须符合预定义的JSON结构",
+      "系统必须支持research_id参数来管理工作目录"
+    ],
+    "assumptions": [
+      "用户提供的文献是完整且格式规范的学术论文",
+      "PMC检索工具可用且能返回相关结果",
+      "系统有权限在指定路径创建和修改文件",
+      "系统能够访问足够的计算资源完成文献分析"
+    ],
+    "success_criteria": [
+      "系统能够准确模拟顶级期刊主编的评审视角和标准",
+      "评审结果与真实主编的专业评审有80%以上的一致性",
+      "修改建议能够有效帮助作者提升文章质量",
+      "系统能够正确处理90%以上的学术文献格式和类型",
+      "用户满意度达到85%以上"
+    ],
+    "glossary": {
+      "PMC": "PubMed Central，美国国立医学图书馆的免费全文档案数据库",
+      "research_id": "用于标识特定研究项目的唯一标识符",
+      "主编": "负责期刊内容决策和质量控制的专业编辑",
+      "JSON": "JavaScript Object Notation，一种轻量级的数据交换格式",
+      "version": "评审版本号，用于跟踪文章的多次评审"
+    }
+  },
+  "analysis_notes": "这是一个单Agent场景，因为功能相对集中在学术文献评审这一核心任务上，虽然涉及多个步骤（文献分析、PMC检索、评审生成等），但这些步骤之间有明确的顺序关系，可以由单个Agent协调完成。系统的核心价值在于提供专业的期刊主编视角评审，这需要深入的领域知识和评审经验模拟，属于业务逻辑类Agent。系统需要处理文件路径和缓存管理，但这些是辅助功能，主要复杂度在于评审逻辑和PMC检索集成。建议使用单Agent架构，专注于提高评审质量和准确性。"
+}

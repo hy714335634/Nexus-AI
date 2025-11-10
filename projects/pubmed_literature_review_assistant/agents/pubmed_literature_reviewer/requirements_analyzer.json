@@ -1,0 +1,173 @@
+{
+  "requirements_document": {
+    "feature_name": "PubMed Literature Review Agent",
+    "version": "1.0",
+    "date": "2025-10-29",
+    "overview": "专业的科研文献/报告审核Agent，能够根据用户提供的完整文献，结合在线检索PMC文献的工具，进行犀利的评价与反馈，指出信息不全、幻觉等问题，并提供修正建议。该Agent从审稿人的角度对科研文献进行全面评估，提供结构化的反馈，帮助作者改进文献质量。",
+    "business_value": "提高科研文献/报告的质量和准确性，减少学术出版中的错误和不准确信息，节省审稿人和作者的时间，促进更高质量的学术成果发表。对研究机构、期刊出版商和独立研究者都具有显著价值。",
+    "workflow_complexity": "single_agent",
+    "recommended_agent_type": "文档处理类",
+    "scope": {
+      "included": [
+        "对用户提供的科研文献/报告进行多维度评估",
+        "结合PMC文献检索工具验证文献内容的准确性",
+        "识别文献中的信息不全、幻觉等问题",
+        "提供结构化的JSON格式评估结果",
+        "为作者提供具体的修正和更新建议",
+        "支持research_id参数指定缓存和上下文工作目录"
+      ],
+      "excluded": [
+        "自动修正或重写文献内容",
+        "对非科研类文献的评估",
+        "生成完整的参考文献或引用",
+        "对图表和图像内容的详细分析",
+        "语法和拼写检查（仅作为次要功能）"
+      ]
+    },
+    "functional_requirements": [
+      {
+        "id": "FR-001",
+        "title": "文献内容接收与解析",
+        "user_story": "作为研究者，我希望能够提交完整的科研文献/报告给Agent进行评估，以便获得专业的反馈意见。",
+        "acceptance_criteria": [
+          "WHEN 用户提交文献内容 THEN 系统应能正确接收并解析文本内容",
+          "WHEN 用户提交的文献格式不正确或不完整 THEN 系统应提供明确的错误提示",
+          "WHEN 文献内容超过模型处理限制 THEN 系统应建议用户分段提交或提供摘要版本"
+        ],
+        "priority": "High",
+        "complexity": "Medium",
+        "dependencies": ["PMC文献检索工具"],
+        "assumptions": ["用户提供的文献为文本格式"]
+      },
+      {
+        "id": "FR-002",
+        "title": "多维度评估方法",
+        "user_story": "作为研究者，我希望Agent能从多个专业维度评估我的文献，以便全面了解文献的优缺点。",
+        "acceptance_criteria": [
+          "WHEN 评估文献时 THEN 系统应至少从科学准确性、方法论合理性、结论有效性、创新性、完整性等5个以上维度进行评估",
+          "WHEN 完成评估 THEN 每个维度应有具体的评分和文字说明",
+          "WHEN 发现严重问题 THEN 系统应明确标记并提供详细解释"
+        ],
+        "priority": "High",
+        "complexity": "High",
+        "dependencies": ["PMC文献检索工具"],
+        "assumptions": ["评估维度可根据文献类型动态调整"]
+      },
+      {
+        "id": "FR-003",
+        "title": "PMC文献在线检索集成",
+        "user_story": "作为研究者，我希望Agent能利用PMC文献检索工具验证我文献中的信息，以便确保内容的准确性和可靠性。",
+        "acceptance_criteria": [
+          "WHEN 需要验证文献中的特定声明或数据 THEN 系统应能调用PMC检索工具查找相关证据",
+          "WHEN 发现文献中的信息与PMC检索结果不一致 THEN 系统应标记为潜在问题并提供证据",
+          "WHEN PMC检索返回相关补充信息 THEN 系统应提供这些信息作为改进建议"
+        ],
+        "priority": "High",
+        "complexity": "High",
+        "dependencies": ["PMC文献检索工具API"],
+        "assumptions": ["PMC检索工具将在开发后期提供"]
+      },
+      {
+        "id": "FR-004",
+        "title": "JSON结构化输出",
+        "user_story": "作为研究者，我希望获得结构化的JSON格式评估结果，以便更容易理解和处理反馈信息。",
+        "acceptance_criteria": [
+          "WHEN 完成评估 THEN 系统应输出符合预定义结构的JSON格式结果",
+          "WHEN 生成JSON输出 THEN 应包含总体评分、各维度评分、具体问题列表和改进建议",
+          "IF 评估过程中出现错误 THEN 应在JSON中包含错误信息和部分结果"
+        ],
+        "priority": "Medium",
+        "complexity": "Medium",
+        "dependencies": [],
+        "assumptions": ["JSON结构将在设计阶段确定"]
+      },
+      {
+        "id": "FR-005",
+        "title": "修正指导建议",
+        "user_story": "作为研究者，我希望获得具体的修正和更新建议，以便能够有针对性地改进我的文献。",
+        "acceptance_criteria": [
+          "WHEN 识别出问题 THEN 系统应提供具体的修正建议，包括问题位置、问题描述和改进方向",
+          "WHEN 提供修正建议 THEN 建议应具有可操作性，而非笼统的评价",
+          "WHEN 发现多个问题 THEN 系统应按严重程度排序提供修正建议"
+        ],
+        "priority": "High",
+        "complexity": "Medium",
+        "dependencies": ["FR-002", "FR-003"],
+        "assumptions": ["用户希望获得具体而非泛泛的建议"]
+      },
+      {
+        "id": "FR-006",
+        "title": "Research ID参数支持",
+        "user_story": "作为研究者，我希望能够通过research_id参数指定缓存和上下文工作目录，以便在多次交互中保持连贯性。",
+        "acceptance_criteria": [
+          "WHEN 用户提供research_id参数 THEN 系统应在指定目录(.cache/pmc_literature/<research_id>/)中存储相关数据",
+          "WHEN 用户使用相同research_id多次交互 THEN 系统应能访问之前的评估结果和上下文",
+          "WHEN research_id不存在 THEN 系统应创建新的工作目录"
+        ],
+        "priority": "Medium",
+        "complexity": "Low",
+        "dependencies": [],
+        "assumptions": ["文件系统权限允许创建和访问缓存目录"]
+      },
+      {
+        "id": "FR-007",
+        "title": "幻觉检测与标记",
+        "user_story": "作为研究者，我希望Agent能够识别文献中可能存在的幻觉或未经验证的声明，以便提高文献的可靠性。",
+        "acceptance_criteria": [
+          "WHEN 文献中出现无法通过PMC检索验证的重要声明 THEN 系统应将其标记为潜在幻觉",
+          "WHEN 识别出幻觉内容 THEN 系统应提供详细解释和证据",
+          "WHEN 某些声明需要更多支持证据 THEN 系统应提供具体的补充建议"
+        ],
+        "priority": "High",
+        "complexity": "High",
+        "dependencies": ["FR-003"],
+        "assumptions": ["PMC检索工具能够提供足够的验证信息"]
+      }
+    ],
+    "non_functional_requirements": {
+      "performance": [
+        "评估过程应在用户可接受的时间内完成，对于标准长度的文献（不超过10000字），评估时间不应超过2分钟",
+        "PMC检索应有合理的超时机制，避免因检索延迟导致整体评估失败"
+      ],
+      "security": [
+        "用户提交的文献内容应仅用于评估目的，不应被永久存储",
+        "研究ID相关的缓存数据应有合理的过期策略"
+      ],
+      "usability": [
+        "评估结果应易于理解，术语应附带简要解释",
+        "JSON输出应有清晰的结构和字段说明",
+        "应提供示例说明如何解读评估结果"
+      ],
+      "reliability": [
+        "即使PMC检索工具暂时不可用，系统也应能完成基本的文献评估",
+        "应处理各种异常情况，确保系统不会因单点故障而完全失效"
+      ]
+    },
+    "constraints": [
+      "依赖于PMC文献检索工具的可用性和准确性",
+      "受限于大语言模型的上下文长度限制",
+      "评估质量受限于模型对科研领域专业知识的掌握程度",
+      "不能替代人类专家的专业审稿",
+      "仅支持文本格式的文献内容，不支持图表和图像的直接分析"
+    ],
+    "assumptions": [
+      "用户提供的文献内容是完整且格式规范的",
+      "PMC文献检索工具能够提供足够的相关文献信息",
+      "用户了解基本的科研文献结构和术语",
+      "用户期望获得专业、犀利但有建设性的反馈"
+    ],
+    "success_criteria": [
+      "能够准确识别文献中的至少80%的重要问题和不足",
+      "提供的修正建议至少有70%被用户认为有用",
+      "评估结果的结构化程度使90%的用户能够轻松理解和应用",
+      "系统能够处理各种类型的科研文献，包括但不限于医学、生物学、化学等领域"
+    ],
+    "glossary": {
+      "PMC": "PubMed Central，美国国立医学图书馆的免费数字档案库，提供生物医学和生命科学期刊文献的全文访问",
+      "幻觉": "在AI上下文中，指AI生成的看似合理但实际上不准确或不存在的信息",
+      "Research ID": "用于标识特定研究项目或评估会话的唯一标识符",
+      "多维度评估": "从多个不同角度对文献进行全面评价的方法"
+    }
+  },
+  "analysis_notes": "这个需求分析基于用户对科研文献审核Agent的需求。经过分析，确定这是一个单Agent场景，因为所有功能都围绕文献审核这一核心任务，且各功能间有紧密的逻辑关联。推荐使用文档处理类Agent，因为主要工作是分析和处理文本文档。核心功能包括多维度评估、PMC文献检索集成、JSON结构化输出、修正指导和幻觉检测。特别注意的是，系统依赖于PMC检索工具（将在后期提供），这是验证文献准确性的关键。系统应从审稿人角度出发，提供专业、犀利但有建设性的反馈，帮助作者提高文献质量。支持research_id参数可以使系统在多次交互中保持上下文连贯性，提升用户体验。"
+}

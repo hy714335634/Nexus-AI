@@ -1,0 +1,134 @@
+{
+  "project_name": "pubmed_literature_writing_assistant",
+  "validation_timestamp": "2025-10-26T02:27:54.293237+00:00",
+  "overall_status": "success",
+  "agent_scripts": [
+    {
+      "script_path": "agents/generated_agents/pubmed_literature_writing_assistant/pubmed_literature_writing_assistant.py",
+      "syntax_valid": true,
+      "dependencies": [
+        "os",
+        "json",
+        "logging",
+        "uuid",
+        "pathlib",
+        "typing",
+        "datetime",
+        "nexus_utils.agent_factory",
+        "strands.telemetry",
+        "argparse"
+      ],
+      "execution_params": [],
+      "argparse_params": [
+        {
+          "name": "-r",
+          "type": "str",
+          "description": "研究ID，对应.cache/pmc_literature下的目录名",
+          "required": true,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "-q",
+          "type": "str",
+          "description": "用户额外研究需求",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "-l",
+          "type": "str",
+          "description": "输出语言",
+          "required": false,
+          "default": "english",
+          "action": null
+        },
+        {
+          "name": "-s",
+          "type": "str",
+          "description": "会话ID，用于缓存会话数据",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "-m",
+          "type": "str",
+          "description": "操作模式",
+          "required": false,
+          "default": "generate",
+          "action": null
+        },
+        {
+          "name": "-v",
+          "type": "str",
+          "description": "翻译模式下的综述版本",
+          "required": false,
+          "default": "final",
+          "action": null
+        },
+        {
+          "name": "-t",
+          "type": "str",
+          "description": "翻译模式下的目标语言",
+          "required": false,
+          "default": null,
+          "action": null
+        }
+      ],
+      "error_message": ""
+    }
+  ],
+  "prompt_files": [
+    {
+      "prompt_path": "generated_agents_prompts/pubmed_literature_writing_assistant/pubmed_literature_writing_assistant.yaml",
+      "tool_count": 8,
+      "valid": true,
+      "error_message": "",
+      "metadata": {
+        "tags": [
+          "academic_research",
+          "literature_review",
+          "medical_research",
+          "pubmed",
+          "scientific_writing"
+        ],
+        "supported_models": [
+          "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
+        ],
+        "tools_dependencies": [
+          "strands_tools/file_read",
+          "strands_tools/file_write",
+          "strands_tools/current_time",
+          "strands_tools/calculator",
+          "generated_tools/pubmed_literature_writing_assistant/literature_processing_tools/load_literature_metadata",
+          "generated_tools/pubmed_literature_writing_assistant/literature_processing_tools/save_review_version",
+          "generated_tools/pubmed_literature_writing_assistant/literature_processing_tools/get_processing_status",
+          "generated_tools/pubmed_literature_writing_assistant/literature_processing_tools/update_processing_status"
+        ]
+      },
+      "agent_info": {
+        "name": "pubmed_literature_writing_assistant",
+        "description": "一个科研文献编写智能体，能根据用户提供材料和思路进行文献综述的编写工作，支持处理大量PubMed文献并生成高质量文献综述",
+        "category": "academic_research"
+      }
+    }
+  ],
+  "generated_tools": [
+    {
+      "tool_path": "generated_tools/pubmed_literature_writing_assistant/literature_processing_tools.py",
+      "syntax_valid": true,
+      "error_message": ""
+    }
+  ],
+  "total_tools": 8,
+  "summary": {
+    "agent_scripts_count": 1,
+    "prompt_files_count": 1,
+    "generated_tool_files_count": 1,
+    "all_scripts_valid": true,
+    "all_tools_valid": true,
+    "all_prompts_valid": true
+  }
+}

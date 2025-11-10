@@ -16,6 +16,7 @@ Literature Analysis Agent
 import os
 import json
 import logging
+import re
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 
@@ -33,6 +34,32 @@ os.environ["BYPASS_TOOL_CONSENT"] = "true"
 os.environ["OTEL_EXPORTER_OTLP_ENDPOINT"] = "http://localhost:4318"
 strands_telemetry = StrandsTelemetry()
 strands_telemetry.setup_otlp_exporter()
+
+
+def preprocess_fulltext(content: str, max_length: int = 100000) -> str:
+    """
+    预处理全文内容，去除引用部分
+    
+    Args:
+        content: 原始全文内容
+        
+    Returns:
+        清理后的内容
+    """
+    if len(content) > max_length:
+        logger.warning(f"文件过大 ({len(content)} 字符)，截断到 {max_length} 字符")
+        content = content[:max_length] + "\n\n...[内容已截断以符合模型上下文限制]"
+    if not content:
+        return ""
+    
+    # 1. 去除引用部分（==== Refs之后的所有内容）
+    refs_pattern = r'====\s*Refs.*'
+    content = re.sub(refs_pattern, '', content, flags=re.DOTALL | re.IGNORECASE)
+    
+    # 2. 去除过多的空行（连续3个以上空行合并为2个）
+    content = re.sub(r'\n{3,}', '\n\n', content)
+    
+    return content.strip()
 
 
 class LiteratureAnalyzerAgent:
@@ -82,8 +109,29 @@ class LiteratureAnalyzerAgent:
         Returns:
             分析结果（包含答案内容和文献引用说明）
         """
-        response = self.agent(user_query)    
-        return response.message
+        response = self.agent(user_query)
+        print("="*100)
+        # Access metrics through the AgentResult
+        print(f"Total tokens: {response.metrics.accumulated_usage}")
+        print(f"Execution time: {sum(response.metrics.cycle_durations):.2f} seconds")
+        print(f"Tools used: {list(response.metrics.tool_metrics.keys())}")
+        print("="*100)
+        
+        # 处理response.message可能是字典的情况
+        message = response.message
+        if isinstance(message, dict):
+            # 提取content中的text内容
+            if "content" in message:
+                text_parts = []
+                for item in message["content"]:
+                    if isinstance(item, dict) and "text" in item:
+                        text_parts.append(item["text"])
+                return "\n".join(text_parts)
+            else:
+                # 如果不是标准格式，转为JSON字符串
+                return json.dumps(message, ensure_ascii=False)
+        else:
+            return str(message)
     
     def answer_question(self, question: str, pmc_ids: List[str]) -> str:
         """
@@ -175,6 +223,31 @@ def analyze_literature_with_query(research_id: str, user_query: str, pmc_ids: Li
     if fulltext_content['status'] == "error":
         return fulltext_content['message']
     
+    # 检查是否有结果
+    if not fulltext_content.get('results') or len(fulltext_content['results']) == 0:
+        return json.dumps({
+            "pmcid": pmc_ids[0] if pmc_ids else "",
+            "should_mark": False,
+            "error": "未找到文献全文",
+            "reasoning": "文献全文未下载或未找到"
+        }, ensure_ascii=False)
+    
+    # 检查第一个结果是否有 content 字段
+    first_result = fulltext_content['results'][0]
+    if 'content' not in first_result:
+        return json.dumps({
+            "pmcid": pmc_ids[0] if pmc_ids else "",
+            "should_mark": False,
+            "error": "文献全文未找到或未下载",
+            "reasoning": f"文献状态: {first_result.get('status', 'unknown')}"
+        }, ensure_ascii=False)
+    
+    # 预处理全文内容，去除引用部分
+    raw_content = first_result['content']
+    preprocessed_content = preprocess_fulltext(raw_content)
+    
+    logger.info(f"原文长度: {len(raw_content)}, 预处理后长度: {len(preprocessed_content)}")
+    
     prompt = f"""
     ============================
     research_topic: {user_query}
@@ -183,71 +256,161 @@ def analyze_literature_with_query(research_id: str, user_query: str, pmc_ids: Li
     ============================
     research_id: {research_id}
     ============================
-    fulltext_content: {fulltext_content['results'][0]['content']}
+    fulltext_content: {preprocessed_content}
     ============================
     
-    请分析这篇文献与研究主题的相关性，并判断是否应该标记为相关文献。
+    请完成以下任务：
+    1. 分析这篇文献与研究主题的相关性，判断是否应该标记为相关文献
+    2. 从文献全文(fulltext_content)中提取以下结构化元数据：
+       - title: 文献标题
+       - abstract: 文献摘要
+       - keywords: 关键词列表
+       - methods: 研究方法部分的核心内容（200-500字）
+       - results: 研究结果部分的关键内容（200-500字）
+       - conclusions: 研究结论部分的核心观点（100-300字）
     
     **重要提示**：
-    1. 你的任务是评估文献相关性，提供是否标记的建议
-    2. 必须返回ONLY JSON格式的分析结果，不要添加任何其他文字
-    3. 不要生成综述或报告内容
-    4. 只提供判断理由和关键发现，不生成文章内容
+    1. 必须返回ONLY JSON格式的分析结果，不要添加任何其他文字
+    2. 不要生成综述或报告内容
+    3. 只提供判断理由和关键发现，不生成文章内容
+    4. methods、results、conclusions要包含核心信息和关键数据，尽量保留原文关键内容
+    5. 如果没有相应部分，返回空字符串或空数组
     
-    请严格按照以下JSON格式输出（只输出JSON，不要添加任何其他文字）：
-    {{
-      "pmcid": "{pmc_ids[0]}",
-      "should_mark": true/false,
-      "relevance_score": 0.0-1.0,
-      "reasoning": "详细判断理由",
-      "key_findings": ["发现1", "发现2"],
-      "relevance_aspects": {{
-        "topic_match": "高/中/低",
-        "methodology": "相关/部分相关/不相关",
-        "conclusions": "有价值/部分有价值/无价值"
-      }},
-      "recommendation": "强烈推荐标记/推荐标记/不推荐标记",
-      "confidence": "高/中/低"
-    }}
+    请严格按照JSON格式输出所有字段（只输出JSON，不要添加任何其他文字）
     """
     agent = LiteratureAnalyzerAgent(env=env)
     response = agent.analyze_literature(prompt)
+    
+    # 确保response是字符串
+    if not isinstance(response, str):
+        response = str(response)
     
     logger.info(f"analyze_literature_with_query raw response: {response[:200]}...")
     
     # 尝试从响应中提取JSON
     import re
-    # 匹配可能包含缩进的JSON块，寻找包含pmcid的JSON对象
-    json_match = re.search(r'\{[\s\S]*"pmcid"[\s\S]*?\}', response)
-    if json_match:
-        json_str = json_match.group(0)
-        try:
-            # 验证JSON是否有效
-            parsed = json.loads(json_str)
-            logger.info(f"Successfully extracted JSON from response")
-            return json_str
-        except json.JSONDecodeError:
-            logger.warning(f"Extracted text is not valid JSON")
     
-    # 如果找不到包含pmcid的JSON，尝试匹配整个JSON对象
-    json_match = re.search(r'\{[\s\S]*\}', response)
-    if json_match:
-        json_str = json_match.group(0)
+    # 辅助函数：提取完整的JSON对象（处理嵌套大括号）
+    def extract_complete_json(text, start_marker=None):
+        """提取匹配的JSON对象，处理嵌套大括号"""
+        if start_marker:
+            start_idx = text.find(start_marker)
+            if start_idx == -1:
+                return None, -1, -1
+            # 找到标记后的第一个 {
+            start_idx = text.find('{', start_idx)
+        else:
+            start_idx = text.find('{')
+        
+        if start_idx == -1:
+            return None, -1, -1
+        
+        # 找到匹配的最后一个 }
+        brace_count = 0
+        end_idx = -1
+        for i, char in enumerate(text[start_idx:], start_idx):
+            if char == '{':
+                brace_count += 1
+            elif char == '}':
+                brace_count -= 1
+                if brace_count == 0:
+                    end_idx = i
+                    break
+        else:
+            return None, -1, -1
+        
+        return text[start_idx:end_idx + 1], start_idx, end_idx
+    
+    # 第一步：尝试提取代码块中的JSON（```json ... ```）
+    code_block_start = response.find('```')
+    if code_block_start != -1:
+        # 找到代码块结束标记
+        code_block_end = response.find('```', code_block_start + 3)
+        if code_block_end != -1:
+            # 提取代码块中的JSON
+            json_str, _, _ = extract_complete_json(response, start_marker='```')
+            if json_str:
+                try:
+                    parsed = json.loads(json_str)
+                    # 确保必要字段存在
+                    if "pmcid" not in parsed:
+                        parsed["pmcid"] = pmc_ids[0] if pmc_ids else ""
+                    # 确保包含所有元数据字段
+                    for field in ["title", "abstract", "keywords", "methods", "results", "conclusions"]:
+                        if field not in parsed:
+                            if field == "keywords":
+                                parsed[field] = []
+                            else:
+                                parsed[field] = ""
+                    logger.info(f"Successfully extracted JSON from code block")
+                    return json.dumps(parsed, ensure_ascii=False)
+                except json.JSONDecodeError as e:
+                    logger.warning(f"Code block JSON is not valid: {e}")
+    
+    # 第二步：尝试从纯文本中提取JSON（寻找第一个{到最后一个}，处理嵌套）
+    json_str, _, _ = extract_complete_json(response)
+    if json_str:
         try:
             parsed = json.loads(json_str)
-            # 如果解析成功，添加pmcid
+            # 确保必要字段存在
             if "pmcid" not in parsed:
                 parsed["pmcid"] = pmc_ids[0] if pmc_ids else ""
-            logger.info(f"Successfully extracted JSON from response (without pmcid)")
+            # 确保包含所有元数据字段
+            for field in ["title", "abstract", "keywords", "methods", "results", "conclusions"]:
+                if field not in parsed:
+                    if field == "keywords":
+                        parsed[field] = []
+                    else:
+                        parsed[field] = ""
+            logger.info(f"Successfully extracted JSON from text")
             return json.dumps(parsed, ensure_ascii=False)
-        except json.JSONDecodeError:
-            logger.warning(f"Extracted text is not valid JSON")
+        except json.JSONDecodeError as e:
+            logger.warning(f"Extracted JSON is not valid: {e}")
+    
+    # 第三步：使用正则表达式尝试提取包含pmcid的JSON对象（作为最后手段）
+    json_match = re.search(r'\{[\s\S]*?"pmcid"[\s\S]*?\}', response)
+    if json_match:
+        json_str = json_match.group(0)
+        try:
+            parsed = json.loads(json_str)
+            if "pmcid" not in parsed:
+                parsed["pmcid"] = pmc_ids[0] if pmc_ids else ""
+            for field in ["title", "abstract", "keywords", "methods", "results", "conclusions"]:
+                if field not in parsed:
+                    if field == "keywords":
+                        parsed[field] = []
+                    else:
+                        parsed[field] = ""
+            logger.info(f"Successfully extracted JSON using fallback method")
+            return json.dumps(parsed, ensure_ascii=False)
+        except json.JSONDecodeError as e:
+            logger.warning(f"Fallback JSON is not valid: {e}")
     
     # 如果没有找到JSON，返回错误
     logger.error(f"Failed to extract JSON from response. Full response: {response}")
     return json.dumps({
         "pmcid": pmc_ids[0] if pmc_ids else "",
         "should_mark": False,
+        "relevance_score": 0.0,
+        "title": "",
+        "abstract": "",
+        "keywords": [],
+        "methods": "",
+        "results": "",
+        "conclusions": "",
+        "authors": "",
+        "journal": "",
+        "impact_factor": "",
+        "publication_date": "",
+        "reasoning": "",
+        "key_findings": [],
+        "relevance_aspects": {
+            "topic_match": "低",
+            "methodology": "不相关",
+            "conclusions": "无价值"
+        },
+        "recommendation": "不推荐标记",
+        "confidence": "低",
         "error": "未能获取有效的JSON格式分析结果",
         "raw_response": response[:500]
     }, ensure_ascii=False)

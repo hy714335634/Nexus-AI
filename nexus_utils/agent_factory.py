@@ -98,12 +98,12 @@ def _wrap_model_stream_for_stage_logging(model: BedrockModel, agent_label: str) 
 
     model.stream = types.MethodType(logging_stream, model)
     setattr(model, "_stage_logging_wrapped", True)
-
+    
 
 config = get_config()
 
 boto_config = BotocoreConfig(
-    retries={"max_attempts": config.get_bedrock_config().get("connect_config").get("retries").get("max_attempts"), "mode": "standard"},
+    retries={"max_attempts": config.get_bedrock_config().get("connect_config").get("retries").get("max_attempts"), "mode": config.get_bedrock_config().get("connect_config").get("retries").get("mode")},
     connect_timeout=config.get_bedrock_config().get("connect_config").get("connect_timeout"),
     read_timeout=config.get_bedrock_config().get("connect_config").get("read_timeout")
 )
@@ -118,8 +118,8 @@ def get_bedrock_model(model_id="model_id",agent_name="template",env="production"
     bedrock_model = BedrockModel(
         model_id=config.get_bedrock_config().get(model_id),
         max_tokens=prompts_manager.get_agent(agent_name).get_environment_config(env).max_tokens,
-        temperature=prompts_manager.get_agent(agent_name).get_environment_config(env).temperature,
-        top_p=prompts_manager.get_agent(agent_name).get_environment_config(env).top_p,
+        temperature=prompts_manager.get_agent(agent_name).get_environment_config(env).temperature if prompts_manager.get_agent(agent_name).get_environment_config(env).temperature is not None else 0.8,
+        top_p=prompts_manager.get_agent(agent_name).get_environment_config(env).top_p if prompts_manager.get_agent(agent_name).get_environment_config(env).top_p is not None else 0.8,
         streaming=prompts_manager.get_agent(agent_name).get_environment_config(env).streaming,
         boto_session=session,
         boto_client_config=boto_config

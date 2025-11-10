@@ -11,7 +11,7 @@ agent:
     production:
       max_tokens: 20000
       temperature: 0.8
-      top_p: 0.8
+      top_p: 
       streaming: True
     testing:
       max_tokens: 2048
@@ -516,6 +516,7 @@ agent:
       metadata:
         tags: ["prompt_engineering", "template_generation", "agent_development"]
         supported_models:
+          - "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
           - "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
           - "us.anthropic.claude-opus-4-20250514-v1:0"
         tools_dependencies:

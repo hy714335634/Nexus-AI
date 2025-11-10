@@ -13,8 +13,7 @@ from strands import tool
 # Import from existing pubmed tools
 import sys
 from pathlib import Path
-sys.path.append(str(Path(__file__).parent.parent / "pubmed_literature_writing_agent"))
-from tools.generated_tools.pubmed_literature_writing_agent.pmc_s3_connector import pmc_download_file, pmc_search_files
+from tools.generated_tools.literature_analysis_agent.pmc_s3_connector import pmc_download_file, pmc_search_files
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

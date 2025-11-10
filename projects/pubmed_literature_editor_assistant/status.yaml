@@ -1,0 +1,62 @@
+agents: {}
+created_at: '2025-10-30T17:22:09.861818+00:00'
+last_updated: '2025-10-30T17:22:09.861822+00:00'
+project: pubmed_literature_editor_assistant
+project_info:
+- agents:
+  - created_date: '2025-10-30T17:22:40.506193+00:00'
+    description: 智能体：pubmed_literature_editor_assistant
+    last_updated: '2025-10-30T18:04:41.949631+00:00'
+    name: pubmed_literature_editor_assistant
+    pipeline:
+    - description: 需求分析阶段 - 分析用户需求，定义功能规格
+      doc_path: projects/pubmed_literature_editor_assistant/agents/pubmed_literature_editor_assistant/requirements_analyzer.json
+      stage: requirements_analyzer
+      status: true
+      updated_date: '2025-10-30T17:24:15.966962+00:00'
+    - description: 系统架构设计阶段 - 设计系统架构和技术方案
+      doc_path: projects/pubmed_literature_editor_assistant/agents/pubmed_literature_editor_assistant/system_architect.json
+      stage: system_architect
+      status: true
+      updated_date: '2025-10-30T17:27:31.483307+00:00'
+    - description: Agent设计阶段 - 设计智能体结构和交互模式
+      doc_path: projects/pubmed_literature_editor_assistant/agents/pubmed_literature_editor_assistant/agent_designer.json
+      stage: agent_designer
+      status: true
+      updated_date: '2025-10-30T17:30:17.055256+00:00'
+    - agent_artifact_path:
+      - generated_agents_prompts/pubmed_literature_editor_assistant/pubmed_literature_editor_assistant.yaml
+      description: 提示词工程阶段 - 设计和优化提示词模板
+      doc_path: projects/pubmed_literature_editor_assistant/agents/pubmed_literature_editor_assistant/prompt_engineer.json
+      stage: prompt_engineer
+      status: true
+      updated_date: '2025-10-30T18:04:29.959189+00:00'
+    - agent_artifact_path:
+      - generated_tools/pubmed_literature_editor_assistant/pmc_literature_tools.py
+      - generated_tools/pubmed_literature_editor_assistant/file_system_tools.py
+      - generated_tools/pubmed_literature_editor_assistant/json_processor.py
+      description: 工具开发阶段 - 开发必要的工具和函数
+      doc_path: projects/pubmed_literature_editor_assistant/agents/pubmed_literature_editor_assistant/tools_developer.json
+      stage: tools_developer
+      status: true
+      updated_date: '2025-10-30T18:04:24.058112+00:00'
+    - agent_artifact_path:
+      - agents/generated_agents/pubmed_literature_editor_assistant/pubmed_literature_editor_assistant.py
+      description: Agent代码开发阶段 - 实现智能体代码
+      doc_path: projects/pubmed_literature_editor_assistant/agents/pubmed_literature_editor_assistant/agent_code_developer.json
+      stage: agent_code_developer
+      status: true
+      updated_date: '2025-10-30T18:04:36.203763+00:00'
+    - description: Agent开发管理阶段 - 管理和协调开发流程
+      doc_path: projects/pubmed_literature_editor_assistant/agents/pubmed_literature_editor_assistant/agent_developer_manager.json
+      stage: agent_developer_manager
+      status: true
+      updated_date: '2025-10-30T18:04:41.949634+00:00'
+  description: 专业的科研期刊主编Agent，能根据用户提供完整文献，结合在线检索PMC文献的工具，完成杂志主编对文章的评审工作
+  last_updated: '2025-10-30T18:04:41.949624+00:00'
+  name: pubmed_literature_editor_assistant
+  progress:
+  - completed: 7
+    total: 7
+  version: 1.0.0
+status: initialized

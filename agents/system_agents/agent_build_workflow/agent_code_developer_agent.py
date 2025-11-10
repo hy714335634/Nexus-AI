@@ -19,7 +19,7 @@ agent_params = {
 # 使用 agent_factory 创建 agent
 agent_code_developer = create_agent_from_prompt_template(
     # agent_name="system_agents_prompts/agent_build_workflow/agent_code_developer", 
-    agent_name="system_agents_prompts/agent_build_workflow/agent_code_developer_improved", 
+    agent_name="system_agents_prompts/agent_build_workflow/agent_code_developer", 
     **agent_params
 )
 

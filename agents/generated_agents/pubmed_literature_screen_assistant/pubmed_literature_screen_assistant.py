@@ -65,13 +65,20 @@ def step1_search_literature(query: str, research_id: str, api_key: str = None, m
     result = agent(prompt)
     
     print(f"\n✅ Agent处理完成")
-    print(f"Agent响应: {result.message[:200]}...")
+    print(f"Agent响应: {result.message}...")
     
     # 从缓存目录获取检索到的文献ID
     cache_dir = Path(f".cache/pmc_literature/{research_id}/meta_data")
     if cache_dir.exists():
         pmc_ids = [f.stem for f in cache_dir.glob("*.json")]
         print(f"✅ 检索到 {len(pmc_ids)} 篇文献")
+        
+        # 保存步骤1状态
+        cache_dir.parent.mkdir(parents=True, exist_ok=True)
+        status_file = cache_dir.parent / "step1.status"
+        with open(status_file, 'w', encoding='utf-8') as f:
+            f.write(result.message['content'][0]['text'])
+        
         return pmc_ids
     else:
         print(f"❌ 缓存目录不存在")
@@ -92,6 +99,7 @@ def step2_analyze_literature(pmc_ids: list, research_id: str, user_query: str):
     analysis_dir.mkdir(parents=True, exist_ok=True)
     
     analyzed_results = []
+    skipped_count = 0
     
     for i, pmc_id in enumerate(pmc_ids, 1):
         print(f"\n[{i}/{len(pmc_ids)}] 分析文献: {pmc_id}")
@@ -100,6 +108,7 @@ def step2_analyze_literature(pmc_ids: list, research_id: str, user_query: str):
         analysis_file = analysis_dir / f"{pmc_id}.json"
         if analysis_file.exists():
             print(f"  ✅ 已存在分析结果，跳过")
+            skipped_count += 1
             try:
                 with open(analysis_file, 'r', encoding='utf-8') as f:
                     analysis = json.load(f)
@@ -147,6 +156,14 @@ def step2_analyze_literature(pmc_ids: list, research_id: str, user_query: str):
                 "analysis": {"should_mark": False, "error": str(e)}
             })
     
+    # 保存步骤2状态
+    if skipped_count > 0:
+        print(f"\n📊 跳过 {skipped_count} 个已分析的文件，新增分析 {len(analyzed_results) - skipped_count} 个")
+    
+    status_file = cache_dir / "step2.status"
+    with open(status_file, 'w', encoding='utf-8') as f:
+        json.dump(analyzed_results, f, ensure_ascii=False, indent=2)
+    
     return analyzed_results
 
 
@@ -192,25 +209,138 @@ def step3_mark_literature(research_id: str):
         print("没有文献需要标记")
         return
     
-    # 批量标记（每批10篇）
-    batch_size = 10
-    for i in range(0, len(to_mark), batch_size):
-        batch = to_mark[i:i+batch_size]
-        batch_reasoning = {pmcid: reasoning_dict[pmcid] for pmcid in batch}
+    # 一次性标记所有文献
+    print(f"\n开始标记 {len(to_mark)} 篇文献...")
+    
+    try:
+        result = mark_literature(to_mark, research_id, reasoning_dict, auto_download=False)
+        result_data = json.loads(result)
         
-        print(f"\n标记批次 {i//batch_size + 1}: {len(batch)} 篇文献")
-        
-        try:
-            result = mark_literature(batch, research_id, batch_reasoning, auto_download=False)
-            result_data = json.loads(result)
+        if result_data.get("status") == "success":
+            print(f"✅ 成功标记 {result_data.get('marked_count', 0)} 篇文献")
             
-            if result_data.get("status") == "success":
-                print(f"✅ 成功标记 {result_data.get('marked_count', 0)} 篇文献")
-            else:
-                print(f"❌ 标记失败: {result_data.get('message', 'Unknown error')}")
-                
-        except Exception as e:
-            print(f"❌ 标记失败: {str(e)}")
+            # 保存步骤3状态
+            cache_dir = Path(f".cache/pmc_literature/{research_id}")
+            status_file = cache_dir / "step3.status"
+            with open(status_file, 'w', encoding='utf-8') as f:
+                json.dump({
+                    "total_to_mark": len(to_mark),
+                    "marked_pmcs": to_mark
+                }, f, ensure_ascii=False, indent=2)
+        else:
+            print(f"❌ 标记失败: {result_data.get('message', 'Unknown error')}")
+            
+    except Exception as e:
+        print(f"❌ 标记失败: {str(e)}")
+
+
+def check_progress(research_id: str):
+    """
+    检查进度状态，返回需要从哪个步骤开始
+    按照步骤顺序检查：step1 -> step2 -> step3 -> manifest.json
+    
+    Returns:
+        返回需要开始的步骤号 (1, 2, 3) 或 0 (全部完成)
+    """
+    cache_dir = Path(f".cache/pmc_literature/{research_id}")
+    
+    # 第一步：检查步骤1是否完成（通过step1.status和meta_data目录）
+    step1_status = cache_dir / "step1.status"
+    meta_data_dir = cache_dir / "meta_data"
+    
+    if not step1_status.exists() or not meta_data_dir.exists():
+        print(f"\n⚠️  步骤1未完成，从步骤1开始")
+        return 1
+    
+    meta_data_files = list(meta_data_dir.glob("*.json"))
+    total_pmc_ids = len(meta_data_files)
+    if total_pmc_ids == 0:
+        print(f"\n⚠️  步骤1未完成（无文献数据），从步骤1开始")
+        return 1
+    
+    print(f"\n✅ 步骤1已完成：发现 {total_pmc_ids} 篇文献")
+    
+    # 第二步：检查步骤2是否完成
+    # 步骤2基于paper文件夹下的文件进行分析
+    step2_status = cache_dir / "step2.status"
+    analysis_dir = cache_dir / "analysis_results"
+    paper_dir = cache_dir / "paper"
+    
+    # 检查paper文件夹下的待处理文件
+    if not paper_dir.exists():
+        print(f"\n⚠️  paper文件夹不存在，从步骤2开始（可能需要先下载全文）")
+        return 2
+    
+    paper_files = list(paper_dir.glob("*.txt"))
+    total_papers = len(paper_files)
+    
+    if total_papers == 0:
+        print(f"\n⚠️  paper文件夹为空，从步骤2开始")
+        return 2
+    
+    # 检查analysis_results目录
+    if not analysis_dir.exists():
+        print(f"\n⚠️  步骤2未开始，从步骤2开始")
+        return 2
+    
+    analysis_files = list(analysis_dir.glob("*.json"))
+    
+    # 如果没有step2.status，说明步骤2未完成
+    if not step2_status.exists():
+        print(f"\n⚠️  步骤2未完成：已分析 {len(analysis_files)}/{total_papers} 篇文献，从步骤2继续")
+        return 2
+    
+    # 对比paper文件和analysis_results，检查是否需要继续分析
+    paper_pmc_ids = set([f.stem for f in paper_files])
+    analysis_pmc_ids = set([f.stem for f in analysis_files])
+    
+    if paper_pmc_ids == analysis_pmc_ids:
+        print(f"\n✅ 步骤2已完成：分析了 {len(analysis_files)} 篇文献")
+    else:
+        print(f"\n⚠️  步骤2未完成：已分析 {len(analysis_files)}/{total_papers} 篇文献，从步骤2继续")
+        return 2
+    
+    # 第三步：检查步骤3是否完成（通过step3.status文件）
+    step3_status = cache_dir / "step3.status"
+    
+    if not step3_status.exists():
+        print(f"\n⚠️  步骤3未完成，从步骤3开始")
+        return 3
+    
+    # step3.status存在，检查是否有效
+    try:
+        with open(step3_status, 'r', encoding='utf-8') as f:
+            step3_data = json.load(f)
+        marked_pmcs = step3_data.get('marked_pmcs', [])
+        if not marked_pmcs:
+            print(f"\n⚠️  步骤3未完成，从步骤3开始")
+            return 3
+        print(f"\n✅ 步骤3已完成：已标记 {len(marked_pmcs)} 篇文献")
+    except Exception as e:
+        print(f"\n⚠️  读取步骤3状态失败: {str(e)}，从步骤3开始")
+        return 3
+    
+    # 第四步：最终检查manifest.json文件
+    manifest_file = cache_dir / "manifest.json"
+    
+    if not manifest_file.exists():
+        print(f"\n⚠️  manifest.json不存在，从步骤3开始")
+        return 3
+    
+    # manifest.json存在，检查是否有效
+    try:
+        with open(manifest_file, 'r', encoding='utf-8') as f:
+            manifest = json.load(f)
+        total_count = manifest.get("statistics", {}).get("total_count", 0)
+        if total_count > 0:
+            print(f"\n✅ 所有步骤已完成！总共标记 {total_count} 篇文献")
+            return 0
+        else:
+            print(f"\n⚠️  manifest.json存在但无标记文献，从步骤3开始")
+            return 3
+    except Exception as e:
+        print(f"\n⚠️  读取manifest.json失败: {str(e)}，从步骤3开始")
+        return 3
 
 
 def main():
@@ -240,6 +370,53 @@ def main():
     print(f"Research ID: {args.research_id}")
     print(f"User Query: {args.query}")
     print(f"{'='*80}\n")
+    
+    # 检查进度
+    start_step = check_progress(args.research_id)
+    
+    # 根据进度决定从哪个步骤开始
+    if start_step == 0:
+        print("\n✅ 所有步骤已完成，无需重新运行")
+        return
+    elif start_step == 3:
+        # 从步骤3开始
+        print("\n从断点继续：步骤3 - 标记文献")
+        step3_mark_literature(args.research_id)
+        print(f"\n{'='*80}")
+        print("✅ 完成！")
+        print(f"{'='*80}\n")
+        return
+    elif start_step == 2:
+        # 从步骤2开始
+        print("\n从断点继续：步骤2 - 分析文献")
+        
+        # 从paper文件夹获取待处理的文献列表
+        paper_dir = Path(f".cache/pmc_literature/{args.research_id}/paper")
+        if not paper_dir.exists():
+            print("❌ paper目录不存在，无法继续")
+            return
+        
+        paper_files = list(paper_dir.glob("*.txt"))
+        if not paper_files:
+            print("❌ 未找到文献全文文件，无法继续")
+            return
+        
+        pmc_ids = [f.stem for f in paper_files]
+        print(f"找到 {len(pmc_ids)} 篇文献需要分析")
+        
+        # 步骤2: 分析文献
+        step2_analyze_literature(pmc_ids, args.research_id, args.query)
+        
+        # 步骤3: 标记文献
+        step3_mark_literature(args.research_id)
+        
+        print(f"\n{'='*80}")
+        print("✅ 完成！")
+        print(f"{'='*80}\n")
+        return
+    else:
+        # 从步骤1开始
+        print("\n从步骤1开始执行")
     
     # 步骤1: 检索文献
     pmc_ids = step1_search_literature(args.query, args.research_id, args.api_key, args.max_results)

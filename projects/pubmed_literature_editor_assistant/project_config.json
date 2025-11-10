@@ -1,0 +1,163 @@
+{
+  "project_name": "pubmed_literature_editor_assistant",
+  "validation_timestamp": "2025-10-30T18:04:10.356003+00:00",
+  "overall_status": "success",
+  "agent_scripts": [
+    {
+      "script_path": "agents/generated_agents/pubmed_literature_editor_assistant/pubmed_literature_editor_assistant.py",
+      "syntax_valid": true,
+      "dependencies": [
+        "os",
+        "json",
+        "logging",
+        "uuid",
+        "typing",
+        "datetime",
+        "nexus_utils.agent_factory",
+        "strands.telemetry",
+        "strands.session.file_session_manager",
+        "argparse"
+      ],
+      "execution_params": [],
+      "argparse_params": [
+        {
+          "name": "-f",
+          "type": "str",
+          "description": "文献文件路径",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "-r",
+          "type": "str",
+          "description": "研究ID，如果不提供则自动生成",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "-v",
+          "type": "str",
+          "description": "版本号",
+          "required": false,
+          "default": "v1",
+          "action": null
+        },
+        {
+          "name": "-m",
+          "type": "str",
+          "description": "操作模式",
+          "required": false,
+          "default": "review",
+          "action": null
+        },
+        {
+          "name": "--session_id",
+          "type": "str",
+          "description": "可选：指定session_id",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "--result_file",
+          "type": "str",
+          "description": "结果文件名（用于result模式）",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "--version1",
+          "type": "str",
+          "description": "第一个版本号（用于compare模式）",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "--version2",
+          "type": "str",
+          "description": "第二个版本号（用于compare模式）",
+          "required": false,
+          "default": null,
+          "action": null
+        }
+      ],
+      "error_message": ""
+    }
+  ],
+  "prompt_files": [
+    {
+      "prompt_path": "generated_agents_prompts/pubmed_literature_editor_assistant/pubmed_literature_editor_assistant.yaml",
+      "tool_count": 19,
+      "valid": true,
+      "error_message": "",
+      "metadata": {
+        "tags": [
+          "academic_review",
+          "journal_editor",
+          "literature_evaluation",
+          "pmc_search"
+        ],
+        "supported_models": [
+          "us.anthropic.claude-3-7-sonnet-20250219-v1:0",
+          "us.anthropic.claude-opus-4-20250514-v1:0"
+        ],
+        "tools_dependencies": [
+          "strands_tools/current_time",
+          "strands_tools/file_read",
+          "strands_tools/file_write",
+          "strands_tools/json_validator",
+          "generated_tools/pubmed_literature_editor_assistant/pmc_literature_tools/search_pmc_literature",
+          "generated_tools/pubmed_literature_editor_assistant/pmc_literature_tools/extract_pmc_metadata",
+          "generated_tools/pubmed_literature_editor_assistant/pmc_literature_tools/extract_pmc_content",
+          "generated_tools/pubmed_literature_editor_assistant/pmc_literature_tools/generate_editor_feedback",
+          "generated_tools/pubmed_literature_editor_assistant/pmc_literature_tools/get_processing_status",
+          "generated_tools/pubmed_literature_editor_assistant/pmc_literature_tools/manage_literature_files",
+          "generated_tools/pubmed_literature_editor_assistant/file_system_tools/create_directory",
+          "generated_tools/pubmed_literature_editor_assistant/file_system_tools/read_json_file",
+          "generated_tools/pubmed_literature_editor_assistant/file_system_tools/write_json_file",
+          "generated_tools/pubmed_literature_editor_assistant/file_system_tools/update_status_file",
+          "generated_tools/pubmed_literature_editor_assistant/file_system_tools/get_status_file",
+          "generated_tools/pubmed_literature_editor_assistant/json_processor/validate_json",
+          "generated_tools/pubmed_literature_editor_assistant/json_processor/validate_editor_feedback",
+          "generated_tools/pubmed_literature_editor_assistant/json_processor/generate_editor_feedback",
+          "generated_tools/pubmed_literature_editor_assistant/json_processor/create_editor_feedback_template"
+        ]
+      },
+      "agent_info": {
+        "name": "pubmed_literature_editor_assistant",
+        "description": "专业的科研期刊主编Agent，能根据用户提供完整文献，结合在线检索PMC文献的工具，完成杂志主编对文章的评审工作",
+        "category": "academic_review"
+      }
+    }
+  ],
+  "generated_tools": [
+    {
+      "tool_path": "generated_tools/pubmed_literature_editor_assistant/pmc_literature_tools.py",
+      "syntax_valid": true,
+      "error_message": ""
+    },
+    {
+      "tool_path": "generated_tools/pubmed_literature_editor_assistant/file_system_tools.py",
+      "syntax_valid": true,
+      "error_message": ""
+    },
+    {
+      "tool_path": "generated_tools/pubmed_literature_editor_assistant/json_processor.py",
+      "syntax_valid": true,
+      "error_message": ""
+    }
+  ],
+  "total_tools": 19,
+  "summary": {
+    "agent_scripts_count": 1,
+    "prompt_files_count": 1,
+    "generated_tool_files_count": 3,
+    "all_scripts_valid": true,
+    "all_tools_valid": true,
+    "all_prompts_valid": true
+  }
+}

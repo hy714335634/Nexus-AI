@@ -1,0 +1,7 @@
+project:
+  created_date: '2025-10-31T04:42:56.130773+00:00'
+  description: AWS网络架构分析Agent，用于自动化采集AWS资源配置信息并生成网络架构拓扑图，满足NIST CSF 2.0 ID.AM-03和CISA
+    CPGs 2.P合规要求
+  name: aws_network_analyzer
+  updated_date: '2025-10-31T04:43:04.464185+00:00'
+  version: 1.0.0
