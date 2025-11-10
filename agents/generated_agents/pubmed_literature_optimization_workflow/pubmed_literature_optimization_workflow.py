@@ -426,7 +426,11 @@ class PubmedLiteratureOptimizationWorkflow:
 {current_content}
 """
                                 writing_response = self._call_agent(
+<<<<<<< HEAD
                                     "generated_agents_prompts/pubmed_literature_writing_assistant/pubmed_literature_optimization_assistant",
+=======
+                                    "generated_agents_prompts/pubmed_literature_writing_assistant/pubmed_literature_writing_assistant",
+>>>>>>> origin/main
                                     writing_prompt
                                 )
                                 writing_result = self._parse_agent_json_response(writing_response)

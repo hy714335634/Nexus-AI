@@ -543,91 +543,6 @@ class PubmedLiteratureWritingAssistant:
         # 如果所有重试都失败
         raise Exception(f"Agent 调用失败，已重试 {max_retries} 次")
     
-<<<<<<< HEAD
-    def _extract_key_fields(self, metadata: Dict) -> Dict:
-        """提取文献元数据的关键字段
-        
-        Args:
-            metadata: 完整的文献元数据字典
-            
-        Returns:
-            只包含关键字段的字典
-        """
-        key_fields = [
-            "pmcid", "title", "abstract", "methods", "results", 
-            "conclusions", "publication_date", "reasoning", "key_findings"
-        ]
-        
-        extracted = {}
-        for field in key_fields:
-            if field in metadata:
-                value = metadata[field]
-                # key_findings如果是列表，需要特殊处理
-                if field == "key_findings" and isinstance(value, list):
-                    extracted[field] = value
-                else:
-                    extracted[field] = value
-        
-        return extracted
-    
-    def _format_metadata_for_agent(self, metadata_list: List[Dict]) -> str:
-        """将元数据列表格式化为紧凑的文本格式以减少token
-        
-        使用紧凑格式：每篇文献用分隔符分隔，字段用简短标签
-        格式说明：[序号]ID:xxx|T:标题|A:摘要|M:方法|R:结果|C:结论|Date:日期|Reason:理由|Findings:发现
-        注意：不限制文本长度，保留完整内容
-        
-        Args:
-            metadata_list: 文献元数据列表
-            
-        Returns:
-            格式化后的紧凑文本字符串
-        """
-        if not metadata_list:
-            return ""
-        
-        formatted_items = []
-        for i, meta in enumerate(metadata_list, 1):
-            # 提取关键字段
-            key_meta = self._extract_key_fields(meta)
-            
-            # 构建紧凑格式
-            parts = [f"[{i}]"]
-            
-            if "pmcid" in key_meta:
-                parts.append(f"ID:{key_meta['pmcid']}")
-            
-            if "title" in key_meta:
-                parts.append(f"T:{key_meta['title']}")
-            
-            if "abstract" in key_meta:
-                parts.append(f"A:{key_meta['abstract']}")
-            
-            if "methods" in key_meta:
-                parts.append(f"M:{key_meta['methods']}")
-            
-            if "results" in key_meta:
-                parts.append(f"R:{key_meta['results']}")
-            
-            if "conclusions" in key_meta:
-                parts.append(f"C:{key_meta['conclusions']}")
-            
-            if "publication_date" in key_meta:
-                parts.append(f"Date:{key_meta['publication_date']}")
-            
-            if "reasoning" in key_meta:
-                parts.append(f"Reason:{key_meta['reasoning']}")
-            
-            if "key_findings" in key_meta and isinstance(key_meta['key_findings'], list):
-                findings = "|".join(key_meta['key_findings'])
-                parts.append(f"Findings:{findings}")
-            
-            formatted_items.append("|".join(parts))
-        
-        return "\n".join(formatted_items)
-    
-=======
->>>>>>> origin/main
     def _parse_agent_json_response(self, agent_response: Any) -> Optional[Dict]:
         """从agent_response中提取并解析JSON结果"""
         try:
@@ -725,32 +640,11 @@ class PubmedLiteratureWritingAssistant:
                     if not all_analysis_results:
                         return "无法加载文献分析结果"
                     
-<<<<<<< HEAD
-                    # 按相关性分数和影响因子排序并取前max_paper_to_init篇
-                    total_papers = len(all_analysis_results)
-                    if total_papers > max_paper_to_init:
-                        # 提取相关性分数和影响因子用于排序
-                        for item in all_analysis_results:
-                            # 提取相关性分数
-                            relevance_score = 0
-                            try:
-                                relevance_score_raw = item.get("relevance_score", 0)
-                                if isinstance(relevance_score_raw, str):
-                                    relevance_score = float(relevance_score_raw)
-                                else:
-                                    relevance_score = float(relevance_score_raw) if relevance_score_raw else 0
-                            except (ValueError, TypeError):
-                                relevance_score = 0
-                            item["_relevance_score_for_sort"] = relevance_score
-                            
-                            # 提取影响因子
-=======
                     # 按影响因子排序并取前max_paper_to_init篇
                     total_papers = len(all_analysis_results)
                     if total_papers > max_paper_to_init:
                         # 提取影响因子并排序
                         for item in all_analysis_results:
->>>>>>> origin/main
                             impact_factor = 0
                             try:
                                 impact_factor_raw = item.get("impact_factor", 0)
@@ -762,40 +656,6 @@ class PubmedLiteratureWritingAssistant:
                                 impact_factor = 0
                             item["_impact_factor_for_sort"] = impact_factor
                         
-<<<<<<< HEAD
-                        # 先按相关性分数从高到低排序，取前max_paper_to_init篇
-                        papers_by_relevance = all_analysis_results.copy()
-                        papers_by_relevance.sort(key=lambda x: x.get("_relevance_score_for_sort", 0), reverse=True)
-                        top_by_relevance = papers_by_relevance[:max_paper_to_init]
-                        
-                        # 再按影响因子从高到低排序，取前max_paper_to_init篇
-                        papers_by_impact = all_analysis_results.copy()
-                        papers_by_impact.sort(key=lambda x: x.get("_impact_factor_for_sort", 0), reverse=True)
-                        top_by_impact = papers_by_impact[:max_paper_to_init]
-                        
-                        # 合并两个结果并去重（使用pmcid作为唯一标识）
-                        selected_pmc_ids_set = set()
-                        selected_results = []
-                        
-                        # 先添加按相关性排序的结果
-                        for item in top_by_relevance:
-                            pmcid = item.get("pmcid")
-                            if pmcid and pmcid not in selected_pmc_ids_set:
-                                selected_pmc_ids_set.add(pmcid)
-                                selected_results.append(item)
-                        
-                        # 再添加按影响因子排序的结果（避免重复）
-                        for item in top_by_impact:
-                            pmcid = item.get("pmcid")
-                            if pmcid and pmcid not in selected_pmc_ids_set:
-                                selected_pmc_ids_set.add(pmcid)
-                                selected_results.append(item)
-                        
-                        # 记录使用的文献ID，以便后续标记为已处理
-                        selected_pmc_ids = list(selected_pmc_ids_set)
-                        
-                        logger.info(f"从 {total_papers} 个文献中：按相关性选择了 {len(top_by_relevance)} 篇，按影响因子选择了 {len(top_by_impact)} 篇，合并去重后共 {len(selected_results)} 篇用于生成初始版本")
-=======
                         # 按影响因子从高到低排序
                         all_analysis_results.sort(key=lambda x: x.get("_impact_factor_for_sort", 0), reverse=True)
                         # 取前max_paper_to_init篇
@@ -805,11 +665,28 @@ class PubmedLiteratureWritingAssistant:
                         selected_pmc_ids = [item.get("pmcid") for item in selected_results if item.get("pmcid")]
                         
                         logger.info(f"从 {total_papers} 个文献中按影响因子排序，选择了前 {len(selected_results)} 篇用于生成初始版本")
->>>>>>> origin/main
                         all_analysis_results = selected_results
                     else:
                         # 如果文献数量不超过限制，记录所有文献ID
                         selected_pmc_ids = [item.get("pmcid") for item in all_analysis_results if item.get("pmcid")]
+                    
+                    # 将all_analysis_results中的元数据字段进行处理，仅保留以下字段：
+                    # pmcid、relevance_score、abstract、conclusions、impact_factor、publication_date、reasoning、key_findings
+                    filtered_analysis_results = []
+                    for item in all_analysis_results:
+                        filtered_item = {
+                            "pmcid": item.get("pmcid"),
+                            "relevance_score": item.get("relevance_score"),
+                            "abstract": item.get("abstract"),
+                            "conclusions": item.get("conclusions"),
+                            "impact_factor": item.get("impact_factor"),
+                            "publication_date": item.get("publication_date"),
+                            "reasoning": item.get("reasoning"),
+                            "key_findings": item.get("key_findings")
+                        }
+                        filtered_analysis_results.append(filtered_item)
+                    
+                    all_analysis_results = filtered_analysis_results
                     
                     logger.info(f"加载了 {len(all_analysis_results)} 个分析结果用于初始版本")
                     
@@ -822,13 +699,8 @@ class PubmedLiteratureWritingAssistant:
 用户研究需求:
 {requirement if requirement else "无特殊需求"}
 ============================================================
-<<<<<<< HEAD
-文献完整分析结果（格式说明：每行一篇文献，格式为[序号]ID:xxx|T:标题|A:摘要|M:方法|R:结果|C:结论|Date:日期|Reason:理由|Findings:发现）:
-{self._format_metadata_for_agent(all_analysis_results)}
-=======
 文献完整分析结果（包含title, abstract, keywords, methods, results, conclusions等）:
 {json.dumps(all_analysis_results, ensure_ascii=False, indent=2)}
->>>>>>> origin/main
 ============================================================
 ### 任务:请基于这些文献的完整分析结果生成初始版本的文献综述，并在完成后以JSON格式返回结果：
 
@@ -846,6 +718,7 @@ class PubmedLiteratureWritingAssistant:
     "message": "成功生成初始版本"
 }}
 ```
+**注意:** 请生成内容详细、有逻辑性、有深度的文献综述，不要罗列词条和内容，不能全部都是引用句子。
 ============================================================
 """
                     
@@ -918,13 +791,8 @@ class PubmedLiteratureWritingAssistant:
 ====================新文献完整分析结果====================
 文献ID: {lit_id}
 
-<<<<<<< HEAD
-**完整分析结果（格式说明：[序号]ID:xxx|T:标题|A:摘要|M:方法|R:结果|C:结论|Date:日期|Reason:理由|Findings:发现）:**
-{self._format_metadata_for_agent([new_literature_metadata])}
-=======
 **完整分析结果（包含title, abstract, keywords, methods, results, conclusions等）:**
 {json.dumps(new_literature_metadata, ensure_ascii=False, indent=2)}
->>>>>>> origin/main
 
 ============================================================
 
@@ -936,14 +804,9 @@ class PubmedLiteratureWritingAssistant:
 你的任务：
 1. 结合文献元数据及之前的分析结果，以及当前版本文献内容，分析判断是否需要引用或已被引用
 2. 针对疑问或不明确的内容，使用工具获取更加详细的内容、表格、结论等
-3. 如需引用或该文献已被引用，至少使用一次工具获取详细内容，并合理的将结果内容整合到现有综述中，详细补充和更新相关内容
+3. 若该文献具备引用价值，请结合以后内容完成整合，可以对之前的内容进行删除和更新，也可以仅补充新内容
 4. 使用`file_write`工具将更新后的综述内容保存到文件
-<<<<<<< HEAD
-5. 保存完成文件后，请总结输出一下主要更新内容
-6. **必须**以JSON格式返回结果，不要返回其他内容：
-=======
 5. **必须**以JSON格式返回结果，不要返回其他内容：
->>>>>>> origin/main
 ```json
 {{
     "status": "success",

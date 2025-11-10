@@ -599,7 +599,9 @@ def create_agent_from_prompt_template(
 
         # 创建 Agent，合并额外参数
         agent_kwargs = {
-            'name': latest_version.agent_name,
+            'name': agent_name.split('/')[-1],
+            'agent_id': agent_name.split('/')[-1],
+            # 'name': latest_version.agent_name,
             'model': model,
             'system_prompt': latest_version.system_prompt,
             'tools': tools_dependencies
