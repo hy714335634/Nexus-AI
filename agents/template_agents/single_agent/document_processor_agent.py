@@ -19,20 +19,22 @@ strands_telemetry.setup_otlp_exporter()
 # 设置环境变量
 os.environ["BYPASS_TOOL_CONSENT"] = "true"
 
-# 创建 agent 的通用参数
-agent_params = {
-    "env": "production",
-    "version": "latest", 
-    "model_id": "default"
-}
+# 创建 agent 的通用参数生成方法
+def create_document_processor_agent(env: str = "production", version: str = "latest", model_id: str = "default"):
+    agent_params = {
+        "env": env,
+        "version": version, 
+        "model_id": model_id
+    }
+    return create_agent_from_prompt_template(
+        agent_name=agent_config_path, 
+        **agent_params
+    )
 
 agent_config_path = "template_prompts/document_processor_agent"
 
 # 使用 agent_factory 创建 agent
-document_processor = create_agent_from_prompt_template(
-    agent_name=agent_config_path, 
-    **agent_params
-)
+document_processor = create_document_processor_agent()
 
 if __name__ == "__main__":
     import argparse
@@ -44,8 +46,16 @@ if __name__ == "__main__":
                        help='测试输入内容')
     parser.add_argument('-f', '--file', type=str, 
                        help='要处理的文件路径')
+    parser.add_argument('-e', '--env', type=str,
+                       default="production",
+                       help='指定Agent运行环境 (默认: production)')
+    parser.add_argument('-v', '--version', type=str,
+                       default="latest",
+                       help='指定Agent版本 (默认: latest)')
     args = parser.parse_args()
-    
+
+    document_processor = create_document_processor_agent(env=args.env, version=args.version)
+
     print(f"✅ Document Processor Agent 创建成功: {document_processor.name}")
     
     # 测试 agent 功能

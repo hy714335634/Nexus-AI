@@ -16,19 +16,21 @@ strands_telemetry.setup_otlp_exporter()
 os.environ["BYPASS_TOOL_CONSENT"] = "true"
 
 
-# 定义 agent 创建的通用参数
-agent_params = {
-    "env": "production",
-    "version": "latest", 
-    "model_id": "default"
-}
+# 定义 agent 创建的通用方法
+def create_requirements_analyzer(env: str = "production", version: str = "latest", model_id: str = "default"):
+    agent_params = {
+        "env": env,
+        "version": version, 
+        "model_id": model_id
+    }
+    return create_agent_from_prompt_template(
+        agent_name=agent_config_path, **agent_params
+    )
 
 agent_config_path = "template_prompts/template_requirements_analyzer"
 
 # 使用agent_factory创建agent
-requirements_analyzer = create_agent_from_prompt_template(
-    agent_name=agent_config_path, **agent_params
-)
+requirements_analyzer = create_requirements_analyzer()
 
 
 if __name__ == "__main__":
@@ -39,8 +41,16 @@ if __name__ == "__main__":
     parser.add_argument('-i', '--input', type=str, 
                        default="你是谁，你有什么能力，你具备哪些工具",
                        help='测试输入内容')
+    parser.add_argument('-e', '--env', type=str,
+                       default="production",
+                       help='指定Agent运行环境 (默认: production)')
+    parser.add_argument('-v', '--version', type=str,
+                       default="latest",
+                       help='指定Agent版本 (默认: latest)')
     args = parser.parse_args()
-    
+
+    requirements_analyzer = create_requirements_analyzer(env=args.env, version=args.version)
+
     print(f"✅ Agent 创建成功: {requirements_analyzer.name}")
     
     # 运行完整工作流

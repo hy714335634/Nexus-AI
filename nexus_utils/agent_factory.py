@@ -564,7 +564,7 @@ def create_agent_from_prompt_template(
                     model_id=supported_model,
                     max_tokens=agent_template.get_environment_config(env).max_tokens,
                     temperature=agent_template.get_environment_config(env).temperature,
-                    top_p=agent_template.get_environment_config(env).top_p,
+                    # top_p=agent_template.get_environment_config(env).top_p,
                     streaming=agent_template.get_environment_config(env).streaming,
                     boto_session=session,
                     boto_client_config=boto_config
@@ -577,7 +577,7 @@ def create_agent_from_prompt_template(
                     model_id=default_model_id,
                     max_tokens=agent_template.get_environment_config(env).max_tokens,
                     temperature=agent_template.get_environment_config(env).temperature,
-                    top_p=agent_template.get_environment_config(env).top_p,
+                    # top_p=agent_template.get_environment_config(env).top_p,
                     streaming=agent_template.get_environment_config(env).streaming,
                     boto_session=session,
                     boto_client_config=boto_config
@@ -589,7 +589,7 @@ def create_agent_from_prompt_template(
                 model_id=config.get_bedrock_config().get(model_config_key),
                 max_tokens=agent_template.get_environment_config(env).max_tokens,
                 temperature=agent_template.get_environment_config(env).temperature,
-                top_p=agent_template.get_environment_config(env).top_p,
+                # top_p=agent_template.get_environment_config(env).top_p,
                 streaming=agent_template.get_environment_config(env).streaming,
                 boto_session=session,
                 boto_client_config=boto_config

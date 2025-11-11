@@ -33,18 +33,20 @@ os.environ["OTEL_EXPORTER_OTLP_ENDPOINT"] = "http://localhost:4318"
 strands_telemetry = StrandsTelemetry()
 strands_telemetry.setup_otlp_exporter()
 
-# 创建 agent 的通用参数
-agent_params = {
-    "env": "production",
-    "version": "latest", 
-    "model_id": "default"
-}
+# 创建 agent 的通用参数生成方法
+def create_html2pptx_agent(env: str = "production", version: str = "latest", model_id: str = "default"):
+    agent_params = {
+        "env": env,
+        "version": version, 
+        "model_id": model_id
+    }
+    return create_agent_from_prompt_template(
+        agent_name="generated_agents_prompts/html2pptx/html2pptx_agent", 
+        **agent_params
+    )
 
-# 使用 agent_factory 创建 agent
-html2pptx_agent = create_agent_from_prompt_template(
-    agent_name="generated_agents_prompts/html2pptx/html2pptx_agent", 
-    **agent_params
-)
+# 使用 agent_factory 创建默认 agent
+html2pptx_agent = create_html2pptx_agent()
 
 def convert_html_to_pptx(
     html_path: str, 
@@ -260,6 +262,12 @@ def clear_cache(verbose: bool = False) -> bool:
 def main():
     """命令行入口函数"""
     parser = argparse.ArgumentParser(description='HTML2PPTX - 将HTML文档转换为PPTX格式的演示文稿')
+    parser.add_argument('-e', '--env', type=str,
+                        default="production",
+                        help='指定Agent运行环境 (默认: production)')
+    parser.add_argument('-v', '--version', type=str,
+                        default="latest",
+                        help='指定Agent版本 (默认: latest)')
     
     # 子命令
     subparsers = parser.add_subparsers(dest='command', help='可用命令')
@@ -289,6 +297,10 @@ def main():
     
     # 解析参数
     args = parser.parse_args()
+
+    # 根据参数创建Agent
+    global html2pptx_agent
+    html2pptx_agent = create_html2pptx_agent(env=args.env, version=args.version)
     
     # 如果没有指定命令，显示帮助
     if not args.command:

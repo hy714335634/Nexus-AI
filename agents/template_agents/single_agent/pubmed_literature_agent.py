@@ -301,6 +301,12 @@ if __name__ == "__main__":
     parser.add_argument('-p', '--pmcid', type=str,
                        default=None,
                        help='PMC ID (用于citation和extract模式)')
+    parser.add_argument('-e', '--env', type=str,
+                       default='production',
+                       help='指定Agent运行环境 (默认: production)')
+    parser.add_argument('-v', '--version', type=str,
+                       default='latest',
+                       help='指定Agent版本 (默认: latest)')
     args = parser.parse_args()
     
     session_id = None
@@ -316,8 +322,8 @@ if __name__ == "__main__":
     
     # 创建智能体
     agent_params = {
-        "env": "production",
-        "version": "latest",
+        "env": args.env,
+        "version": args.version,
         "model_id": "default"
     }
     

@@ -1,5 +1,6 @@
 # Agent模板配置文件
 # 用于管理所有可用的Agent模板，包含描述信息和路径
+# 所有单Agent模板脚本均支持命令行参数 -e/--env 与 -v/--version，用于指定Agent运行环境与版本（默认production/latest）
 
 templates:
   # 需求分析师模板 - 文档处理专家

@@ -19,19 +19,21 @@ strands_telemetry.setup_otlp_exporter()
 # 设置环境变量
 os.environ["BYPASS_TOOL_CONSENT"] = "true"
 
-# 创建 agent 的通用参数
-agent_params = {
-    "env": "production",
-    "version": "latest", 
-    "model_id": "default"
-}
+# 创建 agent 的通用参数生成方法
+def create_api_integration_agent(env: str = "production", version: str = "latest", model_id: str = "default"):
+    agent_params = {
+        "env": env,
+        "version": version,
+        "model_id": model_id
+    }
+    return create_agent_from_prompt_template(
+        agent_name=agent_config_path,
+        **agent_params
+    )
 
 agent_config_path = "template_prompts/api_integration_agent"
 # 使用 agent_factory 创建 agent
-api_integration = create_agent_from_prompt_template(
-    agent_name=agent_config_path, 
-    **agent_params
-)
+api_integration = create_api_integration_agent()
 
 if __name__ == "__main__":
     import argparse
@@ -43,8 +45,16 @@ if __name__ == "__main__":
                        help='测试输入内容')
     parser.add_argument('-u', '--url', type=str, 
                        help='API端点URL')
+    parser.add_argument('-e', '--env', type=str,
+                       default="production",
+                       help='指定Agent运行环境 (默认: production)')
+    parser.add_argument('-v', '--version', type=str,
+                       default="latest",
+                       help='指定Agent版本 (默认: latest)')
     args = parser.parse_args()
-    
+
+    api_integration = create_api_integration_agent(env=args.env, version=args.version)
+
     print(f"✅ API Integration Agent 创建成功: {api_integration.name}")
     
     # 测试 agent 功能

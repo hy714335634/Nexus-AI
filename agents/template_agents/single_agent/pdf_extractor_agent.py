@@ -48,7 +48,7 @@ os.environ["BYPASS_TOOL_CONSENT"] = "true"
 class PDFExtractorAgent:
     """PDF内容提取Agent，处理PDF文件并提取文本内容"""
     
-    def __init__(self, cache_dir: str = ".cache"):
+    def __init__(self, cache_dir: str = ".cache", env: str = "production", version: str = "latest", model_id: str = "default"):
         """
         初始化PDF提取Agent
         
@@ -58,6 +58,9 @@ class PDFExtractorAgent:
         self.cache_dir = cache_dir
         self.multimodal_agent = None
         self.state = {}
+        self.env = env
+        self.version = version
+        self.model_id = model_id
         
         # 创建缓存目录
         Path(cache_dir).mkdir(parents=True, exist_ok=True)
@@ -71,9 +74,9 @@ class PDFExtractorAgent:
             
             # 创建 agent 的通用参数
             agent_params = {
-                "env": "production",
-                "version": "latest", 
-                "model_id": "default"
+                "env": self.env,
+                "version": self.version, 
+                "model_id": self.model_id
             }
             
             # 使用 agent_factory 创建多模态分析 agent
@@ -361,11 +364,13 @@ def main():
     parser.add_argument('-f', '--force', action='store_true', help='强制重新开始处理')
     parser.add_argument('-s', '--status', action='store_true', help='只显示处理状态')
     parser.add_argument('--no-cleanup', action='store_true', help='不清理临时文件')
+    parser.add_argument('-e', '--env', type=str, default='production', help='指定Agent运行环境 (默认: production)')
+    parser.add_argument('-v', '--version', type=str, default='latest', help='指定Agent版本 (默认: latest)')
     
     args = parser.parse_args()
     
     # 创建PDF提取Agent
-    extractor = PDFExtractorAgent(cache_dir=args.cache)
+    extractor = PDFExtractorAgent(cache_dir=args.cache, env=args.env, version=args.version)
     
     if args.status:
         # 只显示处理状态
