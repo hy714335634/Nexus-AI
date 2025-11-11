@@ -13,7 +13,7 @@
 
 ### 1.2 克隆仓库
 ```bash
-git clone <repo-url>
+git clone https://github.com/hy714335634/Nexus-AI.git
 cd Nexus-AI
 ```
 

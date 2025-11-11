@@ -21,6 +21,7 @@ tests/
 main.py
 docs
 backup/
+nohup.out
 
 # 隐藏文件和目录
 .DS_Store

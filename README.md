@@ -21,6 +21,63 @@
 
 Nexus-AI 是一个基于 AWS Bedrock 构建的开源企业级 AI 代理开发平台，通过"Agent Build Agent"的创新方法和自举式进化能力，让企业业务人员能够通过自然语言快速构建、部署和管理复杂的 AI 代理系统。
 
+## 🧰 环境准备
+
+### AWS 资源与网络
+- **AMI**：`Amazon Linux 2023 (kernel 6.1)`
+- **实例规格**：`m7i.large` 或 `m6a.large`（≥ 2 vCPU / 4 GB RAM）
+- **存储**：50 GB gp3
+- **区域**：推荐 `us-west-2`（可按需调整）
+- **IAM**：绑定具备 Amazon Bedrock、ECR、CloudWatch 读写权限的角色
+- **安全组**：开放 SSH 22 端口；如需访问 Jaeger UI，开放 16686
+
+> 检查点：SSH 登录后执行 `aws sts get-caller-identity`，确保凭证有效。
+
+### 系统依赖安装
+```bash
+sudo yum install -y git wget htop
+sudo dnf install -y python3.11
+python3.11 --version
+git --version
+```
+
+### 安装 uv（Python 包管理器）
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+source ~/.bashrc
+uv --version
+```
+
+### 安装 Docker（可选但推荐）
+```bash
+sudo dnf update -y
+sudo dnf install -y docker
+sudo systemctl enable docker
+sudo systemctl start docker
+sudo usermod -aG docker $USER
+newgrp docker
+docker run --rm hello-world
+```
+
+### 运行 Jaeger（可选诊断工具）
+```bash
+docker run -d --name jaeger \
+  -e COLLECTOR_ZIPKIN_HOST_PORT=:9411 \
+  -e COLLECTOR_OTLP_ENABLED=true \
+  -p 6831:6831/udp \
+  -p 6832:6832/udp \
+  -p 5778:5778 \
+  -p 16686:16686 \
+  -p 4317:4317 \
+  -p 4318:4318 \
+  -p 14250:14250 \
+  -p 14268:14268 \
+  -p 14269:14269 \
+  -p 9411:9411 \
+  jaegertracing/all-in-one:latest
+```
+
 ### 🎯 核心价值
 
 - **🚀 极速构建**：从需求到部署，传统开发需要2-6个月，Nexus-AI仅需2-5天
@@ -263,39 +320,38 @@ Nexus-AI/
 
 ## 🚀 快速开始
 
-### 环境要求
-
-- Python 3.12+
-- AWS CLI 配置
-- Docker (可选)
-
-### 安装步骤
-
-1. **克隆项目**
+### 1. 拉取代码并进入项目目录
 ```bash
 git clone https://github.com/hy714335634/Nexus-AI.git
-cd nexus-ai
+cd Nexus-AI
 ```
 
-2. **创建虚拟环境**
+### 2. 初始化 Python 环境
 ```bash
-python -m venv .venv
-source .venv/bin/activate  # Linux/Mac
-# 或
-.venv\Scripts\activate     # Windows
+python3.11 -m venv .nexus-ai
+source .nexus-ai/bin/activate
+echo 'source $HOME/Nexus-AI/.nexus-ai/bin/activate' >> ~/.bashrc
+echo 'cd $HOME/Nexus-AI/' >> ~/.bashrc
+source ~/.bashrc
+python --version  # 应显示 3.11.x
 ```
 
-3. **安装依赖**
+> 如需保持 Python 3.12+，也可在本地环境直接创建 `.venv` 并激活。
+
+### 3. 安装依赖
 ```bash
-pip install -r requirements.txt
+uv pip install --upgrade pip
+uv pip install -r requirements.txt
+uv pip list | head
 ```
+> 国内网络环境可追加 `--index-url https://pypi.tuna.tsinghua.edu.cn/simple`
 
-4. **配置AWS凭证**
+### 4. 配置 AWS 凭证
 ```bash
 aws configure
 ```
 
-5. **启动Web界面**
+### 5. 启动 Web 界面（可选）
 ```bash
 cd web
 streamlit run streamlit_app.py
@@ -308,6 +364,13 @@ streamlit run streamlit_app.py
 3. 点击"开始构建"按钮
 4. 观察实时构建进度
 5. 构建完成后测试你的Agent
+
+## 🔍 功能与构建验证
+
+- 环境验证示例：`python agents/system_agents/magician.py  -i "aws美东一的m8g.xlarge什么价格"`
+- 长任务可采用 `nohup python -u agents/system_agents/agent_build_workflow/agent_build_workflow.py -i "<你的需求>" | tee logs/temp.log &`
+- 查看实时日志：`tail -f nohup.out`
+- 已生成项目位于 `projects/<project_name>/`，包含 `agents/`、`project_config.json`、`workflow_summary_report.md` 等产物
 
 ## 📖 使用指南
 ### 示例：构建HTML转PPT Agent
