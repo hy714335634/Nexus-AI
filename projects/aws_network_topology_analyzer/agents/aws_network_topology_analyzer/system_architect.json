@@ -1,0 +1,336 @@
+{
+  "system_design": {
+    "design_overview": {
+      "project_name": "aws_network_topology_analyzer",
+      "version": "1.0",
+      "date": "2025-11-11",
+      "design_scope": "设计AWS网络拓扑分析Agent，用于扫描AWS账号中的网络资源，构建网络拓扑关系图，并支持自然语言问答，辅助用户进行网络和安全分析",
+      "design_principles": [
+        "模块化设计，分离关注点",
+        "可扩展性，支持添加新的资源类型和查询功能",
+        "容错性，处理API错误和数据不一致",
+        "可观测性，提供详细的操作日志",
+        "安全性，不存储敏感凭证"
+      ],
+      "key_decisions": [
+        "采用单Agent架构，集成所有必要功能",
+        "使用Neo4j图数据库存储网络拓扑关系",
+        "按层级结构组织AWS资源",
+        "优化资源扫描顺序以确保数据完整性",
+        "使用自然语言处理转换用户问题为Neo4j查询"
+      ],
+      "workflow_type": "single_agent",
+      "recommended_templates": ["api_integration_agent"]
+    },
+    "architecture": {
+      "system_context": "AWS网络拓扑分析Agent在用户本地环境运行，通过AWS Boto3 SDK连接到AWS云服务，扫描网络资源，并将资源关系存储在本地Neo4j图数据库中。用户通过自然语言与Agent交互，查询网络拓扑信息。",
+      "agent_topology": "单Agent架构，集成AWS资源扫描、Neo4j数据存储和自然语言问答功能",
+      "interaction_model": "用户通过自然语言与Agent交互，Agent处理请求，查询或更新Neo4j数据库，并返回结果",
+      "technology_stack": {
+        "sdk": "Strands SDK",
+        "runtime": "Local",
+        "integrations": [
+          "AWS Boto3 SDK",
+          "Neo4j Python Driver",
+          "AWS Bedrock (用于自然语言处理)"
+        ]
+      }
+    },
+    "agents": [
+      {
+        "name": "aws_network_topology_analyzer",
+        "purpose": "分析AWS账号中的网络拓扑结构，存储在Neo4j图数据库中，并支持自然语言查询",
+        "responsibilities": [
+          "AWS认证和配置管理",
+          "AWS网络资源扫描",
+          "Neo4j数据库操作",
+          "资源关系建模",
+          "自然语言问答",
+          "错误处理和数据修复"
+        ],
+        "interfaces": {
+          "inputs": [
+            "AWS Profile名称",
+            "AWS区域",
+            "扫描命令",
+            "自然语言查询"
+          ],
+          "outputs": [
+            "扫描结果摘要",
+            "查询结果",
+            "错误信息和建议",
+            "操作状态"
+          ]
+        },
+        "dependencies": [
+          "AWS Boto3 SDK",
+          "Neo4j Python Driver",
+          "AWS Bedrock"
+        ],
+        "implementation_notes": [
+          "基于api_integration_agent模板开发",
+          "添加AWS Boto3集成",
+          "实现Neo4j图数据库操作",
+          "开发资源扫描和关系建模逻辑",
+          "实现自然语言到Neo4j查询的转换"
+        ],
+        "recommended_template": "api_integration_agent"
+      }
+    ],
+    "data_models": [
+      {
+        "name": "AWS资源节点模型",
+        "schema": "Neo4j节点，包含资源ID、类型、名称、ARN、区域、创建时间等属性",
+        "validation_rules": [
+          "资源ID必须唯一",
+          "资源类型必须为预定义类型之一",
+          "区域必须为有效的AWS区域"
+        ],
+        "relationships": [
+          "与Account节点的从属关系",
+          "与Region节点的从属关系",
+          "与其他资源节点的关联关系"
+        ]
+      },
+      {
+        "name": "AWS资源关系模型",
+        "schema": "Neo4j边，包含关系类型、创建时间、属性等",
+        "validation_rules": [
+          "关系两端的节点必须存在",
+          "关系类型必须为预定义类型之一"
+        ],
+        "relationships": [
+          "连接各类AWS资源节点"
+        ]
+      },
+      {
+        "name": "Neo4j层级结构模型",
+        "schema": "按Account->Region->Network Service->VPC->Routetable->Security Group->EC2/RDS等层级组织的图结构",
+        "validation_rules": [
+          "子资源必须与父资源建立关系",
+          "资源层级必须符合预定义结构"
+        ],
+        "relationships": [
+          "层级间的父子关系",
+          "同级资源间的关联关系"
+        ]
+      },
+      {
+        "name": "查询结果模型",
+        "schema": "包含查询结果、元数据、执行时间等信息的JSON结构",
+        "validation_rules": [
+          "结果必须包含查询状态",
+          "错误情况下必须包含错误信息"
+        ],
+        "relationships": [
+          "与原始查询的关联"
+        ]
+      }
+    ],
+    "interaction_flows": [
+      {
+        "name": "AWS认证流程",
+        "description": "用户提供AWS Profile进行认证",
+        "steps": [
+          {
+            "step": "接收用户提供的AWS Profile名称",
+            "agent": "aws_network_topology_analyzer",
+            "action": "验证Profile是否存在",
+            "data": "Profile名称"
+          },
+          {
+            "step": "加载AWS凭证",
+            "agent": "aws_network_topology_analyzer",
+            "action": "使用Boto3创建会话",
+            "data": "AWS凭证"
+          },
+          {
+            "step": "验证凭证有效性",
+            "agent": "aws_network_topology_analyzer",
+            "action": "执行测试API调用",
+            "data": "API响应"
+          },
+          {
+            "step": "返回认证结果",
+            "agent": "aws_network_topology_analyzer",
+            "action": "通知用户认证状态",
+            "data": "认证成功/失败信息"
+          }
+        ]
+      },
+      {
+        "name": "资源扫描流程",
+        "description": "扫描指定区域的AWS网络资源",
+        "steps": [
+          {
+            "step": "接收扫描命令",
+            "agent": "aws_network_topology_analyzer",
+            "action": "解析扫描参数",
+            "data": "区域、资源类型等"
+          },
+          {
+            "step": "连接Neo4j数据库",
+            "agent": "aws_network_topology_analyzer",
+            "action": "建立数据库连接",
+            "data": "连接参数"
+          },
+          {
+            "step": "扫描Account和Region资源",
+            "agent": "aws_network_topology_analyzer",
+            "action": "创建基础节点",
+            "data": "账号和区域信息"
+          },
+          {
+            "step": "扫描网络服务资源",
+            "agent": "aws_network_topology_analyzer",
+            "action": "获取VPC、TGW等资源",
+            "data": "网络服务资源数据"
+          },
+          {
+            "step": "扫描VPC内资源",
+            "agent": "aws_network_topology_analyzer",
+            "action": "获取子网、路由表等资源",
+            "data": "VPC内资源数据"
+          },
+          {
+            "step": "扫描安全组和计算资源",
+            "agent": "aws_network_topology_analyzer",
+            "action": "获取安全组、EC2、RDS等资源",
+            "data": "安全和计算资源数据"
+          },
+          {
+            "step": "创建资源关系",
+            "agent": "aws_network_topology_analyzer",
+            "action": "在Neo4j中建立资源间关系",
+            "data": "资源关系数据"
+          },
+          {
+            "step": "验证数据完整性",
+            "agent": "aws_network_topology_analyzer",
+            "action": "检查缺失节点和关系",
+            "data": "完整性报告"
+          },
+          {
+            "step": "返回扫描结果",
+            "agent": "aws_network_topology_analyzer",
+            "action": "生成扫描摘要",
+            "data": "扫描结果统计"
+          }
+        ]
+      },
+      {
+        "name": "自然语言查询流程",
+        "description": "处理用户的自然语言问题",
+        "steps": [
+          {
+            "step": "接收用户问题",
+            "agent": "aws_network_topology_analyzer",
+            "action": "解析问题意图",
+            "data": "自然语言问题"
+          },
+          {
+            "step": "转换为Neo4j查询",
+            "agent": "aws_network_topology_analyzer",
+            "action": "生成Cypher查询语句",
+            "data": "Cypher查询"
+          },
+          {
+            "step": "执行数据库查询",
+            "agent": "aws_network_topology_analyzer",
+            "action": "在Neo4j中执行查询",
+            "data": "查询参数"
+          },
+          {
+            "step": "处理查询结果",
+            "agent": "aws_network_topology_analyzer",
+            "action": "格式化结果数据",
+            "data": "原始查询结果"
+          },
+          {
+            "step": "生成自然语言回答",
+            "agent": "aws_network_topology_analyzer",
+            "action": "将结果转换为自然语言",
+            "data": "格式化结果"
+          },
+          {
+            "step": "返回回答给用户",
+            "agent": "aws_network_topology_analyzer",
+            "action": "展示查询结果",
+            "data": "自然语言回答"
+          }
+        ]
+      },
+      {
+        "name": "错误处理流程",
+        "description": "处理数据插入错误和冲突",
+        "steps": [
+          {
+            "step": "检测错误",
+            "agent": "aws_network_topology_analyzer",
+            "action": "捕获异常",
+            "data": "错误信息"
+          },
+          {
+            "step": "分析错误原因",
+            "agent": "aws_network_topology_analyzer",
+            "action": "分类错误类型",
+            "data": "错误类型和详情"
+          },
+          {
+            "step": "尝试自动修复",
+            "agent": "aws_network_topology_analyzer",
+            "action": "执行补充查询或修复操作",
+            "data": "修复策略"
+          },
+          {
+            "step": "验证修复结果",
+            "agent": "aws_network_topology_analyzer",
+            "action": "检查修复是否成功",
+            "data": "修复状态"
+          },
+          {
+            "step": "记录错误和修复过程",
+            "agent": "aws_network_topology_analyzer",
+            "action": "生成日志",
+            "data": "详细日志"
+          },
+          {
+            "step": "通知用户",
+            "agent": "aws_network_topology_analyzer",
+            "action": "提供错误反馈和建议",
+            "data": "用户友好的错误信息"
+          }
+        ]
+      }
+    ],
+    "security_considerations": [
+      "不直接存储AWS凭证，仅使用用户提供的Profile",
+      "Neo4j数据库连接使用安全认证",
+      "敏感配置信息加密存储",
+      "限制查询结果中敏感信息的显示",
+      "实现访问控制，确保只有授权用户能访问数据"
+    ],
+    "error_handling": [
+      "AWS API错误：重试机制，指数退避策略",
+      "Neo4j连接错误：连接池管理，自动重连",
+      "数据插入错误：事务回滚，错误日志，自动修复尝试",
+      "查询转换错误：提供明确的错误信息，建议替代查询",
+      "资源扫描错误：继续扫描其他资源，记录错误资源"
+    ],
+    "performance_considerations": [
+      "批量处理API请求，减少API调用次数",
+      "优化Neo4j查询，使用索引提高查询性能",
+      "缓存常用查询结果，减少数据库负载",
+      "并行扫描独立资源，提高扫描速度",
+      "分页处理大量资源，避免内存溢出"
+    ],
+    "monitoring_strategy": [
+      "详细的操作日志，记录关键操作和错误",
+      "资源扫描统计，跟踪扫描进度和结果",
+      "查询性能监控，识别慢查询",
+      "数据库连接状态监控，确保连接可用",
+      "用户交互分析，优化常用查询模式"
+    ]
+  },
+  "design_rationale": "本设计采用单Agent架构，因为所有功能都围绕AWS网络拓扑分析这一核心任务，可以由一个集成了必要工具的Agent完成。选择api_integration_agent模板作为基础，因为它提供了灵活的API集成框架，可以很好地适应AWS Boto3 SDK和Neo4j数据库的集成需求。\n\n系统设计中特别关注资源扫描顺序优化，确保在创建资源关系时两端的节点都已存在，这对于构建准确的网络拓扑图至关重要。按照Account->Region->Network Service->VPC->Routetable->Security Group->EC2/RDS的层级结构组织资源，既符合AWS资源的实际组织方式，也便于用户理解和查询。\n\n自然语言查询功能通过AWS Bedrock实现，将用户问题转换为Neo4j的Cypher查询语句，这样用户无需学习复杂的查询语言就能获取所需信息。错误处理和数据修复机制确保了系统的稳定性和数据的完整性，即使在API限流或临时故障的情况下也能正常工作。\n\n性能优化方面，采用批量处理API请求、缓存查询结果和并行扫描等策略，确保系统能在合理时间内完成资源扫描和查询操作。安全考虑方面，系统不直接存储AWS凭证，只使用用户提供的Profile，并对敏感配置信息进行加密存储，保护用户数据安全。"
+}

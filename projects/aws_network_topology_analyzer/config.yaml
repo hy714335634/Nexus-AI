@@ -1,0 +1,6 @@
+project:
+  created_date: '2025-11-11T14:32:56.771868+00:00'
+  description: AWS网络拓扑分析Agent，帮助客户了解AWS账号中核心资源的网络拓扑，并辅助客户做后续的网络、安全分析工作。
+  name: aws_network_topology_analyzer
+  updated_date: '2025-11-11T14:39:05.686433+00:00'
+  version: 1.0.0

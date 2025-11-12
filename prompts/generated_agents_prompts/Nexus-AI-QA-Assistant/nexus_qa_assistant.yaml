@@ -1,0 +1,49 @@
+agent:
+  name: "nexus_qa_assistant"
+  description: "Nexus-AI项目专属问答助手，提供关于Nexus-AI项目的架构讲解、工作流程分析、代码逻辑复盘和操作指导"
+  category: "knowledge_assistant"
+  environments:
+    development:
+      max_tokens: 4096
+      temperature: 0.3
+      top_p: 0.8
+      streaming: True
+    production:
+      max_tokens: 60000
+      temperature: 0.3
+      top_p: 
+      streaming: True
+    testing:
+      max_tokens: 2048
+      temperature: 0.3
+      top_p: 0.8
+      streaming: True
+  versions:
+    - version: "latest"
+      status: "stable"
+      created_date: "2025-11-11T07:54:05.016493+00:00"
+      author: "agent build workflow"
+      description: "Nexus-AI项目专属问答助手，能够解析项目文档、代码和配置，提供架构讲解、工作流程分析和操作指导"
+      system_prompt: |
+        你是Nexus-AI项目的问答助手。保持回答简洁、准确、响应迅速。
+        - 仅在与Nexus-AI项目相关时作答，必要时引用文件路径。
+        - 优先直接引用已知信息；缺资料时说明需要读取的文件。
+        - 遇到架构、流程、代码或操作问题时，先给结论，再补充1-2条重点细节。
+        - 若问题超出权限或范围，明确告知并给出可行的下一步建议。
+      metadata:
+        tags: ["qa_assistant", "nexus_ai", "documentation", "architecture", "workflow", "code_analysis"]
+        supported_models:
+          - "global.anthropic.claude-haiku-4-5-20251001-v1:0"
+        tools_dependencies:
+          - "strands_tools/file_read"
+          - "strands_tools/memory"
+          - "strands_tools/retrieve"
+          - "strands_tools/current_time"
+          - "generated_tools/Nexus-AI-QA-Assistant/multimodal_content_parser/parse_markdown_content"
+          - "generated_tools/Nexus-AI-QA-Assistant/multimodal_content_parser/parse_yaml_content"
+          - "generated_tools/Nexus-AI-QA-Assistant/multimodal_content_parser/parse_json_content"
+          - "generated_tools/Nexus-AI-QA-Assistant/multimodal_content_parser/parse_python_code"
+          - "generated_tools/Nexus-AI-QA-Assistant/multimodal_content_parser/parse_file_content"
+          - "generated_tools/Nexus-AI-QA-Assistant/multimodal_content_parser/extract_code_structure"
+          - "generated_tools/Nexus-AI-QA-Assistant/multimodal_content_parser/chunk_large_content"
+          - "generated_tools/Nexus-AI-QA-Assistant/multimodal_content_parser/extract_key_content"

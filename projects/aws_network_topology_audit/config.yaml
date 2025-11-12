@@ -1,0 +1,6 @@
+project:
+  created_date: '2025-11-11T14:32:53.490668+00:00'
+  description: AWS网络拓扑审计工具，用于收集和可视化AWS环境中的网络拓扑信息，包括跨区域、跨账户的VPC连接，以及通过TGW、VPC Peering、PrivateLink等方式建立的连接。该工具支持高亮显示网络边界，以满足审计要求。
+  name: aws_network_topology_audit
+  updated_date: '2025-11-11T14:32:59.294320+00:00'
+  version: 1.0.0

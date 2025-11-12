@@ -1,0 +1,2612 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nexus-AI 动手实验手册</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" />
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #0f172a;
+        --bg-secondary: #030712;
+        --bg-card: rgba(15, 23, 42, 0.7);
+        --panel: rgba(15, 23, 42, 0.45);
+        --surface: rgba(15, 23, 42, 0.65);
+        --text-primary: #f1f5f9;
+        --text-secondary: rgba(226, 232, 240, 0.86);
+        --muted: rgba(148, 163, 184, 0.88);
+        --accent: #38bdf8;
+        --accent-strong: #0ea5e9;
+        --border: rgba(148, 163, 184, 0.2);
+        --divider: rgba(148, 163, 184, 0.3);
+        --shadow: 0 24px 48px -24px rgba(15, 23, 42, 0.6);
+        --font-body: "Inter", "PingFang SC", "Source Han Sans", system-ui,
+          -apple-system, BlinkMacSystemFont, sans-serif;
+        --transition: all 0.3s ease;
+        --glow1: rgba(56, 189, 248, 0.18);
+        --glow2: rgba(59, 130, 246, 0.15);
+        --glow3: rgba(236, 72, 153, 0.12);
+        --blockquote-bg: rgba(56, 189, 248, 0.12);
+        --btn-bg: rgba(15, 23, 42, 0.45);
+        --btn-border: rgba(148, 163, 184, 0.35);
+        --copy-bg: rgba(226, 232, 240, 0.08);
+        --hero-base: rgba(15, 23, 42, 0.65);
+        --hero-gradient: rgba(14, 165, 233, 0.16);
+        --badge-bg: rgba(59, 130, 246, 0.14);
+        --badge-border: rgba(59, 130, 246, 0.25);
+        --badge-color: rgba(219, 234, 254, 0.95);
+        --fab-bg: rgba(15, 23, 42, 0.75);
+        --code-bg: rgba(15, 23, 42, 0.65);
+      }
+
+      [data-theme="light"] {
+        --bg: #f8fafc;
+        --bg-secondary: #dbeafe;
+        --bg-card: rgba(255, 255, 255, 0.95);
+        --panel: rgba(15, 23, 42, 0.04);
+        --surface: rgba(255, 255, 255, 0.95);
+        --text-primary: #0f172a;
+        --text-secondary: rgba(30, 41, 59, 0.78);
+        --muted: rgba(71, 85, 105, 0.82);
+        --accent: #2563eb;
+        --accent-strong: #1d4ed8;
+        --border: rgba(15, 23, 42, 0.08);
+        --divider: rgba(100, 116, 139, 0.38);
+        --shadow: 0 18px 36px -20px rgba(30, 64, 175, 0.25);
+        --glow1: rgba(96, 165, 250, 0.28);
+        --glow2: rgba(129, 140, 248, 0.24);
+        --glow3: rgba(244, 114, 182, 0.2);
+        --blockquote-bg: rgba(59, 130, 246, 0.12);
+        --btn-bg: rgba(255, 255, 255, 0.78);
+        --btn-border: rgba(148, 163, 184, 0.3);
+        --copy-bg: rgba(226, 232, 240, 0.6);
+        --hero-base: rgba(255, 255, 255, 0.9);
+        --hero-gradient: rgba(79, 70, 229, 0.12);
+        --badge-bg: rgba(37, 99, 235, 0.12);
+        --badge-border: rgba(37, 99, 235, 0.2);
+        --badge-color: rgba(30, 41, 59, 0.88);
+        --fab-bg: rgba(255, 255, 255, 0.9);
+        --code-bg: rgba(15, 23, 42, 0.08);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        font-family: var(--font-body);
+        background: linear-gradient(160deg, var(--bg) 0%, var(--bg-secondary) 100%);
+        color: var(--text-primary);
+        scroll-behavior: smooth;
+        line-height: 1.6;
+        min-height: 100%;
+        overflow-x: hidden;
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background: radial-gradient(circle at 20% 20%, var(--glow1), transparent 42%),
+          radial-gradient(circle at 80% 20%, var(--glow2), transparent 38%),
+          radial-gradient(circle at 50% 80%, var(--glow3), transparent 48%);
+        z-index: -2;
+        opacity: 0.9;
+        transition: opacity 0.6s ease;
+      }
+
+      .grid {
+        display: block;
+        padding: 1.5rem clamp(1rem, 2vw + 1rem, 3.5rem) 4rem;
+        max-width: 1600px;
+        margin: 0 auto;
+      }
+
+      .sidebar {
+        position: fixed;
+        top: 1.5rem;
+        left: clamp(1rem, 2vw + 1rem, 3.5rem);
+        width: 360px;
+        max-height: calc(100vh - 3rem);
+        overflow-y: auto;
+        background: var(--bg-card);
+        backdrop-filter: blur(18px);
+        border-radius: 24px;
+        border: 1px solid var(--border);
+        padding: 1.75rem;
+        box-shadow: var(--shadow);
+        transition: var(--transition);
+        transition-property: background, border, transform, opacity;
+        transform: translateX(0);
+        z-index: 100;
+      }
+
+      .sidebar-content {
+        display: flex;
+        flex-direction: column;
+        gap: 1.2rem;
+      }
+
+      .sidebar h2 {
+        margin: 0 0 0.5rem 0;
+        font-size: 1.15rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--accent);
+        font-weight: 600;
+      }
+
+      .nav {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+        max-height: 600px;
+        overflow: hidden;
+        transition: max-height 0.45s ease, opacity 0.35s ease;
+      }
+
+      .nav a {
+        text-decoration: none;
+        color: var(--text-primary);
+        font-size: 0.93rem;
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        padding: 0.6rem 0.85rem;
+        border-radius: 10px;
+        border: 1px solid transparent;
+        transition: var(--transition);
+        position: relative;
+        line-height: 1.4;
+      }
+
+      .nav a::before {
+        content: "▸";
+        font-size: 0.8rem;
+        color: var(--muted);
+        transition: var(--transition);
+      }
+
+      .nav a:hover {
+        background: var(--panel);
+        border-color: var(--border);
+        transform: translateX(3px);
+      }
+
+      .nav a.active {
+        background: var(--panel);
+        border-color: var(--accent);
+        color: var(--accent);
+        font-weight: 600;
+      }
+
+      .nav a.active::before {
+        content: "▾";
+        color: var(--accent);
+      }
+
+      .nav.collapsed {
+        max-height: 0;
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .note-box {
+        display: flex;
+        flex-direction: column;
+        gap: 0.85rem;
+        padding: 1.3rem;
+        border-radius: 18px;
+        border: 1px solid var(--border);
+        background: var(--panel);
+      }
+
+      .note-box h3 {
+        margin: 0;
+        font-size: 1.1rem;
+        color: var(--accent);
+        font-weight: 600;
+      }
+
+      .note-box textarea {
+        width: 100%;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        background: var(--surface);
+        color: var(--text-primary);
+        padding: 0.85rem 1rem;
+        font-size: 0.95rem;
+        line-height: 1.6;
+        resize: vertical;
+        min-height: 110px;
+        transition: var(--transition);
+        font-family: var(--font-body);
+      }
+
+      .note-box textarea:focus,
+      .note-search:focus {
+        outline: none;
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.18);
+      }
+
+      .note-search {
+        width: 100%;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        background: var(--surface);
+        color: var(--text-primary);
+        padding: 0.75rem 1rem;
+        font-size: 0.9rem;
+        transition: var(--transition);
+        font-family: var(--font-body);
+      }
+
+      .note-controls {
+        display: flex;
+        gap: 0.65rem;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .note-add {
+        flex: 1;
+        padding: 0.65rem 1.1rem;
+        font-size: 0.92rem;
+      }
+
+      .note-count {
+        font-size: 0.85rem;
+        color: var(--muted);
+        padding: 0.45rem 0.85rem;
+        border-radius: 999px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        white-space: nowrap;
+      }
+
+      .note-entries {
+        display: flex;
+        flex-direction: column;
+        gap: 0.7rem;
+        max-height: 380px;
+        overflow-y: auto;
+        padding-right: 0.4rem;
+      }
+
+      .note-entry {
+        display: flex;
+        flex-direction: column;
+        gap: 0.6rem;
+        padding: 0.85rem 1rem;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        background: var(--surface);
+        transition: var(--transition);
+      }
+
+      .note-entry:hover {
+        border-color: var(--accent);
+        box-shadow: 0 2px 8px rgba(56, 189, 248, 0.15);
+      }
+
+      .note-entry-text {
+        white-space: pre-wrap;
+        word-break: break-word;
+        color: var(--text-secondary);
+        font-size: 0.92rem;
+        max-height: 4.2em;
+        overflow: hidden;
+        position: relative;
+        line-height: 1.75;
+        transition: max-height 0.3s ease;
+      }
+
+      .note-entry-text.expanded {
+        max-height: none;
+      }
+
+      .note-entry-text.truncated::after {
+        content: '...';
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        background: var(--surface);
+        padding-left: 1rem;
+      }
+
+      .note-actions {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: flex-end;
+      }
+
+      .note-entry button {
+        border: 1px solid var(--btn-border);
+        border-radius: 0.7rem;
+        background: var(--btn-bg);
+        color: var(--text-primary);
+        padding: 0.35rem 0.75rem;
+        font-size: 0.75rem;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        cursor: pointer;
+        transition: var(--transition);
+      }
+
+      .note-entry button:hover {
+        border-color: var(--accent);
+        background: rgba(56, 189, 248, 0.18);
+      }
+
+      .note-entry button.delete:hover {
+        border-color: rgba(248, 113, 113, 0.5);
+        background: rgba(248, 113, 113, 0.18);
+      }
+
+      .note-empty {
+        font-size: 0.85rem;
+        color: var(--muted);
+        padding: 0.75rem;
+        border: 1px dashed var(--border);
+        border-radius: 12px;
+        background: var(--surface);
+        text-align: center;
+      }
+
+      .content {
+        display: flex;
+        flex-direction: column;
+        gap: 1.8rem;
+        margin-left: 390px;
+      }
+
+      section {
+        background: var(--bg-card);
+        backdrop-filter: blur(16px);
+        border-radius: 28px;
+        border: 1px solid var(--border);
+        padding: clamp(1.8rem, 2vw + 1rem, 2.5rem);
+        box-shadow: var(--shadow);
+        position: relative;
+        overflow: hidden;
+        transition: var(--transition);
+      }
+
+      section::after {
+        content: attr(data-section);
+        position: absolute;
+        top: 24px;
+        right: 28px;
+        font-size: 0.75rem;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: var(--divider);
+      }
+
+      section:hover {
+        transform: translateY(-6px);
+        border-color: rgba(56, 189, 248, 0.28);
+        box-shadow: 0 32px 72px -40px rgba(56, 189, 248, 0.6);
+      }
+
+      h1,
+      h2,
+      h3,
+      h4 {
+        margin-top: 0;
+        font-weight: 700;
+        color: inherit;
+        line-height: 1.3;
+      }
+
+      h1 {
+        font-size: clamp(2.2rem, 2vw + 1.6rem, 3rem);
+        letter-spacing: 0.04em;
+        margin-bottom: 0.8rem;
+      }
+
+      h2 {
+        margin-bottom: 1.2rem;
+        font-size: 1.65rem;
+        letter-spacing: 0.02em;
+      }
+
+      h3 {
+        margin-bottom: 0.85rem;
+        margin-top: 1.8rem;
+        font-size: 1.25rem;
+      }
+
+      h3:first-of-type {
+        margin-top: 0;
+      }
+
+      h4 {
+        margin-bottom: 0.6rem;
+        font-size: 1.05rem;
+      }
+
+      p {
+        margin-bottom: 1.1rem;
+        color: var(--text-secondary);
+        line-height: 1.7;
+      }
+
+      ul,
+      ol {
+        margin: 0 0 1.2rem 1.5rem;
+        color: var(--text-secondary);
+        line-height: 1.7;
+      }
+
+      li {
+        margin-bottom: 0.5rem;
+      }
+
+      li:last-child {
+        margin-bottom: 0;
+      }
+
+      code {
+        font-family: "JetBrains Mono", "Fira Code", SFMono-Regular, Menlo, Monaco,
+          Consolas, "Liberation Mono", monospace;
+        font-size: 0.9em;
+        padding: 0.2em 0.4em;
+        background: var(--code-bg);
+        border-radius: 4px;
+        border: 1px solid var(--border);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
+      }
+
+      pre {
+        background: var(--code-bg) !important;
+        padding: 1.3rem !important;
+        border-radius: 16px !important;
+        border: 1px solid var(--border) !important;
+        overflow-x: auto;
+        position: relative;
+        margin: 1.2rem 0;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+
+      pre code {
+        background: none !important;
+        padding: 0 !important;
+        border-radius: 0 !important;
+        border: none !important;
+        font-size: 0.9rem !important;
+        line-height: 1.6 !important;
+        white-space: pre-wrap !important;
+        word-wrap: break-word !important;
+        display: block !important;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-shadow: none !important;
+      }
+
+      /* Prism theme overrides for better readability */
+      [data-theme="light"] pre code[class*="language-"],
+      [data-theme="light"] pre[class*="language-"] {
+        color: #24292e !important;
+      }
+
+      [data-theme="light"] .token.comment,
+      [data-theme="light"] .token.prolog,
+      [data-theme="light"] .token.doctype,
+      [data-theme="light"] .token.cdata {
+        color: #6a737d !important;
+      }
+
+      [data-theme="light"] .token.punctuation {
+        color: #24292e !important;
+      }
+
+      [data-theme="light"] .token.property,
+      [data-theme="light"] .token.tag,
+      [data-theme="light"] .token.boolean,
+      [data-theme="light"] .token.number,
+      [data-theme="light"] .token.constant,
+      [data-theme="light"] .token.symbol,
+      [data-theme="light"] .token.deleted {
+        color: #005cc5 !important;
+      }
+
+      [data-theme="light"] .token.selector,
+      [data-theme="light"] .token.attr-name,
+      [data-theme="light"] .token.string,
+      [data-theme="light"] .token.char,
+      [data-theme="light"] .token.builtin,
+      [data-theme="light"] .token.inserted {
+        color: #032f62 !important;
+      }
+
+      [data-theme="light"] .token.operator,
+      [data-theme="light"] .token.entity,
+      [data-theme="light"] .token.url,
+      [data-theme="light"] .language-css .token.string,
+      [data-theme="light"] .style .token.string {
+        color: #d73a49 !important;
+      }
+
+      [data-theme="light"] .token.atrule,
+      [data-theme="light"] .token.attr-value,
+      [data-theme="light"] .token.keyword {
+        color: #d73a49 !important;
+      }
+
+      [data-theme="light"] .token.function,
+      [data-theme="light"] .token.class-name {
+        color: #6f42c1 !important;
+      }
+
+      [data-theme="dark"] pre code[class*="language-"],
+      [data-theme="dark"] pre[class*="language-"] {
+        color: #e6edf3 !important;
+      }
+
+      [data-theme="dark"] .token.comment,
+      [data-theme="dark"] .token.prolog,
+      [data-theme="dark"] .token.doctype,
+      [data-theme="dark"] .token.cdata {
+        color: #8b949e !important;
+      }
+
+      [data-theme="dark"] .token.punctuation {
+        color: #e6edf3 !important;
+      }
+
+      [data-theme="dark"] .token.property,
+      [data-theme="dark"] .token.tag,
+      [data-theme="dark"] .token.boolean,
+      [data-theme="dark"] .token.number,
+      [data-theme="dark"] .token.constant,
+      [data-theme="dark"] .token.symbol,
+      [data-theme="dark"] .token.deleted {
+        color: #79c0ff !important;
+      }
+
+      [data-theme="dark"] .token.selector,
+      [data-theme="dark"] .token.attr-name,
+      [data-theme="dark"] .token.string,
+      [data-theme="dark"] .token.char,
+      [data-theme="dark"] .token.builtin,
+      [data-theme="dark"] .token.inserted {
+        color: #a5d6ff !important;
+      }
+
+      [data-theme="dark"] .token.operator,
+      [data-theme="dark"] .token.entity,
+      [data-theme="dark"] .token.url,
+      [data-theme="dark"] .language-css .token.string,
+      [data-theme="dark"] .style .token.string {
+        color: #ff7b72 !important;
+      }
+
+      [data-theme="dark"] .token.atrule,
+      [data-theme="dark"] .token.attr-value,
+      [data-theme="dark"] .token.keyword {
+        color: #ff7b72 !important;
+      }
+
+      [data-theme="dark"] .token.function,
+      [data-theme="dark"] .token.class-name {
+        color: #d2a8ff !important;
+      }
+
+      [data-theme="dark"] .token.variable {
+        color: #ffa657 !important;
+      }
+
+      pre button.copy {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        background: var(--copy-bg);
+        border: 1px solid var(--btn-border);
+        color: var(--text-primary);
+        padding: 0.35rem 0.6rem;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: var(--transition);
+        font-size: 0.72rem;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+
+      pre button.copy:hover {
+        background: rgba(56, 189, 248, 0.2);
+        border-color: rgba(56, 189, 248, 0.5);
+      }
+
+      blockquote {
+        margin: 1.5rem 0;
+        padding: 1.2rem 1.4rem;
+        border-left: 4px solid rgba(56, 189, 248, 0.5);
+        border-radius: 0 14px 14px 0;
+        background: var(--blockquote-bg);
+        color: var(--text-secondary);
+        line-height: 1.7;
+      }
+
+      blockquote p {
+        margin-bottom: 0;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.45rem 0.9rem;
+        border-radius: 999px;
+        background: var(--badge-bg);
+        border: 1px solid var(--badge-border);
+        font-size: 0.8rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--badge-color);
+        font-weight: 500;
+      }
+
+      .timeline {
+        display: grid;
+        gap: 1.2rem;
+        margin-top: 1.2rem;
+      }
+
+      .timeline-item {
+        padding: 1.2rem 1.3rem;
+        border-radius: 16px;
+        border: 1px solid var(--border);
+        background: var(--panel);
+        transition: var(--transition);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .timeline-item:hover {
+        transform: translateY(-3px);
+        border-color: rgba(56, 189, 248, 0.35);
+        box-shadow: 0 8px 24px -8px rgba(56, 189, 248, 0.25);
+      }
+
+      .timeline-item::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          120deg,
+          rgba(59, 130, 246, 0.12),
+          transparent 65%
+        );
+        opacity: 0;
+        transition: var(--transition);
+      }
+
+      .timeline-item:hover::before {
+        opacity: 1;
+      }
+
+      .timeline-item h4 {
+        margin: 0 0 0.5rem;
+        font-size: 1.05rem;
+      }
+
+      .timeline-item span {
+        font-size: 0.92rem;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+
+      .timeline-item p {
+        margin-bottom: 0.8rem;
+      }
+
+      .timeline-item p:last-child {
+        margin-bottom: 0;
+      }
+
+      .toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+      }
+
+      .toggle,
+      .cta {
+        border: 1px solid var(--btn-border);
+        border-radius: 0.9rem;
+        padding: 0.55rem 1rem;
+        background: var(--btn-bg);
+        color: var(--text-primary);
+        cursor: pointer;
+        transition: var(--transition);
+        font-size: 0.9rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .toggle:hover,
+      .cta:hover {
+        border-color: rgba(56, 189, 248, 0.5);
+        transform: translateY(-2px);
+      }
+
+      .hero {
+        padding: clamp(2.2rem, 3vw + 1rem, 3.2rem);
+        border-radius: 32px;
+        border: 1px solid var(--border);
+        background: linear-gradient(120deg, var(--hero-gradient), transparent 60%),
+          var(--hero-base);
+        box-shadow: var(--shadow);
+        position: relative;
+        overflow: hidden;
+        margin-bottom: 1.8rem;
+      }
+
+      .hero::after {
+        content: "";
+        position: absolute;
+        inset: -20% -30% auto;
+        height: 70%;
+        background: radial-gradient(
+          circle,
+          rgba(56, 189, 248, 0.7),
+          transparent 55%
+        );
+        opacity: 0.35;
+        z-index: -1;
+      }
+
+      .hero h1 {
+        margin-bottom: 1rem;
+      }
+
+      .hero p {
+        font-size: 1.05rem;
+        line-height: 1.75;
+        margin-bottom: 1.2rem;
+      }
+
+      .progress-track {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 4px;
+        width: 100%;
+        background: rgba(148, 163, 184, 0.15);
+        z-index: 1000;
+      }
+
+      .progress-bar {
+        height: 100%;
+        width: 0;
+        background: linear-gradient(90deg, #38bdf8, #818cf8);
+        transition: width 0.1s ease-out;
+      }
+
+      .floating-nav {
+        position: fixed;
+        bottom: 32px;
+        right: 32px;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        z-index: 1200;
+      }
+
+      .floating-nav button {
+        border: none;
+        border-radius: 50%;
+        width: 52px;
+        height: 52px;
+        background: var(--fab-bg);
+        backdrop-filter: blur(12px);
+        color: var(--text-primary);
+        box-shadow: 0 20px 38px -16px rgba(15, 23, 42, 0.6);
+        cursor: pointer;
+        transition: var(--transition);
+        font-size: 1.2rem;
+      }
+
+      .floating-nav button:hover {
+        transform: translateY(-4px) scale(1.02);
+        background: rgba(56, 189, 248, 0.25);
+      }
+
+      .floating-nav button[aria-pressed="true"] {
+        border-color: rgba(56, 189, 248, 0.6);
+        box-shadow: 0 12px 28px -16px rgba(56, 189, 248, 0.45);
+      }
+
+      .chatbot-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.55);
+        backdrop-filter: blur(4px);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+        z-index: 1100;
+      }
+
+      .chatbot-backdrop.visible {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .chatbot-panel {
+        position: fixed;
+        right: 100px;
+        bottom: 100px;
+        width: clamp(550px, 45vw, 750px);
+        max-height: clamp(650px, 80vh, 850px);
+        display: flex;
+        flex-direction: column;
+        background: var(--bg-card);
+        backdrop-filter: blur(20px);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        box-shadow: 0 24px 48px -24px rgba(15, 23, 42, 0.85);
+        transform: translateY(16px) scale(0.96);
+        opacity: 0;
+        pointer-events: none;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+                    opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        z-index: 1150;
+        overflow: hidden;
+        padding: 0;
+      }
+
+      .chatbot-panel.visible {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .chatbot-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.6rem;
+        padding: 0.6rem 0.8rem;
+        border-bottom: 1px solid var(--border);
+        background: linear-gradient(135deg, rgba(56, 189, 248, 0.12), rgba(59, 130, 246, 0.06));
+        flex-shrink: 0;
+      }
+
+      .chatbot-header h3 {
+        margin: 0;
+        font-size: 0.95rem;
+        font-weight: 600;
+        letter-spacing: 0.03em;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+      }
+
+      .chatbot-header h3::before {
+        content: "🤖";
+        font-size: 1.1rem;
+      }
+
+      .chatbot-close {
+        border: none;
+        background: rgba(148, 163, 184, 0.1);
+        color: var(--text-primary);
+        font-size: 1rem;
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: var(--transition);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .chatbot-close:hover {
+        background: rgba(248, 113, 113, 0.18);
+        color: rgba(248, 113, 113, 0.95);
+      }
+
+      .chat-messages {
+        flex: 1;
+        padding: 0.6rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        overflow-y: auto;
+        background: var(--surface);
+        min-height: 0;
+      }
+
+      .chat-messages::-webkit-scrollbar {
+        width: 5px;
+      }
+
+      .chat-messages::-webkit-scrollbar-track {
+        background: transparent;
+      }
+
+      .chat-messages::-webkit-scrollbar-thumb {
+        background: rgba(148, 163, 184, 0.25);
+        border-radius: 3px;
+      }
+
+      .chat-messages::-webkit-scrollbar-thumb:hover {
+        background: rgba(148, 163, 184, 0.4);
+      }
+
+      .chat-message {
+        display: flex;
+        flex-direction: column;
+        max-width: 88%;
+        gap: 0.25rem;
+        animation: slideIn 0.25s ease;
+      }
+
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateY(6px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .chat-message.user {
+        align-self: flex-end;
+        align-items: flex-end;
+      }
+
+      .chat-message.assistant,
+      .chat-message.error {
+        align-self: flex-start;
+        align-items: flex-start;
+      }
+
+      .chat-bubble {
+        padding: 0.75rem 0.9rem;
+        border-radius: 12px;
+        line-height: 1.65;
+        border: 1px solid transparent;
+        word-wrap: break-word;
+        font-size: 0.92rem;
+      }
+
+      .chat-bubble * {
+        max-width: 100%;
+      }
+
+      .chat-bubble p {
+        margin: 0 0 0.5em 0;
+      }
+
+      .chat-bubble p:last-child {
+        margin-bottom: 0;
+      }
+
+      .chat-bubble ul, .chat-bubble ol {
+        margin: 0.5em 0;
+        padding-left: 1.5em;
+      }
+
+      .chat-bubble li {
+        margin: 0.25em 0;
+      }
+
+      .chat-bubble code {
+        background: rgba(0, 0, 0, 0.1);
+        padding: 0.15em 0.35em;
+        border-radius: 3px;
+        font-size: 0.85em;
+      }
+
+      .chat-bubble pre {
+        background: rgba(0, 0, 0, 0.15);
+        padding: 0.6em;
+        border-radius: 6px;
+        overflow-x: auto;
+        margin: 0.5em 0;
+      }
+
+      .chat-bubble pre code {
+        background: none;
+        padding: 0;
+      }
+
+      .chat-bubble h1, .chat-bubble h2, .chat-bubble h3, 
+      .chat-bubble h4, .chat-bubble h5, .chat-bubble h6 {
+        margin: 0.5em 0 0.3em 0;
+        font-weight: 600;
+      }
+
+      .chat-bubble h1 {
+        font-size: 1.15em;
+      }
+
+      .chat-bubble h2 {
+        font-size: 1.1em;
+      }
+
+      .chat-bubble h3 {
+        font-size: 1.05em;
+      }
+
+      .chat-bubble h4,
+      .chat-bubble h5,
+      .chat-bubble h6 {
+        font-size: 1em;
+      }
+
+      .chat-bubble blockquote {
+        border-left: 3px solid rgba(56, 189, 248, 0.5);
+        padding-left: 0.8em;
+        margin: 0.5em 0;
+        color: var(--muted);
+      }
+
+      .chat-message.user .chat-bubble {
+        background: linear-gradient(135deg, rgba(14, 165, 233, 0.85), rgba(56, 189, 248, 0.8));
+        color: #ffffff;
+        border-color: rgba(14, 165, 233, 0.25);
+        box-shadow: 0 3px 8px -3px rgba(14, 165, 233, 0.35);
+      }
+
+      .chat-message.assistant .chat-bubble {
+        background: rgba(15, 23, 42, 0.55);
+        border-color: rgba(56, 189, 248, 0.2);
+        color: var(--text-primary);
+      }
+
+      body[data-theme="light"] .chat-message.assistant .chat-bubble {
+        background: rgba(255, 255, 255, 0.85);
+        border-color: rgba(59, 130, 246, 0.18);
+      }
+
+      .chat-message.error .chat-bubble {
+        background: rgba(248, 113, 113, 0.15);
+        border-color: rgba(248, 113, 113, 0.3);
+        color: rgba(248, 113, 113, 1);
+      }
+
+      .chat-meta {
+        font-size: 0.72rem;
+        color: var(--muted);
+        line-height: 1.3;
+        padding: 0 0.2rem;
+      }
+
+      .chat-meta strong {
+        color: var(--accent);
+        letter-spacing: 0.03em;
+        font-weight: 600;
+      }
+
+      .chat-form {
+        border-top: 1px solid var(--border);
+        padding: 0.6rem 0.8rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        background: var(--bg-card);
+        flex-shrink: 0;
+      }
+
+      .chat-form textarea {
+        width: 100%;
+        min-height: 70px;
+        max-height: 140px;
+        resize: vertical;
+        padding: 0.7rem 0.85rem;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: var(--surface);
+        color: var(--text-primary);
+        font-family: var(--font-body);
+        font-size: 0.88rem;
+        line-height: 1.5;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      .chat-form textarea:focus {
+        outline: none;
+        border-color: var(--accent);
+        box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.15);
+      }
+
+      .chat-form button[type="submit"] {
+        align-self: flex-end;
+        padding: 0.6rem 1.1rem;
+        border-radius: 10px;
+        border: 1px solid var(--btn-border);
+        background: linear-gradient(135deg, rgba(56, 189, 248, 0.18), rgba(59, 130, 246, 0.12));
+        color: var(--text-primary);
+        cursor: pointer;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        transition: var(--transition);
+        font-size: 0.82rem;
+        font-weight: 600;
+      }
+
+      .chat-form button[type="submit"]:hover:not(:disabled) {
+        border-color: rgba(56, 189, 248, 0.5);
+        background: linear-gradient(135deg, rgba(56, 189, 248, 0.3), rgba(59, 130, 246, 0.2));
+        transform: translateY(-1px);
+      }
+
+      .chat-form button[type="submit"]:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .chat-advanced-toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        border: none;
+        background: transparent;
+        color: var(--text-secondary);
+        cursor: pointer;
+        font-size: 0.82rem;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+        padding: 0.3rem 0.5rem;
+        border-radius: 6px;
+        transition: var(--transition);
+      }
+
+      .chat-advanced-toggle:hover {
+        color: var(--accent);
+        background: rgba(56, 189, 248, 0.1);
+      }
+
+      .chat-advanced-fields {
+        display: grid;
+        gap: 0.7rem;
+        grid-template-columns: 1fr;
+        max-height: 0;
+        opacity: 0;
+        overflow: hidden;
+        transition: max-height 0.35s ease, opacity 0.35s ease;
+      }
+
+      .chat-advanced-fields.visible {
+        max-height: 480px;
+        opacity: 1;
+      }
+
+      .chat-advanced-fields input,
+      .chat-advanced-fields textarea,
+      .chat-advanced-fields select {
+        width: 100%;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: var(--surface);
+        color: var(--text-primary);
+        padding: 0.65rem 0.85rem;
+        font-size: 0.88rem;
+        font-family: var(--font-body);
+        transition: border-color 0.2s ease;
+      }
+
+      .chat-advanced-fields input:focus,
+      .chat-advanced-fields textarea:focus,
+      .chat-advanced-fields select:focus {
+        outline: none;
+        border-color: var(--accent);
+      }
+
+      .chat-advanced-fields label {
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+        font-size: 0.82rem;
+        color: var(--muted);
+        letter-spacing: 0.02em;
+        font-weight: 500;
+      }
+
+      .chat-status {
+        font-size: 0.8rem;
+        color: var(--muted);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .chat-status span {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+      }
+
+      .chat-status .dot {
+        width: 0.5rem;
+        height: 0.5rem;
+        border-radius: 50%;
+        background: rgba(56, 189, 248, 0.6);
+        animation: pulse 2s ease infinite;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          transform: scale(1);
+          opacity: 0.6;
+        }
+        50% {
+          transform: scale(1.3);
+          opacity: 1;
+        }
+      }
+
+      .img-container {
+        text-align: center;
+        margin: 1.5rem 0;
+        position: relative;
+      }
+
+      .img-wrapper {
+        position: relative;
+        display: inline-block;
+        max-width: 100%;
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1px solid var(--border);
+        transition: var(--transition);
+      }
+
+      .img-wrapper.collapsed {
+        max-height: 120px;
+        overflow: hidden;
+      }
+
+      .img-wrapper.collapsed::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 60px;
+        background: linear-gradient(transparent, var(--bg-card));
+        pointer-events: none;
+      }
+
+      .img-wrapper img {
+        max-width: 100%;
+        height: auto;
+        display: block;
+        cursor: zoom-in;
+        transition: var(--transition);
+      }
+
+      .img-wrapper.collapsed img {
+        cursor: pointer;
+      }
+
+      .img-controls {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: center;
+        margin-top: 0.5rem;
+      }
+
+      .img-controls button {
+        border: 1px solid var(--btn-border);
+        border-radius: 8px;
+        background: var(--btn-bg);
+        color: var(--text-primary);
+        padding: 0.4rem 0.8rem;
+        font-size: 0.8rem;
+        cursor: pointer;
+        transition: var(--transition);
+      }
+
+      .img-controls button:hover {
+        border-color: var(--accent);
+        background: rgba(56, 189, 248, 0.18);
+      }
+
+      .img-caption {
+        font-size: 0.85rem;
+        color: var(--muted);
+        margin-top: 0.5rem;
+      }
+
+      .lightbox {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.95);
+        backdrop-filter: blur(8px);
+        z-index: 2000;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+      }
+
+      .lightbox.active {
+        display: flex;
+      }
+
+      .lightbox-content {
+        position: relative;
+        max-width: 95vw;
+        max-height: 95vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .lightbox img {
+        max-width: 100%;
+        max-height: 85vh;
+        object-fit: contain;
+        border-radius: 8px;
+        box-shadow: 0 24px 48px rgba(0, 0, 0, 0.5);
+      }
+
+      .lightbox-close {
+        position: absolute;
+        top: -40px;
+        right: 0;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: white;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        cursor: pointer;
+        font-size: 1.2rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: var(--transition);
+      }
+
+      .lightbox-close:hover {
+        background: rgba(248, 113, 113, 0.3);
+      }
+
+      .lightbox-caption {
+        color: white;
+        margin-top: 1rem;
+        font-size: 0.9rem;
+      }
+
+      @media (max-width: 720px) {
+        .chatbot-panel {
+          right: 16px;
+          left: 16px;
+          bottom: 100px;
+          width: auto;
+          max-height: clamp(450px, 65vh, 600px);
+        }
+
+        .lightbox {
+          padding: 1rem;
+        }
+
+        .lightbox-close {
+          top: -35px;
+          width: 32px;
+          height: 32px;
+        }
+      }
+
+      body.sidebar-hidden .content {
+        margin-left: 0;
+      }
+
+      body.sidebar-hidden .sidebar {
+        transform: translateX(-150%);
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .callout {
+        border-radius: 18px;
+        padding: 1.2rem 1.4rem;
+        border: 1px solid rgba(14, 165, 233, 0.35);
+        background: rgba(14, 165, 233, 0.12);
+        margin: 1.5rem 0;
+        color: var(--text-primary);
+        line-height: 1.7;
+      }
+
+      .callout strong {
+        display: block;
+        text-transform: uppercase;
+        font-size: 0.88rem;
+        letter-spacing: 0.1em;
+        margin-bottom: 0.5rem;
+        color: var(--accent-strong);
+        font-weight: 600;
+      }
+
+      .callout p {
+        margin-bottom: 0.8rem;
+      }
+
+      .callout p:last-child {
+        margin-bottom: 0;
+      }
+
+      .callout ul {
+        margin-bottom: 0;
+      }
+
+      .alert {
+        border: 1px solid rgba(248, 113, 113, 0.3);
+        background: rgba(248, 113, 113, 0.12);
+      }
+
+      .badge-stack {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.7rem;
+        margin-top: 1.2rem;
+      }
+
+      @media (max-width: 1180px) {
+        .grid {
+          padding: 1.5rem clamp(1rem, 5vw, 2.5rem) 4rem;
+        }
+
+        .sidebar {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          max-width: 380px;
+          height: 100vh;
+          max-height: 100vh;
+          border-radius: 0;
+          transform: translateX(-100%);
+          transition: transform 0.3s ease;
+        }
+
+        body:not(.sidebar-hidden) .sidebar {
+          transform: translateX(0);
+        }
+
+        .content {
+          margin-left: 0;
+        }
+
+        .nav {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 720px) {
+        .grid {
+          padding-bottom: 3.5rem;
+        }
+
+        section {
+          border-radius: 22px;
+        }
+
+        .floating-nav {
+          right: 20px;
+          bottom: 20px;
+        }
+      }
+    </style>
+  </head>
+  <body data-theme="light">
+    <div class="progress-track" aria-hidden="true">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+
+    <div class="floating-nav">
+      <button id="sidebarToggle" title="隐藏/显示导航">☰</button>
+      <button id="themeToggle" title="切换主题">🌓</button>
+      <button id="chatbotToggle" title="打开智能助手" aria-pressed="false">🤖</button>
+      <button id="scrollTop" title="返回顶部">↑</button>
+    </div>
+
+    <div class="grid" id="layout">
+      <aside class="sidebar">
+        <div class="toolbar">
+          <h2>实验导航</h2>
+          <button class="toggle" id="tocToggle">折叠导航</button>
+        </div>
+        <div class="sidebar-content">
+          <ul class="nav" id="toc">
+            <li><a href="#env-prepare">环境准备</a></li>
+            <li><a href="#deploy">部署 Nexus-AI</a></li>
+            <li><a href="#validation">环境验证</a></li>
+            <li><a href="#feature-check">功能验证</a></li>
+            <li><a href="#agent-lab">Agent 构建与测试</a></li>
+            <li><a href="#challenge">挑战：外部资源集成</a></li>
+          </ul>
+          <div class="note-box">
+            <h3>课堂速记</h3>
+            <textarea
+              id="noteInput"
+              placeholder="在这里粘贴或输入临时内容，点击下方按钮保存为一条记录"
+              rows="3"
+            ></textarea>
+            <div class="note-controls">
+              <button class="cta note-add" id="noteAdd" type="button">添加记录</button>
+              <span class="note-count" id="noteCount">0 条</span>
+            </div>
+            <input 
+              type="text" 
+              class="note-search" 
+              id="noteSearch" 
+              placeholder="搜索笔记内容..."
+            />
+            <div class="note-empty" id="noteEmpty">
+              暂无记录，先把你的想法记下来吧。
+            </div>
+            <div class="note-entries" id="noteList"></div>
+          </div>
+        </div>
+      </aside>
+
+      <main class="content">
+        <header class="hero" id="top">
+          <div style="display: flex; align-items: center; gap: 2rem; margin-bottom: 1.5rem;">
+            <img src="/assets/default_logo.png" alt="Nexus-AI Logo" style="width: 120px; height: 120px; object-fit: contain; filter: drop-shadow(0 8px 16px rgba(56, 189, 248, 0.3));">
+            <div style="flex: 1;">
+              <span class="badge">Nexus-AI Workshop</span>
+              <h1 style="margin-top: 0.5rem; margin-bottom: 0;">Nexus-AI 动手实验手册</h1>
+            </div>
+          </div>
+          <p>
+            按照本手册，您将从零开始在 Amazon Linux 环境中部署 Nexus-AI，
+            完成基础验证、构建并扩展自定义 Agent
+          </p>
+          <div class="badge-stack">
+            <span class="badge">时长 · 2～3 小时</span>
+            <span class="badge">角色 · 工程师 / 产品</span>
+            <span class="badge">技能 · Linux · Python · AWS</span>
+          </div>
+        </header>
+
+        <section id="env-prepare" data-section="Stage 01">
+          <div class="toolbar">
+            <h2>环境准备</h2>
+            <button class="cta" data-collapse="[data-env]">折叠内容</button>
+          </div>
+
+          <article data-env>
+            <h3>一、AWS 资源准备</h3>
+            <ul>
+              <li>AMI：<code>Amazon Linux 2023 (kernel 6.1)</code></li>
+              <li>
+                实例规格：<code>m7i.large</code> 或
+                <code>m6a.large</code>（≥2 vCPU / 4 GB RAM）
+              </li>
+              <li>存储：50 GB gp3</li>
+              <li>区域：<code>us-west-2</code>（可根据需求调整）</li>
+              <li>IAM：绑定具备 Amazon Bedrock、ECR、CloudWatch 读写权限的角色</li>
+              <li>安全组：开放 SSH 22 端口；如需访问 Jaeger UI，开放 16686</li>
+            </ul>
+            <blockquote>
+              <strong>检查点</strong> SSH 登录后执行
+              <code>aws sts get-caller-identity</code>，确保凭证有效。
+            </blockquote>
+
+            <h3>二、基础工具安装</h3>
+            <div class="timeline">
+              <div class="timeline-item">
+                <h4>1. 安装系统依赖</h4>
+                <pre><button class="copy">复制</button><code class="language-bash">sudo yum install -y git wget htop
+sudo dnf install -y python3.11</code></pre>
+                <p>验证命令：</p>
+                <pre><button class="copy">复制</button><code class="language-bash">python3.11 --version
+git --version</code></pre>
+              </div>
+
+              <div class="timeline-item">
+                <h4>2. 安装 uv（Python 包管理器）</h4>
+                <pre><button class="copy">复制</button><code class="language-bash">curl -LsSf https://astral.sh/uv/install.sh | sh
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+source ~/.bashrc</code></pre>
+                <p>验证：<code>uv --version</code></p>
+              </div>
+
+              <div class="timeline-item">
+                <h4>3. 安装 Docker（可选，但推荐）</h4>
+                <pre><button class="copy">复制</button><code class="language-bash">sudo dnf update -y
+sudo dnf install -y docker
+sudo systemctl enable docker
+sudo systemctl start docker
+sudo usermod -aG docker $USER
+newgrp docker</code></pre>
+                <p>验证：<code>docker run --rm hello-world</code></p>
+              </div>
+
+              <div class="timeline-item">
+                <h4>4. 运行 Jaeger（诊断工具，可选）</h4>
+                <pre><button class="copy">复制</button><code class="language-bash">docker run -d --name jaeger \
+  -e COLLECTOR_ZIPKIN_HOST_PORT=:9411 \
+  -e COLLECTOR_OTLP_ENABLED=true \
+  -p 6831:6831/udp \
+  -p 6832:6832/udp \
+  -p 5778:5778 \
+  -p 16686:16686 \
+  -p 4317:4317 \
+  -p 4318:4318 \
+  -p 14250:14250 \
+  -p 14268:14268 \
+  -p 14269:14269 \
+  -p 9411:9411 \
+  jaegertracing/all-in-one:latest</code></pre>
+              </div>
+              <div class="callout">
+                <strong>端口转发配置</strong>
+                <p>后续实验需要访问 Jaeger UI (16686) 和 Neo4j (7474, 7687)，建议通过 SSH 隧道将远程端口转发到本地：</p>
+                <pre><button class="copy">复制</button><code class="language-bash">ssh -i your-key.pem -L 16686:localhost:16686 -L 7474:localhost:7474 -L 7687:localhost:7687 ec2-user@your-ec2-ip</code></pre>
+                <p>或使用支持端口转发的 IDE（如 VS Code Remote SSH）或 Terminal 工具。</p>
+                <p>配置后可通过 <code>http://localhost:16686</code> 访问 Jaeger，<code>http://localhost:7474</code> 访问 Neo4j Browser。</p>
+              </div>
+            </div>
+          </article>
+        </section>
+
+        <section id="deploy" data-section="Stage 02">
+          <div class="toolbar">
+            <h2>部署 Nexus-AI</h2>
+            <span class="badge">核心步骤</span>
+          </div>
+          <h3>一、拉取代码与目录配置</h3>
+          <pre><button class="copy">复制</button><code class="language-bash">git clone https://github.com/hy714335634/Nexus-AI.git
+cd Nexus-AI</code></pre>
+
+          <h3>二、初始化虚拟环境</h3>
+          <pre><button class="copy">复制</button><code class="language-bash">python3.11 -m venv .nexus-ai
+source .nexus-ai/bin/activate
+echo 'source $HOME/Nexus-AI/.nexus-ai/bin/activate' >> ~/.bashrc
+echo 'cd $HOME/Nexus-AI/' >> ~/.bashrc
+source ~/.bashrc</code></pre>
+          <p>验证：<code>python --version</code> 显示 3.11.x</p>
+
+          <h3>三、安装 Python 依赖</h3>
+          <pre><button class="copy">复制</button><code class="language-bash">uv pip install --upgrade pip
+uv pip install -r requirements.txt</code></pre>
+          <ul>
+            <li>国内网络可添加 <code>--index-url https://pypi.tuna.tsinghua.edu.cn/simple</code></li>
+            <li>安装完成后执行 <code>uv pip list | head</code> 确认成功</li>
+          </ul>
+        </section>
+
+        <section id="validation" data-section="Stage 03">
+          <div class="toolbar">
+            <h2>环境验证</h2>
+            <span class="badge">Time to Run</span>
+          </div>
+          <p>注意：执行时间可能较长，首次运行请耐心等待模型和依赖加载。</p>
+          <div class="callout">
+            <strong>建议</strong>
+            在虚拟环境中执行以下命令，并使用 <code>tail -f logs/temp.log</code> 观察实时日志。
+          </div>
+          
+          <h3>示例命令</h3>
+          <pre><button class="copy">复制</button><code class="language-bash">python agents/system_agents/magician.py -i "aws美东一的m8g.xlarge什么价格"</code></pre>
+          
+          <pre><button class="copy">复制</button><code class="language-bash">python agents/system_agents/magician.py -i "最近OpenAI有哪些新闻"</code></pre>
+          
+          <pre><button class="copy">复制</button><code class="language-bash">python agents/system_agents/magician.py -i "我想知道有哪些头部的医疗科技公司在尝试使用GenAI相关技术，详细查询并汇总告诉我这些公司的信息，如营收、主营业务、体量等等"</code></pre>
+
+          <h3>直接调用生成的 Agent</h3>
+          <pre><button class="copy">复制</button><code class="language-bash">python agents/generated_agents/aws_pricing_agent/aws_pricing_agent.py -r "aws美东一的m8g.xlarge什么价格"</code></pre>
+        </section>
+
+        <section id="feature-check" data-section="Stage 04">
+          <div class="toolbar">
+            <h2>功能验证</h2>
+            <span class="badge">Quality Gate</span>
+          </div>
+          <p>确保部署完成后，基础功能正常运行，为后续 Agent 实验打下稳定基础。</p>
+          <div class="timeline">
+            <div class="timeline-item">
+              <h4>基础命令</h4>
+              <pre><button class="copy">复制</button><code class="language-bash">source .nexus-ai/bin/activate</code></pre>
+              <pre><button class="copy">复制</button><code class="language-bash">mkdir -p logs && export LOG_DIR=logs/$(date +%Y%m%d)</code></pre>
+            </div>
+            <div class="timeline-item">
+              <h4>系统 Agent 示例</h4>
+              <p>
+                重复执行上一步中列出的系统 Agent 示例命令，并检查输出是否符合预期。
+              </p>
+            </div>
+            <div class="timeline-item">
+              <h4>直接调用生成 Agent</h4>
+              <pre><button class="copy">复制</button><code class="language-bash">python agents/generated_agents/aws_pricing_agent/aws_pricing_agent.py -r "aws美东一的m8g.xlarge什么价格"</code></pre>
+              <p>观察输出格式，了解工具调用链与结果结构。</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="agent-lab" data-section="Stage 05">
+          <div class="toolbar">
+            <h2>Agent 构建与测试</h2>
+            <button class="cta" data-collapse="[data-agent]">展开任务</button>
+          </div>
+
+          <article data-agent>
+            <h3>一、构建参考示例</h3>
+            <div class="timeline">
+              <div class="timeline-item">
+                <h4>示例 1 · 新闻聚合 Agent</h4>
+                <pre><button class="copy">复制</button><code class="language-bash">nohup python -u agents/system_agents/agent_build_workflow/agent_build_workflow.py -i '请创建一个Agent能够根据我关注话题，检索热度最高的新闻，新闻来源可以是百度、新浪、澎湃等主流媒体' &
+tail -f nohup.out</code></pre>
+              </div>
+              <div class="timeline-item">
+                <h4>示例 2 · 股票分析 Agent</h4>
+                <pre><button class="copy">复制</button><code class="language-bash">nohup python -u agents/system_agents/agent_build_workflow/agent_build_workflow.py -i "
+创建一个股票分析助手，建议名称为stock_analysis_agent，能够为客户提供股票投资建议，基本要求如下：
+1、	能够基于公网实时抓取用户指定或关心的股票代码财报数据，根据DCF估值法计算当前股票估值，并且帮助用户判断目前市值与估值相比是高估还是低估
+2、	结合当前时间节点的宏观经济，流动性与行业趋势发展(可通过互联网检索可信数据源)，判断该股票未来1年的盈利预测与eps增长预测（未来4个季度分别预测）
+3、	提示该股票未来1年内，可能存在的风险
+4、	与该行业可比公司，进行估值与盈利预期进行比较，帮用户找出是否该行业有更值得投资的标的
+5、	把你生成的未来1年的盈利预测与wall street的券商盈利预测进行对比，以表格的形式展现给用户
+6、	针对用户指定的股票，生成报告，总字数在2000字以上
+
+**重要**
+- agent所有计算结果必须基于工具或者代码计算得到，不能猜测
+- agent对于分析报表等数据应缓存在本地" &
+tail -f nohup.out</code></pre>
+              </div>
+            </div>
+            <div class="callout">
+              <strong>资源提醒</strong>
+              长时间运行可使用 <code>htop</code> 监控 CPU、内存占用，避免资源耗尽。
+              当运行结束后，应在控制台看到过程统计，并在projects目录下生成对应的workflow_summary_report.md文件，文件中包含工作流执行总结报告。
+            </div>
+
+          <div class="img-container">
+            <img src="/assets/05.build_console_log.png" alt="控制台输出">
+          </div>
+          <div class="img-container">
+            <img src="/assets/05.build_workflow_summary.png" alt="工作流日志">
+          </div>
+
+            <h3>二、构建结果巡检</h3>
+            <ul>
+              <li><code>projects/&lt;project_name&gt;/agents/</code>：构建过程代码</li>
+              <li><code>projects/&lt;project_name&gt;/project_config.json</code>：Agent 支持参数</li>
+              <li><code>projects/&lt;project_name&gt;/workflow_summary_report.md</code>：总结报告</li>
+            </ul>
+
+            <h3>三、Agent 调用</h3>
+            <ul>
+              <li>
+                通过系统 Agent：
+                <code>python agents/system_agents/magician.py -i "描述业务需求"</code>
+              </li>
+              <li>
+                直接运行生成 Agent：
+                <code>python agents/generated_agents/&lt;agent&gt;/&lt;agent&gt;.py --help</code>
+              </li>
+            </ul>
+
+            <h3>四、Agent 更新（可选）</h3>
+            <pre><button class="copy">复制</button><code class="language-bash">nohup python -u agents/system_agents/agent_update_workflow/agent_update_workflow.py -i "为news_retrieval_agent添加serpapi检索能力，搜索后的结果能够以excel格式输出" -j "news_retrieval_agent" &</code></pre>
+          </article>
+        </section>
+
+        <footer class="hero" style="margin-top: 1rem;">
+          <h2>完成实验之后</h2>
+          <p>
+            🎉恭喜，您已掌握 Nexus-AI 基础环境搭建、Agent 构建与增量更新的关键流程🎉
+          </p>
+          <div class="badge-stack">
+            <span class="badge">下一步 · 自定义工具</span>
+            <span class="badge">挑战 · Observability 集成</span>
+            <span class="badge">进阶 · 多 Agent 编排</span>
+          </div>
+        </footer>
+
+        <section id="challenge" data-section="Challenge">
+          <div class="toolbar">
+            <h2>挑战：构建与外部资源集成Agent（可选）</h2>
+            <span class="badge">Advanced</span>
+          </div>
+
+          <div class="callout">
+            <strong>实验目标</strong>
+            <p>本实验将创建一个用于AWS资源采集Agent，采集过程中完成资源关联分析，并将相关资源和关系写入neo4j数据库中，后续可基于知识图谱内容、路径检索回答客户问题。</p>
+          </div>
+
+          <div class="img-container">
+            <img src="/assets/06.neo4j.png" alt="AWS资源采集Agent架构图">
+          </div>
+
+          <h3>创建 Neo4j 数据目录</h3>
+          <pre><button class="copy">复制</button><code class="language-bash">mkdir -p $HOME/Nexus-AI/tools/generated_tools/neo4j/neo4j_data
+mkdir -p $HOME/Nexus-AI/tools/generated_tools/neo4j/neo4j_logs
+mkdir -p $HOME/Nexus-AI/tools/generated_tools/neo4j/neo4j_import
+mkdir -p $HOME/Nexus-AI/tools/generated_tools/neo4j/neo4j_plugins</code></pre>
+
+          <h3>启动 Neo4j 容器</h3>
+          <pre><button class="copy">复制</button><code class="language-bash">docker run -d  --name neo4j-container \
+    -p 7474:7474 -p 7687:7687  \
+    -e NEO4J_AUTH=neo4j/neo4jneo4j  \
+    -e "NEO4J_dbms_security_procedures_unrestricted=apoc.*"   \
+    -e "NEO4J_dbms_security_procedures_allowlist=apoc.*"  \
+    -v $HOME/Nexus-AI/tools/generated_tools/neo4j/neo4j_data:/data   \
+    -v $HOME/Nexus-AI/tools/generated_tools/neo4j/neo4j_logs:/logs   \
+    -v $HOME/Nexus-AI/tools/generated_tools/neo4j/neo4j_import:/var/lib/neo4j/import  \
+    -v $HOME/Nexus-AI/tools/generated_tools/neo4j/neo4j_plugins:/plugins  \
+    neo4j:latest</code></pre>
+
+          <h3>提交 Agent 构建任务</h3>
+          <pre><button class="copy">复制</button><code class="language-bash">nohup python -u agents/system_agents/agent_build_workflow/agent_build_workflow.py -i '
+创建一个AWS网络拓扑分析Agent，建议名称为aws_architecture_topology_analyzer，这个Agent要能够帮助客户全面采集AWS账号中核心资源并结合Neo4j数据库构建网络拓扑。
+这个Agent需要具备以下能力，部分环节要按照给定的规则处理相关数据。
+基本能力：
+- 能够集成AWS Boto3 SDK，加载用户指定的profile创建相应查询客户端
+- 能够通过工具实现抓取指定区域的所有AWS网络组件资源以及EC2、RDS资源
+- 网络组件包括：Transit Gateway，VPC Peering，Privatelink，VPC，Direct Connect Gateway，Internet Gateway，Route Table，VGW等等核心网络组件，尽可能全面
+- 每次执行时应检查指定区域所有资源，按顺序扫描不要遗漏
+- 扫描到的资源应在给定的neo4j数据库中，创建对应的node，并根据资源属性，创建对应的edge
+- 为了确保创建edge时两端的node均存在，你应合理设计扫描顺序，避免数据插入失败导致不全面
+- Agent能够基于用户自然语言问题进行对话和问答，在回答问题时需要通过工具查询neo4j数据库中相关内容进行回答
+
+核心规则：
+- neo4j中的资源应该按如下层级：Account-> Region -> Network Service -> VPC -> Routetable -> Security Group -> EC2/RDS/etc....请按照要求合理设计，避免遗漏
+- 当Agent扫描到资源时，应使用工具在neo4j数据库中创建node及edge，node和edge必须有name属性，对应aws资源的name标签值
+- 当插入neo4j数据库失败时，应思考原因，合理进行二次查询进行补全
+- 当插入存在冲突时，应生成neo4j语句进行检索排查问题
+- 和neo4j交互的工具至少包括插入资源，更新资源，查询特定资源，按查询语句查询资源，路径检索，拓扑检索等
+
+**数据库连接信息**
+- neo4j地址：neo4j://localhost:7687
+- neo4j数据库：neo4j
+- neo4j用户名：neo4j
+- neo4j密码：neo4jneo4j
+
+**重要信息**
+- 请先仔细思考，设计合理的数据库Schema来满足我上述的分析需求，请仔细思考如何更贴合业务使用场景
+- 持久化数据必须存储在neo4j数据库中' &</code></pre>
+
+          <div class="callout alert">
+            <strong>注意</strong>
+            <p>此挑战任务需要较长时间完成，建议在完成基础实验后再尝试。</p>
+            <p>确保 Docker 已正确安装并运行，Neo4j 容器启动成功后再提交构建任务。</p>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div class="chatbot-backdrop" id="chatbotBackdrop" aria-hidden="true"></div>
+    <section
+      class="chatbot-panel"
+      id="chatbotPanel"
+      aria-label="Nexus-AI 智能助手"
+      aria-hidden="true"
+    >
+      <header class="chatbot-header">
+        <h3>智能助手</h3>
+        <button
+          class="chatbot-close"
+          type="button"
+          id="chatbotClose"
+          title="关闭助手"
+          aria-label="关闭助手"
+        >
+          ✕
+        </button>
+      </header>
+      <div class="chat-messages" id="chatMessages" role="log" aria-live="polite"></div>
+      <form class="chat-form" id="chatForm">
+        <div class="chat-status" id="chatStatus">
+          <span><span class="dot" aria-hidden="true"></span>服务已就绪</span>
+          <button
+            class="chat-advanced-toggle"
+            type="button"
+            id="chatAdvancedToggle"
+            aria-expanded="false"
+            aria-controls="chatAdvancedFields"
+          >
+            高级选项
+          </button>
+        </div>
+        <div
+          class="chat-advanced-fields"
+          id="chatAdvancedFields"
+          aria-hidden="true"
+        >
+          <label for="chatMode">
+            模式
+            <select id="chatMode" name="mode">
+              <option value="">默认（general）</option>
+              <option value="general">general</option>
+              <option value="code">code</option>
+              <option value="doc">doc</option>
+            </select>
+          </label>
+          <label for="chatContext">
+            上下文限定
+            <input
+              id="chatContext"
+              name="context"
+              type="text"
+              placeholder="例如：关注agents/generated_agents目录"
+            />
+          </label>
+          <label for="chatSections">
+            包含段落（逗号分隔）
+            <input
+              id="chatSections"
+              name="include_sections"
+              type="text"
+              placeholder="例如：AgentScript,TechSpec"
+            />
+          </label>
+          <label for="chatSnippets">
+            额外提示
+            <textarea
+              id="chatSnippets"
+              name="extra_snippets"
+              rows="2"
+              placeholder="例如：提醒：需要强调nocallback配置的作用"
+            ></textarea>
+          </label>
+        </div>
+        <textarea
+          id="chatInput"
+          placeholder="请输入问题，支持 ⌘/Ctrl + Enter 发送"
+          aria-label="问题内容"
+        ></textarea>
+        <button type="submit" id="chatSubmit">发送</button>
+      </form>
+    </section>
+
+    <div class="lightbox" id="lightbox">
+      <div class="lightbox-content">
+        <button class="lightbox-close" id="lightboxClose">✕</button>
+        <img id="lightboxImg" src="" alt="">
+        <div class="lightbox-caption" id="lightboxCaption"></div>
+      </div>
+    </div>
+
+    <script>
+      const tocLinks = [...document.querySelectorAll(".nav a")];
+      const sections = tocLinks.map((link) =>
+        document.querySelector(link.getAttribute("href"))
+      ).filter(Boolean);
+
+      const setActiveLink = (id) => {
+        tocLinks.forEach((link) => {
+          const isActive = link.getAttribute("href") === `#${id}`;
+          link.classList.toggle("active", isActive);
+        });
+      };
+
+      // Handle click events
+      tocLinks.forEach((link) => {
+        link.addEventListener("click", (e) => {
+          const id = link.getAttribute("href").substring(1);
+          setActiveLink(id);
+        });
+      });
+
+      // Handle scroll events
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting && entry.intersectionRatio > 0.3) {
+              const id = entry.target.getAttribute("id");
+              setActiveLink(id);
+            }
+          });
+        },
+        {
+          rootMargin: "-15% 0px -70% 0px",
+          threshold: [0, 0.3, 0.5, 1],
+        }
+      );
+
+      sections.forEach((section) => {
+        if (section) observer.observe(section);
+      });
+
+      const progressBar = document.getElementById("progressBar");
+      const scrollTopBtn = document.getElementById("scrollTop");
+      const themeToggle = document.getElementById("themeToggle");
+      const tocToggle = document.getElementById("tocToggle");
+      const sidebarToggle = document.getElementById("sidebarToggle");
+      const chatbotToggle = document.getElementById("chatbotToggle");
+      const chatbotPanel = document.getElementById("chatbotPanel");
+      const chatbotBackdrop = document.getElementById("chatbotBackdrop");
+      const chatbotClose = document.getElementById("chatbotClose");
+      const chatMessages = document.getElementById("chatMessages");
+      const chatForm = document.getElementById("chatForm");
+      const chatInput = document.getElementById("chatInput");
+      const chatSubmit = document.getElementById("chatSubmit");
+      const chatAdvancedToggle = document.getElementById("chatAdvancedToggle");
+      const chatAdvancedFields = document.getElementById("chatAdvancedFields");
+      const chatMode = document.getElementById("chatMode");
+      const chatContext = document.getElementById("chatContext");
+      const chatSections = document.getElementById("chatSections");
+      const chatSnippets = document.getElementById("chatSnippets");
+      const chatStatus = document.getElementById("chatStatus");
+      const chatStatusText = chatStatus ? chatStatus.querySelector("span") : null;
+      // 修改为实际的后端服务器地址
+      const API_BASE_URL = window.location.origin;
+      const API_ENDPOINT = `${API_BASE_URL}/ask`;
+      const HEALTH_ENDPOINT = `${API_BASE_URL}/health`;
+      const toc = document.getElementById("toc");
+      const noteInput = document.getElementById("noteInput");
+      const noteAdd = document.getElementById("noteAdd");
+      const noteList = document.getElementById("noteList");
+      const noteEmpty = document.getElementById("noteEmpty");
+      const noteSearch = document.getElementById("noteSearch");
+      const noteCount = document.getElementById("noteCount");
+      const STORAGE_KEY = 'nexus-ai-notes';
+      let notes = [];
+      let filteredNotes = [];
+
+      const isChatVisible = () =>
+        chatbotPanel && chatbotPanel.classList.contains("visible");
+
+      const ensureChatGreeting = () => {
+        if (!chatMessages || chatMessages.dataset.initialized === "true") return;
+        appendChatMessage(
+          "assistant",
+          "您好，我是 Nexus-AI 智能助手。请直接输入您的问题，我会通过后端知识库为您提供解答。"
+        );
+        chatMessages.dataset.initialized = "true";
+      };
+
+      const appendChatMessage = (role, text, meta = {}) => {
+        if (!chatMessages) return;
+        const wrapper = document.createElement("div");
+        wrapper.className = `chat-message ${role}`;
+
+        const bubble = document.createElement("div");
+        bubble.className = "chat-bubble";
+        
+        if (role === "assistant" && text) {
+          // 渲染 Markdown
+          try {
+            const rawHtml = marked.parse(text || "");
+            const cleanHtml = DOMPurify.sanitize(rawHtml);
+            bubble.innerHTML = cleanHtml;
+          } catch (e) {
+            bubble.textContent = text || "暂无内容";
+          }
+        } else {
+          bubble.textContent = text || (role === "assistant" ? "暂无内容" : "");
+        }
+        
+        wrapper.appendChild(bubble);
+
+        if (meta.usedSections && Array.isArray(meta.usedSections) && meta.usedSections.length) {
+          const metaDiv = document.createElement("div");
+          metaDiv.className = "chat-meta";
+          const strong = document.createElement("strong");
+          strong.textContent = "used_sections";
+          metaDiv.append(strong, document.createTextNode(`: ${meta.usedSections.join(", ")}`));
+          wrapper.appendChild(metaDiv);
+        }
+
+        if (meta.promptTokensHint) {
+          const hintDiv = document.createElement("div");
+          hintDiv.className = "chat-meta";
+          const strong = document.createElement("strong");
+          strong.textContent = "output_prompt_tokens";
+          hintDiv.append(strong, document.createTextNode(`: ${meta.promptTokensHint}`));
+          wrapper.appendChild(hintDiv);
+        }
+
+        if (meta.errorDetails) {
+          const errorDiv = document.createElement("div");
+          errorDiv.className = "chat-meta";
+          const strong = document.createElement("strong");
+          strong.textContent = "error";
+          errorDiv.append(strong, document.createTextNode(`: ${meta.errorDetails}`));
+          wrapper.appendChild(errorDiv);
+        }
+
+        chatMessages.appendChild(wrapper);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      };
+
+      const updateChatStatus = (message, busy = false) => {
+        if (!chatStatusText) return;
+        const dot = document.createElement("span");
+        dot.className = "dot";
+        dot.setAttribute("aria-hidden", "true");
+        if (busy) {
+          dot.style.background = "rgba(96, 165, 250, 0.75)";
+        } else {
+          dot.removeAttribute("style");
+        }
+        chatStatusText.innerHTML = "";
+        chatStatusText.append(dot, document.createTextNode(message));
+      };
+
+      const openChatbot = () => {
+        if (!chatbotPanel || !chatbotToggle) return;
+        chatbotPanel.classList.add("visible");
+        chatbotPanel.setAttribute("aria-hidden", "false");
+        chatbotBackdrop?.classList.add("visible");
+        chatbotBackdrop?.setAttribute("aria-hidden", "false");
+        chatbotToggle.setAttribute("aria-pressed", "true");
+        ensureChatGreeting();
+        updateChatStatus("服务已就绪");
+        setTimeout(() => chatInput?.focus(), 160);
+      };
+
+      const closeChatbot = () => {
+        if (!chatbotPanel || !chatbotToggle) return;
+        chatbotPanel.classList.remove("visible");
+        chatbotPanel.setAttribute("aria-hidden", "true");
+        chatbotBackdrop?.classList.remove("visible");
+        chatbotBackdrop?.setAttribute("aria-hidden", "true");
+        chatbotToggle.setAttribute("aria-pressed", "false");
+      };
+
+      const setChatLoading = (loading) => {
+        if (!chatInput || !chatSubmit) return;
+        chatInput.disabled = loading;
+        chatSubmit.disabled = loading;
+        if (loading) {
+          updateChatStatus("正在获取回答...", true);
+        } else {
+          updateChatStatus("服务已就绪");
+        }
+      };
+
+      chatbotToggle?.addEventListener("click", () => {
+        if (isChatVisible()) {
+          closeChatbot();
+        } else {
+          openChatbot();
+        }
+      });
+
+      chatbotClose?.addEventListener("click", () => {
+        closeChatbot();
+      });
+
+      chatbotBackdrop?.addEventListener("click", () => {
+        closeChatbot();
+      });
+
+      chatAdvancedToggle?.addEventListener("click", () => {
+        if (!chatAdvancedFields) return;
+        const expanded = chatAdvancedFields.classList.toggle("visible");
+        chatAdvancedToggle.setAttribute("aria-expanded", expanded.toString());
+        chatAdvancedFields.setAttribute("aria-hidden", (!expanded).toString());
+      });
+
+      chatInput?.addEventListener("keydown", (event) => {
+        if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+          event.preventDefault();
+          chatForm?.requestSubmit();
+        }
+      });
+
+      chatForm?.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const trimmedQuestion = chatInput?.value.trim();
+        if (!trimmedQuestion) {
+          chatInput?.focus();
+          return;
+        }
+
+        appendChatMessage("user", trimmedQuestion);
+        if (chatInput) chatInput.value = "";
+
+        const payload = { question: trimmedQuestion };
+        const selectedMode = chatMode?.value.trim();
+        payload.mode = selectedMode || "general";
+
+        const contextValue = chatContext?.value.trim();
+        if (contextValue) {
+          payload.context = contextValue;
+        }
+
+        const sectionValue = chatSections?.value.trim();
+        if (sectionValue) {
+          const sections = sectionValue
+            .split(/[,，\n]/)
+            .map((item) => item.trim())
+            .filter(Boolean);
+          if (sections.length) {
+            payload.include_sections = sections;
+          }
+        }
+
+        const snippetsValue = chatSnippets?.value.trim();
+        if (snippetsValue) {
+          const snippets = snippetsValue
+            .split(/\n+/)
+            .map((item) => item.trim())
+            .filter(Boolean);
+          if (snippets.length) {
+            payload.extra_snippets = snippets;
+          }
+        }
+
+        setChatLoading(true);
+
+        try {
+          const response = await fetch(API_ENDPOINT, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+
+          const data = await response.json();
+          appendChatMessage("assistant", data.answer || "后端未返回答案", {
+            usedSections: Array.isArray(data.used_sections)
+              ? data.used_sections
+              : undefined,
+            promptTokensHint: data.prompt_tokens_hint,
+          });
+        } catch (error) {
+          appendChatMessage(
+            "error",
+            `请求失败：${error?.message || "未知错误"}`,
+            {
+              errorDetails:
+                error?.response?.statusText ||
+                (error?.stack ? error.stack.split("\n")[0] : undefined),
+            }
+          );
+        } finally {
+          setChatLoading(false);
+          chatInput?.focus();
+        }
+      });
+
+      const loadNotes = () => {
+        try {
+          const stored = localStorage.getItem(STORAGE_KEY);
+          notes = stored ? JSON.parse(stored) : [];
+          filteredNotes = [...notes];
+        } catch (e) {
+          notes = [];
+          filteredNotes = [];
+        }
+      };
+
+      const saveNotes = () => {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
+        } catch (e) {
+          console.error('Failed to save notes:', e);
+        }
+      };
+
+      const updateCount = () => {
+        noteCount.textContent = `${filteredNotes.length}/${notes.length} 条`;
+      };
+
+      const renderNotes = () => {
+        noteList.innerHTML = "";
+        if (!filteredNotes.length) {
+          noteEmpty.style.display = "block";
+          noteList.style.display = "none";
+          updateCount();
+          return;
+        }
+
+        noteEmpty.style.display = "none";
+        noteList.style.display = "flex";
+        
+        filteredNotes.forEach((text, displayIndex) => {
+          const actualIndex = notes.indexOf(text);
+          const entry = document.createElement("div");
+          entry.className = "note-entry";
+
+          const content = document.createElement("div");
+          content.className = "note-entry-text";
+          const isTruncated = text.length > 100;
+          content.textContent = text;
+          if (isTruncated) {
+            content.classList.add('truncated');
+          }
+
+          const actions = document.createElement("div");
+          actions.className = "note-actions";
+
+          if (isTruncated) {
+            const expandBtn = document.createElement("button");
+            expandBtn.type = "button";
+            expandBtn.textContent = "展开";
+            expandBtn.addEventListener("click", () => {
+              const isExpanded = content.classList.toggle('expanded');
+              content.classList.toggle('truncated');
+              expandBtn.textContent = isExpanded ? "收起" : "展开";
+            });
+            actions.appendChild(expandBtn);
+          }
+
+          const copyBtn = document.createElement("button");
+          copyBtn.type = "button";
+          copyBtn.dataset.index = actualIndex;
+          copyBtn.textContent = "复制";
+          
+          const deleteBtn = document.createElement("button");
+          deleteBtn.type = "button";
+          deleteBtn.className = "delete";
+          deleteBtn.dataset.index = actualIndex;
+          deleteBtn.textContent = "删除";
+
+          actions.append(copyBtn, deleteBtn);
+          entry.append(content, actions);
+          noteList.appendChild(entry);
+        });
+        
+        updateCount();
+      };
+
+      const addNote = () => {
+        const value = noteInput.value.trim();
+        if (!value) {
+          noteInput.focus();
+          return;
+        }
+
+        notes.unshift(value);
+        saveNotes();
+        noteInput.value = "";
+        noteSearch.value = "";
+        filteredNotes = [...notes];
+        renderNotes();
+        noteInput.focus();
+      };
+
+      const filterNotes = (query) => {
+        if (!query.trim()) {
+          filteredNotes = [...notes];
+        } else {
+          const lowerQuery = query.toLowerCase();
+          filteredNotes = notes.filter(note => 
+            note.toLowerCase().includes(lowerQuery)
+          );
+        }
+        renderNotes();
+      };
+
+      loadNotes();
+      renderNotes();
+
+      noteAdd.addEventListener("click", addNote);
+
+      noteInput.addEventListener("keydown", (event) => {
+        if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+          event.preventDefault();
+          addNote();
+        }
+      });
+
+      noteSearch.addEventListener("input", (event) => {
+        filterNotes(event.target.value);
+      });
+
+      noteList.addEventListener("click", async (event) => {
+        const btn = event.target;
+        if (btn.tagName !== "BUTTON") return;
+
+        const idx = Number(btn.dataset.index);
+        
+        if (btn.classList.contains('delete')) {
+          notes.splice(idx, 1);
+          saveNotes();
+          noteSearch.value = "";
+          filteredNotes = [...notes];
+          renderNotes();
+        } else if (btn.textContent === "复制" || btn.textContent === "已复制" || btn.textContent === "失败") {
+          const text = notes[idx];
+          if (typeof text === "string") {
+            const original = btn.textContent;
+            try {
+              await navigator.clipboard.writeText(text);
+              btn.textContent = "已复制";
+              setTimeout(() => (btn.textContent = original), 1400);
+            } catch (error) {
+              btn.textContent = "失败";
+              setTimeout(() => (btn.textContent = original), 1400);
+            }
+          }
+        }
+      });
+
+      tocToggle.setAttribute("aria-expanded", "true");
+      sidebarToggle.textContent = "✕";
+      sidebarToggle.setAttribute("title", "隐藏导航");
+
+      document.addEventListener("scroll", () => {
+        const { scrollTop, scrollHeight, clientHeight } = document.documentElement;
+        const progress = (scrollTop / (scrollHeight - clientHeight)) * 100;
+        progressBar.style.width = `${progress}%`;
+        scrollTopBtn.style.opacity = scrollTop > 360 ? "1" : "0";
+      });
+
+      scrollTopBtn.addEventListener("click", () => {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      });
+
+      themeToggle.addEventListener("click", () => {
+        const prefersLight = document.body.getAttribute("data-theme") === "light";
+        document.body.setAttribute("data-theme", prefersLight ? "dark" : "light");
+      });
+
+      tocToggle.addEventListener("click", () => {
+        const isCollapsed = toc.classList.toggle("collapsed");
+        tocToggle.textContent = isCollapsed ? "展开导航" : "折叠导航";
+        tocToggle.setAttribute("aria-expanded", (!isCollapsed).toString());
+      });
+
+      sidebarToggle.addEventListener("click", () => {
+        const hidden = document.body.classList.toggle("sidebar-hidden");
+        sidebarToggle.textContent = hidden ? "≡" : "✕";
+        sidebarToggle.setAttribute(
+          "title",
+          hidden ? "显示导航" : "隐藏导航"
+        );
+      });
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+          if (isChatVisible()) {
+            closeChatbot();
+            return;
+          }
+          if (!document.body.classList.contains("sidebar-hidden")) {
+            document.body.classList.add("sidebar-hidden");
+            sidebarToggle.textContent = "≡";
+            sidebarToggle.setAttribute("title", "显示导航");
+          }
+        }
+      });
+
+      document.querySelectorAll("[data-collapse]").forEach((btn) => {
+        const targetSelector = btn.getAttribute("data-collapse");
+        const targets = document.querySelectorAll(targetSelector);
+        let collapsed = false;
+        btn.addEventListener("click", () => {
+          collapsed = !collapsed;
+          btn.textContent = collapsed ? "展开内容" : "折叠内容";
+          targets.forEach((el) => {
+            const height = el.scrollHeight;
+            if (collapsed) {
+              el.style.maxHeight = `${height}px`;
+              requestAnimationFrame(() => {
+                el.style.maxHeight = "0";
+                el.style.opacity = "0";
+              });
+            } else {
+              el.style.maxHeight = `${height}px`;
+              el.style.opacity = "1";
+              setTimeout(() => {
+                el.style.maxHeight = "none";
+              }, 480);
+            }
+            el.style.transition = "max-height 0.5s ease, opacity 0.4s ease";
+          });
+        });
+        targets.forEach((el) => {
+          el.style.overflow = "hidden";
+          el.style.maxHeight = "none";
+        });
+      });
+
+      const copyButtons = document.querySelectorAll("pre button.copy");
+      copyButtons.forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const codeElement = btn.nextElementSibling;
+          const code = codeElement.textContent.replace(/\n\s+/g, ' ').trim();
+          try {
+            await navigator.clipboard.writeText(code);
+            btn.textContent = "已复制";
+            setTimeout(() => (btn.textContent = "复制"), 1400);
+          } catch (error) {
+            btn.textContent = "失败";
+            setTimeout(() => (btn.textContent = "复制"), 1400);
+          }
+        });
+      });
+
+      // Image viewer functionality
+      const lightbox = document.getElementById('lightbox');
+      const lightboxImg = document.getElementById('lightboxImg');
+      const lightboxCaption = document.getElementById('lightboxCaption');
+      const lightboxClose = document.getElementById('lightboxClose');
+
+      const initImageViewer = () => {
+        document.querySelectorAll('.img-container img').forEach(img => {
+          const container = img.closest('.img-container');
+          if (container.querySelector('.img-wrapper')) return;
+
+          const wrapper = document.createElement('div');
+          wrapper.className = 'img-wrapper collapsed';
+          const controls = document.createElement('div');
+          controls.className = 'img-controls';
+          
+          const toggleCollapse = () => {
+            const isCollapsed = wrapper.classList.toggle('collapsed');
+            expandBtn.textContent = isCollapsed ? '展开' : '收起';
+          };
+
+          const expandBtn = document.createElement('button');
+          expandBtn.textContent = '展开';
+          expandBtn.onclick = toggleCollapse;
+
+          img.addEventListener('click', () => {
+            if (!wrapper.classList.contains('collapsed')) {
+              toggleCollapse();
+            }
+          });
+
+          const zoomBtn = document.createElement('button');
+          zoomBtn.textContent = '🔍 放大';
+          zoomBtn.onclick = () => {
+            lightboxImg.src = img.src;
+            lightboxCaption.textContent = img.alt || '';
+            lightbox.classList.add('active');
+          };
+
+          controls.append(expandBtn, zoomBtn);
+          
+          img.parentNode.insertBefore(wrapper, img);
+          wrapper.appendChild(img);
+          container.appendChild(controls);
+
+          if (img.alt) {
+            const caption = document.createElement('div');
+            caption.className = 'img-caption';
+            caption.textContent = img.alt;
+            container.appendChild(caption);
+          }
+        });
+      };
+
+      const closeLightbox = () => {
+        lightbox.classList.remove('active');
+      };
+
+      lightboxClose?.addEventListener('click', closeLightbox);
+      lightbox?.addEventListener('click', (e) => {
+        if (e.target === lightbox) closeLightbox();
+      });
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && lightbox?.classList.contains('active')) {
+          closeLightbox();
+        }
+      });
+
+      initImageViewer();
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
+  </body>
+</html>
+

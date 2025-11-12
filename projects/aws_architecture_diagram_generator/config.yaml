@@ -1,6 +1,0 @@
-project:
-  created_date: '2025-09-24T09:29:18.829160+00:00'
-  description: AWS架构图生成智能体，能够理解IT技术栈并映射到AWS服务，基于自然语言描述生成多种格式的架构图（mermaid、markdown、drawio和PPT），确保架构合理、产品选择正确、概念准确且图形美观。
-  name: aws_architecture_diagram_generator
-  updated_date: '2025-09-24T09:29:23.049353+00:00'
-  version: 1.0.0

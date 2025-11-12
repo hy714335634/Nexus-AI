@@ -1,0 +1,785 @@
+{
+  "tool_development": {
+    "development_overview": {
+      "project_name": "aws_network_topology_analyzer",
+      "version": "1.0",
+      "date": "2025-11-11",
+      "development_scope": "开发AWS网络拓扑分析所需的工具集，包括AWS资源扫描、Neo4j数据库操作和错误处理工具",
+      "design_principles": [
+        "模块化设计，每个工具专注于单一职责",
+        "完整的错误处理和日志记录",
+        "统一的JSON格式返回结果",
+        "支持批量操作以提高效率",
+        "详细的文档和类型注解"
+      ],
+      "key_decisions": [
+        "使用boto3库与AWS服务交互",
+        "使用neo4j-driver与Neo4j数据库交互",
+        "实现连接池管理以复用数据库连接",
+        "采用分层扫描策略确保数据完整性",
+        "提供自然语言到Cypher查询的转换功能"
+      ]
+    },
+    "tools": [
+      {
+        "tool_name": "aws_profile_manager",
+        "description": "管理AWS配置文件和认证",
+        "function_signature": "aws_profile_manager(action: str, profile_name: str, region: Optional[str] = None, create_session: bool = False) -> str",
+        "parameters": [
+          {
+            "name": "action",
+            "type": "str",
+            "description": "执行的操作，可选值: validate, list, get_credentials, test_connection",
+            "required": true
+          },
+          {
+            "name": "profile_name",
+            "type": "str",
+            "description": "AWS配置文件名称",
+            "required": true
+          },
+          {
+            "name": "region",
+            "type": "Optional[str]",
+            "description": "AWS区域（可选，默认使用配置文件中的区域）",
+            "required": false
+          },
+          {
+            "name": "create_session",
+            "type": "bool",
+            "description": "是否创建并返回会话对象（可选，默认False）",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的操作结果",
+        "dependencies": ["boto3", "json", "logging"],
+        "implementation_notes": [
+          "支持验证AWS配置文件是否有效",
+          "支持列出所有可用的配置文件",
+          "支持获取配置文件的凭证信息（不包括敏感信息）",
+          "支持测试与AWS的连接并获取可用区域"
+        ],
+        "error_handling": [
+          "处理配置文件不存在的情况",
+          "处理凭证无效的情况",
+          "处理连接失败的情况"
+        ],
+        "usage_examples": [
+          "验证配置文件: aws_profile_manager('validate', 'default')",
+          "列出所有配置文件: aws_profile_manager('list', '')",
+          "测试连接: aws_profile_manager('test_connection', 'default', 'us-east-1')"
+        ]
+      },
+      {
+        "tool_name": "aws_resource_scanner",
+        "description": "扫描AWS网络资源",
+        "function_signature": "aws_resource_scanner(profile_name: str, region: str, resource_types: List[str], max_items: int = 100, include_tags: bool = True) -> str",
+        "parameters": [
+          {
+            "name": "profile_name",
+            "type": "str",
+            "description": "AWS配置文件名称",
+            "required": true
+          },
+          {
+            "name": "region",
+            "type": "str",
+            "description": "AWS区域",
+            "required": true
+          },
+          {
+            "name": "resource_types",
+            "type": "List[str]",
+            "description": "要扫描的资源类型列表",
+            "required": true
+          },
+          {
+            "name": "max_items",
+            "type": "int",
+            "description": "每种资源类型最大返回数量（默认100）",
+            "required": false
+          },
+          {
+            "name": "include_tags",
+            "type": "bool",
+            "description": "是否包含资源标签（默认True）",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的扫描结果",
+        "dependencies": ["boto3", "json", "logging", "time"],
+        "implementation_notes": [
+          "支持扫描多种AWS网络资源类型",
+          "实现分页处理以处理大量资源",
+          "提供资源计数和摘要信息",
+          "支持all_network和all_compute特殊资源组"
+        ],
+        "error_handling": [
+          "处理API错误并继续扫描其他资源",
+          "记录每种资源类型的错误信息",
+          "处理配置文件不存在的情况"
+        ],
+        "usage_examples": [
+          "扫描VPC: aws_resource_scanner('default', 'us-east-1', ['vpc'])",
+          "扫描所有网络资源: aws_resource_scanner('default', 'us-east-1', ['all_network'])"
+        ]
+      },
+      {
+        "tool_name": "neo4j_database_connector",
+        "description": "连接Neo4j数据库",
+        "function_signature": "neo4j_database_connector(action: str, uri: str = \"neo4j://localhost:7687\", username: str = \"neo4j\", password: str = \"neo4jneo4j\", database: str = \"neo4j\", connection_id: str = \"default\", timeout: int = 60) -> str",
+        "parameters": [
+          {
+            "name": "action",
+            "type": "str",
+            "description": "执行的操作，可选值: connect, disconnect, test, status, list",
+            "required": true
+          },
+          {
+            "name": "uri",
+            "type": "str",
+            "description": "Neo4j数据库URI，默认为neo4j://localhost:7687",
+            "required": false
+          },
+          {
+            "name": "username",
+            "type": "str",
+            "description": "用户名，默认为neo4j",
+            "required": false
+          },
+          {
+            "name": "password",
+            "type": "str",
+            "description": "密码，默认为neo4jneo4j",
+            "required": false
+          },
+          {
+            "name": "database",
+            "type": "str",
+            "description": "数据库名称，默认为neo4j",
+            "required": false
+          },
+          {
+            "name": "connection_id",
+            "type": "str",
+            "description": "连接ID，用于在多连接场景中标识不同的连接，默认为default",
+            "required": false
+          },
+          {
+            "name": "timeout",
+            "type": "int",
+            "description": "连接超时时间（秒），默认为60秒",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的操作结果",
+        "dependencies": ["neo4j", "json", "logging", "time"],
+        "implementation_notes": [
+          "实现连接池管理以复用数据库连接",
+          "支持连接测试和状态检查",
+          "提供数据库版本和统计信息",
+          "支持多连接场景"
+        ],
+        "error_handling": [
+          "处理认证错误",
+          "处理服务不可用错误",
+          "处理连接超时错误"
+        ],
+        "usage_examples": [
+          "连接数据库: neo4j_database_connector('connect', 'neo4j://localhost:7687', 'neo4j', 'neo4jneo4j')",
+          "测试连接: neo4j_database_connector('test', connection_id='default')"
+        ]
+      },
+      {
+        "tool_name": "neo4j_node_creator",
+        "description": "创建Neo4j节点",
+        "function_signature": "neo4j_node_creator(node_type: str, properties: Dict[str, Any], labels: Optional[List[str]] = None, merge_keys: Optional[List[str]] = None, connection_id: str = \"default\", database: str = \"neo4j\", return_node: bool = True, create_constraints: bool = True) -> str",
+        "parameters": [
+          {
+            "name": "node_type",
+            "type": "str",
+            "description": "节点类型，例如：Account, Region, VPC等",
+            "required": true
+          },
+          {
+            "name": "properties",
+            "type": "Dict[str, Any]",
+            "description": "节点属性字典",
+            "required": true
+          },
+          {
+            "name": "labels",
+            "type": "Optional[List[str]]",
+            "description": "额外的标签列表（可选）",
+            "required": false
+          },
+          {
+            "name": "merge_keys",
+            "type": "Optional[List[str]]",
+            "description": "用于MERGE操作的键列表（可选，默认使用resource_id或id）",
+            "required": false
+          },
+          {
+            "name": "connection_id",
+            "type": "str",
+            "description": "数据库连接ID（可选，默认为\"default\"）",
+            "required": false
+          },
+          {
+            "name": "database",
+            "type": "str",
+            "description": "数据库名称（可选，默认为\"neo4j\"）",
+            "required": false
+          },
+          {
+            "name": "return_node",
+            "type": "bool",
+            "description": "是否返回创建的节点（可选，默认为True）",
+            "required": false
+          },
+          {
+            "name": "create_constraints",
+            "type": "bool",
+            "description": "是否创建约束（可选，默认为True）",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的操作结果",
+        "dependencies": ["neo4j", "json", "logging", "time"],
+        "implementation_notes": [
+          "支持MERGE操作以避免重复节点",
+          "自动创建唯一性约束",
+          "支持多标签节点",
+          "提供批量创建节点的功能"
+        ],
+        "error_handling": [
+          "处理约束违反错误",
+          "处理数据库错误",
+          "处理连接不存在的情况"
+        ],
+        "usage_examples": [
+          "创建VPC节点: neo4j_node_creator('VPC', {'resource_id': 'vpc-123', 'cidr_block': '10.0.0.0/16'})"
+        ]
+      },
+      {
+        "tool_name": "neo4j_edge_creator",
+        "description": "创建Neo4j边/关系",
+        "function_signature": "neo4j_edge_creator(source_node_type: str, source_properties: Dict[str, Any], target_node_type: str, target_properties: Dict[str, Any], relationship_type: str, relationship_properties: Optional[Dict[str, Any]] = None, source_merge_keys: Optional[List[str]] = None, target_merge_keys: Optional[List[str]] = None, connection_id: str = \"default\", database: str = \"neo4j\", create_missing_nodes: bool = True, return_relationship: bool = True) -> str",
+        "parameters": [
+          {
+            "name": "source_node_type",
+            "type": "str",
+            "description": "源节点类型",
+            "required": true
+          },
+          {
+            "name": "source_properties",
+            "type": "Dict[str, Any]",
+            "description": "源节点属性字典，用于查找源节点",
+            "required": true
+          },
+          {
+            "name": "target_node_type",
+            "type": "str",
+            "description": "目标节点类型",
+            "required": true
+          },
+          {
+            "name": "target_properties",
+            "type": "Dict[str, Any]",
+            "description": "目标节点属性字典，用于查找目标节点",
+            "required": true
+          },
+          {
+            "name": "relationship_type",
+            "type": "str",
+            "description": "关系类型",
+            "required": true
+          },
+          {
+            "name": "relationship_properties",
+            "type": "Optional[Dict[str, Any]]",
+            "description": "关系属性字典（可选）",
+            "required": false
+          },
+          {
+            "name": "source_merge_keys",
+            "type": "Optional[List[str]]",
+            "description": "用于查找源节点的键列表（可选，默认使用resource_id或id）",
+            "required": false
+          },
+          {
+            "name": "target_merge_keys",
+            "type": "Optional[List[str]]",
+            "description": "用于查找目标节点的键列表（可选，默认使用resource_id或id）",
+            "required": false
+          },
+          {
+            "name": "connection_id",
+            "type": "str",
+            "description": "数据库连接ID（可选，默认为\"default\"）",
+            "required": false
+          },
+          {
+            "name": "database",
+            "type": "str",
+            "description": "数据库名称（可选，默认为\"neo4j\"）",
+            "required": false
+          },
+          {
+            "name": "create_missing_nodes",
+            "type": "bool",
+            "description": "是否创建不存在的节点（可选，默认为True）",
+            "required": false
+          },
+          {
+            "name": "return_relationship",
+            "type": "bool",
+            "description": "是否返回创建的关系（可选，默认为True）",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的操作结果",
+        "dependencies": ["neo4j", "json", "logging", "time"],
+        "implementation_notes": [
+          "支持MERGE操作以避免重复关系",
+          "可选择性地创建不存在的节点",
+          "支持批量创建关系",
+          "提供层级关系创建功能"
+        ],
+        "error_handling": [
+          "处理节点不存在的情况",
+          "处理数据库错误",
+          "处理连接不存在的情况"
+        ],
+        "usage_examples": [
+          "创建VPC与子网的关系: neo4j_edge_creator('VPC', {'resource_id': 'vpc-123'}, 'Subnet', {'resource_id': 'subnet-456'}, 'HAS_SUBNET')"
+        ]
+      },
+      {
+        "tool_name": "neo4j_query_executor",
+        "description": "执行Neo4j查询",
+        "function_signature": "neo4j_query_executor(query: str, parameters: Optional[Dict[str, Any]] = None, connection_id: str = \"default\", database: str = \"neo4j\", timeout: int = 60, include_stats: bool = True, result_format: str = \"default\") -> str",
+        "parameters": [
+          {
+            "name": "query",
+            "type": "str",
+            "description": "Cypher查询语句",
+            "required": true
+          },
+          {
+            "name": "parameters",
+            "type": "Optional[Dict[str, Any]]",
+            "description": "查询参数字典（可选）",
+            "required": false
+          },
+          {
+            "name": "connection_id",
+            "type": "str",
+            "description": "数据库连接ID（可选，默认为\"default\"）",
+            "required": false
+          },
+          {
+            "name": "database",
+            "type": "str",
+            "description": "数据库名称（可选，默认为\"neo4j\"）",
+            "required": false
+          },
+          {
+            "name": "timeout",
+            "type": "int",
+            "description": "查询超时时间（秒）（可选，默认为60秒）",
+            "required": false
+          },
+          {
+            "name": "include_stats",
+            "type": "bool",
+            "description": "是否包含查询统计信息（可选，默认为True）",
+            "required": false
+          },
+          {
+            "name": "result_format",
+            "type": "str",
+            "description": "结果格式（可选，默认为\"default\"，可选值：\"default\", \"graph\", \"table\", \"raw\"）",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的查询结果",
+        "dependencies": ["neo4j", "json", "logging", "time"],
+        "implementation_notes": [
+          "支持参数化查询以防止注入",
+          "提供多种结果格式以适应不同需求",
+          "包含查询统计信息",
+          "支持常用查询模板"
+        ],
+        "error_handling": [
+          "处理Cypher语法错误",
+          "处理查询超时",
+          "处理数据库错误"
+        ],
+        "usage_examples": [
+          "执行查询: neo4j_query_executor('MATCH (n:VPC) RETURN n LIMIT 10')",
+          "使用参数: neo4j_query_executor('MATCH (n:VPC) WHERE n.resource_id = $vpc_id RETURN n', {'vpc_id': 'vpc-123'})"
+        ]
+      },
+      {
+        "tool_name": "neo4j_path_analyzer",
+        "description": "分析网络路径",
+        "function_signature": "neo4j_path_analyzer(source_node_type: str, source_properties: Dict[str, Any], target_node_type: str, target_properties: Dict[str, Any], max_depth: int = 5, relationship_types: Optional[List[str]] = None, direction: str = \"outgoing\", connection_id: str = \"default\", database: str = \"neo4j\", limit: int = 10, include_node_details: bool = True) -> str",
+        "parameters": [
+          {
+            "name": "source_node_type",
+            "type": "str",
+            "description": "源节点类型",
+            "required": true
+          },
+          {
+            "name": "source_properties",
+            "type": "Dict[str, Any]",
+            "description": "源节点属性字典，用于查找源节点",
+            "required": true
+          },
+          {
+            "name": "target_node_type",
+            "type": "str",
+            "description": "目标节点类型",
+            "required": true
+          },
+          {
+            "name": "target_properties",
+            "type": "Dict[str, Any]",
+            "description": "目标节点属性字典，用于查找目标节点",
+            "required": true
+          },
+          {
+            "name": "max_depth",
+            "type": "int",
+            "description": "最大路径深度（可选，默认为5）",
+            "required": false
+          },
+          {
+            "name": "relationship_types",
+            "type": "Optional[List[str]]",
+            "description": "要包含的关系类型列表（可选，默认为所有类型）",
+            "required": false
+          },
+          {
+            "name": "direction",
+            "type": "str",
+            "description": "路径方向，可选值：\"outgoing\", \"incoming\", \"both\"（可选，默认为\"outgoing\"）",
+            "required": false
+          },
+          {
+            "name": "connection_id",
+            "type": "str",
+            "description": "数据库连接ID（可选，默认为\"default\"）",
+            "required": false
+          },
+          {
+            "name": "database",
+            "type": "str",
+            "description": "数据库名称（可选，默认为\"neo4j\"）",
+            "required": false
+          },
+          {
+            "name": "limit",
+            "type": "int",
+            "description": "结果限制数量（可选，默认为10）",
+            "required": false
+          },
+          {
+            "name": "include_node_details",
+            "type": "bool",
+            "description": "是否包含节点详细信息（可选，默认为True）",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的路径分析结果",
+        "dependencies": ["neo4j", "json", "logging", "time"],
+        "implementation_notes": [
+          "使用Neo4j的shortestPath算法",
+          "支持过滤关系类型",
+          "支持指定路径方向",
+          "提供可达性分析功能"
+        ],
+        "error_handling": [
+          "处理节点不存在的情况",
+          "处理路径不存在的情况",
+          "处理查询超时"
+        ],
+        "usage_examples": [
+          "分析EC2实例到互联网的路径: neo4j_path_analyzer('EC2', {'resource_id': 'i-123'}, 'InternetGateway', {'resource_id': 'igw-456'})"
+        ]
+      },
+      {
+        "tool_name": "neo4j_topology_visualizer",
+        "description": "可视化网络拓扑",
+        "function_signature": "neo4j_topology_visualizer(query: str, parameters: Optional[Dict[str, Any]] = None, connection_id: str = \"default\", database: str = \"neo4j\", format: str = \"json\", node_label_property: str = \"resource_id\", node_size_property: Optional[str] = None, node_color_property: Optional[str] = None, layout: str = \"spring\", include_properties: bool = False, limit_nodes: int = 100) -> str",
+        "parameters": [
+          {
+            "name": "query",
+            "type": "str",
+            "description": "Cypher查询语句，必须返回包含节点和关系的路径或图结构",
+            "required": true
+          },
+          {
+            "name": "parameters",
+            "type": "Optional[Dict[str, Any]]",
+            "description": "查询参数字典（可选）",
+            "required": false
+          },
+          {
+            "name": "connection_id",
+            "type": "str",
+            "description": "数据库连接ID（可选，默认为\"default\"）",
+            "required": false
+          },
+          {
+            "name": "database",
+            "type": "str",
+            "description": "数据库名称（可选，默认为\"neo4j\"）",
+            "required": false
+          },
+          {
+            "name": "format",
+            "type": "str",
+            "description": "输出格式，可选值：\"json\", \"graph_json\", \"base64_image\"（可选，默认为\"json\"）",
+            "required": false
+          },
+          {
+            "name": "node_label_property",
+            "type": "str",
+            "description": "用于节点标签的属性名（可选，默认为\"resource_id\"）",
+            "required": false
+          },
+          {
+            "name": "node_size_property",
+            "type": "Optional[str]",
+            "description": "用于节点大小的属性名（可选）",
+            "required": false
+          },
+          {
+            "name": "node_color_property",
+            "type": "Optional[str]",
+            "description": "用于节点颜色的属性名（可选）",
+            "required": false
+          },
+          {
+            "name": "layout",
+            "type": "str",
+            "description": "图布局算法，可选值：\"spring\", \"circular\", \"random\", \"shell\", \"kamada_kawai\"（可选，默认为\"spring\"）",
+            "required": false
+          },
+          {
+            "name": "include_properties",
+            "type": "bool",
+            "description": "是否包含节点和边的所有属性（可选，默认为False）",
+            "required": false
+          },
+          {
+            "name": "limit_nodes",
+            "type": "int",
+            "description": "限制节点数量以避免过大的可视化（可选，默认为100）",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "根据format参数返回不同格式的可视化结果",
+        "dependencies": ["neo4j", "json", "logging", "time", "matplotlib", "networkx", "numpy", "base64"],
+        "implementation_notes": [
+          "支持多种输出格式以适应不同场景",
+          "使用NetworkX和Matplotlib生成可视化图像",
+          "提供多种布局算法",
+          "支持子图可视化"
+        ],
+        "error_handling": [
+          "处理可视化库不可用的情况",
+          "处理节点数量过多的情况",
+          "处理查询错误"
+        ],
+        "usage_examples": [
+          "可视化VPC及其子网: neo4j_topology_visualizer('MATCH path=(v:VPC)-[:HAS_SUBNET]->(s:Subnet) RETURN path')"
+        ]
+      },
+      {
+        "tool_name": "natural_language_to_cypher_converter",
+        "description": "将自然语言转换为Cypher查询",
+        "function_signature": "natural_language_to_cypher_converter(query: str, connection_id: str = \"default\", database: str = \"neo4j\", use_schema: bool = True, max_schema_items: int = 100, execute_query: bool = False, region: str = \"us-east-1\", model_id: str = \"anthropic.claude-3-sonnet-20240229-v1:0\") -> str",
+        "parameters": [
+          {
+            "name": "query",
+            "type": "str",
+            "description": "自然语言查询",
+            "required": true
+          },
+          {
+            "name": "connection_id",
+            "type": "str",
+            "description": "数据库连接ID（可选，默认为\"default\"）",
+            "required": false
+          },
+          {
+            "name": "database",
+            "type": "str",
+            "description": "数据库名称（可选，默认为\"neo4j\"）",
+            "required": false
+          },
+          {
+            "name": "use_schema",
+            "type": "bool",
+            "description": "是否使用数据库模式信息来改进查询转换（可选，默认为True）",
+            "required": false
+          },
+          {
+            "name": "max_schema_items",
+            "type": "int",
+            "description": "从数据库获取的最大模式项数（可选，默认为100）",
+            "required": false
+          },
+          {
+            "name": "execute_query",
+            "type": "bool",
+            "description": "是否执行生成的查询（可选，默认为False）",
+            "required": false
+          },
+          {
+            "name": "region",
+            "type": "str",
+            "description": "AWS区域，用于Bedrock调用（可选，默认为\"us-east-1\"）",
+            "required": false
+          },
+          {
+            "name": "model_id",
+            "type": "str",
+            "description": "Bedrock模型ID（可选，默认为\"anthropic.claude-3-sonnet-20240229-v1:0\"）",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的转换结果，包含生成的Cypher查询",
+        "dependencies": ["neo4j", "json", "logging", "time", "re", "boto3"],
+        "implementation_notes": [
+          "使用AWS Bedrock的Claude模型转换查询",
+          "利用数据库模式信息提高转换准确性",
+          "提供基于规则的备选转换方法",
+          "支持查询构建器功能"
+        ],
+        "error_handling": [
+          "处理Bedrock不可用的情况",
+          "处理转换失败的情况",
+          "处理执行错误"
+        ],
+        "usage_examples": [
+          "转换查询: natural_language_to_cypher_converter('查找所有VPC及其子网')"
+        ]
+      },
+      {
+        "tool_name": "error_analyzer_and_resolver",
+        "description": "分析和解决错误",
+        "function_signature": "error_analyzer_and_resolver(error_message: str, error_context: Optional[Dict[str, Any]] = None, connection_id: str = \"default\", database: str = \"neo4j\", auto_resolve: bool = False) -> str",
+        "parameters": [
+          {
+            "name": "error_message",
+            "type": "str",
+            "description": "错误信息",
+            "required": true
+          },
+          {
+            "name": "error_context",
+            "type": "Optional[Dict[str, Any]]",
+            "description": "错误上下文，包含相关信息（可选）",
+            "required": false
+          },
+          {
+            "name": "connection_id",
+            "type": "str",
+            "description": "数据库连接ID（可选，默认为\"default\"）",
+            "required": false
+          },
+          {
+            "name": "database",
+            "type": "str",
+            "description": "数据库名称（可选，默认为\"neo4j\"）",
+            "required": false
+          },
+          {
+            "name": "auto_resolve",
+            "type": "bool",
+            "description": "是否自动尝试解决问题（可选，默认为False）",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的错误分析和解决方案",
+        "dependencies": ["neo4j", "json", "logging", "time", "re"],
+        "implementation_notes": [
+          "分析多种错误类型",
+          "提供针对性的解决方案",
+          "支持自动解决部分错误",
+          "提供数据完整性检查功能"
+        ],
+        "error_handling": [
+          "处理分析过程中的错误",
+          "处理自动解决失败的情况"
+        ],
+        "usage_examples": [
+          "分析错误: error_analyzer_and_resolver('Neo.ClientError.Schema.ConstraintValidationFailed: Node already exists with label `VPC` and property `resource_id`=vpc-123')"
+        ]
+      }
+    ],
+    "code_quality": {
+      "code_standards": [
+        "遵循PEP 8编码风格",
+        "使用类型注解提高代码可读性",
+        "详细的函数文档字符串",
+        "适当的日志记录",
+        "统一的错误处理模式"
+      ],
+      "testing_strategy": [
+        "单元测试关键功能",
+        "集成测试验证工具间协作",
+        "错误情况测试",
+        "边界条件测试",
+        "性能测试大数据量场景"
+      ],
+      "performance_considerations": [
+        "使用批量操作减少API调用次数",
+        "实现连接池复用数据库连接",
+        "分页处理大量数据",
+        "优化查询减少数据库负载",
+        "缓存常用查询结果"
+      ],
+      "security_measures": [
+        "不直接存储敏感凭证",
+        "使用参数化查询防止注入攻击",
+        "验证输入参数",
+        "限制查询结果数量",
+        "错误信息不暴露敏感信息"
+      ]
+    },
+    "integration_details": {
+      "aws_services": [
+        "EC2", "VPC", "Transit Gateway", "VPC Peering", "Direct Connect", "Route Tables", 
+        "Security Groups", "Subnets", "Internet Gateways", "NAT Gateways", "RDS", "STS",
+        "AWS Bedrock"
+      ],
+      "external_libraries": [
+        "neo4j-driver", "boto3", "matplotlib", "networkx", "numpy"
+      ],
+      "api_endpoints": [
+        "AWS EC2 API", "AWS RDS API", "AWS STS API", "Neo4j Bolt Protocol", "AWS Bedrock API"
+      ],
+      "data_formats": [
+        "JSON", "Neo4j图数据", "Base64编码图像"
+      ]
+    },
+    "development_notes": "在工具开发过程中，我们采用了模块化设计原则，将功能分解为多个专注于单一职责的工具。为了确保数据完整性，我们实现了分层扫描策略，先扫描高级资源（如Account、Region），再扫描依赖资源。我们还设计了连接池管理机制，以复用Neo4j数据库连接，提高性能。对于错误处理，我们实现了统一的模式，确保每个工具都能提供详细的错误信息和可能的解决方案。为了支持自然语言交互，我们集成了AWS Bedrock的Claude模型，并提供了基于规则的备选方案。所有工具都返回统一的JSON格式结果，便于后续处理和展示。"
+  }
+}

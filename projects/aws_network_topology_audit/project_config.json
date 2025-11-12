@@ -1,0 +1,202 @@
+{
+  "project_name": "aws_network_topology_audit",
+  "validation_timestamp": "2025-11-11T15:02:42.466406+00:00",
+  "overall_status": "success",
+  "agent_scripts": [
+    {
+      "script_path": "agents/generated_agents/aws_network_topology_audit/aws_network_topology_visualizer.py",
+      "syntax_valid": true,
+      "dependencies": [
+        "os",
+        "json",
+        "argparse",
+        "logging",
+        "typing",
+        "nexus_utils.agent_factory",
+        "strands.telemetry"
+      ],
+      "execution_params": [],
+      "argparse_params": [
+        {
+          "name": "--profile",
+          "type": "str",
+          "description": "AWS配置文件名称",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "--regions",
+          "type": "str",
+          "description": "要分析的AWS区域，多个区域用逗号分隔",
+          "required": false,
+          "default": "us-east-1",
+          "action": null
+        },
+        {
+          "name": "--accounts",
+          "type": "str",
+          "description": "要分析的AWS账户，格式为JSON字符串，例如：[{\"account_id\": \"123456789012\", \"role_name\": \"CrossAccountRole\"}]",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "--resource-types",
+          "type": "str",
+          "description": "要收集的资源类型，多个类型用逗号分隔，例如：vpc,subnet,security-group",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "--output-format",
+          "type": "str",
+          "description": "拓扑图输出格式",
+          "required": false,
+          "default": "png",
+          "action": null
+        },
+        {
+          "name": "--output-dir",
+          "type": "str",
+          "description": "输出目录路径",
+          "required": false,
+          "default": "./output",
+          "action": null
+        },
+        {
+          "name": "--no-highlight-boundaries",
+          "type": "str",
+          "description": "不高亮显示网络边界",
+          "required": false,
+          "default": null,
+          "action": "store_true"
+        },
+        {
+          "name": "--mode",
+          "type": "str",
+          "description": "运行模式",
+          "required": false,
+          "default": "full",
+          "action": null
+        },
+        {
+          "name": "--input-file",
+          "type": "str",
+          "description": "输入文件路径，用于analyze和visualize模式",
+          "required": false,
+          "default": null,
+          "action": null
+        }
+      ],
+      "error_message": ""
+    }
+  ],
+  "prompt_files": [
+    {
+      "prompt_path": "generated_agents_prompts/aws_network_topology_audit/aws_network_topology_visualizer.yaml",
+      "tool_count": 33,
+      "valid": true,
+      "error_message": "",
+      "metadata": {
+        "tags": [
+          "aws",
+          "network_topology",
+          "visualization",
+          "audit",
+          "security"
+        ],
+        "supported_models": [
+          "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
+        ],
+        "tools_dependencies": [
+          "strands_tools/current_time",
+          "strands_tools/calculator",
+          "generated_tools/aws_network_topology_audit/boto3_client_tool/boto3_client",
+          "generated_tools/aws_network_topology_audit/boto3_client_tool/boto3_client_with_retry",
+          "generated_tools/aws_network_topology_audit/boto3_client_tool/boto3_multi_account_client",
+          "generated_tools/aws_network_topology_audit/boto3_client_tool/boto3_multi_region_client",
+          "generated_tools/aws_network_topology_audit/boto3_resource_tool/boto3_multi_account_resource",
+          "generated_tools/aws_network_topology_audit/boto3_resource_tool/boto3_multi_region_resource",
+          "generated_tools/aws_network_topology_audit/boto3_resource_tool/boto3_resource",
+          "generated_tools/aws_network_topology_audit/boto3_resource_tool/boto3_resource_collection",
+          "generated_tools/aws_network_topology_audit/credential_manager_tool/assume_role",
+          "generated_tools/aws_network_topology_audit/credential_manager_tool/create_aws_profile",
+          "generated_tools/aws_network_topology_audit/credential_manager_tool/create_cross_account_role_template",
+          "generated_tools/aws_network_topology_audit/credential_manager_tool/get_aws_accounts",
+          "generated_tools/aws_network_topology_audit/credential_manager_tool/get_required_permissions",
+          "generated_tools/aws_network_topology_audit/credential_manager_tool/validate_aws_credentials",
+          "generated_tools/aws_network_topology_audit/file_manager_tool/export_network_data",
+          "generated_tools/aws_network_topology_audit/file_manager_tool/import_network_data",
+          "generated_tools/aws_network_topology_audit/file_manager_tool/load_network_graph",
+          "generated_tools/aws_network_topology_audit/file_manager_tool/save_network_graph",
+          "generated_tools/aws_network_topology_audit/file_manager_tool/save_network_visualization",
+          "generated_tools/aws_network_topology_audit/graphviz_renderer_tool/create_network_legend",
+          "generated_tools/aws_network_topology_audit/graphviz_renderer_tool/render_network_boundaries",
+          "generated_tools/aws_network_topology_audit/graphviz_renderer_tool/render_network_graph",
+          "generated_tools/aws_network_topology_audit/graphviz_renderer_tool/render_network_paths",
+          "generated_tools/aws_network_topology_audit/matplotlib_plotter_tool/create_network_dashboard",
+          "generated_tools/aws_network_topology_audit/matplotlib_plotter_tool/plot_network_boundaries",
+          "generated_tools/aws_network_topology_audit/matplotlib_plotter_tool/plot_network_graph",
+          "generated_tools/aws_network_topology_audit/matplotlib_plotter_tool/plot_network_paths",
+          "generated_tools/aws_network_topology_audit/networkx_graph_tool/analyze_network_graph",
+          "generated_tools/aws_network_topology_audit/networkx_graph_tool/create_network_graph",
+          "generated_tools/aws_network_topology_audit/networkx_graph_tool/find_network_paths",
+          "generated_tools/aws_network_topology_audit/networkx_graph_tool/identify_network_boundaries"
+        ]
+      },
+      "agent_info": {
+        "name": "aws_network_topology_visualizer",
+        "description": "AWS网络拓扑可视化智能体，能够收集AWS网络资源信息，分析网络连接关系，生成可视化的网络拓扑图，并高亮显示网络边界，以满足审计要求。",
+        "category": "cloud_audit"
+      }
+    }
+  ],
+  "generated_tools": [
+    {
+      "tool_path": "generated_tools/aws_network_topology_audit/boto3_client_tool.py",
+      "syntax_valid": true,
+      "error_message": ""
+    },
+    {
+      "tool_path": "generated_tools/aws_network_topology_audit/boto3_resource_tool.py",
+      "syntax_valid": true,
+      "error_message": ""
+    },
+    {
+      "tool_path": "generated_tools/aws_network_topology_audit/networkx_graph_tool.py",
+      "syntax_valid": true,
+      "error_message": ""
+    },
+    {
+      "tool_path": "generated_tools/aws_network_topology_audit/graphviz_renderer_tool.py",
+      "syntax_valid": true,
+      "error_message": ""
+    },
+    {
+      "tool_path": "generated_tools/aws_network_topology_audit/matplotlib_plotter_tool.py",
+      "syntax_valid": true,
+      "error_message": ""
+    },
+    {
+      "tool_path": "generated_tools/aws_network_topology_audit/file_manager_tool.py",
+      "syntax_valid": true,
+      "error_message": ""
+    },
+    {
+      "tool_path": "generated_tools/aws_network_topology_audit/credential_manager_tool.py",
+      "syntax_valid": true,
+      "error_message": ""
+    }
+  ],
+  "total_tools": 33,
+  "summary": {
+    "agent_scripts_count": 1,
+    "prompt_files_count": 1,
+    "generated_tool_files_count": 7,
+    "all_scripts_valid": true,
+    "all_tools_valid": true,
+    "all_prompts_valid": true
+  }
+}
