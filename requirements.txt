@@ -4,6 +4,7 @@ strands-agents-tools[rss]
 bedrock-agentcore
 bedrock-agentcore-starter-toolkit
 tooluniverse
+.
 
 boto3
 botocore

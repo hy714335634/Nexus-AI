@@ -1605,8 +1605,10 @@
               <li>安全组：开放 SSH 22 端口；如需访问 Jaeger UI，开放 16686</li>
             </ul>
             <blockquote>
-              <strong>检查点</strong> SSH 登录后执行
-              <code>aws sts get-caller-identity</code>，确保凭证有效。
+              <strong>检查点</strong> SSH 登录后执行以下命令，确保凭证有效。
+              <pre><button class="copy">复制</button><code class="language-bash">aws configure set region us-west-2 
+aws sts get-caller-identity
+              </code></pre>
             </blockquote>
 
             <h3>二、基础工具安装</h3>
@@ -1635,8 +1637,11 @@ sudo dnf install -y docker
 sudo systemctl enable docker
 sudo systemctl start docker
 sudo usermod -aG docker $USER
-newgrp docker</code></pre>
-                <p>验证：<code>docker run --rm hello-world</code></p>
+newgrp docker
+
+# 验证
+docker run --rm hello-world
+</code></pre>
               </div>
 
               <div class="timeline-item">
