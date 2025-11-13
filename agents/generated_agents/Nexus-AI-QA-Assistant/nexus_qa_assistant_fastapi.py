@@ -61,6 +61,67 @@ CORE_FILE_SOURCES = [
         PROJECT_ROOT / "projects/Nexus-AI-QA-Assistant/workflow_summary_report.md",
         "示例项目Agent 构建与执行工作流总结"
     ),
+    # system_workflow 文档
+    (
+        "magician_agent_readme",
+        PROJECT_ROOT / "docs/system_workflow/magician_agent/README.md",
+        "Magician Agent 概述文档"
+    ),
+    (
+        "magician_agent_design",
+        PROJECT_ROOT / "docs/system_workflow/magician_agent/magician_agent_design.md",
+        "Magician Agent 设计文档"
+    ),
+    (
+        "magician_agent_quick_ref",
+        PROJECT_ROOT / "docs/system_workflow/magician_agent/quick_reference.md",
+        "Magician Agent 快速参考"
+    ),
+    (
+        "agent_build_readme",
+        PROJECT_ROOT / "docs/system_workflow/agent_build/README.md",
+        "Agent 构建工作流概述"
+    ),
+    (
+        "agent_build_design",
+        PROJECT_ROOT / "docs/system_workflow/agent_build/agent_build_workflow_design.md",
+        "Agent 构建工作流设计文档"
+    ),
+    (
+        "agent_build_quick_ref",
+        PROJECT_ROOT / "docs/system_workflow/agent_build/quick_reference.md",
+        "Agent 构建工作流快速参考"
+    ),
+    (
+        "agent_update_readme",
+        PROJECT_ROOT / "docs/system_workflow/agent_update/README.md",
+        "Agent 更新工作流概述"
+    ),
+    (
+        "agent_update_design",
+        PROJECT_ROOT / "docs/system_workflow/agent_update/agent_update_workflow_design.md",
+        "Agent 更新工作流设计文档"
+    ),
+    (
+        "agent_update_quick_ref",
+        PROJECT_ROOT / "docs/system_workflow/agent_update/quick_reference.md",
+        "Agent 更新工作流快速参考"
+    ),
+    (
+        "tool_build_readme",
+        PROJECT_ROOT / "docs/system_workflow/tool_build/README.md",
+        "Tool 构建工作流概述"
+    ),
+    (
+        "tool_build_design",
+        PROJECT_ROOT / "docs/system_workflow/tool_build/tool_build_workflow_design.md",
+        "Tool 构建工作流设计文档"
+    ),
+    (
+        "tool_build_quick_ref",
+        PROJECT_ROOT / "docs/system_workflow/tool_build/quick_reference.md",
+        "Tool 构建工作流快速参考"
+    ),
 ]
 
 DEFAULT_MAX_SECTION_CHARS = int(os.getenv("NEXUS_QA_MAX_SECTION_CHARS", "6000"))

@@ -1602,7 +1602,7 @@
               <li>存储：50 GB gp3</li>
               <li>区域：<code>us-west-2</code>（可根据需求调整）</li>
               <li>IAM：绑定具备 Amazon Bedrock、ECR、CloudWatch 读写权限的角色</li>
-              <li>安全组：开放 SSH 22 端口；如需访问 Jaeger UI，开放 16686</li>
+              <li>安全组：开放 SSH 22 端口；如需访问 Jaeger UI，请通过端口转发代理16686</li>
             </ul>
             <blockquote>
               <strong>检查点</strong> SSH 登录后执行以下命令，确保凭证有效。
@@ -1722,33 +1722,7 @@ uv pip install -e .</code></pre>
           <pre><button class="copy">复制</button><code class="language-bash">python agents/generated_agents/aws_pricing_agent/aws_pricing_agent.py -r "aws美东一的m8g.xlarge什么价格"</code></pre>
         </section>
 
-        <section id="feature-check" data-section="Stage 04">
-          <div class="toolbar">
-            <h2>功能验证</h2>
-            <span class="badge">Quality Gate</span>
-          </div>
-          <p>确保部署完成后，基础功能正常运行，为后续 Agent 实验打下稳定基础。</p>
-          <div class="timeline">
-            <div class="timeline-item">
-              <h4>基础命令</h4>
-              <pre><button class="copy">复制</button><code class="language-bash">source .nexus-ai/bin/activate</code></pre>
-              <pre><button class="copy">复制</button><code class="language-bash">mkdir -p logs && export LOG_DIR=logs/$(date +%Y%m%d)</code></pre>
-            </div>
-            <div class="timeline-item">
-              <h4>系统 Agent 示例</h4>
-              <p>
-                重复执行上一步中列出的系统 Agent 示例命令，并检查输出是否符合预期。
-              </p>
-            </div>
-            <div class="timeline-item">
-              <h4>直接调用生成 Agent</h4>
-              <pre><button class="copy">复制</button><code class="language-bash">python agents/generated_agents/aws_pricing_agent/aws_pricing_agent.py -r "aws美东一的m8g.xlarge什么价格"</code></pre>
-              <p>观察输出格式，了解工具调用链与结果结构。</p>
-            </div>
-          </div>
-        </section>
-
-        <section id="agent-lab" data-section="Stage 05">
+        <section id="agent-lab" data-section="Stage 04">
           <div class="toolbar">
             <h2>Agent 构建与测试</h2>
             <button class="cta" data-collapse="[data-agent]">展开任务</button>
@@ -1792,7 +1766,7 @@ tail -f nohup.out</code></pre>
             <img src="/assets/05.build_workflow_summary.png" alt="工作流日志">
           </div>
 
-            <h3>二、构建结果巡检</h3>
+            <h3>二、构建结果检查</h3>
             <ul>
               <li><code>projects/&lt;project_name&gt;/agents/</code>：构建过程代码</li>
               <li><code>projects/&lt;project_name&gt;/project_config.json</code>：Agent 支持参数</li>

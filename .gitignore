@@ -47,3 +47,4 @@ logs/
 .env*
 
 .next/
+nohup.out
