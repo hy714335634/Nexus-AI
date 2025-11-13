@@ -1646,19 +1646,19 @@ docker run --rm hello-world
 
               <div class="timeline-item">
                 <h4>4. 运行 Jaeger（诊断工具，可选）</h4>
-                <pre><button class="copy">复制</button><code class="language-bash">docker run -d --name jaeger \
-  -e COLLECTOR_ZIPKIN_HOST_PORT=:9411 \
-  -e COLLECTOR_OTLP_ENABLED=true \
-  -p 6831:6831/udp \
-  -p 6832:6832/udp \
-  -p 5778:5778 \
-  -p 16686:16686 \
-  -p 4317:4317 \
-  -p 4318:4318 \
-  -p 14250:14250 \
-  -p 14268:14268 \
-  -p 14269:14269 \
-  -p 9411:9411 \
+                <pre><button class="copy">复制</button><code class="language-bash">docker run -d --name jaeger
+  -e COLLECTOR_ZIPKIN_HOST_PORT=:9411
+  -e COLLECTOR_OTLP_ENABLED=true
+  -p 6831:6831/udp
+  -p 6832:6832/udp
+  -p 5778:5778
+  -p 16686:16686
+  -p 4317:4317
+  -p 4318:4318
+  -p 14250:14250
+  -p 14268:14268
+  -p 14269:14269
+  -p 9411:9411
   jaegertracing/all-in-one:latest</code></pre>
               </div>
               <div class="callout">
@@ -1691,7 +1691,8 @@ source ~/.bashrc</code></pre>
 
           <h3>三、安装 Python 依赖</h3>
           <pre><button class="copy">复制</button><code class="language-bash">uv pip install --upgrade pip
-uv pip install -r requirements.txt</code></pre>
+uv pip install -r requirements.txt
+uv pip install -e .</code></pre>
           <ul>
             <li>国内网络可添加 <code>--index-url https://pypi.tuna.tsinghua.edu.cn/simple</code></li>
             <li>安装完成后执行 <code>uv pip list | head</code> 确认成功</li>
@@ -1706,7 +1707,8 @@ uv pip install -r requirements.txt</code></pre>
           <p>注意：执行时间可能较长，首次运行请耐心等待模型和依赖加载。</p>
           <div class="callout">
             <strong>建议</strong>
-            在虚拟环境中执行以下命令，并使用 <code>tail -f logs/temp.log</code> 观察实时日志。
+            执行以下命令，并观察控制台输出，也可以自由发挥尝试不同的问题。<br>
+            Tips: magician agent支持single agent、swarm和graph三种编排方式, 由Agent根据用户问题自主选择编排方式。
           </div>
           
           <h3>示例命令</h3>
@@ -1848,15 +1850,15 @@ mkdir -p $HOME/Nexus-AI/tools/generated_tools/neo4j/neo4j_import
 mkdir -p $HOME/Nexus-AI/tools/generated_tools/neo4j/neo4j_plugins</code></pre>
 
           <h3>启动 Neo4j 容器</h3>
-          <pre><button class="copy">复制</button><code class="language-bash">docker run -d  --name neo4j-container \
-    -p 7474:7474 -p 7687:7687  \
-    -e NEO4J_AUTH=neo4j/neo4jneo4j  \
-    -e "NEO4J_dbms_security_procedures_unrestricted=apoc.*"   \
-    -e "NEO4J_dbms_security_procedures_allowlist=apoc.*"  \
-    -v $HOME/Nexus-AI/tools/generated_tools/neo4j/neo4j_data:/data   \
-    -v $HOME/Nexus-AI/tools/generated_tools/neo4j/neo4j_logs:/logs   \
-    -v $HOME/Nexus-AI/tools/generated_tools/neo4j/neo4j_import:/var/lib/neo4j/import  \
-    -v $HOME/Nexus-AI/tools/generated_tools/neo4j/neo4j_plugins:/plugins  \
+          <pre><button class="copy">复制</button><code class="language-bash">docker run -d  --name neo4j-container
+    -p 7474:7474 -p 7687:7687 
+    -e NEO4J_AUTH=neo4j/neo4jneo4j 
+    -e "NEO4J_dbms_security_procedures_unrestricted=apoc.*"  
+    -e "NEO4J_dbms_security_procedures_allowlist=apoc.*" 
+    -v $HOME/Nexus-AI/tools/generated_tools/neo4j/neo4j_data:/data  
+    -v $HOME/Nexus-AI/tools/generated_tools/neo4j/neo4j_logs:/logs  
+    -v $HOME/Nexus-AI/tools/generated_tools/neo4j/neo4j_import:/var/lib/neo4j/import 
+    -v $HOME/Nexus-AI/tools/generated_tools/neo4j/neo4j_plugins:/plugins 
     neo4j:latest</code></pre>
 
           <h3>提交 Agent 构建任务</h3>

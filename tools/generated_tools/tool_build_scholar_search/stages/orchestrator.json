@@ -1,0 +1,16 @@
+{
+  "project_name": "tool_build_scholar_search",
+  "project_path": "tools/generated_tools/tool_build_scholar_search",
+  "description": "一个用于搜索Google Scholar并返回学术文献信息的工具，支持根据关键字获取文献摘要、引用次数、标题、发表年份、期刊等信息",
+  "user_request": "我需要一个工具，能够接受用户或Agent给出的关键字，搜索Google Scholar获取搜索结果，按照用户指定的top n参数，返回对应数量结果，结果需要包括文献摘要，引用次数，标题，发表年份，期刊等关键信息",
+  "workflow_stages": [
+    "orchestrator",
+    "requirement_analyzer",
+    "tool_designer",
+    "tool_developer",
+    "tool_validator",
+    "documentation_generator"
+  ],
+  "initialization_date": "2025-11-13T05:47:37.899738+00:00",
+  "status": "in_progress"
+}

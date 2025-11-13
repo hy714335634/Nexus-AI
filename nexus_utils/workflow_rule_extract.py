@@ -93,12 +93,17 @@ def get_base_rules() -> str:
 
 def get_build_workflow_rules() -> str:
     """返回build工作流指定版本下所有属性规则的合并内容。"""
-    return _get_workflow_rules("build")
+    return _get_workflow_rules("agent_build")
 
 
 def get_update_workflow_rules() -> str:
     """返回update工作流指定版本下所有属性规则的合并内容。"""
-    return _get_workflow_rules("update")
+    return _get_workflow_rules("agent_update")
+
+
+def get_tool_build_workflow_rules() -> str:
+    """返回tool_build工作流指定版本下所有属性规则的合并内容。"""
+    return _get_workflow_rules("tool_build")
 
 
 def _run_cli() -> None:
@@ -111,7 +116,7 @@ def _run_cli() -> None:
     parser.add_argument(
         "workflow",
         nargs="?",
-        choices=["base", "build", "update"],
+        choices=["base", "agent_build", "agent_update", "tool_build"],
         default="base",
         help="要查看的工作流规则（默认: base）",
     )
@@ -119,8 +124,9 @@ def _run_cli() -> None:
 
     extractor_map = {
         "base": get_base_rules,
-        "build": get_build_workflow_rules,
-        "update": get_update_workflow_rules,
+        "agent_build": get_build_workflow_rules,
+        "agent_update": get_update_workflow_rules,
+        "tool_build": get_tool_build_workflow_rules,
     }
 
     try:

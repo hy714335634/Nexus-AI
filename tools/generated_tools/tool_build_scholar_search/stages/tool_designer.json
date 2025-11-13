@@ -1,0 +1,235 @@
+{
+  "design_document": {
+    "tool_name": "scholar_search",
+    "version": "1.0",
+    "date": "2025-11-13",
+    "architecture": {
+      "file_structure": [
+        {
+          "file_name": "scholar_search.py",
+          "description": "主工具文件，包含Google Scholar搜索和结果解析功能",
+          "functions": [
+            {
+              "function_name": "search_google_scholar",
+              "description": "根据关键字在Google Scholar上进行搜索并返回结果",
+              "parameters": [
+                {
+                  "name": "keywords",
+                  "type": "str",
+                  "required": true,
+                  "description": "搜索关键字或短语，多个关键字可以用空格分隔"
+                },
+                {
+                  "name": "top_n",
+                  "type": "int",
+                  "required": true,
+                  "description": "返回结果的数量限制"
+                },
+                {
+                  "name": "sort_by",
+                  "type": "str",
+                  "required": false,
+                  "description": "结果排序方式，可选值：relevance（相关度）或date（日期）"
+                },
+                {
+                  "name": "start_year",
+                  "type": "int",
+                  "required": false,
+                  "description": "筛选文献的起始年份"
+                },
+                {
+                  "name": "end_year",
+                  "type": "int",
+                  "required": false,
+                  "description": "筛选文献的结束年份"
+                }
+              ],
+              "return_type": "str",
+              "return_description": "包含学术文献信息的JSON字符串",
+              "implementation_logic": "1. 验证输入参数\n2. 构建Google Scholar查询URL\n3. 发送HTTP请求获取搜索结果页面\n4. 使用parse_search_results函数解析结果\n5. 格式化返回值为JSON字符串",
+              "error_handling": "- 处理空关键字错误\n- 处理网络连接错误\n- 处理Google Scholar反爬虫机制\n- 处理解析失败错误"
+            },
+            {
+              "function_name": "parse_search_results",
+              "description": "从Google Scholar搜索结果页面中解析文献信息",
+              "parameters": [
+                {
+                  "name": "html_content",
+                  "type": "str",
+                  "required": true,
+                  "description": "Google Scholar搜索结果页面的HTML内容"
+                },
+                {
+                  "name": "top_n",
+                  "type": "int",
+                  "required": true,
+                  "description": "需要提取的结果数量"
+                }
+              ],
+              "return_type": "list",
+              "return_description": "包含文献信息的字典列表",
+              "implementation_logic": "1. 使用BeautifulSoup解析HTML内容\n2. 定位并提取每篇文献的信息元素\n3. 从元素中提取标题、作者、摘要、引用次数、年份、期刊等信息\n4. 将提取的信息组织为字典并添加到结果列表",
+              "error_handling": "- 处理解析失败的情况\n- 处理信息缺失的情况\n- 处理特殊字符和格式"
+            },
+            {
+              "function_name": "extract_article_info",
+              "description": "从单个文献结果元素中提取详细信息",
+              "parameters": [
+                {
+                  "name": "article_element",
+                  "type": "BeautifulSoup object",
+                  "required": true,
+                  "description": "表示单篇文献的HTML元素"
+                }
+              ],
+              "return_type": "dict",
+              "return_description": "包含文献详细信息的字典",
+              "implementation_logic": "1. 提取文献标题和链接\n2. 提取作者信息\n3. 提取发表年份和期刊\n4. 提取引用次数\n5. 提取摘要内容\n6. 组织信息为标准格式的字典",
+              "error_handling": "- 处理元素不存在的情况\n- 处理格式异常的情况\n- 设置缺失信息的默认值"
+            },
+            {
+              "function_name": "build_search_url",
+              "description": "构建Google Scholar搜索URL",
+              "parameters": [
+                {
+                  "name": "keywords",
+                  "type": "str",
+                  "required": true,
+                  "description": "搜索关键字"
+                },
+                {
+                  "name": "sort_by",
+                  "type": "str",
+                  "required": false,
+                  "description": "排序方式"
+                },
+                {
+                  "name": "start_year",
+                  "type": "int",
+                  "required": false,
+                  "description": "起始年份"
+                },
+                {
+                  "name": "end_year",
+                  "type": "int",
+                  "required": false,
+                  "description": "结束年份"
+                }
+              ],
+              "return_type": "str",
+              "return_description": "完整的Google Scholar搜索URL",
+              "implementation_logic": "1. 对关键字进行URL编码\n2. 构建基本查询URL\n3. 根据排序方式添加相应参数\n4. 根据年份范围添加时间筛选参数\n5. 返回完整的URL",
+              "error_handling": "- 验证参数有效性\n- 处理特殊字符"
+            },
+            {
+              "function_name": "get_random_user_agent",
+              "description": "生成随机User-Agent头",
+              "parameters": [],
+              "return_type": "str",
+              "return_description": "随机的User-Agent字符串",
+              "implementation_logic": "1. 使用fake-useragent库生成随机User-Agent\n2. 如果生成失败，则返回预定义的User-Agent列表中的随机一个",
+              "error_handling": "- 处理fake-useragent库可能的异常\n- 提供备选User-Agent列表"
+            }
+          ]
+        }
+      ]
+    },
+    "implementation_plan": {
+      "steps": [
+        {
+          "step": 1,
+          "description": "实现get_random_user_agent函数，确保能够生成有效的随机User-Agent",
+          "code_snippet": "def get_random_user_agent():\n    \"\"\"生成随机User-Agent头以避免被反爬机制检测\"\"\"\n    try:\n        from fake_useragent import UserAgent\n        ua = UserAgent()\n        return ua.random\n    except Exception:\n        # 备选User-Agent列表\n        user_agents = [\n            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36',\n            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36',\n            'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:94.0) Gecko/20100101 Firefox/94.0'\n        ]\n        import random\n        return random.choice(user_agents)"
+        },
+        {
+          "step": 2,
+          "description": "实现build_search_url函数，构建Google Scholar查询URL",
+          "code_snippet": "def build_search_url(keywords, sort_by=None, start_year=None, end_year=None):\n    \"\"\"构建Google Scholar搜索URL\"\"\"\n    import urllib.parse\n    base_url = 'https://scholar.google.com/scholar'\n    params = {'q': keywords, 'hl': 'en'}\n    \n    # 添加排序参数\n    if sort_by and sort_by.lower() == 'date':\n        params['scisbd'] = '1'  # 按日期排序\n    \n    # 添加年份范围参数\n    if start_year and end_year:\n        params['as_ylo'] = str(start_year)  # 起始年份\n        params['as_yhi'] = str(end_year)    # 结束年份\n    elif start_year:\n        params['as_ylo'] = str(start_year)\n    elif end_year:\n        params['as_yhi'] = str(end_year)\n    \n    return f\"{base_url}?{urllib.parse.urlencode(params)}\""
+        },
+        {
+          "step": 3,
+          "description": "实现extract_article_info函数，从文献元素中提取详细信息",
+          "code_snippet": "def extract_article_info(article_element):\n    \"\"\"从单个文献结果元素中提取详细信息\"\"\"\n    article_info = {\n        'title': '',\n        'authors': [],\n        'publication': '',\n        'year': None,\n        'abstract': '',\n        'citations': 0,\n        'url': ''\n    }\n    \n    try:\n        # 提取标题和链接\n        title_element = article_element.find('h3', class_='gs_rt')\n        if title_element:\n            if title_element.a:\n                article_info['title'] = title_element.a.text\n                article_info['url'] = title_element.a.get('href', '')\n            else:\n                article_info['title'] = title_element.text\n        \n        # 提取作者、期刊和年份信息\n        pub_info = article_element.find('div', class_='gs_a')\n        if pub_info:\n            pub_text = pub_info.text\n            # 作者通常在第一个 '-' 之前\n            if '-' in pub_text:\n                authors_text = pub_text.split('-')[0]\n                article_info['authors'] = [author.strip() for author in authors_text.split(',')]\n            \n            # 提取年份 (通常是4位数字)\n            import re\n            year_match = re.search(r'\\b(19|20)\\d{2}\\b', pub_text)\n            if year_match:\n                article_info['year'] = int(year_match.group(0))\n            \n            # 提取期刊信息\n            if '-' in pub_text and len(pub_text.split('-')) > 1:\n                pub_parts = pub_text.split('-')\n                if len(pub_parts) > 1:\n                    article_info['publication'] = pub_parts[1].split(',')[0].strip()\n        \n        # 提取摘要\n        abstract = article_element.find('div', class_='gs_rs')\n        if abstract:\n            article_info['abstract'] = abstract.text\n        \n        # 提取引用次数\n        citation_element = article_element.find('a', text=lambda text: text and 'Cited by' in text)\n        if citation_element:\n            citation_text = citation_element.text\n            citation_match = re.search(r'\\d+', citation_text)\n            if citation_match:\n                article_info['citations'] = int(citation_match.group(0))\n    \n    except Exception as e:\n        print(f\"提取文献信息时出错: {e}\")\n    \n    return article_info"
+        },
+        {
+          "step": 4,
+          "description": "实现parse_search_results函数，解析搜索结果页面",
+          "code_snippet": "def parse_search_results(html_content, top_n):\n    \"\"\"从Google Scholar搜索结果页面中解析文献信息\"\"\"\n    from bs4 import BeautifulSoup\n    import re\n    \n    results = []\n    \n    try:\n        soup = BeautifulSoup(html_content, 'lxml')\n        # 查找所有文章元素\n        articles = soup.find_all('div', class_='gs_r gs_or gs_scl')\n        \n        # 限制结果数量\n        articles = articles[:top_n] if top_n > 0 else articles\n        \n        # 提取每篇文章的信息\n        for article in articles:\n            article_info = extract_article_info(article)\n            results.append(article_info)\n            \n    except Exception as e:\n        print(f\"解析搜索结果时出错: {e}\")\n    \n    return results"
+        },
+        {
+          "step": 5,
+          "description": "实现主函数search_google_scholar，整合所有功能",
+          "code_snippet": "@tool\ndef search_google_scholar(keywords, top_n=10, sort_by=None, start_year=None, end_year=None):\n    \"\"\"根据关键字在Google Scholar上进行搜索并返回结果\n    \n    Args:\n        keywords (str): 搜索关键字或短语，多个关键字可以用空格分隔\n        top_n (int): 返回结果的数量限制\n        sort_by (str, optional): 结果排序方式，可选值：relevance（相关度）或date（日期）\n        start_year (int, optional): 筛选文献的起始年份\n        end_year (int, optional): 筛选文献的结束年份\n        \n    Returns:\n        str: 包含学术文献信息的JSON字符串\n    \"\"\"\n    import requests\n    import json\n    import time\n    import random\n    \n    # 参数验证\n    if not keywords or not keywords.strip():\n        return json.dumps({\n            'status': 'error',\n            'message': '搜索关键字不能为空'\n        })\n    \n    # 尝试转换数值参数\n    try:\n        top_n = int(top_n) if top_n else 10\n        start_year = int(start_year) if start_year else None\n        end_year = int(end_year) if end_year else None\n    except ValueError:\n        return json.dumps({\n            'status': 'error',\n            'message': '参数类型错误: top_n、start_year和end_year必须是整数'\n        })\n    \n    try:\n        # 构建搜索URL\n        search_url = build_search_url(keywords, sort_by, start_year, end_year)\n        \n        # 设置请求头\n        headers = {\n            'User-Agent': get_random_user_agent(),\n            'Accept': 'text/html,application/xhtml+xml,application/xml',\n            'Accept-Language': 'en-US,en;q=0.9',\n            'Referer': 'https://scholar.google.com/'\n        }\n        \n        # 发送请求\n        response = requests.get(search_url, headers=headers, timeout=10)\n        \n        # 检查响应状态\n        if response.status_code != 200:\n            return json.dumps({\n                'status': 'error',\n                'message': f'请求失败，状态码: {response.status_code}'\n            })\n        \n        # 解析搜索结果\n        results = parse_search_results(response.text, top_n)\n        \n        # 构建返回结果\n        return json.dumps({\n            'status': 'success',\n            'results_count': len(results),\n            'results': results\n        })\n        \n    except requests.RequestException as e:\n        return json.dumps({\n            'status': 'error',\n            'message': f'网络请求错误: {str(e)}'\n        })\n    except Exception as e:\n        return json.dumps({\n            'status': 'error',\n            'message': f'搜索过程中出现错误: {str(e)}'\n        })"
+        }
+      ]
+    },
+    "dependencies": [
+      {
+        "package": "requests",
+        "version": ">=2.25.0",
+        "purpose": "发送HTTP请求获取Google Scholar页面"
+      },
+      {
+        "package": "beautifulsoup4",
+        "version": ">=4.9.0",
+        "purpose": "解析HTML页面内容，提取文献信息"
+      },
+      {
+        "package": "lxml",
+        "version": ">=4.6.0",
+        "purpose": "作为BeautifulSoup的HTML解析器"
+      },
+      {
+        "package": "fake-useragent",
+        "version": ">=0.1.11",
+        "purpose": "生成随机User-Agent头，避免被Google Scholar识别为爬虫"
+      }
+    ],
+    "testing_strategy": {
+      "test_cases": [
+        {
+          "test_name": "基本搜索功能测试",
+          "description": "测试基本的关键字搜索功能",
+          "input": "keywords='machine learning', top_n=5",
+          "expected_output": "包含5条机器学习相关文献信息的JSON结果"
+        },
+        {
+          "test_name": "年份筛选测试",
+          "description": "测试年份范围筛选功能",
+          "input": "keywords='artificial intelligence', top_n=5, start_year=2020, end_year=2025",
+          "expected_output": "包含5条2020-2025年间人工智能相关文献的JSON结果"
+        },
+        {
+          "test_name": "排序方式测试",
+          "description": "测试按日期排序功能",
+          "input": "keywords='deep learning', top_n=5, sort_by='date'",
+          "expected_output": "包含5条按日期排序的深度学习相关文献的JSON结果"
+        },
+        {
+          "test_name": "空关键字处理测试",
+          "description": "测试空关键字的错误处理",
+          "input": "keywords='', top_n=5",
+          "expected_output": "返回错误状态和相应的错误信息"
+        },
+        {
+          "test_name": "参数类型错误测试",
+          "description": "测试非法参数类型的错误处理",
+          "input": "keywords='quantum computing', top_n='abc'",
+          "expected_output": "返回参数类型错误的错误信息"
+        },
+        {
+          "test_name": "网络错误处理测试",
+          "description": "测试网络请求失败的情况",
+          "input": "模拟网络连接失败的情况",
+          "expected_output": "返回网络错误的错误信息"
+        },
+        {
+          "test_name": "HTML解析测试",
+          "description": "测试HTML内容解析功能",
+          "input": "使用预先准备的HTML内容测试parse_search_results函数",
+          "expected_output": "正确提取的文献信息列表"
+        }
+      ]
+    }
+  }
+}

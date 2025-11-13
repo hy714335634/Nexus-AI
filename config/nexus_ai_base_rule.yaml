@@ -53,7 +53,7 @@ workflows:
           =====通用用户自定义规则=====
           无特殊要求
 
-  build:
+  agent_build:
     - version: "latest"
       updated_on: "2025-11-10"
       author: "qangz"
@@ -62,32 +62,17 @@ workflows:
           summary: "新增build规则"
       attributes:
         directory_rules: |
-          - 所有阶段性文档统一存放于`projects/<project_name>/agents/<agent_name>/`目录，文件命名需与角色一致，例如`requirements_analyzer.json`、`system_architect.json`、`agent_designer.json`、`prompt_engineer.json`、`tools_developer.json`、`agent_code_developer.json`、`agent_developer_manager.json`。
-          - 构建过程中生成的提示词模板必须写入`prompts/generated_agents_prompts/<project_name>/<agent_name>.yaml`；生成的智能体代码写入`agents/generated_agents/<project_name>/<agent_name>.py`；生成的工具代码写入`tools/generated_tools/<project_name>/<module>/<script_name>.py`。
-          - 项目级说明文件（`config.yaml`、`README.md`、`status.yaml`）位于`projects/<project_name>/`根目录，只能通过`update_project_config`、`update_project_readme`、`update_project_status`等工具更新。
-          - 生成内容一律通过`generate_content`或`update_project_stage_content`写入，禁止绕过工具直接写文件；写入后需调用`update_agent_artifact_paths`登记产物路径。
-          - 所有目录和文件名使用`snake_case`或约定格式，避免空格与中文；生成的脚本须包含`if __name__ == "__main__":`入口以便本地调试。
+          =====Build Workflow目录规则=====
         generation_rules: |
-          - 每个角色在执行前必须调用`get_project_status`、`get_project_config`与`get_project_stage_content`同步上下文，严格按照需求→架构→设计→工具→提示词→代码→验收的顺序推进。
-          - 必须先通过模板工具获取现有模板列表（例如`agent_template_provider/get_all_templates`、`tool_template_provider/list_all_tools`、`prompt_template_provider/list_prompt_templates`），再结合项目文档定制输出。
-          - 阶段产物需符合对应JSON/YAML结构约束：需求、架构、设计、工具、提示词、代码及验收文档均有固定字段，不得增减关键键名，日期格式统一为`YYYY-MM-DD`。
-          - 所有智能体、提示词与工具实现必须遵循Strands SDK与Nexus-AI约定：Agent通过`nexus_utils.agent_factory.create_agent_from_prompt_template`构建，工具需使用`@tool`装饰器并提供类型注解、异常处理与真实AWS调用。
-          - 构建流程禁止在标准输出打印中间产物或代码，完成时仅输出各角色要求的完成提示；其余沟通与状态均通过工具接口完成。
+          =====Build Workflow生成规则=====
         cache_rules: |
-          - 需要落盘缓存的工具默认使用`.cache/<agent_name>/`为根目录；涉及特定业务场景时按模板要求扩展子目录（如医学文献场景使用`.cache/pmc_literature/<research_id>/`），禁止在项目目录外任意创建新路径。
-          - 缓存文件须基于用户或项目提供的标识命名，禁止自行生成随机ID导致上下文丢失；更新缓存前先检查路径是否存在，必要时自动创建目录。
-          - 缓存内容仅用于临时加速与状态保持，不得存放敏感凭证；提交仓库时忽略`.cache`目录，构建逻辑应具备缓存失效与重建策略。
+          =====Build Workflow缓存规则=====
         external_resources: |
-          - 外部依赖限定为平台允许的工具与SDK：`strands_tools/*`、`system_tools/agent_build_workflow/*`、`nexus_utils/*`以及官方`boto3`库，禁止引用未授权的第三方包。
-          - 调用AWS资源必须通过真实`boto3`接口或`strands_tools/use_aws`咨询，禁止伪造响应；需遵守Bedrock、AgentCore等平台限制并记录关键操作日志。
-          - 模板、提示词与工具示例统一通过平台提供的检索工具获取（如`agent_template_searcher`、`tool_validator`），确保路径与依赖列表准确无误。
+          =====Build Workflow外部资源规则=====
         custom_rules: |
-          - 构建阶段遵循标准角色流程：`requirements_analyzer`→`system_architect`→`agent_designer`→`tool_developer`→`prompt_engineer`→`agent_code_developer`→`agent_developer_manager`，任何跳步需在变更记录中说明。
-          - 每个阶段结束后必须调用`update_project_status`更新状态，并在`change_log`记录关键决策；若需修改上游产物须回退并重新执行后续角色。
-          - 工具、提示词、代码均须在写入后使用`get_agent_artifact_paths`校验产物清单；部署前需设置`BYPASS_TOOL_CONSENT`等必要环境变量并验证Agent初始化成功。
-          - 全流程保持专业沟通，禁止输出未授权信息；涉及安全、性能、合规的问题需在阶段文档和`custom_rules`补充说明。
+          =====Build Workflow用户自定义规则=====
 
-  update:
+  agent_update:
     - version: "latest"
       updated_on: "2025-11-10"
       author: "qangz"
@@ -114,4 +99,39 @@ workflows:
           无特殊要求
         custom_rules: |
           =====Update Workflow用户自定义规则=====
+          无特殊要求
+
+  tool_build:
+    - version: "latest"
+      updated_on: "2025-11-11"
+      author: "qangz"
+      change_log:
+        - date: "2025-11-11"
+          summary: "新增tool_build规则"
+      attributes:
+        directory_rules: |
+          =====Tool Build Workflow目录规则=====
+          工具构建工作流仅允许在以下目录范围使用工具进行创建和更新操作：
+          - `tools/generated_tools/tool_build_<tool_name>/`：工具项目根目录，存储所有工具文件
+          - `tools/generated_tools/tool_build_<tool_name>/stages/`：存储各阶段JSON文档（需求、设计、开发、验证、文档）
+          - `tools/generated_tools/tool_build_<tool_name>/config.yaml`：工具项目配置文件
+          - `tools/generated_tools/tool_build_<tool_name>/status.yaml`：工具项目状态文件
+          - `tools/generated_tools/tool_build_<tool_name>/README.md`：工具使用文档
+          - `tools/generated_tools/tool_build_<tool_name>/*.py`：工具代码文件
+          工具项目命名规范：必须以 `tool_build_` 开头，后跟描述性英文名称（小写，下划线分隔）
+        generation_rules: |
+          =====Tool Build Workflow生成规则=====
+          - 每个用户的功能需求，无论开发多少个工具，都应存储在同一工具项目目录的脚本中
+          - 工具代码必须使用 `@tool` 装饰器，符合Strands SDK规范
+          - 工具函数应返回JSON字符串或错误信息字符串
+          - 所有工具必须注册到项目的 `status.yaml` 中
+          - 必须生成完整的 README.md 文档，包含工具功能和使用说明
+        cache_rules: |
+          =====Tool Build Workflow缓存规则=====
+          无特殊要求
+        external_resources: |
+          =====Tool Build Workflow外部资源规则=====
+          无特殊要求
+        custom_rules: |
+          =====Tool Build Workflow用户自定义规则=====
           无特殊要求

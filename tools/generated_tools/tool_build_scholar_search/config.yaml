@@ -1,0 +1,6 @@
+tool_project:
+  created_date: '2025-11-13T05:47:37.892578+00:00'
+  description: 一个用于搜索Google Scholar并返回学术文献信息的工具，支持根据关键字获取文献摘要、引用次数、标题、发表年份、期刊等信息
+  name: tool_build_scholar_search
+  status: initialized
+  version: 1.0.0
