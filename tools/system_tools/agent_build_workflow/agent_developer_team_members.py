@@ -1,6 +1,8 @@
 from strands import tool
 import os
 from nexus_utils.agent_factory import create_agent_from_prompt_template
+from nexus_utils.config_loader import ConfigLoader
+loader = ConfigLoader()
 
 # 设置环境变量
 os.environ["BYPASS_TOOL_CONSENT"] = "true"
@@ -8,8 +10,7 @@ os.environ["BYPASS_TOOL_CONSENT"] = "true"
 # 创建 agent 的通用参数
 agent_params = {
     "env": "production",
-    "version": "latest", 
-    "model_id": "default"
+    "version": loader.get_nested("nexus_ai", "workflow_default_version", "agent_build")
 }
 
 

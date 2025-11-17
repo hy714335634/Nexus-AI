@@ -2,6 +2,10 @@ default-config:
   nexus_ai:
     base_rule_path: 'config/nexus_ai_base_rule.yaml' # Path to Nexus-AI base rule file
     base_rule_version: 'latest' # Version of Nexus-AI base rule
+    workflow_default_version: 
+      agent_build: 'latest'
+      agent_update: 'latest'
+      tool_build: 'latest'
   aws:
     bedrock_region_name: 'us-west-2'  # Region for Amazon Bedrock API calls
     aws_region_name: 'us-west-2'      # Default AWS region for other services

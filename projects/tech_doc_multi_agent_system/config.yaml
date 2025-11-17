@@ -1,0 +1,19 @@
+project:
+  created_date: '2025-11-17T08:59:09.340840+00:00'
+  description: '用户输入：请创建一个多Agent构成的Agent,能够接受用户自然语言输入，输出一篇高质量的技术文档。基本要求如下：
+
+    1、技术文档编写Agent应能够基于用户需求写出技术文档
+
+    2、审核Agent应能够审核技术文档并给出反馈，由技术文档编写Agent进行修改，直到审核通过
+
+    3、内容处理Agent应能够将审核Agent通过后的内容转换成HTML文档
+
+
+    重要说明：
+
+    - Agent之间请通过上下文进行传递，不要本地文件缓存
+
+    - 可通过Swarm进行编排，入口是技术文档编写Agent'
+  name: tech_doc_multi_agent_system
+  updated_date: '2025-11-17T08:59:15.472865+00:00'
+  version: 1.0.0

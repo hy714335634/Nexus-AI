@@ -1,0 +1,34 @@
+./nexus_utils
+strands-agents
+strands-agents-tools
+PyYAML
+# Tech Doc Multi-Agent System Dependencies
+# Generated from verified project configuration
+# Core Framework and SDK
+aws-sdk-bedrock>=1.0.0
+anthropic>=0.25.0
+# Agent and Orchestration
+swarm>=1.0.0
+pydantic>=2.0.0
+# Web and HTML Processing
+beautifulsoup4>=4.12.0
+html2text>=2024.1.0
+jinja2>=3.1.0
+markdown>=3.5.0
+pygments>=2.16.0
+# Data Processing and Utilities
+pyyaml>=6.0
+python-dateutil>=2.8.0
+pytz>=2024.1
+# Logging and Monitoring
+python-json-logger>=2.0.0
+structlog>=24.1.0
+# Type Checking and Validation
+typing-extensions>=4.8.0
+# Testing and Development
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.1.0
+# Utilities
+requests>=2.31.0
+tenacity>=8.2.0

@@ -183,6 +183,15 @@ class ConfigLoader:
         """
         return self.get("logging", {})
     
+    def get_workflow_version_config(self) -> Dict[str, Any]:
+        """
+        获取工作流默认版本配置
+        
+        Returns:
+            Dict: 工作流版本配置字典，包含 agent_build, agent_update, tool_build
+        """
+        return self.get_nested("nexus_ai", "workflow_default_version", default={})
+    
     def has_section(self, section_name: str) -> bool:
         """
         检查配置部分是否存在
@@ -236,6 +245,7 @@ if __name__ == "__main__":
     print("MCP配置:", loader.get_mcp_config())
     print("多模态解析器配置:", loader.get_multimodal_parser_config())
     print("日志配置:", loader.get_logging_config())
+    print("工作流版本配置:", loader.get_workflow_version_config())
     print("所有配置部分:", loader.list_sections())
     
     # 测试嵌套配置获取

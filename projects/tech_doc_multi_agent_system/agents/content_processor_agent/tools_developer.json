@@ -1,0 +1,179 @@
+{
+  "tool_development": {
+    "development_overview": {
+      "project_name": "tech_doc_multi_agent_system",
+      "agent_name": "content_processor_agent",
+      "version": "1.0",
+      "date": "2025-11-17",
+      "development_scope": "为content_processor_agent开发HTML转换工具，包括文档结构解析和HTML生成功能",
+      "design_principles": [
+        "遵循HTML5标准",
+        "支持响应式设计",
+        "提供多种样式主题",
+        "确保代码可维护性"
+      ],
+      "key_decisions": [
+        "使用纯Python实现HTML生成，避免外部依赖",
+        "支持语法高亮集成（Prism.js和Highlight.js）",
+        "提供完整的CSS样式系统",
+        "支持文档片段生成用于嵌入场景"
+      ]
+    },
+    "tools": [
+      {
+        "tool_name": "parse_document_structure",
+        "description": "解析DocumentContent对象，生成结构化元素树",
+        "function_signature": "parse_document_structure(document_content: Dict[str, Any], parse_mode: str = 'auto') -> str",
+        "parameters": [
+          {"name": "document_content", "type": "Dict[str, Any]", "description": "文档内容对象", "required": true},
+          {"name": "parse_mode", "type": "str", "description": "解析模式：auto/markdown/plain", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的结构化元素树",
+        "dependencies": ["json", "re", "datetime"],
+        "implementation_notes": [
+          "支持Markdown语法解析",
+          "自动识别文档元素类型",
+          "生成完整的统计信息"
+        ],
+        "error_handling": ["验证输入格式", "处理解析异常", "返回结构化错误信息"],
+        "usage_examples": ["result = parse_document_structure(doc_content)"]
+      },
+      {
+        "tool_name": "extract_document_elements",
+        "description": "从文档中提取特定类型的元素",
+        "function_signature": "extract_document_elements(document_content: Dict[str, Any], element_types: List[str] = None, filter_empty: bool = True) -> str",
+        "parameters": [
+          {"name": "document_content", "type": "Dict[str, Any]", "description": "文档内容", "required": true},
+          {"name": "element_types", "type": "List[str]", "description": "要提取的元素类型", "required": false},
+          {"name": "filter_empty", "type": "bool", "description": "是否过滤空元素", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的提取结果",
+        "dependencies": ["json"],
+        "implementation_notes": ["递归提取元素", "支持类型过滤", "提供统计信息"],
+        "error_handling": ["处理无效文档", "返回空列表而非错误"],
+        "usage_examples": ["result = extract_document_elements(doc, ['h1', 'h2'])"]
+      },
+      {
+        "tool_name": "validate_document_structure",
+        "description": "验证文档结构的完整性和有效性",
+        "function_signature": "validate_document_structure(document_content: Dict[str, Any], validation_rules: Dict[str, Any] = None) -> str",
+        "parameters": [
+          {"name": "document_content", "type": "Dict[str, Any]", "description": "文档内容", "required": true},
+          {"name": "validation_rules", "type": "Dict[str, Any]", "description": "验证规则", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的验证结果",
+        "dependencies": ["json"],
+        "implementation_notes": ["多维度验证", "提供警告和错误", "支持自定义规则"],
+        "error_handling": ["详细的错误描述", "区分错误和警告"],
+        "usage_examples": ["result = validate_document_structure(doc)"]
+      },
+      {
+        "tool_name": "normalize_document_structure",
+        "description": "规范化文档结构，修复常见问题",
+        "function_signature": "normalize_document_structure(document_content: Dict[str, Any], normalization_options: Dict[str, Any] = None) -> str",
+        "parameters": [
+          {"name": "document_content", "type": "Dict[str, Any]", "description": "文档内容", "required": true},
+          {"name": "normalization_options", "type": "Dict[str, Any]", "description": "规范化选项", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的规范化结果",
+        "dependencies": ["json", "re"],
+        "implementation_notes": ["自动修复问题", "记录修改历史", "保持原始数据"],
+        "error_handling": ["处理复杂嵌套结构", "保证数据完整性"],
+        "usage_examples": ["result = normalize_document_structure(doc)"]
+      },
+      {
+        "tool_name": "analyze_document_complexity",
+        "description": "分析文档的复杂度",
+        "function_signature": "analyze_document_complexity(document_content: Dict[str, Any]) -> str",
+        "parameters": [
+          {"name": "document_content", "type": "Dict[str, Any]", "description": "文档内容", "required": true}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的复杂度分析",
+        "dependencies": ["json"],
+        "implementation_notes": ["多维度评估", "提供优化建议", "计算复杂度评分"],
+        "error_handling": ["处理边界情况", "提供默认值"],
+        "usage_examples": ["result = analyze_document_complexity(doc)"]
+      },
+      {
+        "tool_name": "generate_html",
+        "description": "将文档元素树转换为完整HTML文档",
+        "function_signature": "generate_html(element_tree: Dict[str, Any], style_config: Dict[str, Any] = None) -> str",
+        "parameters": [
+          {"name": "element_tree", "type": "Dict[str, Any]", "description": "元素树", "required": true},
+          {"name": "style_config", "type": "Dict[str, Any]", "description": "样式配置", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的HTML生成结果",
+        "dependencies": ["json", "html", "re"],
+        "implementation_notes": ["生成符合HTML5标准的代码", "内嵌CSS样式", "支持主题切换"],
+        "error_handling": ["处理特殊字符转义", "确保HTML有效性"],
+        "usage_examples": ["result = generate_html(tree, {'theme': 'dark'})"]
+      },
+      {
+        "tool_name": "generate_html_with_syntax_highlighting",
+        "description": "生成带语法高亮的HTML文档",
+        "function_signature": "generate_html_with_syntax_highlighting(element_tree: Dict[str, Any], style_config: Dict[str, Any] = None, highlight_library: str = 'prism') -> str",
+        "parameters": [
+          {"name": "element_tree", "type": "Dict[str, Any]", "description": "元素树", "required": true},
+          {"name": "style_config", "type": "Dict[str, Any]", "description": "样式配置", "required": false},
+          {"name": "highlight_library", "type": "str", "description": "语法高亮库", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的HTML生成结果",
+        "dependencies": ["json"],
+        "implementation_notes": ["集成Prism.js或Highlight.js", "通过CDN引入库", "自动初始化高亮"],
+        "error_handling": ["处理库加载失败", "提供降级方案"],
+        "usage_examples": ["result = generate_html_with_syntax_highlighting(tree)"]
+      },
+      {
+        "tool_name": "generate_responsive_html",
+        "description": "生成响应式HTML文档",
+        "function_signature": "generate_responsive_html(element_tree: Dict[str, Any], style_config: Dict[str, Any] = None, breakpoints: Dict[str, int] = None) -> str",
+        "parameters": [
+          {"name": "element_tree", "type": "Dict[str, Any]", "description": "元素树", "required": true},
+          {"name": "style_config", "type": "Dict[str, Any]", "description": "样式配置", "required": false},
+          {"name": "breakpoints", "type": "Dict[str, int]", "description": "响应式断点", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的HTML生成结果",
+        "dependencies": ["json"],
+        "implementation_notes": ["支持多设备适配", "使用媒体查询", "优化移动端显示"],
+        "error_handling": ["处理断点配置错误", "提供默认断点"],
+        "usage_examples": ["result = generate_responsive_html(tree)"]
+      },
+      {
+        "tool_name": "generate_html_fragment",
+        "description": "生成HTML片段",
+        "function_signature": "generate_html_fragment(elements: List[Dict[str, Any]], wrapper_tag: str = 'div') -> str",
+        "parameters": [
+          {"name": "elements", "type": "List[Dict[str, Any]]", "description": "元素列表", "required": true},
+          {"name": "wrapper_tag", "type": "str", "description": "包装标签", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的HTML片段",
+        "dependencies": ["json"],
+        "implementation_notes": ["不包含完整HTML结构", "可嵌入其他文档", "灵活的包装选项"],
+        "error_handling": ["处理空元素列表", "验证包装标签"],
+        "usage_examples": ["result = generate_html_fragment(elements)"]
+      }
+    ],
+    "code_quality": {
+      "code_standards": ["PEP 8编码规范", "完整的类型注解", "详细的文档字符串", "清晰的错误处理"],
+      "testing_strategy": ["单元测试覆盖核心功能", "边界条件测试", "异常处理测试", "性能测试"],
+      "performance_considerations": ["优化HTML生成速度", "避免不必要的字符串拼接", "使用列表构建HTML", "缓存常用模板"],
+      "security_measures": ["HTML特殊字符转义", "防止XSS攻击", "验证输入数据", "安全的样式注入"]
+    },
+    "integration_details": {
+      "aws_services": [],
+      "external_libraries": [],
+      "api_endpoints": [],
+      "data_formats": ["JSON", "HTML5", "CSS3", "Markdown"]
+    },
+    "development_notes": "工具开发完成，提供了完整的文档解析和HTML生成功能。所有工具都遵循Strands框架规范，使用@tool装饰器定义。HTML生成器支持多种主题、响应式设计和语法高亮，满足各种使用场景需求。"
+  }
+}

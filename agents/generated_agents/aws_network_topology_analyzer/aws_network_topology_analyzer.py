@@ -65,7 +65,8 @@ class AWSNetworkTopologyAnalyzer:
         self.agent_params = {
             "env": env,
             "version": version,
-            "model_id": model_id
+            "model_id": model_id,
+            "enable_logging": True
         }
         
         self.agent_name = "generated_agents_prompts/aws_network_topology_analyzer/aws_network_topology_analyzer"

@@ -73,7 +73,8 @@ class PDFExtractorAgent:
             agent_params = {
                 "env": "production",
                 "version": "latest", 
-                "model_id": "default"
+                "model_id": "default",
+                "enable_logging": True
             }
             
             # 使用 agent_factory 创建多模态分析 agent

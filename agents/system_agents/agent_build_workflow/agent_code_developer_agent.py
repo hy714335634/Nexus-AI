@@ -4,24 +4,23 @@ Agent 代码开发者 Agent - 使用 agent_factory 创建
 """
 
 import os
+from strands import Agent
 from nexus_utils.agent_factory import create_agent_from_prompt_template
+from nexus_utils.config_loader import ConfigLoader
+loader = ConfigLoader()
 
 # 设置环境变量
 os.environ["BYPASS_TOOL_CONSENT"] = "true"
 
-# 创建 agent 的通用参数
-agent_params = {
-    "env": "production",
-    "version": "latest", 
-    "model_id": "default"
-}
-
-# 使用 agent_factory 创建 agent
-agent_code_developer = create_agent_from_prompt_template(
-    # agent_name="system_agents_prompts/agent_build_workflow/agent_code_developer", 
-    agent_name="system_agents_prompts/agent_build_workflow/agent_code_developer", 
-    **agent_params
-)
+def get_agent_code_developer(env: str = "production", version: str = None) -> Agent:
+    if version is None:
+        version = loader.get_nested("nexus_ai", "workflow_default_version", "agent_build")
+    agent_code_developer = create_agent_from_prompt_template(
+        agent_name="system_agents_prompts/agent_build_workflow/agent_code_developer", 
+        env=env,
+        version=version
+    )
+    return agent_code_developer
 
 if __name__ == "__main__":
     import argparse
@@ -32,7 +31,7 @@ if __name__ == "__main__":
                        default="根据设计方案和工具，编写完整的 Agent 代码实现",
                        help='测试输入内容')
     args = parser.parse_args()
-    
+    agent_code_developer = get_agent_code_developer()
     print(f"✅ Agent Code Developer Agent 创建成功: {agent_code_developer.name}")
     
     # 测试 agent 功能

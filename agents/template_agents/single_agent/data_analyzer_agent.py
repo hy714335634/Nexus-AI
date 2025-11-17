@@ -24,7 +24,8 @@ def create_data_analyzer_agent(env: str = "production", version: str = "latest",
     agent_params = {
         "env": env,
         "version": version, 
-        "model_id": model_id
+        "model_id": model_id,
+        "enable_logging": True
     }
     return create_agent_from_prompt_template(
         agent_name=agent_config_path, 

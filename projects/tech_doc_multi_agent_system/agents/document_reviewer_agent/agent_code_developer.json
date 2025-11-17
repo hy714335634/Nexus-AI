@@ -1,0 +1,310 @@
+{
+  "agent_code_development": {
+    "development_overview": {
+      "project_name": "tech_doc_multi_agent_system",
+      "agent_name": "document_reviewer_agent",
+      "version": "1.0.0",
+      "date": "2025-11-17",
+      "development_scope": "开发技术文档质量审核专家Agent，提供多维度质量评估、问题识别、反馈生成和审核决策功能",
+      "design_principles": [
+        "简洁高效的Agent架构",
+        "健壮的错误处理机制",
+        "清晰的响应解析逻辑",
+        "完整的日志记录系统",
+        "灵活的参数配置"
+      ],
+      "key_decisions": [
+        "使用agent_factory创建Agent实例",
+        "实现文档内容解析和标准化",
+        "提供多种输入方式（字符串、字典、文件）",
+        "实现响应结果提取和格式化",
+        "提供命令行测试接口"
+      ]
+    },
+    "agent_implementation": {
+      "agent_name": "document_reviewer_agent",
+      "file_path": "agents/generated_agents/tech_doc_multi_agent_system/document_reviewer_agent.py",
+      "main_class": "无（使用函数式设计）",
+      "entry_point": "create_document_reviewer_agent",
+      "dependencies": [
+        "nexus_utils.agent_factory",
+        "strands.telemetry",
+        "json",
+        "logging",
+        "typing"
+      ],
+      "imports": [
+        "os",
+        "json",
+        "logging",
+        "typing.Dict",
+        "typing.Any",
+        "typing.Optional",
+        "nexus_utils.agent_factory.create_agent_from_prompt_template",
+        "strands.telemetry.StrandsTelemetry"
+      ]
+    },
+    "core_functions": [
+      {
+        "function_name": "create_document_reviewer_agent",
+        "purpose": "创建技术文档审核专家Agent实例",
+        "parameters": [
+          {
+            "name": "env",
+            "type": "str",
+            "description": "运行环境（development/production/testing）",
+            "required": false,
+            "default": "production"
+          },
+          {
+            "name": "version",
+            "type": "str",
+            "description": "Agent版本",
+            "required": false,
+            "default": "latest"
+          },
+          {
+            "name": "model_id",
+            "type": "str",
+            "description": "使用的模型ID",
+            "required": false,
+            "default": "default"
+          }
+        ],
+        "return_type": "Agent",
+        "return_description": "配置好的审核Agent实例",
+        "implementation_notes": [
+          "使用agent_factory.create_agent_from_prompt_template创建",
+          "配置环境变量和遥测",
+          "启用日志记录"
+        ]
+      },
+      {
+        "function_name": "parse_document_content",
+        "purpose": "解析和标准化文档内容输入",
+        "parameters": [
+          {
+            "name": "document_input",
+            "type": "Any",
+            "description": "文档内容（字符串或字典）",
+            "required": true
+          }
+        ],
+        "return_type": "Dict[str, Any]",
+        "return_description": "标准化的文档内容对象",
+        "implementation_notes": [
+          "支持JSON字符串解析",
+          "支持纯文本输入",
+          "自动补充必要字段",
+          "验证文档结构"
+        ]
+      },
+      {
+        "function_name": "format_review_request",
+        "purpose": "格式化审核请求文本",
+        "parameters": [
+          {
+            "name": "document",
+            "type": "Dict[str, Any]",
+            "description": "文档内容对象",
+            "required": true
+          },
+          {
+            "name": "kwargs",
+            "type": "Dict",
+            "description": "审核参数（dimensions, focus_areas等）",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "格式化的审核请求文本",
+        "implementation_notes": [
+          "生成结构化的审核请求",
+          "包含文档摘要信息",
+          "添加审核要求说明"
+        ]
+      },
+      {
+        "function_name": "extract_review_result",
+        "purpose": "从Agent响应中提取审核结果",
+        "parameters": [
+          {
+            "name": "response",
+            "type": "Any",
+            "description": "Agent的响应对象",
+            "required": true
+          }
+        ],
+        "return_type": "Dict[str, Any]",
+        "return_description": "结构化的审核结果",
+        "implementation_notes": [
+          "多层级属性检查",
+          "JSON提取容错",
+          "创建默认结果结构",
+          "保留原始响应"
+        ]
+      },
+      {
+        "function_name": "review_document",
+        "purpose": "执行完整的文档审核流程",
+        "parameters": [
+          {
+            "name": "document",
+            "type": "Any",
+            "description": "文档内容（字符串或字典）",
+            "required": true
+          },
+          {
+            "name": "agent",
+            "type": "Optional[Any]",
+            "description": "Agent实例",
+            "required": false
+          },
+          {
+            "name": "kwargs",
+            "type": "Dict",
+            "description": "审核参数",
+            "required": false
+          }
+        ],
+        "return_type": "Dict[str, Any]",
+        "return_description": "审核结果字典",
+        "implementation_notes": [
+          "解析文档内容",
+          "格式化审核请求",
+          "调用Agent执行审核",
+          "提取和返回结果",
+          "完整的错误处理"
+        ]
+      },
+      {
+        "function_name": "format_review_report",
+        "purpose": "格式化审核报告为可读文本",
+        "parameters": [
+          {
+            "name": "result",
+            "type": "Dict[str, Any]",
+            "description": "审核结果字典",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "格式化的报告文本",
+        "implementation_notes": [
+          "生成结构化报告",
+          "包含所有关键信息",
+          "易于阅读的格式"
+        ]
+      }
+    ],
+    "tool_integration": {
+      "custom_tools": [
+        "document_review_tools.assess_document_quality",
+        "document_review_tools.identify_document_issues",
+        "document_review_tools.generate_review_feedback",
+        "document_review_tools.make_review_decision",
+        "document_review_tools.comprehensive_document_review",
+        "document_review_tools.validate_review_criteria"
+      ],
+      "system_tools": [
+        "calculator",
+        "current_time"
+      ],
+      "strands_tools": [],
+      "integration_notes": [
+        "所有工具通过prompt模板集成",
+        "Agent自动调用相关工具",
+        "工具返回JSON格式结果",
+        "完整的错误处理机制"
+      ]
+    },
+    "configuration": {
+      "environment_variables": [
+        "BYPASS_TOOL_CONSENT=true",
+        "OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318"
+      ],
+      "model_configuration": {
+        "model_name": "global.anthropic.claude-sonnet-4-5-20250929-v1:0",
+        "max_tokens": 60000,
+        "temperature": 0.3,
+        "top_p": 0.8
+      },
+      "streaming_config": {
+        "enabled": true,
+        "chunk_size": 1024
+      },
+      "logging_config": {
+        "level": "INFO",
+        "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+      }
+    },
+    "error_handling": {
+      "exception_types": [
+        "ValueError - 无效的文档输入",
+        "json.JSONDecodeError - JSON解析失败",
+        "Exception - 通用异常"
+      ],
+      "error_responses": [
+        "返回错误状态字典",
+        "记录详细错误日志",
+        "保留原始数据以供调试"
+      ],
+      "recovery_strategies": [
+        "JSON解析失败时创建默认结构",
+        "响应提取失败时返回原始响应",
+        "保证始终返回有效的结果对象"
+      ]
+    },
+    "testing": {
+      "test_cases": [
+        "标准文档审核",
+        "JSON格式文档输入",
+        "纯文本文档输入",
+        "文件路径输入",
+        "自定义审核参数"
+      ],
+      "test_scenarios": [
+        "高质量文档审核",
+        "低质量文档审核",
+        "不完整文档审核",
+        "格式错误文档处理",
+        "空文档处理"
+      ],
+      "validation_criteria": [
+        "成功创建Agent实例",
+        "正确解析文档内容",
+        "生成完整审核报告",
+        "准确提取审核结果",
+        "错误处理正常工作"
+      ]
+    },
+    "deployment": {
+      "deployment_requirements": [
+        "Python 3.13+",
+        "nexus_utils包",
+        "strands SDK",
+        "document_review_tools工具包",
+        "AWS Bedrock访问权限"
+      ],
+      "runtime_dependencies": [
+        "json",
+        "logging",
+        "typing",
+        "os"
+      ],
+      "performance_considerations": [
+        "大文档审核可能需要较长时间",
+        "响应解析使用容错机制",
+        "日志记录不影响性能",
+        "支持流式响应"
+      ],
+      "command_line_usage": [
+        "python document_reviewer_agent.py -i '文档内容'",
+        "python document_reviewer_agent.py -f document.json",
+        "python document_reviewer_agent.py --threshold 80",
+        "python document_reviewer_agent.py --output result.json"
+      ]
+    },
+    "development_notes": "document_reviewer_agent开发完成。实现了基于agent_factory的简洁架构，提供了完整的文档审核功能，包括多维度质量评估、问题识别、反馈生成和审核决策。代码具有健壮的错误处理、清晰的响应解析逻辑和完整的日志记录。支持多种输入方式和灵活的参数配置，提供命令行测试接口。Agent通过prompt模板自动集成所有审核工具，能够生成专业的审核报告。"
+  }
+}

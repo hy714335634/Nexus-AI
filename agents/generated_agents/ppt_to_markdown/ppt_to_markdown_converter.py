@@ -25,7 +25,8 @@ strands_telemetry.setup_otlp_exporter()
 agent_params = {
     "env": "production",
     "version": "latest", 
-    "model_id": "us.anthropic.claude-3-7-sonnet-20250219-v1:0"  # 使用Claude 3.7 Sonnet模型
+    "model_id": "us.anthropic.claude-3-7-sonnet-20250219-v1:0",  # 使用Claude 3.7 Sonnet模型
+    "enable_logging": True
 }
 
 # 使用 agent_factory 创建 agent

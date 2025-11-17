@@ -10,7 +10,7 @@ enhanced_logging:
   log_file: "logs/enhanced_workflow.log"
   
   # 日志级别
-  log_level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  log_level: "DEBUG"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
   
   # 是否显示时间戳
   show_timestamp: true

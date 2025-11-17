@@ -16,8 +16,28 @@ import os
 import yaml
 import ast
 import json
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, Union
 from strands import tool
+
+
+def _get_prompt_templates(template_info: Dict[str, Any]) -> Union[str, List[str]]:
+    """
+    获取模板的prompt模板信息，支持单Agent和多Agent两种情况
+    
+    Args:
+        template_info: 模板信息字典
+        
+    Returns:
+        如果是单Agent，返回字符串；如果是多Agent，返回列表
+    """
+    # 优先检查prompt_templates（多Agent）
+    if "prompt_templates" in template_info:
+        return template_info["prompt_templates"]
+    # 兼容prompt_template（单Agent）
+    elif "prompt_template" in template_info:
+        return template_info["prompt_template"]
+    else:
+        return ""
 
 @tool
 def get_all_templates() -> str:
@@ -41,6 +61,10 @@ def get_all_templates() -> str:
         # 格式化输出
         result = []
         for template_id, template_info in templates.items():
+            prompt_templates = _get_prompt_templates(template_info)
+            # 判断是单Agent还是多Agent
+            is_multi_agent = isinstance(prompt_templates, list)
+            
             result.append({
                 "id": template_id,
                 "name": template_info.get("name", ""),
@@ -48,7 +72,9 @@ def get_all_templates() -> str:
                 "agent_dependencies": template_info.get("agent_dependencies", []),
                 "tools_dependencies": template_info.get("tools_dependencies", []),
                 "path": template_info.get("path", ""),
-                "prompt_template": template_info.get("prompt_template", ""),
+                "prompt_template": prompt_templates if not is_multi_agent else None,  # 单Agent使用prompt_template
+                "prompt_templates": prompt_templates if is_multi_agent else None,  # 多Agent使用prompt_templates
+                "is_multi_agent": is_multi_agent,
                 "tags": template_info.get("tags", [])
             })
         
@@ -88,6 +114,9 @@ def search_templates_by_tags(tags: List[str]) -> str:
             
             # 检查是否有任何标签匹配
             if any(tag in template_tags for tag in tags):
+                prompt_templates = _get_prompt_templates(template_info)
+                is_multi_agent = isinstance(prompt_templates, list)
+                
                 matched_templates.append({
                     "id": template_id,
                     "name": template_info.get("name", ""),
@@ -95,7 +124,9 @@ def search_templates_by_tags(tags: List[str]) -> str:
                     "agent_dependencies": template_info.get("agent_dependencies", []),
                     "tools_dependencies": template_info.get("tools_dependencies", []),
                     "path": template_info.get("path", ""),
-                    "prompt_template": template_info.get("prompt_template", ""),
+                    "prompt_template": prompt_templates if not is_multi_agent else None,
+                    "prompt_templates": prompt_templates if is_multi_agent else None,
+                    "is_multi_agent": is_multi_agent,
                     "tags": template_info.get("tags", [])
                 })
         
@@ -136,6 +167,9 @@ def search_templates_by_description(keywords: List[str]) -> str:
             
             # 检查描述或名称中是否包含任何关键词
             if any(keyword.lower() in description or keyword.lower() in name for keyword in keywords):
+                prompt_templates = _get_prompt_templates(template_info)
+                is_multi_agent = isinstance(prompt_templates, list)
+                
                 matched_templates.append({
                     "id": template_id,
                     "name": template_info.get("name", ""),
@@ -143,7 +177,9 @@ def search_templates_by_description(keywords: List[str]) -> str:
                     "agent_dependencies": template_info.get("agent_dependencies", []),
                     "tools_dependencies": template_info.get("tools_dependencies", []),
                     "path": template_info.get("path", ""),
-                    "prompt_template": template_info.get("prompt_template", ""),
+                    "prompt_template": prompt_templates if not is_multi_agent else None,
+                    "prompt_templates": prompt_templates if is_multi_agent else None,
+                    "is_multi_agent": is_multi_agent,
                     "tags": template_info.get("tags", [])
                 })
         
@@ -180,6 +216,9 @@ def get_template_by_id(template_id: str) -> str:
             return f"错误：未找到ID为 '{template_id}' 的模板"
         
         template_info = templates[template_id]
+        prompt_templates = _get_prompt_templates(template_info)
+        is_multi_agent = isinstance(prompt_templates, list)
+        
         result = {
             "id": template_id,
             "name": template_info.get("name", ""),
@@ -187,7 +226,9 @@ def get_template_by_id(template_id: str) -> str:
             "agent_dependencies": template_info.get("agent_dependencies", []),
             "tools_dependencies": template_info.get("tools_dependencies", []),
             "path": template_info.get("path", ""),
-            "prompt_template": template_info.get("prompt_template", ""),
+            "prompt_template": prompt_templates if not is_multi_agent else None,
+            "prompt_templates": prompt_templates if is_multi_agent else None,
+            "is_multi_agent": is_multi_agent,
             "tags": template_info.get("tags", [])
         }
         

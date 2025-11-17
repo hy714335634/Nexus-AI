@@ -14,49 +14,80 @@ from nexus_utils.agent_factory import create_agent_from_prompt_template
 from nexus_utils.structured_output_model.project_intent_recognition import IntentRecognitionResult
 from strands.session.file_session_manager import FileSessionManager
 
-# 导入其他 agents
-from agents.system_agents.agent_build_workflow.requirements_analyzer_agent import requirements_analyzer
-from agents.system_agents.agent_build_workflow.system_architect_agent import system_architect
-from agents.system_agents.agent_build_workflow.agent_designer_agent import agent_designer
-from agents.system_agents.agent_build_workflow.prompt_engineer_agent import prompt_engineer
-from agents.system_agents.agent_build_workflow.tool_developer_agent import tool_developer
-from agents.system_agents.agent_build_workflow.agent_code_developer_agent import agent_code_developer
-from agents.system_agents.agent_build_workflow.agent_deployer_agent import agent_deployer
-from agents.system_agents.agent_build_workflow.agent_developer_manager_agent import agent_developer_manager
+# 导入其他 agents 的创建函数
+from agents.system_agents.agent_build_workflow.requirements_analyzer_agent import get_requirements_analyzer
+from agents.system_agents.agent_build_workflow.system_architect_agent import get_system_architect
+from agents.system_agents.agent_build_workflow.agent_designer_agent import get_agent_designer
+from agents.system_agents.agent_build_workflow.agent_deployer_agent import get_agent_deployer
+from agents.system_agents.agent_build_workflow.agent_developer_manager_agent import get_agent_developer_manager
+from nexus_utils.config_loader import ConfigLoader
 from strands.telemetry import StrandsTelemetry
 from nexus_utils.workflow_report_generator import generate_workflow_summary_report
+from nexus_utils.workflow_rule_extract import (
+    get_base_rules,
+    get_build_workflow_rules,
+)
 
+# 设置环境变量
 os.environ["BYPASS_TOOL_CONSENT"] = "true"
 os.environ["OTEL_EXPORTER_OTLP_ENDPOINT"] = "http://localhost:4318"
 strands_telemetry = StrandsTelemetry()
 strands_telemetry.setup_otlp_exporter()
 
-# 设置环境变量
-os.environ["BYPASS_TOOL_CONSENT"] = "true"
-
-# 创建 agent 的通用参数（不启用日志，因为Graph不支持）
-agent_params = {
-    "env": "production",
-    "version": "latest", 
-    "model_id": "default"
-}
-
-# 使用 agent_factory 创建编排器 agent
-orchestrator = create_agent_from_prompt_template(
-    agent_name="system_agents_prompts/agent_build_workflow/orchestrator", 
-    **agent_params
-)
-
-# 创建意图分析 agent
-intent_analyzer = create_agent_from_prompt_template(
-    agent_name="system_agents_prompts/agent_build_workflow/agent_intent_analyzer",
-    nocallback=True,
-    **agent_params
-)
+# 配置加载器
+config_loader = ConfigLoader()
 
 
-def analyze_user_intent(user_input: str):
-    """分析用户意图"""
+def _load_build_rules() -> str:
+    """读取Base与Build工作流规则。"""
+    base_rules = get_base_rules()
+    build_rules = get_build_workflow_rules()
+    return base_rules + "\n" + build_rules + "\n=====规则声明结束，请遵守以上规则=====\n"
+
+def create_workflow_agents(env: str = "production", version: str = None):
+    """
+    创建所有工作流相关的 Agents
+    
+    Args:
+        env (str): 环境名称，默认为 "production"
+        version (str, optional): 版本号，如果不提供则从配置中读取
+        
+    Returns:
+        dict: 包含所有 agents 的字典
+    """
+    if version is None:
+        version = config_loader.get_nested("nexus_ai", "workflow_default_version", "agent_build")
+    
+    agents = {
+        "orchestrator": create_agent_from_prompt_template(
+            agent_name="system_agents_prompts/agent_build_workflow/orchestrator",
+            env=env,
+            version=version
+        ),
+        "intent_analyzer": create_agent_from_prompt_template(
+            agent_name="system_agents_prompts/agent_build_workflow/agent_intent_analyzer",
+            nocallback=True,
+            env=env,
+            version=version
+        ),
+        "requirements_analyzer": get_requirements_analyzer(env=env, version=version),
+        "system_architect": get_system_architect(env=env, version=version),
+        "agent_designer": get_agent_designer(env=env, version=version),
+        "agent_developer_manager": get_agent_developer_manager(env=env, version=version),
+        "agent_deployer": get_agent_deployer(env=env, version=version),
+    }
+    
+    return agents
+
+
+def analyze_user_intent(user_input: str, intent_analyzer):
+    """
+    分析用户意图
+    
+    Args:
+        user_input (str): 用户输入
+        intent_analyzer: 意图分析 agent
+    """
     print(f"\n{'='*80}")
     print(f"🔍 [INTENT] 开始分析用户意图")
     print(f"{'='*80}")
@@ -89,24 +120,31 @@ def analyze_user_intent(user_input: str):
         )
 
 
-def create_build_workflow():
-    """创建智能体构建工作流"""
+def create_build_workflow(agents: dict = None):
+    """
+    创建智能体构建工作流
     
+    Args:
+        agents (dict, optional): Agents 字典，如果不提供则自动创建
+    """
     print(f"\n{'='*80}")
     print(f"🏗️  [WORKFLOW] 创建工作流")
     print(f"{'='*80}")
 
+    # 如果没有提供 agents，则创建它们
+    if agents is None:
+        agents = create_workflow_agents()
 
     builder = GraphBuilder()
     
     # 添加节点
     print("📋 添加工作流节点...")
-    builder.add_node(orchestrator, "orchestrator")
-    builder.add_node(requirements_analyzer, "requirements_analyzer")
-    builder.add_node(system_architect, "system_architect")
-    builder.add_node(agent_designer, "agent_designer")
-    builder.add_node(agent_developer_manager, "agent_developer_manager")
-    builder.add_node(agent_deployer, "agent_deployer")
+    builder.add_node(agents["orchestrator"], "orchestrator")
+    builder.add_node(agents["requirements_analyzer"], "requirements_analyzer")
+    builder.add_node(agents["system_architect"], "system_architect")
+    builder.add_node(agents["agent_designer"], "agent_designer")
+    builder.add_node(agents["agent_developer_manager"], "agent_developer_manager")
+    builder.add_node(agents["agent_deployer"], "agent_deployer")
 
     # 添加边 - 定义工作流顺序
     print("🔗 配置工作流连接...")
@@ -115,13 +153,6 @@ def create_build_workflow():
     builder.add_edge("system_architect", "agent_designer")
     builder.add_edge("agent_designer", "agent_developer_manager")
     builder.add_edge("agent_developer_manager", "agent_deployer")
-    # builder.add_edge("orchestrator", "agent_developer_manager")
-    # builder.add_edge("developer_swarm", "agent_developer_manager")
-    # builder.add_edge("agent_designer", "tool_developer")
-    # builder.add_edge("tool_developer", "prompt_engineer")
-    # builder.add_edge("prompt_engineer", "agent_code_developer")
-    # builder.add_edge("agent_code_developer", "agent_developer_manager")
-    
     # 构建图
     graph = builder.build()
     print("✅ 工作流图构建完成")
@@ -129,18 +160,32 @@ def create_build_workflow():
     return graph
 
 
-def run_workflow(user_input: str, session_id="default"):
+def run_workflow(user_input: str, session_id="default", env: str = "production", version: str = None):
+    """
+    运行工作流
+    
+    Args:
+        user_input (str): 用户输入
+        session_id (str): 会话ID
+        env (str): 环境名称
+        version (str, optional): 版本号
+    """
     print(f"\n{'='*80}", flush=True)
     print(f"🎯 [WORKFLOW] 开始工作流执行", flush=True)
     print(f"{'='*80}", flush=True)
 
+    # 创建所有 agents
+    print(f"🏗️ [STEP 0] 创建工作流 Agents...", flush=True)
+    agents = create_workflow_agents(env=env, version=version)
+    print(f"✅ 所有 Agents 创建完成", flush=True)
+
     # 第一步：分析用户意图
-    print(f"🔍 [STEP 1] 分析用户意图...", flush=True)
-    intent_structured_result = analyze_user_intent(user_input)
+    print(f"\n🔍 [STEP 1] 分析用户意图...", flush=True)
+    intent_structured_result = analyze_user_intent(user_input, agents["intent_analyzer"])
 
     # 创建工作流
     print(f"\n🏗️ [STEP 2] 创建构建工作流...", flush=True)
-    workflow = create_build_workflow()
+    workflow = create_build_workflow(agents=agents)
     
     # 执行工作流
     print(f"\n{'='*80}", flush=True)
@@ -162,10 +207,19 @@ def run_workflow(user_input: str, session_id="default"):
         import time
         start_time = time.time()
 
-        result = workflow(
-            "意图识别结果:" + str(intent_structured_result) + "\n=======================\n" +
-            "用户原始输入:" + user_input
+        # 加载规则作为上下文
+        rules = _load_build_rules()
+        
+        # 构建工作流输入，包含规则、意图识别结果和用户输入
+        workflow_input = (
+            f"# Build Workflow Kickoff\n"
+            f"## 规则上下文\n{rules}\n"
+            f"## 意图识别结果\n{intent_structured_result}\n"
+            f"## 用户原始输入\n{user_input}\n"
+            f"请按顺序完成构建流程，遵守以上规则。"
         )
+
+        result = workflow(workflow_input)
 
         end_time = time.time()
         execution_duration = end_time - start_time

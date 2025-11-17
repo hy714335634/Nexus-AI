@@ -141,6 +141,7 @@ AGENT_PARAMS = {
     "env": os.getenv("NEXUS_QA_AGENT_ENV", "production"),
     "version": os.getenv("NEXUS_QA_AGENT_VERSION", "latest"),
     "model_id": os.getenv("NEXUS_QA_AGENT_MODEL_ID", "default"),
+    "enable_logging": True,
     "nocallback": True,  # FastAPI 接口默认不使用回调以降低额外工具调用
 }
 

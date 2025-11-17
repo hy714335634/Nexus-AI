@@ -83,7 +83,8 @@ class CompanyInfoSearchAgent:
         agent_params = {
             "env": "production",
             "version": "latest", 
-            "model_id": "default"
+            "model_id": "default",
+            "enable_logging": True
         }
         
         try:

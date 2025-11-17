@@ -1,0 +1,119 @@
+{
+  "tool_development": {
+    "development_overview": {
+      "project_name": "tech_doc_multi_agent_system",
+      "agent_name": "document_reviewer_agent",
+      "version": "1.0",
+      "date": "2025-11-17",
+      "development_scope": "为document_reviewer_agent开发文档审核和质量评估工具，提供多维度质量评估、问题识别和反馈生成功能",
+      "design_principles": [
+        "多维度质量评估",
+        "具体可操作的反馈",
+        "严格的审核标准",
+        "完整的问题追踪"
+      ],
+      "key_decisions": [
+        "实现五维度质量评估体系",
+        "提供问题严重程度分级",
+        "支持自定义审核标准",
+        "集成综合审核流程"
+      ]
+    },
+    "tools": [
+      {
+        "tool_name": "assess_document_quality",
+        "description": "从多个维度评估技术文档质量",
+        "function_signature": "assess_document_quality(document: Dict[str, Any], dimensions: Optional[List[str]] = None, detailed_analysis: bool = True) -> str",
+        "parameters": [
+          {"name": "document", "type": "Dict[str, Any]", "description": "文档内容", "required": true},
+          {"name": "dimensions", "type": "List[str]", "description": "评估维度", "required": false},
+          {"name": "detailed_analysis", "type": "bool", "description": "是否详细分析", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的评估结果",
+        "dependencies": ["json", "re", "datetime"],
+        "implementation_notes": ["五维度评估", "加权评分", "详细反馈"],
+        "error_handling": ["验证文档格式", "处理缺失字段"],
+        "usage_examples": ["result = assess_document_quality(doc)"]
+      },
+      {
+        "tool_name": "identify_document_issues",
+        "description": "识别技术文档中存在的具体问题",
+        "function_signature": "identify_document_issues(document: Dict[str, Any], focus_areas: Optional[List[str]] = None, severity_threshold: str = 'low') -> str",
+        "parameters": [
+          {"name": "document", "type": "Dict[str, Any]", "description": "文档内容", "required": true},
+          {"name": "focus_areas", "type": "List[str]", "description": "关注领域", "required": false},
+          {"name": "severity_threshold", "type": "str", "description": "严重程度阈值", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的问题列表",
+        "dependencies": ["json", "re"],
+        "implementation_notes": ["多类型问题识别", "严重程度分级", "位置定位"],
+        "error_handling": ["处理复杂文档结构", "提供详细位置信息"],
+        "usage_examples": ["result = identify_document_issues(doc)"]
+      },
+      {
+        "tool_name": "generate_review_feedback",
+        "description": "生成结构化的审核反馈信息",
+        "function_signature": "generate_review_feedback(quality_scores: Dict[str, float], issues: List[Dict[str, Any]], priority_strategy: str = 'severity_first') -> str",
+        "parameters": [
+          {"name": "quality_scores", "type": "Dict[str, float]", "description": "质量评分", "required": true},
+          {"name": "issues", "type": "List[Dict[str, Any]]", "description": "问题列表", "required": true},
+          {"name": "priority_strategy", "type": "str", "description": "优先级策略", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的反馈信息",
+        "dependencies": ["json"],
+        "implementation_notes": ["优先级排序", "改进建议生成", "行动项提取"],
+        "error_handling": ["验证输入数据", "处理空问题列表"],
+        "usage_examples": ["result = generate_review_feedback(scores, issues)"]
+      },
+      {
+        "tool_name": "make_review_decision",
+        "description": "根据质量评估结果判断是否通过审核",
+        "function_signature": "make_review_decision(quality_scores: Dict[str, float], pass_threshold: float = 75.0, dimension_thresholds: Optional[Dict[str, float]] = None) -> str",
+        "parameters": [
+          {"name": "quality_scores", "type": "Dict[str, float]", "description": "质量评分", "required": true},
+          {"name": "pass_threshold", "type": "float", "description": "通过阈值", "required": false},
+          {"name": "dimension_thresholds", "type": "Dict[str, float]", "description": "维度阈值", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的审核决定",
+        "dependencies": ["json"],
+        "implementation_notes": ["多重阈值检查", "改进优先级", "质量评级"],
+        "error_handling": ["验证评分有效性", "处理边界情况"],
+        "usage_examples": ["result = make_review_decision(scores)"]
+      },
+      {
+        "tool_name": "comprehensive_document_review",
+        "description": "执行完整的文档审核流程",
+        "function_signature": "comprehensive_document_review(document: Dict[str, Any], pass_threshold: float = 75.0, dimension_thresholds: Optional[Dict[str, float]] = None, severity_threshold: str = 'low') -> str",
+        "parameters": [
+          {"name": "document", "type": "Dict[str, Any]", "description": "文档内容", "required": true},
+          {"name": "pass_threshold", "type": "float", "description": "通过阈值", "required": false},
+          {"name": "dimension_thresholds", "type": "Dict[str, float]", "description": "维度阈值", "required": false},
+          {"name": "severity_threshold", "type": "str", "description": "严重程度阈值", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的完整审核报告",
+        "dependencies": ["json"],
+        "implementation_notes": ["集成所有审核功能", "一站式审核", "完整报告生成"],
+        "error_handling": ["处理子功能错误", "确保报告完整性"],
+        "usage_examples": ["result = comprehensive_document_review(doc)"]
+      }
+    ],
+    "code_quality": {
+      "code_standards": ["PEP 8规范", "完整类型注解", "详细文档", "错误处理"],
+      "testing_strategy": ["单元测试", "集成测试", "边界测试", "性能测试"],
+      "performance_considerations": ["优化评估算法", "缓存评估结果", "减少重复计算"],
+      "security_measures": ["输入验证", "数据清理", "防止注入"]
+    },
+    "integration_details": {
+      "aws_services": [],
+      "external_libraries": [],
+      "api_endpoints": [],
+      "data_formats": ["JSON"]
+    },
+    "development_notes": "工具开发完成，提供了完整的文档审核工具链。实现了五维度质量评估体系（内容完整性、技术准确性、逻辑连贯性、格式规范性、语言表达），支持问题识别、反馈生成和审核决策，能够提供具体可操作的改进建议。"
+  }
+}

@@ -42,7 +42,8 @@ strands_telemetry.setup_otlp_exporter()
 agent_params = {
     "env": "production",
     "version": "latest", 
-    "model_id": "us.anthropic.claude-3-5-sonnet-20240620-v1:0"  # Using Claude 3.5 Sonnet for advanced medical comprehension
+    "model_id": "us.anthropic.claude-3-5-sonnet-20240620-v1:0",  # Using Claude 3.5 Sonnet for advanced medical comprehension
+    "enable_logging": True
 }
 
 # Create the Clinical Medicine Expert Agent

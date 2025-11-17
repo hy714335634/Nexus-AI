@@ -45,7 +45,8 @@ strands_telemetry.setup_otlp_exporter()
 agent_params = {
     "env": "production",
     "version": "latest", 
-    "model_id": "default"
+    "model_id": "default",
+    "enable_logging": True
 }
 
 # 使用 agent_factory 创建 agent

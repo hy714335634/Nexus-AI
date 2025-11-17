@@ -57,7 +57,8 @@ class PubmedLiteratureWritingAssistant:
         self.agent_params = {
             "env": self.env,
             "version": self.version,
-            "model_id": self.model_id
+            "model_id": self.model_id,
+            "enable_logging": True
         }
         
         # 智能体配置路径

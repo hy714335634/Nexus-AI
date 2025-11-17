@@ -1,0 +1,376 @@
+{
+  "tool_development": {
+    "development_overview": {
+      "project_name": "tech_doc_multi_agent_system",
+      "version": "1.0",
+      "date": "2025-11-17",
+      "development_scope": "为document_writer_agent开发专业的技术文档生成和处理工具集，支持需求解析、文档生成、反馈处理和内容修改等核心功能",
+      "design_principles": [
+        "单一职责原则：每个工具函数专注于特定功能",
+        "数据驱动：通过结构化JSON数据进行工具间通信",
+        "错误容错：完善的异常处理和错误信息反馈",
+        "可扩展性：支持自定义参数和灵活配置",
+        "类型安全：使用完整的类型注解确保代码质量"
+      ],
+      "key_decisions": [
+        "使用JSON作为统一的数据交换格式，确保Agent间无缝协作",
+        "采用模式匹配和关键词识别进行需求解析，提高准确性",
+        "实现三种修改模式（targeted/rewrite/incremental）满足不同场景需求",
+        "提供完整性验证工具确保文档质量",
+        "所有工具返回结构化JSON，便于后续处理和分析"
+      ]
+    },
+    "tools": [
+      {
+        "tool_name": "parse_user_requirement",
+        "description": "解析用户自然语言需求，提取关键技术要点和文档结构要求",
+        "function_signature": "parse_user_requirement(requirement: str, additional_context: Optional[str] = None) -> str",
+        "parameters": [
+          {
+            "name": "requirement",
+            "type": "str",
+            "description": "用户的自然语言需求描述",
+            "required": true
+          },
+          {
+            "name": "additional_context",
+            "type": "Optional[str]",
+            "description": "额外的上下文信息，如项目背景、技术栈等",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的需求分析结果，包含文档类型、关键主题、目标受众、技术水平、结构要求、特殊要求和建议章节",
+        "dependencies": ["json", "re", "datetime"],
+        "implementation_notes": [
+          "使用正则表达式模式匹配识别文档类型",
+          "通过关键词提取识别技术主题",
+          "基于语言特征判断技术水平",
+          "根据文档类型提供标准章节模板"
+        ],
+        "error_handling": [
+          "捕获JSON解析错误并返回错误信息",
+          "处理空输入或无效输入",
+          "所有异常统一返回JSON格式错误"
+        ],
+        "usage_examples": [
+          "parse_user_requirement('我需要写一份关于REST API的技术文档')",
+          "parse_user_requirement('设计文档：微服务架构', additional_context='项目使用Spring Boot')"
+        ]
+      },
+      {
+        "tool_name": "generate_document_structure",
+        "description": "基于需求分析生成结构化的技术文档框架",
+        "function_signature": "generate_document_structure(requirement_analysis: str, custom_sections: Optional[List[str]] = None) -> str",
+        "parameters": [
+          {
+            "name": "requirement_analysis",
+            "type": "str",
+            "description": "parse_user_requirement工具输出的JSON结果",
+            "required": true
+          },
+          {
+            "name": "custom_sections",
+            "type": "Optional[List[str]]",
+            "description": "用户自定义的章节列表，覆盖默认建议",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的文档结构，包含标题、摘要、章节大纲、每个章节的目标、关键点和内容类型",
+        "dependencies": ["json", "datetime"],
+        "implementation_notes": [
+          "根据文档类型和技术水平估算章节字数",
+          "自动识别需要代码、图表或表格的章节",
+          "支持用户自定义章节覆盖默认建议",
+          "生成详细的文档元数据和统计信息"
+        ],
+        "error_handling": [
+          "验证需求分析结果的有效性",
+          "处理缺失的必需字段",
+          "统一返回JSON格式错误信息"
+        ],
+        "usage_examples": [
+          "generate_document_structure(analysis_result)",
+          "generate_document_structure(analysis_result, custom_sections=['概述', '实现', '总结'])"
+        ]
+      },
+      {
+        "tool_name": "generate_document_content",
+        "description": "基于文档结构生成完整的技术文档内容",
+        "function_signature": "generate_document_content(document_structure: str, content_guidelines: Optional[Dict[str, Any]] = None) -> str",
+        "parameters": [
+          {
+            "name": "document_structure",
+            "type": "str",
+            "description": "generate_document_structure工具输出的JSON结果",
+            "required": true
+          },
+          {
+            "name": "content_guidelines",
+            "type": "Optional[Dict[str, Any]]",
+            "description": "内容生成指南，包含style、code_language、include_warnings、detail_level等配置",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的完整文档内容，包含标题、摘要、目录和所有章节的详细内容",
+        "dependencies": ["json", "datetime"],
+        "implementation_notes": [
+          "生成Markdown格式的文档内容",
+          "根据内容类型添加代码块、图表占位符和表格",
+          "支持多种写作风格和详细程度配置",
+          "统计文档字数、代码示例、图表和表格数量"
+        ],
+        "error_handling": [
+          "验证文档结构的有效性",
+          "处理缺失的章节或元数据",
+          "统一返回JSON格式错误信息"
+        ],
+        "usage_examples": [
+          "generate_document_content(structure)",
+          "generate_document_content(structure, {'style': 'casual', 'code_language': 'javascript'})"
+        ]
+      },
+      {
+        "tool_name": "parse_review_feedback",
+        "description": "解析审核反馈，提取结构化的修改任务列表",
+        "function_signature": "parse_review_feedback(review_feedback: str, current_document: str) -> str",
+        "parameters": [
+          {
+            "name": "review_feedback",
+            "type": "str",
+            "description": "审核Agent返回的反馈JSON字符串",
+            "required": true
+          },
+          {
+            "name": "current_document",
+            "type": "str",
+            "description": "当前文档内容的JSON字符串",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的修改任务列表，包含任务ID、优先级、问题类型、位置、描述、建议和难度评估",
+        "dependencies": ["json", "re", "datetime"],
+        "implementation_notes": [
+          "将问题按优先级分类（high/medium/low）",
+          "通过正则表达式提取问题位置信息",
+          "评估每个修改任务的难度和影响",
+          "生成整体修改策略建议",
+          "统计各优先级和类型的任务数量"
+        ],
+        "error_handling": [
+          "验证反馈和文档的有效性",
+          "处理缺失的位置信息",
+          "统一返回JSON格式错误信息"
+        ],
+        "usage_examples": [
+          "parse_review_feedback(feedback_json, document_json)"
+        ]
+      },
+      {
+        "tool_name": "modify_document_content",
+        "description": "根据修改任务列表对文档进行针对性修改",
+        "function_signature": "modify_document_content(original_document: str, modification_tasks: str, modification_mode: str = 'targeted') -> str",
+        "parameters": [
+          {
+            "name": "original_document",
+            "type": "str",
+            "description": "原始文档内容的JSON字符串",
+            "required": true
+          },
+          {
+            "name": "modification_tasks",
+            "type": "str",
+            "description": "parse_review_feedback工具输出的修改任务JSON",
+            "required": true
+          },
+          {
+            "name": "modification_mode",
+            "type": "str",
+            "description": "修改模式：targeted（针对性修改）、rewrite（全面重写）、incremental（增量修改）",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的修改后文档，包含修改日志、质量改进指标和更新后的章节内容",
+        "dependencies": ["json", "datetime"],
+        "implementation_notes": [
+          "支持三种修改模式满足不同场景",
+          "按优先级排序处理修改任务",
+          "记录详细的修改日志",
+          "统计质量改进指标",
+          "维护文档版本号"
+        ],
+        "error_handling": [
+          "验证文档和任务列表的有效性",
+          "处理无法定位的修改任务",
+          "记录未成功应用的修改",
+          "统一返回JSON格式错误信息"
+        ],
+        "usage_examples": [
+          "modify_document_content(document, tasks)",
+          "modify_document_content(document, tasks, modification_mode='rewrite')"
+        ]
+      },
+      {
+        "tool_name": "validate_document_completeness",
+        "description": "验证文档完整性，确保满足原始需求",
+        "function_signature": "validate_document_completeness(document_content: str, requirement_analysis: str) -> str",
+        "parameters": [
+          {
+            "name": "document_content",
+            "type": "str",
+            "description": "文档内容的JSON字符串",
+            "required": true
+          },
+          {
+            "name": "requirement_analysis",
+            "type": "str",
+            "description": "需求分析结果的JSON字符串",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的验证结果，包含完整性评分、缺失元素列表、覆盖度分析和改进建议",
+        "dependencies": ["json", "datetime"],
+        "implementation_notes": [
+          "检查章节完整性（是否包含所有建议章节）",
+          "验证关键技术主题覆盖度",
+          "检查特殊要求是否满足（代码示例、图表、表格）",
+          "计算加权完整性评分",
+          "生成具体的改进建议"
+        ],
+        "error_handling": [
+          "验证输入数据的有效性",
+          "处理空章节或缺失字段",
+          "统一返回JSON格式错误信息"
+        ],
+        "usage_examples": [
+          "validate_document_completeness(document, analysis)"
+        ]
+      },
+      {
+        "tool_name": "format_document_for_review",
+        "description": "格式化文档内容以便提交审核",
+        "function_signature": "format_document_for_review(document_content: str, include_metadata: bool = True) -> str",
+        "parameters": [
+          {
+            "name": "document_content",
+            "type": "str",
+            "description": "文档内容的JSON字符串",
+            "required": true
+          },
+          {
+            "name": "include_metadata",
+            "type": "bool",
+            "description": "是否包含详细元数据",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的格式化文档，包含可读文本、章节预览和统计信息",
+        "dependencies": ["json", "datetime"],
+        "implementation_notes": [
+          "生成Markdown格式的完整文档文本",
+          "创建章节预览列表供快速浏览",
+          "统计文档各类元素数量",
+          "添加审核相关的元数据标记"
+        ],
+        "error_handling": [
+          "验证文档内容的有效性",
+          "处理缺失的章节或元数据",
+          "统一返回JSON格式错误信息"
+        ],
+        "usage_examples": [
+          "format_document_for_review(document)",
+          "format_document_for_review(document, include_metadata=False)"
+        ]
+      },
+      {
+        "tool_name": "extract_modification_priorities",
+        "description": "提取最高优先级的修改任务",
+        "function_signature": "extract_modification_priorities(modification_tasks: str, max_priority_items: int = 5) -> str",
+        "parameters": [
+          {
+            "name": "modification_tasks",
+            "type": "str",
+            "description": "修改任务列表的JSON字符串",
+            "required": true
+          },
+          {
+            "name": "max_priority_items",
+            "type": "int",
+            "description": "最多返回的高优先级任务数量",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的优先任务列表，按优先级和影响排序",
+        "dependencies": ["json", "datetime"],
+        "implementation_notes": [
+          "综合考虑优先级和影响程度进行排序",
+          "优先级权重高于影响程度",
+          "提供任务分布统计",
+          "帮助Agent聚焦最重要的改进点"
+        ],
+        "error_handling": [
+          "验证任务列表的有效性",
+          "处理空任务列表",
+          "统一返回JSON格式错误信息"
+        ],
+        "usage_examples": [
+          "extract_modification_priorities(tasks)",
+          "extract_modification_priorities(tasks, max_priority_items=3)"
+        ]
+      }
+    ],
+    "code_quality": {
+      "code_standards": [
+        "遵循PEP 8 Python代码规范",
+        "使用完整的类型注解（typing模块）",
+        "提供详细的函数文档字符串",
+        "所有工具函数使用@tool装饰器",
+        "统一的错误处理和返回格式"
+      ],
+      "testing_strategy": [
+        "单元测试覆盖所有工具函数",
+        "测试正常输入和边界情况",
+        "验证JSON输出格式的正确性",
+        "测试异常处理机制",
+        "集成测试验证工具间协作"
+      ],
+      "performance_considerations": [
+        "使用高效的正则表达式模式匹配",
+        "避免不必要的数据复制",
+        "优化JSON序列化性能",
+        "合理控制返回数据大小",
+        "支持大文档的分段处理"
+      ],
+      "security_measures": [
+        "验证所有输入数据格式",
+        "防止注入攻击（正则表达式安全）",
+        "限制数据处理大小",
+        "不执行用户提供的代码",
+        "敏感信息不记录到日志"
+      ]
+    },
+    "integration_details": {
+      "aws_services": [],
+      "external_libraries": [
+        "strands - @tool装饰器和框架支持",
+        "json - JSON数据处理",
+        "re - 正则表达式处理",
+        "datetime - 时间戳生成",
+        "typing - 类型注解支持"
+      ],
+      "api_endpoints": [],
+      "data_formats": [
+        "JSON - 所有工具的输入输出格式",
+        "Markdown - 文档内容格式"
+      ]
+    },
+    "development_notes": "工具开发完成，共实现8个专业工具函数。所有工具遵循Strands框架规范，使用@tool装饰器和完整类型注解。工具间通过结构化JSON数据进行通信，确保document_writer_agent能够高效完成需求解析、文档生成、反馈处理和内容修改等核心任务。工具设计充分考虑了可扩展性、错误处理和性能优化，为多Agent协作提供了坚实的技术基础。"
+  }
+}

@@ -4,23 +4,23 @@
 """
 
 import os
+from strands import Agent
 from nexus_utils.agent_factory import create_agent_from_prompt_template
+from nexus_utils.config_loader import ConfigLoader
+loader = ConfigLoader()
 
 # 设置环境变量
 os.environ["BYPASS_TOOL_CONSENT"] = "true"
 
-# 创建 agent 的通用参数
-agent_params = {
-    "env": "production",
-    "version": "latest", 
-    "model_id": "default"
-}
-
-# 使用 agent_factory 创建 agent
-prompt_engineer = create_agent_from_prompt_template(
-    agent_name="system_agents_prompts/agent_build_workflow/prompt_engineer", 
-    **agent_params
-)
+def get_prompt_engineer(env: str = "production", version: str = None) -> Agent:
+    if version is None:
+        version = loader.get_nested("nexus_ai", "workflow_default_version", "agent_build")
+    prompt_engineer = create_agent_from_prompt_template(
+        agent_name="system_agents_prompts/agent_build_workflow/prompt_engineer", 
+        env=env,
+        version=version
+    )
+    return prompt_engineer
 
 if __name__ == "__main__":
     import argparse
@@ -31,7 +31,7 @@ if __name__ == "__main__":
                        default="根据 Agent 设计方案，编写高质量的提示词模板",
                        help='测试输入内容')
     args = parser.parse_args()
-    
+    prompt_engineer = get_prompt_engineer()
     print(f"✅ Prompt Engineer Agent 创建成功: {prompt_engineer.name}")
     
     # 测试 agent 功能

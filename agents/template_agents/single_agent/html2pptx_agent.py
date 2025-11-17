@@ -38,7 +38,8 @@ def create_html2pptx_agent(env: str = "production", version: str = "latest", mod
     agent_params = {
         "env": env,
         "version": version, 
-        "model_id": model_id
+        "model_id": model_id,
+        "enable_logging": True
     }
     return create_agent_from_prompt_template(
         agent_name="generated_agents_prompts/html2pptx/html2pptx_agent", 

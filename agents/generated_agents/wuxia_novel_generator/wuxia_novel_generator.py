@@ -79,7 +79,8 @@ class WuxiaNovelGenerator:
             agent_params = {
                 "env": self.env,
                 "version": "latest",
-                "model_id": self.model_id
+                "model_id": self.model_id,
+                "enable_logging": True
             }
             
             self.agent = create_agent_from_prompt_template(

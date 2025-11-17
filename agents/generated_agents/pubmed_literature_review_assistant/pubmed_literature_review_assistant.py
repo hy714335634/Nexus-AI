@@ -58,7 +58,8 @@ class PubmedLiteratureReviewer:
         self.agent_params = {
             "env": self.env,
             "version": self.version,
-            "model_id": self.model_id
+            "model_id": self.model_id,
+            "enable_logging": True
         }
         
         # 创建智能体实例

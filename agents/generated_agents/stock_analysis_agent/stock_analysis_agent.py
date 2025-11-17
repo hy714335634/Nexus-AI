@@ -65,7 +65,8 @@ class StockAnalysisSystem:
         self.agent_params = {
             "env": env,
             "version": version,
-            "model_id": model_id
+            "model_id": model_id,
+            "enable_logging": True
         }
         
         # 初始化所有Agent

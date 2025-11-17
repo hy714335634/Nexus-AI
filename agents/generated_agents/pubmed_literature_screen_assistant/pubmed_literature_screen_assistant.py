@@ -22,7 +22,8 @@ def create_literature_assistant():
         agent_name="generated_agents_prompts/pubmed_literature_screen_assistant/pubmed_literature_screen_assistant",
         env="production",
         version="latest",
-        model_id="default"
+        model_id="default",
+        enable_logging=True
     )
 
 

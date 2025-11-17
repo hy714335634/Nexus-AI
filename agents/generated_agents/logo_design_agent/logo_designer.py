@@ -60,7 +60,8 @@ class LogoDesignAgent:
         self.agent_params = {
             "env": env,
             "version": version,
-            "model_id": model_id
+            "model_id": model_id,
+            "enable_logging": True
         }
         
         # 创建智能体

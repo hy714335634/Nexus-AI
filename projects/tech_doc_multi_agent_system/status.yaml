@@ -1,0 +1,234 @@
+agents: {}
+created_at: '2025-11-17T08:59:09.342084+00:00'
+last_updated: '2025-11-17T08:59:09.342089+00:00'
+project: tech_doc_multi_agent_system
+project_info:
+- agents:
+  - created_date: '2025-11-17T09:01:37.579482+00:00'
+    description: 智能体：tech_doc_multi_agent_system
+    last_updated: '2025-11-17T09:25:14.920505+00:00'
+    name: tech_doc_multi_agent_system
+    pipeline:
+    - description: 需求分析阶段 - 分析用户需求，定义功能规格
+      doc_path: projects/tech_doc_multi_agent_system/agents/tech_doc_multi_agent_system/requirements_analyzer.json
+      stage: requirements_analyzer
+      status: true
+      updated_date: '2025-11-17T09:01:37.579500+00:00'
+    - description: 系统架构设计阶段 - 设计系统架构和技术方案
+      doc_path: projects/tech_doc_multi_agent_system/agents/tech_doc_multi_agent_system/system_architect.json
+      stage: system_architect
+      status: true
+      updated_date: '2025-11-17T09:05:07.547347+00:00'
+    - description: Agent设计阶段 - 设计智能体结构和交互模式
+      doc_path: projects/tech_doc_multi_agent_system/agents/tech_doc_multi_agent_system/agent_designer.json
+      stage: agent_designer
+      status: true
+      updated_date: '2025-11-17T09:07:30.299019+00:00'
+    - description: 提示词工程阶段 - 设计和优化提示词模板
+      doc_path: ''
+      stage: prompt_engineer
+      status: false
+      updated_date: null
+    - agent_artifact_path:
+      - generated_tools/tech_doc_multi_agent_system/document_writer_tools.py/parse_user_requirement
+      - generated_tools/tech_doc_multi_agent_system/document_writer_tools.py/generate_document_structure
+      - generated_tools/tech_doc_multi_agent_system/document_writer_tools.py/generate_document_content
+      - generated_tools/tech_doc_multi_agent_system/document_writer_tools.py/parse_review_feedback
+      - generated_tools/tech_doc_multi_agent_system/document_writer_tools.py/modify_document_content
+      - generated_tools/tech_doc_multi_agent_system/document_writer_tools.py/validate_document_completeness
+      - generated_tools/tech_doc_multi_agent_system/document_writer_tools.py/format_document_for_review
+      - generated_tools/tech_doc_multi_agent_system/document_writer_tools.py/extract_modification_priorities
+      description: 工具开发阶段 - 开发必要的工具和函数
+      doc_path: projects/tech_doc_multi_agent_system/agents/tech_doc_multi_agent_system/tools_developer.json
+      stage: tools_developer
+      status: true
+      updated_date: '2025-11-17T09:12:57.565495+00:00'
+    - agent_artifact_path:
+      - generated_agents/tech_doc_multi_agent_system/document_writer_agent.py
+      - generated_agents/tech_doc_multi_agent_system/document_reviewer_agent.py
+      - generated_agents/tech_doc_multi_agent_system/content_processor_agent.py
+      description: Agent代码开发阶段 - 实现智能体代码
+      doc_path: projects/tech_doc_multi_agent_system/agents/tech_doc_multi_agent_system/agent_code_developer.json
+      stage: agent_code_developer
+      status: true
+      updated_date: '2025-11-17T09:25:11.469359+00:00'
+    - description: Agent开发管理阶段 - 管理和协调开发流程
+      doc_path: projects/tech_doc_multi_agent_system/agents/tech_doc_multi_agent_system/agent_developer_manager.json
+      stage: agent_developer_manager
+      status: true
+      updated_date: '2025-11-17T09:25:14.920509+00:00'
+  - created_date: '2025-11-17T09:11:28.405942+00:00'
+    description: 智能体：content_processor_agent
+    last_updated: '2025-11-17T09:24:53.431769+00:00'
+    name: content_processor_agent
+    pipeline:
+    - description: 需求分析阶段 - 分析用户需求，定义功能规格
+      doc_path: ''
+      stage: requirements_analyzer
+      status: false
+      updated_date: null
+    - description: 系统架构设计阶段 - 设计系统架构和技术方案
+      doc_path: ''
+      stage: system_architect
+      status: false
+      updated_date: null
+    - description: Agent设计阶段 - 设计智能体结构和交互模式
+      doc_path: ''
+      stage: agent_designer
+      status: false
+      updated_date: null
+    - agent_artifact_path:
+      - prompts/generated_agents_prompts/tech_doc_multi_agent_system/content_processor_agent.yaml
+      description: 提示词工程阶段 - 设计和优化提示词模板
+      doc_path: ''
+      stage: prompt_engineer
+      status: true
+      updated_date: '2025-11-17T09:20:59.389341+00:00'
+    - agent_artifact_path:
+      - generated_tools/tech_doc_multi_agent_system/document_structure_parser/parse_document_structure
+      - generated_tools/tech_doc_multi_agent_system/document_structure_parser/normalize_document_structure
+      - generated_tools/tech_doc_multi_agent_system/html_generator/generate_html_with_syntax_highlighting
+      - generated_tools/tech_doc_multi_agent_system/document_structure_parser/extract_document_elements
+      - generated_tools/tech_doc_multi_agent_system/html_generator/generate_responsive_html
+      - generated_tools/tech_doc_multi_agent_system/html_generator/generate_html_fragment
+      - generated_tools/tech_doc_multi_agent_system/html_generator/generate_html
+      - generated_tools/tech_doc_multi_agent_system/document_structure_parser/analyze_document_complexity
+      - generated_tools/tech_doc_multi_agent_system/document_structure_parser/validate_document_structure
+      description: 工具开发阶段 - 开发必要的工具和函数
+      doc_path: projects/tech_doc_multi_agent_system/agents/content_processor_agent/tools_developer.json
+      stage: tools_developer
+      status: true
+      updated_date: '2025-11-17T09:17:58.327492+00:00'
+    - agent_artifact_path:
+      - agents/generated_agents/tech_doc_multi_agent_system/content_processor_agent.py
+      description: Agent代码开发阶段 - 实现智能体代码
+      doc_path: projects/tech_doc_multi_agent_system/agents/content_processor_agent/agent_code_developer.json
+      stage: agent_code_developer
+      status: true
+      updated_date: '2025-11-17T09:24:53.431780+00:00'
+    - description: Agent开发管理阶段 - 管理和协调开发流程
+      doc_path: ''
+      stage: agent_developer_manager
+      status: false
+      updated_date: null
+  - created_date: '2025-11-17T09:11:48.166791+00:00'
+    description: 智能体：document_reviewer_agent
+    last_updated: '2025-11-17T09:24:28.455894+00:00'
+    name: document_reviewer_agent
+    pipeline:
+    - description: 需求分析阶段 - 分析用户需求，定义功能规格
+      doc_path: ''
+      stage: requirements_analyzer
+      status: false
+      updated_date: null
+    - description: 系统架构设计阶段 - 设计系统架构和技术方案
+      doc_path: ''
+      stage: system_architect
+      status: false
+      updated_date: null
+    - description: Agent设计阶段 - 设计智能体结构和交互模式
+      doc_path: ''
+      stage: agent_designer
+      status: false
+      updated_date: null
+    - agent_artifact_path:
+      - prompts/generated_agents_prompts/tech_doc_multi_agent_system/document_reviewer_agent.yaml
+      description: 提示词工程阶段 - 设计和优化提示词模板
+      doc_path: projects/tech_doc_multi_agent_system/agents/document_reviewer_agent/prompt_engineer.json
+      stage: prompt_engineer
+      status: true
+      updated_date: '2025-11-17T09:21:23.009175+00:00'
+    - agent_artifact_path:
+      - generated_tools/tech_doc_multi_agent_system/document_review_tools/identify_document_issues
+      - generated_tools/tech_doc_multi_agent_system/document_review_tools/assess_document_quality
+      - generated_tools/tech_doc_multi_agent_system/document_review_tools/make_review_decision
+      - generated_tools/tech_doc_multi_agent_system/document_review_tools/comprehensive_document_review
+      - generated_tools/tech_doc_multi_agent_system/document_review_tools/generate_review_feedback
+      description: 工具开发阶段 - 开发必要的工具和函数
+      doc_path: projects/tech_doc_multi_agent_system/agents/document_reviewer_agent/tools_developer.json
+      stage: tools_developer
+      status: true
+      updated_date: '2025-11-17T09:18:31.532340+00:00'
+    - agent_artifact_path:
+      - agents/generated_agents/tech_doc_multi_agent_system/document_reviewer_agent.py
+      description: Agent代码开发阶段 - 实现智能体代码
+      doc_path: projects/tech_doc_multi_agent_system/agents/document_reviewer_agent/agent_code_developer.json
+      stage: agent_code_developer
+      status: true
+      updated_date: '2025-11-17T09:24:28.478082+00:00'
+    - description: Agent开发管理阶段 - 管理和协调开发流程
+      doc_path: ''
+      stage: agent_developer_manager
+      status: false
+      updated_date: null
+  - created_date: '2025-11-17T09:13:25.768420+00:00'
+    description: 智能体：document_writer_agent
+    last_updated: '2025-11-17T09:24:43.296270+00:00'
+    name: document_writer_agent
+    pipeline:
+    - description: 需求分析阶段 - 分析用户需求，定义功能规格
+      doc_path: ''
+      stage: requirements_analyzer
+      status: false
+      updated_date: null
+    - description: 系统架构设计阶段 - 设计系统架构和技术方案
+      doc_path: ''
+      stage: system_architect
+      status: false
+      updated_date: null
+    - description: Agent设计阶段 - 设计智能体结构和交互模式
+      doc_path: ''
+      stage: agent_designer
+      status: false
+      updated_date: null
+    - agent_artifact_path:
+      - prompts/generated_agents_prompts/tech_doc_multi_agent_system/document_writer_agent.yaml
+      description: 提示词工程阶段 - 设计和优化提示词模板
+      doc_path: projects/tech_doc_multi_agent_system/agents/document_writer_agent/prompt_engineer.json
+      stage: prompt_engineer
+      status: true
+      updated_date: '2025-11-17T09:21:50.553830+00:00'
+    - agent_artifact_path:
+      - generated_tools/tech_doc_multi_agent_system/document_generation_tools/parse_user_requirement
+      - generated_tools/tech_doc_multi_agent_system/document_generation_tools/track_document_history
+      - generated_tools/tech_doc_multi_agent_system/document_generation_tools/apply_feedback_to_document
+      - generated_tools/tech_doc_multi_agent_system/document_generation_tools/validate_document_quality
+      - generated_tools/tech_doc_multi_agent_system/document_generation_tools/generate_document_outline
+      description: 工具开发阶段 - 开发必要的工具和函数
+      doc_path: projects/tech_doc_multi_agent_system/agents/document_writer_agent/tools_developer.json
+      stage: tools_developer
+      status: true
+      updated_date: '2025-11-17T09:18:25.441549+00:00'
+    - agent_artifact_path:
+      - agents/generated_agents/tech_doc_multi_agent_system/document_writer_agent.py
+      description: Agent代码开发阶段 - 实现智能体代码
+      doc_path: projects/tech_doc_multi_agent_system/agents/document_writer_agent/agent_code_developer.json
+      stage: agent_code_developer
+      status: true
+      updated_date: '2025-11-17T09:24:43.296272+00:00'
+    - description: Agent开发管理阶段 - 管理和协调开发流程
+      doc_path: ''
+      stage: agent_developer_manager
+      status: false
+      updated_date: null
+  description: '用户输入：请创建一个多Agent构成的Agent,能够接受用户自然语言输入，输出一篇高质量的技术文档。基本要求如下：
+
+    1、技术文档编写Agent应能够基于用户需求写出技术文档
+
+    2、审核Agent应能够审核技术文档并给出反馈，由技术文档编写Agent进行修改，直到审核通过
+
+    3、内容处理Agent应能够将审核Agent通过后的内容转换成HTML文档
+
+
+    重要说明：
+
+    - Agent之间请通过上下文进行传递，不要本地文件缓存
+
+    - 可通过Swarm进行编排，入口是技术文档编写Agent'
+  last_updated: '2025-11-17T09:25:14.920494+00:00'
+  name: tech_doc_multi_agent_system
+  progress:
+  - completed: 15
+    total: 28
+  version: 1.0.0
+status: initialized

@@ -1,0 +1,345 @@
+{
+  "agent_design": {
+    "design_overview": {
+      "project_name": "tech_doc_multi_agent_system",
+      "version": "1.0",
+      "date": "2025-11-17",
+      "design_scope": "设计一个基于多Agent协作的技术文档生成系统，包含文档编写、审核和内容处理三个专业Agent，通过Swarm框架编排，实现从用户自然语言需求到高质量HTML技术文档的全流程自动化。",
+      "design_goals": [
+        "创建高度专业化的Agent团队，每个Agent专注于单一职责",
+        "设计清晰的Agent间通信协议和数据结构",
+        "确保迭代质量控制机制的有效实现",
+        "优化Agent性能和资源使用效率",
+        "实现无缝的Agent协作和工作流转换"
+      ],
+      "key_design_decisions": [
+        {
+          "decision": "采用三Agent协作模式",
+          "rationale": "将复杂的文档生成任务分解为写作、审核和格式转换三个专业领域，每个Agent专注于自身核心能力，提高系统整体质量和可维护性",
+          "alternatives": ["单一全能Agent", "双Agent模式（生成+审核）"],
+          "consequences": ["增加了Agent间通信复杂度", "提高了各环节的专业性和质量", "便于独立优化和扩展"]
+        },
+        {
+          "decision": "使用DocumentContext作为统一上下文数据结构",
+          "rationale": "创建标准化的数据传递格式，确保Agent间无缝协作，同时避免文件系统依赖",
+          "alternatives": ["多个独立数据结构", "基于文件的数据传递"],
+          "consequences": ["简化了Agent接口", "提高了数据一致性", "支持完整的工作状态追踪"]
+        },
+        {
+          "decision": "实现最大5次的迭代反馈循环",
+          "rationale": "在保证文档质量持续提升的同时，防止系统陷入无限循环，确保合理的响应时间",
+          "alternatives": ["单次生成无反馈", "无限制迭代直到满足标准"],
+          "consequences": ["平衡了质量和效率", "提供了可预期的最长响应时间", "需要精心设计审核标准"]
+        },
+        {
+          "decision": "使用Claude Sonnet 4.5作为所有Agent的基础模型",
+          "rationale": "该模型具备强大的技术文档理解和生成能力，保持一致的模型可以简化开发并确保各Agent间的理解一致性",
+          "alternatives": ["不同Agent使用不同专业模型", "使用开源模型降低成本"],
+          "consequences": ["提高了系统一致性", "简化了开发和维护", "确保了高质量输出"]
+        }
+      ]
+    },
+    "agents": [
+      {
+        "agent_id": "document_writer_agent",
+        "name": "document_writer_agent",
+        "role": "技术文档编写专家",
+        "purpose": "接收用户自然语言需求，生成专业、结构化的技术文档，并根据审核反馈进行迭代优化",
+        "personality": {
+          "traits": ["专业严谨", "逻辑清晰", "结构化思维", "适应性强", "细节关注"],
+          "communication_style": "专业、清晰、简洁",
+          "tone": "正式、客观、技术导向"
+        },
+        "capabilities": {
+          "core_functions": [
+            "理解用户自然语言技术需求",
+            "生成结构化技术文档内容",
+            "根据审核反馈进行针对性修改",
+            "维护文档版本和修改历史",
+            "确保技术准确性和专业性"
+          ],
+          "specialized_skills": [
+            "技术术语精准使用",
+            "多种技术文档格式掌握（API文档、设计文档、用户手册等）",
+            "反馈解析和针对性修改",
+            "文档结构优化"
+          ],
+          "limitations": [
+            "不直接处理HTML格式转换",
+            "不执行最终质量评估",
+            "不保存文件到本地存储",
+            "单次生成文档长度有限制"
+          ],
+          "tools_required": [
+            "文档模板库",
+            "技术术语数据库",
+            "内容结构化工具",
+            "上下文历史追踪工具"
+          ]
+        },
+        "knowledge_domain": {
+          "primary_domains": [
+            "技术文档写作",
+            "软件开发文档",
+            "API文档标准",
+            "技术规范编写"
+          ],
+          "expertise_level": "专家级",
+          "knowledge_sources": [
+            "预训练知识库",
+            "技术文档最佳实践",
+            "行业标准规范"
+          ],
+          "update_frequency": "模型更新周期"
+        },
+        "interaction_patterns": {
+          "communication_style": "基于上下文对象的数据交换",
+          "conversation_flow": "接收需求→分析需求→生成文档→接收反馈→修改文档→提交修改",
+          "error_responses": [
+            "需求不明确时请求澄清",
+            "反馈不具体时请求详细指导",
+            "技术细节缺失时指出信息不足",
+            "迭代次数超限时提供当前最佳版本"
+          ]
+        },
+        "constraints": [
+          "禁止使用本地文件缓存",
+          "单次生成文档不超过10000字",
+          "必须遵循技术文档标准格式",
+          "必须保持技术准确性"
+        ],
+        "evaluation_criteria": [
+          "文档结构完整性",
+          "技术内容准确性",
+          "表达清晰度",
+          "格式规范性",
+          "对反馈的响应效果"
+        ],
+        "model_requirements": {
+          "model_name": "global.anthropic.claude-sonnet-4-5-20250929-v1:0",
+          "minimum_capabilities": ["技术理解", "文档生成", "上下文理解", "结构化输出"],
+          "rationale": "Claude Sonnet 4.5提供了强大的技术理解能力和高质量的文档生成能力，支持长上下文处理"
+        },
+        "memory_configuration": {
+          "memory_type": "上下文内存",
+          "retention_policy": "会话期间保留完整历史",
+          "retrieval_strategy": "基于迭代历史的顺序检索"
+        }
+      },
+      {
+        "agent_id": "document_reviewer_agent",
+        "name": "document_reviewer_agent",
+        "role": "技术文档质量审核专家",
+        "purpose": "对技术文档进行全面质量审核，提供具体改进建议，确保文档达到高质量标准",
+        "personality": {
+          "traits": ["严谨细致", "批判性思维", "全面系统", "建设性反馈", "质量导向"],
+          "communication_style": "直接、具体、建设性",
+          "tone": "专业、客观、分析性强"
+        },
+        "capabilities": {
+          "core_functions": [
+            "多维度评估文档质量",
+            "识别技术错误和不准确之处",
+            "检查文档结构和逻辑性",
+            "评估格式规范性和一致性",
+            "生成具体的改进建议",
+            "判断文档是否达到发布标准"
+          ],
+          "specialized_skills": [
+            "技术准确性验证",
+            "文档结构分析",
+            "语言表达评估",
+            "质量量化评分",
+            "优先级反馈排序"
+          ],
+          "limitations": [
+            "不直接修改文档内容",
+            "不执行HTML转换",
+            "不保存文件到本地存储",
+            "不能验证外部事实真实性"
+          ],
+          "tools_required": [
+            "质量评估标准库",
+            "技术文档规范检查工具",
+            "文档结构分析工具",
+            "反馈生成工具"
+          ]
+        },
+        "knowledge_domain": {
+          "primary_domains": [
+            "技术文档质量标准",
+            "文档审核方法论",
+            "技术准确性验证",
+            "文档结构最佳实践"
+          ],
+          "expertise_level": "专家级",
+          "knowledge_sources": [
+            "预训练知识库",
+            "行业标准文档规范",
+            "质量评估框架"
+          ],
+          "update_frequency": "模型更新周期"
+        },
+        "interaction_patterns": {
+          "communication_style": "基于上下文对象的数据交换",
+          "conversation_flow": "接收文档→多维度评估→生成反馈→做出审核决定→传递反馈或确认通过",
+          "error_responses": [
+            "文档内容不完整时请求完整版本",
+            "技术细节不足时指出信息缺失",
+            "无法评估特定领域时说明限制",
+            "系统错误时提供清晰错误描述"
+          ]
+        },
+        "constraints": [
+          "禁止使用本地文件缓存",
+          "评估必须基于明确的质量标准",
+          "反馈必须具体且可操作",
+          "必须给出明确的通过/不通过决定"
+        ],
+        "evaluation_criteria": [
+          "审核全面性",
+          "反馈具体性和可操作性",
+          "技术判断准确性",
+          "质量标准一致性应用",
+          "审核效率"
+        ],
+        "model_requirements": {
+          "model_name": "global.anthropic.claude-sonnet-4-5-20250929-v1:0",
+          "minimum_capabilities": ["技术理解", "批判性分析", "结构化评估", "反馈生成"],
+          "rationale": "Claude Sonnet 4.5具备强大的分析能力和技术理解能力，能够提供高质量的文档评估"
+        },
+        "memory_configuration": {
+          "memory_type": "上下文内存",
+          "retention_policy": "会话期间保留完整历史",
+          "retrieval_strategy": "基于迭代历史的对比分析"
+        }
+      },
+      {
+        "agent_id": "content_processor_agent",
+        "name": "content_processor_agent",
+        "role": "技术文档HTML转换专家",
+        "purpose": "将审核通过的技术文档转换为格式规范的HTML文档，确保最终输出的可读性和美观性",
+        "personality": {
+          "traits": ["精确高效", "格式关注", "视觉审美", "技术专业", "细节导向"],
+          "communication_style": "简洁、明确、技术性",
+          "tone": "专业、中性、实用导向"
+        },
+        "capabilities": {
+          "core_functions": [
+            "解析技术文档结构和内容",
+            "生成符合HTML5标准的文档结构",
+            "应用适当的CSS样式和布局",
+            "创建文档目录和导航",
+            "确保HTML文档的可访问性和兼容性"
+          ],
+          "specialized_skills": [
+            "语法高亮和代码块格式化",
+            "响应式设计实现",
+            "技术图表和表格转换",
+            "文档元素标准化处理"
+          ],
+          "limitations": [
+            "不修改文档内容",
+            "不执行质量审核",
+            "不保存文件到本地存储",
+            "不支持除HTML外的其他输出格式"
+          ],
+          "tools_required": [
+            "HTML生成库",
+            "CSS样式模板",
+            "代码语法高亮工具",
+            "文档结构解析工具"
+          ]
+        },
+        "knowledge_domain": {
+          "primary_domains": [
+            "HTML5标准",
+            "CSS样式设计",
+            "技术文档格式化最佳实践",
+            "Web可访问性标准"
+          ],
+          "expertise_level": "专家级",
+          "knowledge_sources": [
+            "预训练知识库",
+            "HTML/CSS最佳实践",
+            "Web标准规范"
+          ],
+          "update_frequency": "模型更新周期"
+        },
+        "interaction_patterns": {
+          "communication_style": "基于上下文对象的数据交换",
+          "conversation_flow": "接收审核通过的文档→解析结构→应用HTML转换→优化样式→返回最终HTML",
+          "error_responses": [
+            "文档结构异常时请求标准格式",
+            "特殊元素处理失败时提供替代方案",
+            "转换过程错误时提供详细错误信息",
+            "资源限制时建议内容分段处理"
+          ]
+        },
+        "constraints": [
+          "禁止使用本地文件缓存",
+          "必须符合HTML5标准",
+          "必须确保跨浏览器兼容性",
+          "必须实现基本的响应式设计",
+          "必须保持内容完整性"
+        ],
+        "evaluation_criteria": [
+          "HTML标准合规性",
+          "视觉呈现质量",
+          "内容完整性保持",
+          "代码简洁性和可维护性",
+          "转换效率"
+        ],
+        "model_requirements": {
+          "model_name": "global.anthropic.claude-sonnet-4-5-20250929-v1:0",
+          "minimum_capabilities": ["技术理解", "代码生成", "格式转换", "结构化输出"],
+          "rationale": "Claude Sonnet 4.5具备HTML代码生成能力和结构理解能力，能够实现高质量的格式转换"
+        },
+        "memory_configuration": {
+          "memory_type": "上下文内存",
+          "retention_policy": "会话期间保留必要信息",
+          "retrieval_strategy": "基于当前任务的选择性检索"
+        }
+      }
+    ],
+    "agent_relationships": [
+      {
+        "source_agent": "document_writer_agent",
+        "target_agent": "document_reviewer_agent",
+        "relationship_type": "提交-审核",
+        "interaction_protocol": "基于DocumentContext的上下文传递",
+        "data_exchange": ["DocumentContent", "文档元数据", "修改说明"]
+      },
+      {
+        "source_agent": "document_reviewer_agent",
+        "target_agent": "document_writer_agent",
+        "relationship_type": "反馈-修改",
+        "interaction_protocol": "基于DocumentContext的上下文传递",
+        "data_exchange": ["ReviewFeedback", "质量评分", "改进建议"]
+      },
+      {
+        "source_agent": "document_reviewer_agent",
+        "target_agent": "content_processor_agent",
+        "relationship_type": "通过-转换",
+        "interaction_protocol": "基于DocumentContext的上下文传递",
+        "data_exchange": ["审核通过的DocumentContent", "格式要求"]
+      },
+      {
+        "source_agent": "content_processor_agent",
+        "target_agent": "system",
+        "relationship_type": "输出-返回",
+        "interaction_protocol": "基于DocumentContext的上下文传递",
+        "data_exchange": ["HTML文档", "处理结果报告"]
+      }
+    ],
+    "system_integration": {
+      "entry_point": "document_writer_agent",
+      "exit_points": ["content_processor_agent"],
+      "external_interfaces": [
+        "用户输入接口（接收自然语言需求）",
+        "系统输出接口（返回HTML文档）",
+        "Swarm编排接口（控制Agent流转）"
+      ]
+    }
+  }
+}

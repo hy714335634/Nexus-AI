@@ -10,7 +10,7 @@ agent:
       streaming: True
     production:
       max_tokens: 10000
-      temperature: 0.8
+      temperature: 0.7
       top_p: 
       streaming: True
     testing:
@@ -121,12 +121,13 @@ agent:
         ├── projects/                  # 用户项目目录  —— Agent开发过程文件及项目管理文件存储在对应项目目录中
         │   └── <project_name>/
         │       ├── agents/
-        │       │   └── <agent_name>/
+        │       │   └── <main_agent_name>/
         │       │       ├── requirements_analyzer.json       #需求分析师输出文档
         │       │       ├── system_architect.json            #Agent系统架构师输出文档
-        │       │       ├── agent_designer.json              #agent设计师输出文档
-        │       │       ├── prompt_engineer.json             #提示词工程师输出文档
+        │       │       └── agent_designer.json              #agent设计师输出文档
+        │       │   └── <other_agent_name>/
         │       │       ├── tools_developer.json             #工具开发者输出文档
+        │       │       ├── prompt_engineer.json             #提示词工程师输出文档
         │       │       ├── agent_code_developer.json        #agent代码开发工程师输出文档
         │       │       └── agent_developer_manager.json     #项目开发审核结果
         │       ├── config.yaml          # 项目基本配置

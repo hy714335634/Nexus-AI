@@ -40,7 +40,7 @@ workflows:
           - `nexus_utils/`：平台通用模块，禁止放置项目产物或临时文件。
         generation_rules: | # 生成规则
           =====通用生成规则=====
-          无特殊要求
+          创建的Agent执行脚本中，创建Agent对象必须通过nexus_utils.agent_factory.create_agent_from_prompt_template实现
         cache_rules: |      # 缓存规则
           =====通用缓存规则=====
           如用户要求构建的Agent进行内容缓存，请按照如下规则：
@@ -63,14 +63,33 @@ workflows:
       attributes:
         directory_rules: |
           =====Build Workflow目录规则=====
+          重要参数：
+          project_name: 由intent analyzer基于用户需求意图识别后生成
+          agent_name: 默认与project_name一致
+          重要目录：
+          项目过程目录：`projects/<project_name>/`
+          agent过程目录：`projects/<project_name>/agents/<agent_name>/`
+          agent脚本目录：`agents/generated_agents/<agent_name>/<agent_name>.py`
+          agent提示词配置目录：`prompts/generated_agents_prompts/<agent_name>/<agent_name>.yaml`
+          agent工具代码目录：`tools/generated_tools/<agent_name>/*.py`
+          注意：当项目为多Agent项目时,需求分析、 架构设计、agent设计应存储在主agent过程中目录，工具开发、提示词工程及agent代码开发等设计文档存储在各自Agent过程中目录，如：
+            -`projects/<project_name>/agents/<other_agent_name>/tools_developer.json`
+            -`projects/<project_name>/agents/<other_agent_name>/prompt_engineer.json`
+            -`projects/<project_name>/agents/<other_agent_name>/agent_code_developer.json`
         generation_rules: |
           =====Build Workflow生成规则=====
+          - 生成的Agent名称在所有阶段都应固定
+          - 生成的Agent脚本初始化Agent时的参数默认为agent_params = {"env": "production","version": "latest",  "model_id": "default","enable_logging": True}
         cache_rules: |
           =====Build Workflow缓存规则=====
+          当用户要求构建的Agent进行内容缓存，请按照如下规则：
+          默认缓存路径：`.cache/<agent_name>/`
+          在缓存目录中，Agent还应按照具体要求进行目录划分，如按<Project_ID>、<Session_ID>、<Task_ID>等进行目录划分。
         external_resources: |
           =====Build Workflow外部资源规则=====
         custom_rules: |
           =====Build Workflow用户自定义规则=====
+          - 生成的Agent所使用的模型如无特殊要求或需求，请使用"global.anthropic.claude-sonnet-4-5-20250929-v1:0"
 
   agent_update:
     - version: "latest"

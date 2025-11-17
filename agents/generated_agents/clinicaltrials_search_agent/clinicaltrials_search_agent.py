@@ -39,7 +39,8 @@ strands_telemetry.setup_otlp_exporter()
 agent_params = {
     "env": "production",
     "version": "latest", 
-    "model_id": "us.anthropic.claude-opus-4-20250514-v1:0"  # Using Claude Opus for advanced clinical comprehension
+    "model_id": "us.anthropic.claude-opus-4-20250514-v1:0",  # Using Claude Opus for advanced clinical comprehension
+    "enable_logging": True
 }
 
 # Create the ClinicalTrials.gov Search Agent
