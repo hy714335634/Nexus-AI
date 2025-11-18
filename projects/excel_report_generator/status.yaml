@@ -1,0 +1,109 @@
+agents: {}
+created_at: '2025-11-18T04:04:16.112469+00:00'
+last_updated: '2025-11-18T04:04:16.112476+00:00'
+project: excel_report_generator
+project_info:
+- agents:
+  - created_date: '2025-11-18T04:04:28.812373+00:00'
+    description: 智能体：orchestrator
+    last_updated: '2025-11-18T04:04:28.812399+00:00'
+    name: orchestrator
+    pipeline:
+    - description: 需求分析阶段 - 分析用户需求，定义功能规格
+      doc_path: ''
+      stage: requirements_analyzer
+      status: true
+      updated_date: '2025-11-18T04:04:28.812407+00:00'
+    - description: 系统架构设计阶段 - 设计系统架构和技术方案
+      doc_path: ''
+      stage: system_architect
+      status: false
+      updated_date: null
+    - description: Agent设计阶段 - 设计智能体结构和交互模式
+      doc_path: ''
+      stage: agent_designer
+      status: false
+      updated_date: null
+    - description: 提示词工程阶段 - 设计和优化提示词模板
+      doc_path: ''
+      stage: prompt_engineer
+      status: false
+      updated_date: null
+    - description: 工具开发阶段 - 开发必要的工具和函数
+      doc_path: ''
+      stage: tools_developer
+      status: false
+      updated_date: null
+    - description: Agent代码开发阶段 - 实现智能体代码
+      doc_path: ''
+      stage: agent_code_developer
+      status: false
+      updated_date: null
+    - description: Agent开发管理阶段 - 管理和协调开发流程
+      doc_path: ''
+      stage: agent_developer_manager
+      status: false
+      updated_date: null
+  - created_date: '2025-11-18T04:06:06.401991+00:00'
+    description: 智能体：excel_report_generator
+    last_updated: '2025-11-18T04:24:45.764159+00:00'
+    name: excel_report_generator
+    pipeline:
+    - description: 需求分析阶段 - 分析用户需求，定义功能规格
+      doc_path: projects/excel_report_generator/agents/excel_report_generator/requirements_analyzer.json
+      stage: requirements_analyzer
+      status: true
+      updated_date: '2025-11-18T04:06:06.402013+00:00'
+    - description: 系统架构设计阶段 - 设计系统架构和技术方案
+      doc_path: projects/excel_report_generator/agents/excel_report_generator/system_architect.json
+      stage: system_architect
+      status: true
+      updated_date: '2025-11-18T04:08:54.268713+00:00'
+    - description: Agent设计阶段 - 设计智能体结构和交互模式
+      doc_path: projects/excel_report_generator/agents/excel_report_generator/agent_designer.json
+      stage: agent_designer
+      status: true
+      updated_date: '2025-11-18T04:10:02.359933+00:00'
+    - agent_artifact_path:
+      - prompts/generated_agents_prompts/excel_report_generator/excel_report_generator.yaml
+      description: 提示词工程阶段 - 设计和优化提示词模板
+      doc_path: projects/excel_report_generator/agents/excel_report_generator/prompt_engineer.json
+      stage: prompt_engineer
+      status: true
+      updated_date: '2025-11-18T04:20:08.004412+00:00'
+    - agent_artifact_path:
+      - tools/generated_tools/excel_report_generator/excel_reader.py
+      - tools/generated_tools/excel_report_generator/data_analysis.py
+      - tools/generated_tools/excel_report_generator/chart_generators.py
+      - tools/generated_tools/excel_report_generator/report_builder.py
+      - tools/generated_tools/excel_report_generator/cache_manager.py
+      - tools/generated_tools/excel_report_generator/__init__.py
+      - tools/generated_tools/excel_report_generator/utils.py
+      description: 工具开发阶段 - 开发必要的工具和函数
+      doc_path: projects/excel_report_generator/agents/excel_report_generator/tools_developer.json
+      stage: tools_developer
+      status: true
+      updated_date: '2025-11-18T04:16:30.530099+00:00'
+    - agent_artifact_path:
+      - agents/generated_agents/excel_report_generator/excel_report_generator.py
+      - agents/generated_agents/excel_report_generator/config.py
+      - agents/generated_agents/excel_report_generator/utils.py
+      - agents/generated_agents/excel_report_generator/__init__.py
+      description: Agent代码开发阶段 - 实现智能体代码
+      doc_path: projects/excel_report_generator/agents/excel_report_generator/agent_code_developer.json
+      stage: agent_code_developer
+      status: true
+      updated_date: '2025-11-18T04:24:04.207523+00:00'
+    - description: Agent开发管理阶段 - 管理和协调开发流程
+      doc_path: projects/excel_report_generator/agents/excel_report_generator/agent_developer_manager.json
+      stage: agent_developer_manager
+      status: true
+      updated_date: '2025-11-18T04:24:45.764164+00:00'
+  description: Excel数据分析和报表生成系统
+  last_updated: '2025-11-18T04:24:45.764148+00:00'
+  name: excel_report_generator
+  progress:
+  - completed: 8
+    total: 14
+  version: 1.0.0
+status: initialized

@@ -1,0 +1,216 @@
+{
+  "requirements_document": {
+    "feature_name": "Excel智能报表生成系统",
+    "version": "1.0",
+    "date": "2025-11-18",
+    "overview": "一个基于AI的Excel数据分析和报表生成系统，能够自动读取Excel数据，进行深度分析，生成多种类型的统计图表（饼图、折线图、热图等），并最终生成包含完整分析逻辑的HTML报告。系统采用单Agent架构，通过专业化的工具函数确保输出的一致性和可靠性。",
+    "business_value": "该系统能够大幅提升数据分析和报表生成的效率，将原本需要数小时的手动分析工作压缩到几分钟内完成。通过标准化的图表生成工具，确保报表质量的一致性和专业性。适用于需要定期生成数据报表的业务场景，如销售分析、财务报告、运营数据分析等。",
+    "workflow_complexity": "single_agent",
+    "recommended_agent_type": "数据分析与报表生成Agent（混合型：数据分析类+文档处理类）",
+    "scope": {
+      "included": [
+        "Excel文件读取和数据解析（支持.xlsx, .xls格式）",
+        "数据深度分析（统计分析、趋势分析、异常检测）",
+        "基于用户需求的报表策略制定",
+        "多种图表类型生成（饼图、折线图、热图、柱状图、散点图等）",
+        "图表本地缓存管理（PNG格式）",
+        "HTML报告生成（包含完整分析逻辑和图表）",
+        "图表与HTML的关联管理",
+        "幂等性保证（相同输入产生一致输出）"
+      ],
+      "excluded": [
+        "实时数据流处理",
+        "数据库直连功能",
+        "多用户协作编辑",
+        "报表在线分享和权限管理",
+        "Excel文件的编辑和回写功能",
+        "超大文件处理（>100MB）",
+        "复杂的数据清洗和ETL功能"
+      ]
+    },
+    "functional_requirements": [
+      {
+        "id": "FR-001",
+        "title": "Excel数据读取与解析",
+        "user_story": "作为数据分析人员，我希望系统能够读取我提供的Excel文件，以便对其中的数据进行后续分析和处理",
+        "acceptance_criteria": [
+          "WHEN 用户提供Excel文件路径 THEN 系统能够成功读取.xlsx和.xls格式的文件",
+          "WHEN Excel包含多个工作表 THEN 系统能够识别并列出所有工作表供用户选择",
+          "WHEN 数据包含标题行 THEN 系统能够自动识别列名",
+          "WHEN 数据包含空值或异常值 THEN 系统能够正确处理并记录",
+          "IF Excel文件损坏或格式不支持 THEN 返回明确的错误提示"
+        ],
+        "priority": "High",
+        "complexity": "Low",
+        "dependencies": ["pandas库", "openpyxl库"],
+        "assumptions": ["Excel文件结构相对规范", "文件大小在合理范围内（<100MB）"]
+      },
+      {
+        "id": "FR-002",
+        "title": "数据深度分析",
+        "user_story": "作为数据分析人员，我希望系统能够对Excel数据进行深度分析，以便发现数据中的关键洞察和趋势",
+        "acceptance_criteria": [
+          "WHEN 数据加载完成 THEN 系统自动进行基础统计分析（均值、中位数、标准差、极值等）",
+          "WHEN 数据包含时间序列 THEN 系统能够识别并进行趋势分析",
+          "WHEN 数据包含分类变量 THEN 系统能够进行分组统计和对比分析",
+          "WHEN 存在相关性分析需求 THEN 系统能够计算变量间的相关系数",
+          "WHEN 数据存在异常值 THEN 系统能够识别并标记异常数据点",
+          "IF 数据维度过高 THEN 系统能够进行降维或特征选择"
+        ],
+        "priority": "High",
+        "complexity": "High",
+        "dependencies": ["pandas库", "numpy库", "scipy库", "scikit-learn库"],
+        "assumptions": ["数据质量基本可用", "数值型数据占比较高"]
+      },
+      {
+        "id": "FR-003",
+        "title": "报表策略智能制定",
+        "user_story": "作为数据分析人员，我希望系统能够根据我的需求和数据特征，智能制定报表生成策略，以便生成最适合的分析报告",
+        "acceptance_criteria": [
+          "WHEN 用户输入报表需求描述 THEN 系统能够理解需求并提取关键要素",
+          "WHEN 数据特征被识别 THEN 系统能够推荐合适的图表类型",
+          "WHEN 分析维度确定 THEN 系统能够制定数据聚合和分组策略",
+          "WHEN 策略制定完成 THEN 系统向用户展示策略概要供确认",
+          "IF 用户需求不明确 THEN 系统能够通过交互式问答澄清需求"
+        ],
+        "priority": "High",
+        "complexity": "High",
+        "dependencies": ["LLM模型（claude-sonnet-4）", "需求理解能力"],
+        "assumptions": ["用户能够用自然语言描述需求", "系统具备足够的领域知识"]
+      },
+      {
+        "id": "FR-004",
+        "title": "多类型图表生成",
+        "user_story": "作为数据分析人员，我希望系统能够生成多种类型的专业统计图表，以便直观展示数据分析结果",
+        "acceptance_criteria": [
+          "WHEN 需要展示数据分布 THEN 系统能够生成饼图（pie_chart）",
+          "WHEN 需要展示趋势变化 THEN 系统能够生成折线图（line_chart）",
+          "WHEN 需要展示数据密度或相关性 THEN 系统能够生成热图（heatmap）",
+          "WHEN 需要展示数据对比 THEN 系统能够生成柱状图（bar_chart）",
+          "WHEN 需要展示数据关系 THEN 系统能够生成散点图（scatter_plot）",
+          "WHEN 图表生成完成 THEN 所有图表以PNG格式保存到.cache/excel_report_generator/目录",
+          "WHEN 相同数据和参数再次生成 THEN 生成的图表应与之前完全一致（幂等性）",
+          "IF 数据不适合某种图表类型 THEN 系统应给出警告并建议替代方案"
+        ],
+        "priority": "High",
+        "complexity": "Medium",
+        "dependencies": ["matplotlib库", "seaborn库", "plotly库"],
+        "assumptions": ["每种图表类型对应一个专门的工具函数", "图表样式统一且专业"]
+      },
+      {
+        "id": "FR-005",
+        "title": "图表缓存管理",
+        "user_story": "作为系统管理员，我希望系统能够有效管理生成的图表文件，以便优化存储空间和访问效率",
+        "acceptance_criteria": [
+          "WHEN 图表生成 THEN 文件保存到.cache/excel_report_generator/<session_id>/目录",
+          "WHEN 图表文件命名 THEN 使用描述性名称（如：sales_trend_line_chart_20251118.png）",
+          "WHEN 相同图表重复生成 THEN 系统能够识别并复用已有文件",
+          "WHEN 缓存目录超过阈值 THEN 系统能够清理过期文件",
+          "IF 缓存写入失败 THEN 返回明确的错误信息"
+        ],
+        "priority": "Medium",
+        "complexity": "Low",
+        "dependencies": ["文件系统操作", "哈希算法"],
+        "assumptions": ["本地存储空间充足", "文件系统支持PNG格式"]
+      },
+      {
+        "id": "FR-006",
+        "title": "HTML报告生成",
+        "user_story": "作为数据分析人员，我希望系统能够生成包含完整分析逻辑和图表的HTML报告，以便分享和展示分析结果",
+        "acceptance_criteria": [
+          "WHEN 所有图表生成完成 THEN 系统开始生成HTML报告",
+          "WHEN HTML报告生成 THEN 包含完整的分析逻辑和结论",
+          "WHEN 图表嵌入HTML THEN 使用正确的相对路径引用PNG文件",
+          "WHEN 报告内容组织 THEN 包含：标题、摘要、数据概览、详细分析、图表展示、结论建议",
+          "WHEN HTML样式设计 THEN 采用专业、清晰、易读的布局和样式",
+          "WHEN 报告生成完成 THEN 保存到.cache/excel_report_generator/<session_id>/report.html",
+          "IF 图表文件缺失 THEN 在HTML中显示占位符和错误提示"
+        ],
+        "priority": "High",
+        "complexity": "Medium",
+        "dependencies": ["HTML模板引擎", "CSS样式库"],
+        "assumptions": ["用户能够通过浏览器查看HTML文件", "图表路径引用正确"]
+      },
+      {
+        "id": "FR-007",
+        "title": "幂等性保证机制",
+        "user_story": "作为质量保证人员，我希望系统在相同输入下产生一致的输出，以便确保结果的可靠性和可重现性",
+        "acceptance_criteria": [
+          "WHEN 使用相同Excel文件和需求 THEN 生成的统计结果应完全一致",
+          "WHEN 使用相同参数生成图表 THEN 图表内容、样式、尺寸应完全一致",
+          "WHEN 多次运行相同任务 THEN HTML报告的核心内容应保持一致",
+          "WHEN 随机因素存在 THEN 通过固定随机种子确保可重现性",
+          "IF 时间戳等动态信息 THEN 可以在元数据中体现但不影响核心分析"
+        ],
+        "priority": "High",
+        "complexity": "Medium",
+        "dependencies": ["确定性算法", "随机种子控制"],
+        "assumptions": ["输入数据保持不变", "系统环境稳定"]
+      }
+    ],
+    "non_functional_requirements": {
+      "performance": [
+        "单个Excel文件（10MB以内）的完整分析和报告生成应在5分钟内完成",
+        "图表生成速度：每个图表不超过10秒",
+        "HTML报告生成速度：不超过30秒",
+        "支持并发处理多个报表生成任务（最多3个）"
+      ],
+      "security": [
+        "Excel文件内容不应被泄露到外部系统",
+        "生成的缓存文件应有适当的访问权限控制",
+        "敏感数据在日志中应被脱敏处理",
+        "不应执行Excel中的宏代码"
+      ],
+      "usability": [
+        "用户界面应简洁明了，易于操作",
+        "错误提示应清晰具体，帮助用户快速定位问题",
+        "支持进度显示，让用户了解处理状态",
+        "生成的HTML报告应具有良好的可读性和专业性"
+      ],
+      "reliability": [
+        "系统应能处理常见的数据质量问题（空值、异常值等）",
+        "当部分图表生成失败时，不应影响整体报告的生成",
+        "应有完善的错误处理和日志记录机制",
+        "关键步骤应有重试机制"
+      ]
+    },
+    "constraints": [
+      "必须使用Python作为开发语言",
+      "必须使用claude-sonnet-4-5模型进行需求理解和策略制定",
+      "图表必须以PNG格式存储",
+      "缓存路径必须为.cache/excel_report_generator/",
+      "每种图表类型必须对应一个独立的工具函数",
+      "必须通过nexus_utils.agent_factory.create_agent_from_prompt_template创建Agent",
+      "Excel文件大小限制在100MB以内",
+      "不支持实时数据流和数据库直连"
+    ],
+    "assumptions": [
+      "用户提供的Excel文件结构相对规范",
+      "用户能够用自然语言清晰描述报表需求",
+      "系统运行环境具备必要的Python库和依赖",
+      "本地存储空间充足（至少1GB可用空间）",
+      "用户通过浏览器查看生成的HTML报告",
+      "数据分析不涉及复杂的机器学习模型训练",
+      "图表生成使用标准的可视化库（matplotlib、seaborn等）"
+    ],
+    "success_criteria": [
+      "能够成功读取95%以上的常见Excel文件格式",
+      "数据分析的准确性达到100%（基于标准统计算法）",
+      "图表生成的成功率达到98%以上",
+      "相同输入下的输出一致性达到100%（幂等性）",
+      "HTML报告的可读性和专业性得到用户认可（用户满意度>90%）",
+      "系统响应时间符合性能要求（5分钟内完成）",
+      "错误处理覆盖率达到95%以上"
+    ],
+    "glossary": {
+      "幂等性": "在相同输入条件下，系统多次执行产生完全一致的输出结果",
+      "深度分析": "不仅包括基础统计，还包括趋势分析、相关性分析、异常检测等高级分析方法",
+      "报表策略": "根据数据特征和用户需求，制定的包括图表选择、数据聚合、分析维度等在内的综合方案",
+      "会话ID（session_id）": "每次报表生成任务的唯一标识符，用于组织缓存文件",
+      "工具函数": "专门用于执行特定任务的独立函数，如generate_pie_chart、generate_line_chart等",
+      "HTML模板": "预定义的HTML结构框架，用于快速生成格式统一的报告",
+      "缓存管理": "对生成的图表文件进行存储、检索、复用和清理的机制"
+    }
+  },
+  "analysis_notes": "需求分析关键发现：\n\n1. **复杂度评估**：这是一个单Agent场景。虽然功能包含多个步骤（读取、分析、生成图表、生成报告），但这些步骤构成了一个线性的数据处理管道，不需要多个专业角色的复杂协作。一个具备数据分析和文档生成能力的Agent配合专业化的工具函数即可完成所有任务。\n\n2. **Agent类型识别**：推荐使用"数据分析与报表生成Agent"，这是一个混合型Agent，结合了数据分析类和文档处理类的特点。核心能力包括：Excel数据处理、统计分析、可视化生成、HTML文档生成。\n\n3. **幂等性要求**：用户明确要求"理论上用户给定同样的excel和要求，生成的统计图应该一致"。这是一个关键的非功能性需求，需要在技术设计时特别注意：\n   - 使用确定性算法\n   - 固定随机种子（如有随机过程）\n   - 标准化图表参数\n   - 避免时间戳等动态因素影响核心输出\n\n4. **工具函数设计**：用户强调"每类统计图对应一个专门的工具/函数"。建议设计以下专用工具：\n   - generate_pie_chart：饼图生成\n   - generate_line_chart：折线图生成\n   - generate_heatmap：热图生成\n   - generate_bar_chart：柱状图生成\n   - generate_scatter_plot：散点图生成\n   每个工具函数应该是独立、稳定、可测试的。\n\n5. **缓存策略**：建议采用分层缓存结构：\n   - 一级目录：.cache/excel_report_generator/\n   - 二级目录：<session_id>/（每次任务生成唯一ID）\n   - 文件命名：<描述性名称>_<图表类型>_<时间戳>.png\n   这样既能保证文件组织清晰，又能支持历史记录追溯。\n\n6. **AI能力运用**：Agent的核心AI能力应用在：\n   - 理解用户的自然语言需求描述\n   - 分析数据特征并推荐合适的图表类型\n   - 制定报表生成策略\n   - 生成包含完整分析逻辑的报告文本\n   而数据处理、图表生成等任务应该由专业的Python库和工具函数完成。\n\n7. **技术栈建议**：\n   - 数据处理：pandas、numpy\n   - 统计分析：scipy、scikit-learn\n   - 图表生成：matplotlib、seaborn（优先，因为稳定可靠）\n   - HTML生成：jinja2模板引擎\n   - Excel读取：openpyxl、xlrd\n\n8. **风险点识别**：\n   - Excel文件格式多样性可能导致解析失败\n   - 大文件处理可能导致性能问题\n   - 图表生成的幂等性需要仔细测试验证\n   - 自然语言需求理解的准确性依赖于Prompt设计质量\n\n9. **优先级建议**：\n   - Phase 1（核心功能）：FR-001、FR-002、FR-004、FR-006\n   - Phase 2（增强功能）：FR-003、FR-007\n   - Phase 3（优化功能）：FR-005\n\n10. **后续架构设计建议**：\n    - 采用管道（Pipeline）模式组织处理流程\n    - 每个处理步骤应该是可独立测试和替换的模块\n    - 工具函数应该放在tools/generated_tools/excel_report_generator/目录\n    - Agent主逻辑应该专注于流程协调和AI决策，具体执行交给工具函数"
+}

@@ -1,0 +1,166 @@
+{
+  "agent_design": {
+    "design_overview": {
+      "project_name": "excel_report_generator",
+      "version": "1.0",
+      "date": "2025-11-18",
+      "design_scope": "设计Excel智能报表生成系统的智能体架构，包括核心功能、能力边界、交互模式和工具集成",
+      "design_goals": [
+        "创建一个能够自动分析Excel数据并生成专业报表的智能体",
+        "确保图表生成的稳定性和一致性（幂等性）",
+        "提供灵活的报表策略制定能力",
+        "实现高效的缓存管理机制",
+        "构建用户友好的交互模式"
+      ],
+      "key_design_decisions": [
+        {
+          "decision": "采用单智能体架构",
+          "rationale": "功能虽然复杂但流程线性，无需多智能体协作，单智能体配合专业工具更加高效简洁",
+          "alternatives": ["多智能体协作架构（数据分析智能体+报表生成智能体）"],
+          "consequences": ["简化系统复杂性", "减少协调开销", "集中状态管理"]
+        },
+        {
+          "decision": "基于data_analyzer_agent模板扩展",
+          "rationale": "该模板已经集成了数据分析的核心功能，只需扩展图表生成和HTML报告功能",
+          "alternatives": ["从零开始构建", "基于document_processor_agent扩展"],
+          "consequences": ["加速开发过程", "利用成熟的数据分析能力", "确保与平台最佳实践一致"]
+        },
+        {
+          "decision": "为每种图表类型创建独立工具函数",
+          "rationale": "确保各类图表生成的稳定性、可测试性和幂等性",
+          "alternatives": ["通用图表生成器", "动态图表配置"],
+          "consequences": ["提高代码可维护性", "简化单元测试", "保证输出一致性"]
+        },
+        {
+          "decision": "采用分层缓存策略",
+          "rationale": "支持会话隔离和历史追溯，提升系统性能",
+          "alternatives": ["无缓存设计", "数据库缓存"],
+          "consequences": ["提高重复任务性能", "支持断点续传", "便于结果复用"]
+        }
+      ]
+    },
+    "agents": [
+      {
+        "agent_id": "excel_report_generator_agent",
+        "name": "excel_report_generator",
+        "role": "Excel数据分析与报表生成专家",
+        "purpose": "自动分析Excel数据，生成专业的可视化图表和综合分析报告，帮助用户快速获取数据洞察",
+        "personality": {
+          "traits": ["专业", "精确", "高效", "有条理", "善于解释"],
+          "communication_style": "清晰简洁，专注于数据事实和关键洞察，使用专业但易懂的语言",
+          "tone": "专业客观，注重数据准确性，同时保持友好的交互体验"
+        },
+        "capabilities": {
+          "core_functions": [
+            "Excel数据读取与解析",
+            "数据深度分析与统计",
+            "报表策略智能制定",
+            "多类型图表生成与缓存",
+            "HTML综合报告生成",
+            "幂等性结果保证"
+          ],
+          "specialized_skills": [
+            "时间序列分析与趋势识别",
+            "相关性分析与可视化",
+            "异常值检测与标记",
+            "数据分布特征分析",
+            "多维数据聚合与透视"
+          ],
+          "limitations": [
+            "不支持实时数据流处理",
+            "不支持数据库直连功能",
+            "不支持Excel文件的编辑和回写",
+            "不处理超过100MB的Excel文件",
+            "不执行Excel中的宏代码",
+            "不支持复杂的数据清洗和ETL功能"
+          ],
+          "tools_required": [
+            "excel_data_reader",
+            "data_analyzer",
+            "generate_pie_chart",
+            "generate_line_chart",
+            "generate_heatmap",
+            "generate_bar_chart",
+            "generate_scatter_plot",
+            "html_report_builder",
+            "cache_manager"
+          ]
+        },
+        "knowledge_domain": {
+          "primary_domains": [
+            "数据分析与统计",
+            "数据可视化",
+            "Excel数据处理",
+            "报表设计与生成",
+            "HTML文档生成"
+          ],
+          "expertise_level": "专家级 - 能够处理复杂数据分析任务并生成专业报告",
+          "knowledge_sources": [
+            "内置统计分析算法",
+            "数据可视化最佳实践",
+            "报表设计原则",
+            "用户提供的报表需求"
+          ],
+          "update_frequency": "静态知识库，通过代码更新"
+        },
+        "interaction_patterns": {
+          "communication_style": "问答式交互，引导用户提供必要信息，同时提供处理进度反馈",
+          "conversation_flow": "1. 获取Excel文件路径和需求描述 → 2. 确认理解并提出澄清问题 → 3. 展示处理进度 → 4. 提供结果和解释 → 5. 收集反馈",
+          "error_responses": [
+            "文件访问错误：提供具体错误原因和建议的解决方案",
+            "数据格式错误：说明期望格式和实际问题",
+            "需求理解错误：请求用户澄清或重新描述需求",
+            "资源限制错误：说明系统限制和替代方案",
+            "图表生成错误：提供失败原因和可能的替代图表类型"
+          ]
+        },
+        "constraints": [
+          "必须使用Python作为开发语言",
+          "必须使用claude-sonnet-4-5模型进行需求理解和策略制定",
+          "图表必须以PNG格式存储在.cache/excel_report_generator/目录",
+          "每种图表类型必须对应一个独立的工具函数",
+          "必须通过nexus_utils.agent_factory.create_agent_from_prompt_template创建Agent",
+          "Excel文件大小限制在100MB以内",
+          "处理时间目标：10MB以内文件5分钟内完成处理"
+        ],
+        "evaluation_criteria": [
+          "数据分析准确性：统计计算和分析结果的正确性",
+          "图表质量：图表的清晰度、专业性和信息传达效果",
+          "报告完整性：HTML报告是否包含所有必要的分析和洞察",
+          "幂等性表现：相同输入下输出的一致性",
+          "响应时间：完成分析和报告生成的时间",
+          "错误处理：对异常情况的识别和处理能力",
+          "用户满意度：报告内容和格式是否满足用户需求"
+        ],
+        "model_requirements": {
+          "model_name": "anthropic.claude-sonnet-4-5-20250929-v1:0",
+          "minimum_capabilities": [
+            "自然语言理解与生成",
+            "数据分析逻辑推理",
+            "多轮对话能力",
+            "报表内容生成能力"
+          ],
+          "rationale": "Claude Sonnet 4.5适合需要深度理解用户需求、制定分析策略和生成专业报告的场景，具有强大的推理能力和文本生成质量"
+        },
+        "memory_configuration": {
+          "memory_type": "会话状态+文件缓存混合模式",
+          "retention_policy": "会话状态在交互期间保持，文件缓存根据配置定期清理（默认30天）",
+          "retrieval_strategy": "基于会话ID和任务哈希的精确匹配检索，支持缓存复用"
+        }
+      }
+    ],
+    "agent_relationships": [],
+    "system_integration": {
+      "entry_point": "agents/generated_agents/excel_report_generator/excel_report_generator.py",
+      "exit_points": [
+        "生成的HTML报告路径",
+        "分析结果摘要",
+        "处理日志"
+      ],
+      "external_interfaces": [
+        "文件系统（读取Excel文件、写入图表和报告）",
+        "AWS Bedrock API（使用Claude模型）"
+      ]
+    }
+  }
+}

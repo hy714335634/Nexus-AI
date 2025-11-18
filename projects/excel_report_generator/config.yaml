@@ -1,0 +1,6 @@
+project:
+  created_date: '2025-11-18T04:04:16.110731+00:00'
+  description: Excel数据分析和报表生成系统
+  name: excel_report_generator
+  updated_date: '2025-11-18T04:04:22.522070+00:00'
+  version: 1.0.0

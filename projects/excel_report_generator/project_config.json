@@ -1,0 +1,142 @@
+{
+  "project_name": "excel_report_generator",
+  "validation_timestamp": "2025-11-18T04:24:07.415666+00:00",
+  "overall_status": "success",
+  "agent_scripts": [
+    {
+      "script_path": "agents/generated_agents/excel_report_generator/excel_report_generator.py",
+      "syntax_valid": true,
+      "dependencies": [
+        "os",
+        "sys",
+        "json",
+        "logging",
+        "uuid",
+        "typing",
+        "pathlib",
+        "nexus_utils.agent_factory",
+        "strands.telemetry",
+        "tools.generated_tools.excel_report_generator",
+        "argparse"
+      ],
+      "execution_params": [],
+      "argparse_params": [
+        {
+          "name": "-i",
+          "type": "str",
+          "description": "用户需求描述",
+          "required": false,
+          "default": "请分析这个Excel文件并生成报告",
+          "action": null
+        },
+        {
+          "name": "-f",
+          "type": "str",
+          "description": "Excel文件路径",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "-s",
+          "type": "str",
+          "description": "工作表名称（可选）",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "-e",
+          "type": "str",
+          "description": "运行环境 (默认: production)",
+          "required": false,
+          "default": "production",
+          "action": null
+        },
+        {
+          "name": "-v",
+          "type": "str",
+          "description": "Agent版本 (默认: latest)",
+          "required": false,
+          "default": "latest",
+          "action": null
+        },
+        {
+          "name": "--process",
+          "type": "str",
+          "description": "直接处理Excel文件（跳过对话模式）",
+          "required": false,
+          "default": null,
+          "action": "store_true"
+        }
+      ],
+      "error_message": ""
+    }
+  ],
+  "prompt_files": [
+    {
+      "prompt_path": "generated_agents_prompts/excel_report_generator/excel_report_generator.yaml",
+      "tool_count": 13,
+      "valid": true,
+      "error_message": "",
+      "metadata": {
+        "tags": [
+          "data_analysis",
+          "excel",
+          "visualization",
+          "reporting",
+          "chart_generation"
+        ],
+        "supported_models": [
+          "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
+        ],
+        "tools_dependencies": [
+          "strands_tools/file_read",
+          "strands_tools/file_write",
+          "strands_tools/current_time",
+          "strands_tools/calculator",
+          "generated_tools/excel_report_generator/chart_generation_tools/generate_bar_chart",
+          "generated_tools/excel_report_generator/chart_generation_tools/generate_heatmap",
+          "generated_tools/excel_report_generator/chart_generation_tools/generate_line_chart",
+          "generated_tools/excel_report_generator/chart_generation_tools/generate_pie_chart",
+          "generated_tools/excel_report_generator/chart_generation_tools/generate_scatter_plot",
+          "generated_tools/excel_report_generator/excel_data_tools/cache_manager",
+          "generated_tools/excel_report_generator/excel_data_tools/data_analyzer",
+          "generated_tools/excel_report_generator/excel_data_tools/excel_data_reader",
+          "generated_tools/excel_report_generator/report_generation_tools/html_report_builder"
+        ]
+      },
+      "agent_info": {
+        "name": "excel_report_generator",
+        "description": "Excel数据分析与报表生成专家，自动分析Excel数据，生成专业的可视化图表和综合分析报告",
+        "category": "data_analysis"
+      }
+    }
+  ],
+  "generated_tools": [
+    {
+      "tool_path": "generated_tools/excel_report_generator/excel_data_tools.py",
+      "syntax_valid": true,
+      "error_message": ""
+    },
+    {
+      "tool_path": "generated_tools/excel_report_generator/report_generation_tools.py",
+      "syntax_valid": true,
+      "error_message": ""
+    },
+    {
+      "tool_path": "generated_tools/excel_report_generator/chart_generation_tools.py",
+      "syntax_valid": true,
+      "error_message": ""
+    }
+  ],
+  "total_tools": 13,
+  "summary": {
+    "agent_scripts_count": 1,
+    "prompt_files_count": 1,
+    "generated_tool_files_count": 3,
+    "all_scripts_valid": true,
+    "all_tools_valid": true,
+    "all_prompts_valid": true
+  }
+}
