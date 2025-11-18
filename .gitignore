@@ -11,7 +11,7 @@ case
 .sessions
 .kiro
 .cache
-web/node_modules
+web/node_modules/
 
 # 需要排除的目录和文件
 Tech Design/
