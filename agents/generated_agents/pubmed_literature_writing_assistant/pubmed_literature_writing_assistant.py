@@ -544,7 +544,6 @@ class PubmedLiteratureWritingAssistant:
         # 如果所有重试都失败
         raise Exception(f"Agent 调用失败，已重试 {max_retries} 次")
     
-<<<<<<< HEAD
     def _extract_key_fields(self, metadata: Dict) -> Dict:
         """提取文献元数据的关键字段
         
@@ -627,8 +626,6 @@ class PubmedLiteratureWritingAssistant:
         
         return "\n".join(formatted_items)
     
-=======
->>>>>>> origin/main
     def _parse_agent_json_response(self, agent_response: Any) -> Optional[Dict]:
         """从agent_response中提取并解析JSON结果"""
         try:
@@ -726,7 +723,6 @@ class PubmedLiteratureWritingAssistant:
                     if not all_analysis_results:
                         return "无法加载文献分析结果"
                     
-<<<<<<< HEAD
                     # 按相关性分数和影响因子排序并取前max_paper_to_init篇
                     total_papers = len(all_analysis_results)
                     if total_papers > max_paper_to_init:
@@ -745,13 +741,6 @@ class PubmedLiteratureWritingAssistant:
                             item["_relevance_score_for_sort"] = relevance_score
                             
                             # 提取影响因子
-=======
-                    # 按影响因子排序并取前max_paper_to_init篇
-                    total_papers = len(all_analysis_results)
-                    if total_papers > max_paper_to_init:
-                        # 提取影响因子并排序
-                        for item in all_analysis_results:
->>>>>>> origin/main
                             impact_factor = 0
                             try:
                                 impact_factor_raw = item.get("impact_factor", 0)
@@ -763,7 +752,6 @@ class PubmedLiteratureWritingAssistant:
                                 impact_factor = 0
                             item["_impact_factor_for_sort"] = impact_factor
                         
-<<<<<<< HEAD
                         # 先按相关性分数从高到低排序，取前max_paper_to_init篇
                         papers_by_relevance = all_analysis_results.copy()
                         papers_by_relevance.sort(key=lambda x: x.get("_relevance_score_for_sort", 0), reverse=True)
@@ -796,17 +784,6 @@ class PubmedLiteratureWritingAssistant:
                         selected_pmc_ids = list(selected_pmc_ids_set)
                         
                         logger.info(f"从 {total_papers} 个文献中：按相关性选择了 {len(top_by_relevance)} 篇，按影响因子选择了 {len(top_by_impact)} 篇，合并去重后共 {len(selected_results)} 篇用于生成初始版本")
-=======
-                        # 按影响因子从高到低排序
-                        all_analysis_results.sort(key=lambda x: x.get("_impact_factor_for_sort", 0), reverse=True)
-                        # 取前max_paper_to_init篇
-                        selected_results = all_analysis_results[:max_paper_to_init]
-                        
-                        # 记录使用的文献ID，以便后续标记为已处理
-                        selected_pmc_ids = [item.get("pmcid") for item in selected_results if item.get("pmcid")]
-                        
-                        logger.info(f"从 {total_papers} 个文献中按影响因子排序，选择了前 {len(selected_results)} 篇用于生成初始版本")
->>>>>>> origin/main
                         all_analysis_results = selected_results
                     else:
                         # 如果文献数量不超过限制，记录所有文献ID
@@ -823,13 +800,8 @@ class PubmedLiteratureWritingAssistant:
 用户研究需求:
 {requirement if requirement else "无特殊需求"}
 ============================================================
-<<<<<<< HEAD
 文献完整分析结果（格式说明：每行一篇文献，格式为[序号]ID:xxx|T:标题|A:摘要|M:方法|R:结果|C:结论|Date:日期|Reason:理由|Findings:发现）:
 {self._format_metadata_for_agent(all_analysis_results)}
-=======
-文献完整分析结果（包含title, abstract, keywords, methods, results, conclusions等）:
-{json.dumps(all_analysis_results, ensure_ascii=False, indent=2)}
->>>>>>> origin/main
 ============================================================
 ### 任务:请基于这些文献的完整分析结果生成初始版本的文献综述，并在完成后以JSON格式返回结果：
 
@@ -919,13 +891,8 @@ class PubmedLiteratureWritingAssistant:
 ====================新文献完整分析结果====================
 文献ID: {lit_id}
 
-<<<<<<< HEAD
 **完整分析结果（格式说明：[序号]ID:xxx|T:标题|A:摘要|M:方法|R:结果|C:结论|Date:日期|Reason:理由|Findings:发现）:**
 {self._format_metadata_for_agent([new_literature_metadata])}
-=======
-**完整分析结果（包含title, abstract, keywords, methods, results, conclusions等）:**
-{json.dumps(new_literature_metadata, ensure_ascii=False, indent=2)}
->>>>>>> origin/main
 
 ============================================================
 
@@ -939,12 +906,8 @@ class PubmedLiteratureWritingAssistant:
 2. 针对疑问或不明确的内容，使用工具获取更加详细的内容、表格、结论等
 3. 如需引用或该文献已被引用，至少使用一次工具获取详细内容，并合理的将结果内容整合到现有综述中，详细补充和更新相关内容
 4. 使用`file_write`工具将更新后的综述内容保存到文件
-<<<<<<< HEAD
 5. 保存完成文件后，请总结输出一下主要更新内容
 6. **必须**以JSON格式返回结果，不要返回其他内容：
-=======
-5. **必须**以JSON格式返回结果，不要返回其他内容：
->>>>>>> origin/main
 ```json
 {{
     "status": "success",

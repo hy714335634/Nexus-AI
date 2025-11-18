@@ -319,9 +319,8 @@ agent:
       metadata:
         tags: ["academic_research", "literature_review", "medical_research", "pubmed", "scientific_writing"]
         supported_models:
-          - "us.amazon.nova-premier-v1:0"
-          - "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
           - "global.anthropic.claude-sonnet-4-5-20250929-v1:0"
+          - "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
           - "global.anthropic.claude-haiku-4-5-20251001-v1:0"
         tools_dependencies:
           - "strands_tools/file_write"
