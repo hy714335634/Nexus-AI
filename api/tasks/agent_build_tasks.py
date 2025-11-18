@@ -40,9 +40,6 @@ def build_agent(
 
     logger.info("Starting agent build task", extra={"session_id": session_id, "project_id": project_id})
 
-    orchestrator_stage = STAGE_SEQUENCE[0][0]
-    mark_stage_running(project_id, orchestrator_stage)
-
     service = AgentCLIBuildService()
     start_time = datetime.now(timezone.utc)
 
@@ -66,11 +63,9 @@ def build_agent(
             metrics_payload=None,
             project_name=agent_name,
         )
-        mark_stage_failed(project_id, orchestrator_stage, str(exc))
+        # 不需要在这里标记失败，因为 workflow 内部已经处理了
         logger.exception("Agent build task failed", extra={"project_id": project_id})
         raise
-
-    mark_stage_completed(project_id, orchestrator_stage)
 
     finish_time = datetime.now(timezone.utc)
     workflow_payload = output.workflow or {}

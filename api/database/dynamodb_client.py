@@ -28,6 +28,8 @@ from api.models.schemas import (
     AgentStatus,
     BuildStage,
     StageData,
+    AgentSessionRecord,
+    AgentSessionMessageRecord,
     create_stage_data,
     build_initial_stage_snapshot,
     get_all_stages,
@@ -130,6 +132,8 @@ class DynamoDBClient:
         self._stats_table = None
         self._artifacts_table = None
         self._invocations_table = None
+        self._agent_sessions_table = None
+        self._agent_session_messages_table = None
         
         # Connection health tracking
         self._last_health_check = None
@@ -179,6 +183,20 @@ class DynamoDBClient:
         if self._invocations_table is None:
             self._invocations_table = self.dynamodb.Table('AgentInvocations')
         return self._invocations_table
+
+    @property
+    def agent_sessions_table(self):
+        """Lazy initialization of agent sessions table"""
+        if self._agent_sessions_table is None:
+            self._agent_sessions_table = self.dynamodb.Table('AgentSessions')
+        return self._agent_sessions_table
+
+    @property
+    def agent_session_messages_table(self):
+        """Lazy initialization of agent session messages table"""
+        if self._agent_session_messages_table is None:
+            self._agent_session_messages_table = self.dynamodb.Table('AgentSessionMessages')
+        return self._agent_session_messages_table
     
     @retry_on_error(max_retries=3, delay=1.0, backoff=2.0)
     def health_check(self) -> bool:
@@ -224,6 +242,8 @@ class DynamoDBClient:
             self._create_statistics_table()
             self._create_artifacts_table()
             self._create_invocations_table()
+            self._create_agent_sessions_table()
+            self._create_agent_session_messages_table()
             logger.info("DynamoDB tables created successfully")
         except Exception as e:
             logger.error(f"Error creating DynamoDB tables: {str(e)}")
@@ -611,8 +631,227 @@ class DynamoDBClient:
                 logger.info("BuildStatistics table already exists")
                 return self.stats_table
             raise
+
+    def _create_agent_sessions_table(self):
+        """Create AgentSessions table"""
+        try:
+            table = self.dynamodb.create_table(
+                TableName='AgentSessions',
+                KeySchema=[
+                    {
+                        'AttributeName': 'agent_id',
+                        'KeyType': 'HASH'
+                    },
+                    {
+                        'AttributeName': 'session_id',
+                        'KeyType': 'RANGE'
+                    }
+                ],
+                AttributeDefinitions=[
+                    {
+                        'AttributeName': 'agent_id',
+                        'AttributeType': 'S'
+                    },
+                    {
+                        'AttributeName': 'session_id',
+                        'AttributeType': 'S'
+                    },
+                    {
+                        'AttributeName': 'last_active_at',
+                        'AttributeType': 'S'
+                    }
+                ],
+                GlobalSecondaryIndexes=[
+                    {
+                        'IndexName': 'LastActiveIndex',
+                        'KeySchema': [
+                            {
+                                'AttributeName': 'agent_id',
+                                'KeyType': 'HASH'
+                            },
+                            {
+                                'AttributeName': 'last_active_at',
+                                'KeyType': 'RANGE'
+                            }
+                        ],
+                        'Projection': {
+                            'ProjectionType': 'ALL'
+                        },
+                        'ProvisionedThroughput': {
+                            'ReadCapacityUnits': 5,
+                            'WriteCapacityUnits': 5
+                        }
+                    }
+                ],
+                ProvisionedThroughput={
+                    'ReadCapacityUnits': 10,
+                    'WriteCapacityUnits': 10
+                }
+            )
+            table.wait_until_exists()
+            return table
+        except ClientError as e:
+            if e.response['Error']['Code'] == 'ResourceInUseException':
+                logger.info("AgentSessions table already exists")
+                return self.agent_sessions_table
+            raise
+
+    def _create_agent_session_messages_table(self):
+        """Create AgentSessionMessages table"""
+        try:
+            table = self.dynamodb.create_table(
+                TableName='AgentSessionMessages',
+                KeySchema=[
+                    {
+                        'AttributeName': 'session_id',
+                        'KeyType': 'HASH'
+                    },
+                    {
+                        'AttributeName': 'created_at',
+                        'KeyType': 'RANGE'
+                    }
+                ],
+                AttributeDefinitions=[
+                    {
+                        'AttributeName': 'session_id',
+                        'AttributeType': 'S'
+                    },
+                    {
+                        'AttributeName': 'created_at',
+                        'AttributeType': 'S'
+                    }
+                ],
+                ProvisionedThroughput={
+                    'ReadCapacityUnits': 10,
+                    'WriteCapacityUnits': 10
+                }
+            )
+            table.wait_until_exists()
+            return table
+        except ClientError as e:
+            if e.response['Error']['Code'] == 'ResourceInUseException':
+                logger.info("AgentSessionMessages table already exists")
+                return self.agent_session_messages_table
+            raise
     
     # Project operations
+
+    # Agent session operations
+    @retry_on_error(max_retries=3, delay=1.0, backoff=2.0)
+    def create_agent_session(self, session: AgentSessionRecord) -> None:
+        """Create a new agent session record."""
+        try:
+            self._ensure_connection()
+            item = self._serialize_item(session.dict())
+            self.agent_sessions_table.put_item(Item=item)
+        except Exception as e:
+            logger.error(f"Error creating agent session {session.session_id}: {str(e)}")
+            raise APIException(f"Failed to create agent session: {str(e)}")
+
+    @retry_on_error(max_retries=3, delay=1.0, backoff=2.0)
+    def get_agent_session(self, agent_id: str, session_id: str) -> Optional[Dict[str, Any]]:
+        """Fetch a specific agent session."""
+        try:
+            self._ensure_connection()
+            response = self.agent_sessions_table.get_item(Key={'agent_id': agent_id, 'session_id': session_id})
+            item = response.get('Item')
+            return self._deserialize_item(item) if item else None
+        except Exception as e:
+            logger.error(f"Error fetching agent session {session_id} for agent {agent_id}: {str(e)}")
+            raise APIException(f"Failed to fetch agent session: {str(e)}")
+
+    @retry_on_error(max_retries=3, delay=1.0, backoff=2.0)
+    def list_agent_sessions(
+        self,
+        agent_id: str,
+        limit: int = 50,
+        last_evaluated_key: Optional[Dict[str, Any]] = None,
+        descending: bool = True,
+    ) -> Dict[str, Any]:
+        """List sessions for an agent ordered by last activity."""
+        try:
+            self._ensure_connection()
+            query_kwargs = {
+                'KeyConditionExpression': Key('agent_id').eq(agent_id),
+                'Limit': limit,
+                'ScanIndexForward': not descending,
+            }
+            if last_evaluated_key:
+                query_kwargs['ExclusiveStartKey'] = last_evaluated_key
+
+            response = self.agent_sessions_table.query(**query_kwargs)
+            items = [self._deserialize_item(item) for item in response.get('Items', [])]
+            return {
+                'items': items,
+                'last_evaluated_key': response.get('LastEvaluatedKey'),
+            }
+        except Exception as e:
+            logger.error(f"Error listing sessions for agent {agent_id}: {str(e)}")
+            raise APIException(f"Failed to list agent sessions: {str(e)}")
+
+    @retry_on_error(max_retries=3, delay=1.0, backoff=2.0)
+    def update_agent_session_activity(
+        self,
+        agent_id: str,
+        session_id: str,
+        *,
+        last_active_at: Optional[datetime] = None,
+    ) -> None:
+        """Update session last active timestamp."""
+        try:
+            self._ensure_connection()
+            timestamp = last_active_at or datetime.utcnow().replace(tzinfo=timezone.utc)
+            iso_value = timestamp.isoformat().replace('+00:00', 'Z')
+            self.agent_sessions_table.update_item(
+                Key={'agent_id': agent_id, 'session_id': session_id},
+                UpdateExpression="SET last_active_at = :last_active",
+                ExpressionAttributeValues={':last_active': iso_value},
+            )
+        except Exception as e:
+            logger.error(f"Error updating activity for session {session_id}: {str(e)}")
+            raise APIException(f"Failed to update session activity: {str(e)}")
+
+    # Agent session messages
+    @retry_on_error(max_retries=3, delay=1.0, backoff=2.0)
+    def append_session_message(self, message: AgentSessionMessageRecord) -> None:
+        """Append a message to a session."""
+        try:
+            self._ensure_connection()
+            item = self._serialize_item(message.dict())
+            self.agent_session_messages_table.put_item(Item=item)
+        except Exception as e:
+            logger.error(f"Error appending message {message.message_id} to session {message.session_id}: {str(e)}")
+            raise APIException(f"Failed to append session message: {str(e)}")
+
+    @retry_on_error(max_retries=3, delay=1.0, backoff=2.0)
+    def list_session_messages(
+        self,
+        session_id: str,
+        limit: int = 200,
+        last_evaluated_key: Optional[Dict[str, Any]] = None,
+        ascending: bool = True,
+    ) -> Dict[str, Any]:
+        """List messages for a session."""
+        try:
+            self._ensure_connection()
+            query_kwargs = {
+                'KeyConditionExpression': Key('session_id').eq(session_id),
+                'Limit': limit,
+                'ScanIndexForward': ascending,
+            }
+            if last_evaluated_key:
+                query_kwargs['ExclusiveStartKey'] = last_evaluated_key
+
+            response = self.agent_session_messages_table.query(**query_kwargs)
+            items = [self._deserialize_item(item) for item in response.get('Items', [])]
+            return {
+                'items': items,
+                'last_evaluated_key': response.get('LastEvaluatedKey'),
+            }
+        except Exception as e:
+            logger.error(f"Error listing messages for session {session_id}: {str(e)}")
+            raise APIException(f"Failed to list session messages: {str(e)}")
+
     @retry_on_error(max_retries=3, delay=1.0, backoff=2.0)
     def create_project(self, project_data: ProjectRecord) -> None:
         """Create a new project record"""
@@ -1564,7 +1803,7 @@ class DynamoDBClient:
         json_fields = [
             'agent_config', 'build_summary', 'error_info', 'output_data',
             'dependencies', 'supported_models', 'supported_inputs', 'tags', 'logs', 'config',
-            'stages_snapshot', 'agents', 'artifact_paths'
+            'stages_snapshot', 'agents', 'artifact_paths', 'runtime_config', 'metadata'
         ]
         
         datetime_fields = {
@@ -1573,13 +1812,18 @@ class DynamoDBClient:
             'last_deployed_at',
             'completed_at',
             'started_at',
+            'last_active_at',
+            'last_called_at',
+            'timestamp',
         }
 
         for key, value in item.items():
-            if isinstance(value, str) and key in datetime_fields:
+            # Convert Decimal to int or float
+            if isinstance(value, Decimal):
+                deserialized[key] = int(value) if value % 1 == 0 else float(value)
+            elif isinstance(value, str) and key in datetime_fields:
                 deserialized[key] = self._parse_datetime(value)
-                continue
-            if isinstance(value, str) and key in json_fields:
+            elif isinstance(value, str) and key in json_fields:
                 # Try to parse JSON strings for known JSON fields
                 try:
                     deserialized[key] = json.loads(value)
@@ -1591,6 +1835,9 @@ class DynamoDBClient:
                     deserialized[key] = json.loads(value)
                 except (json.JSONDecodeError, TypeError):
                     deserialized[key] = value
+            elif isinstance(value, dict):
+                # Recursively deserialize nested dicts
+                deserialized[key] = self._deserialize_item(value)
             else:
                 deserialized[key] = value
         return deserialized

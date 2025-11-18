@@ -402,11 +402,46 @@ class AgentRecord(BaseModel):
     last_called_at: Optional[datetime] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
+    # AgentCore Runtime fields
+    agentcore_runtime_arn: Optional[str] = None
+    agentcore_runtime_alias: Optional[str] = None
+    agentcore_region: Optional[str] = None
+    deployment_stage: Optional[str] = None  # built/packaged/deploying/deployed/failed
+    last_deployment_job_id: Optional[str] = None
+    model_id: Optional[str] = None
+    invoke_url: Optional[str] = None
+    runtime_config: Optional[Dict[str, Any]] = None
+    # Backwards compatibility
     agentcore_arn: Optional[str] = None
     agentcore_alias: Optional[str] = None
     region: Optional[str] = None
     last_deployed_at: Optional[datetime] = None
     last_deployment_error: Optional[str] = None
+    agentcore_runtime_arn: Optional[str] = None
+    agentcore_runtime_alias: Optional[str] = None
+    agentcore_region: Optional[str] = None
+    runtime_model_id: Optional[str] = None
+    runtime_config: Optional[Dict[str, Any]] = None
+
+
+class AgentSessionRecord(BaseModel):
+    agent_id: str
+    session_id: str
+    display_name: Optional[str] = None
+    conversation_mode: Optional[str] = "default"
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+    created_at: datetime
+    last_active_at: datetime
+
+
+class AgentSessionMessageRecord(BaseModel):
+    session_id: str
+    message_id: str
+    agent_id: str
+    role: str
+    content: str
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+    created_at: datetime
 
 class AgentInvocationRecord(BaseModel):
     invocation_id: str
@@ -430,6 +465,24 @@ class ArtifactRecord(BaseModel):
     file_path: Optional[str] = None
     doc_path: Optional[str] = None
     metadata: Dict[str, Any] = Field(default_factory=dict)
+    created_at: datetime
+
+class AgentSessionRecord(BaseModel):
+    agent_id: str
+    session_id: str
+    display_name: Optional[str] = None
+    created_at: datetime
+    last_active_at: datetime
+    conversation_mode: str = "normal"  # normal/debug/eval
+    metadata: Optional[Dict[str, Any]] = None
+
+class AgentSessionMessageRecord(BaseModel):
+    agent_id: str
+    session_id: str
+    message_id: str
+    role: str  # user/assistant/system/tool
+    content: str
+    metadata: Optional[Dict[str, Any]] = None
     created_at: datetime
 
 # Helper functions for stage management
