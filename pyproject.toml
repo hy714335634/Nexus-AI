@@ -3,7 +3,7 @@ name = "nexus-ai"
 version = "0.1.0"
 description = "Nexus-AI: Enterprise-grade AI agent development platform"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 dependencies = [
     "strands-agents",
     "strands-agents-tools", 

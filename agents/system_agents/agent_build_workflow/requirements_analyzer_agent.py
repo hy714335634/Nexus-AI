@@ -4,23 +4,24 @@
 """
 
 import os
-from strands import Agent
 from nexus_utils.agent_factory import create_agent_from_prompt_template
 from nexus_utils.config_loader import ConfigLoader
+
 loader = ConfigLoader()
 
 # 设置环境变量
-os.environ["BYPASS_TOOL_CONSENT"] = "true"
+os.environ.setdefault("BYPASS_TOOL_CONSENT", "true")
 
-def get_requirements_analyzer(env: str = "production", version: str = None) -> Agent:
-    if version is None:
-        version = loader.get_nested("nexus_ai", "workflow_default_version", "agent_build")
-    requirements_analyzer = create_agent_from_prompt_template(
-        agent_name="system_agents_prompts/agent_build_workflow/requirements_analyzer", 
-        env=env,
-        version=version
-    )
-    return requirements_analyzer
+agent_params = {
+    "env": "production",
+    "version": loader.get_nested("nexus_ai", "workflow_default_version", "agent_build"),
+    "model_id": "default",
+}
+
+requirements_analyzer = create_agent_from_prompt_template(
+    agent_name="system_agents_prompts/agent_build_workflow/requirements_analyzer",
+    **agent_params,
+)
 
 if __name__ == "__main__":
     import argparse
@@ -31,7 +32,6 @@ if __name__ == "__main__":
                        default="我需要一个agent，我会提供关于IT产品的描述和价格，它需要帮我根据aws服务和产品对照，生成完整的报价表单，并输出markdown格式。",
                        help='测试输入内容')
     args = parser.parse_args()
-    requirements_analyzer = get_requirements_analyzer()
     print(f"✅ Requirements Analyzer Agent 创建成功: {requirements_analyzer.name}")
     
     # 测试 agent 功能

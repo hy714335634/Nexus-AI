@@ -4,23 +4,24 @@ Agent 开发管理者 Agent - 使用 agent_factory 创建
 """
 
 import os
-from strands import Agent
 from nexus_utils.agent_factory import create_agent_from_prompt_template
 from nexus_utils.config_loader import ConfigLoader
+
 loader = ConfigLoader()
 
 # 设置环境变量
-os.environ["BYPASS_TOOL_CONSENT"] = "true"
+os.environ.setdefault("BYPASS_TOOL_CONSENT", "true")
 
-def get_agent_developer_manager(env: str = "production", version: str = None) -> Agent:
-    if version is None:
-        version = loader.get_nested("nexus_ai", "workflow_default_version", "agent_build")
-    agent_developer_manager = create_agent_from_prompt_template(
-        agent_name="system_agents_prompts/agent_build_workflow/agent_developer_manager", 
-        env=env,
-        version=version
-    )
-    return agent_developer_manager
+agent_params = {
+    "env": "production",
+    "version": loader.get_nested("nexus_ai", "workflow_default_version", "agent_build"),
+    "model_id": "default",
+}
+
+agent_developer_manager = create_agent_from_prompt_template(
+    agent_name="system_agents_prompts/agent_build_workflow/agent_developer_manager",
+    **agent_params,
+)
 
 if __name__ == "__main__":
     import argparse
@@ -31,7 +32,6 @@ if __name__ == "__main__":
                        default="管理整个 Agent 开发流程，确保质量和完整性",
                        help='测试输入内容')
     args = parser.parse_args()
-    agent_developer_manager = get_agent_developer_manager()
     print(f"✅ Agent Developer Manager Agent 创建成功: {agent_developer_manager.name}")
     
     # 测试 agent 功能

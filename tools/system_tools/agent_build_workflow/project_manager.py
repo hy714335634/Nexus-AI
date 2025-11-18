@@ -358,6 +358,7 @@ nexus-ai/
             "status": "success",
             "message": f"项目 '{project_name}' 初始化成功",
             "project_path": project_root,
+            "project_name": project_name,
             "directories_created": [
                 "agents/"
             ],

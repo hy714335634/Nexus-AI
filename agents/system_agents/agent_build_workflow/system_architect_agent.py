@@ -4,23 +4,24 @@
 """
 
 import os
-from strands import Agent
 from nexus_utils.agent_factory import create_agent_from_prompt_template
 from nexus_utils.config_loader import ConfigLoader
+
 loader = ConfigLoader()
 
 # 设置环境变量
-os.environ["BYPASS_TOOL_CONSENT"] = "true"
+os.environ.setdefault("BYPASS_TOOL_CONSENT", "true")
 
-def get_system_architect(env: str = "production", version: str = None) -> Agent:
-    if version is None:
-        version = loader.get_nested("nexus_ai", "workflow_default_version", "agent_build")
-    system_architect = create_agent_from_prompt_template(
-        agent_name="system_agents_prompts/agent_build_workflow/system_architect", 
-        env=env,
-        version=version
-    )
-    return system_architect
+agent_params = {
+    "env": "production",
+    "version": loader.get_nested("nexus_ai", "workflow_default_version", "agent_build"),
+    "model_id": "default",
+}
+
+system_architect = create_agent_from_prompt_template(
+    agent_name="system_agents_prompts/agent_build_workflow/system_architect",
+    **agent_params,
+)
 
 if __name__ == "__main__":
     import argparse
@@ -31,7 +32,6 @@ if __name__ == "__main__":
                        default="根据需求分析结果，设计系统架构和技术选型",
                        help='测试输入内容')
     args = parser.parse_args()
-    system_architect = get_system_architect()
     print(f"✅ System Architect Agent 创建成功: {system_architect.name}")
     
     # 测试 agent 功能

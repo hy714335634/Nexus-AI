@@ -2,22 +2,23 @@
 """AgentCore 部署协调 Agent."""
 
 import os
-from strands import Agent
 from nexus_utils.agent_factory import create_agent_from_prompt_template
 from nexus_utils.config_loader import ConfigLoader
+
 loader = ConfigLoader()
 
-os.environ["BYPASS_TOOL_CONSENT"] = "true"
+os.environ.setdefault("BYPASS_TOOL_CONSENT", "true")
 
-def get_agent_deployer(env: str = "production", version: str = None) -> Agent:
-    if version is None:
-        version = loader.get_nested("nexus_ai", "workflow_default_version", "agent_build")
-    agent_deployer = create_agent_from_prompt_template(
-        agent_name="system_agents_prompts/agent_build_workflow/agent_deployer",
-        env=env,
-        version=version
-    )
-    return agent_deployer
+agent_params = {
+    "env": "production",
+    "version": loader.get_nested("nexus_ai", "workflow_default_version", "agent_build"),
+    "model_id": "default",
+}
+
+agent_deployer = create_agent_from_prompt_template(
+    agent_name="system_agents_prompts/agent_build_workflow/agent_deployer",
+    **agent_params,
+)
 
 if __name__ == "__main__":
     import argparse
@@ -31,7 +32,6 @@ if __name__ == "__main__":
         help="测试输入内容",
     )
     args = parser.parse_args()
-    agent_deployer = get_agent_deployer()
     print(f"✅ Agent Deployer 创建成功: {agent_deployer.name}")
     try:
         response = agent_deployer(args.input)

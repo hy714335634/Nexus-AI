@@ -13,14 +13,18 @@ from strands.multiagent import GraphBuilder,Swarm
 from nexus_utils.agent_factory import create_agent_from_prompt_template
 from nexus_utils.structured_output_model.project_intent_recognition import IntentRecognitionResult
 from strands.session.file_session_manager import FileSessionManager
+from tools.system_tools.agent_build_workflow.stage_tracker import (
+    mark_stage_running,
+    mark_stage_completed,
+    mark_stage_failed,
+)
 
-# 导入其他 agents 的创建函数
-from agents.system_agents.agent_build_workflow.requirements_analyzer_agent import get_requirements_analyzer
-from agents.system_agents.agent_build_workflow.system_architect_agent import get_system_architect
-from agents.system_agents.agent_build_workflow.agent_designer_agent import get_agent_designer
-from agents.system_agents.agent_build_workflow.agent_deployer_agent import get_agent_deployer
-from agents.system_agents.agent_build_workflow.agent_developer_manager_agent import get_agent_developer_manager
-from nexus_utils.config_loader import ConfigLoader
+# 导入其他 agents
+from agents.system_agents.agent_build_workflow.requirements_analyzer_agent import requirements_analyzer
+from agents.system_agents.agent_build_workflow.system_architect_agent import system_architect
+from agents.system_agents.agent_build_workflow.agent_designer_agent import agent_designer
+from agents.system_agents.agent_build_workflow.agent_deployer_agent import agent_deployer
+from agents.system_agents.agent_build_workflow.agent_developer_manager_agent import agent_developer_manager
 from strands.telemetry import StrandsTelemetry
 from nexus_utils.workflow_report_generator import generate_workflow_summary_report
 from nexus_utils.workflow_rule_extract import (
@@ -28,14 +32,38 @@ from nexus_utils.workflow_rule_extract import (
     get_build_workflow_rules,
 )
 
-# 设置环境变量
 os.environ["BYPASS_TOOL_CONSENT"] = "true"
 os.environ["OTEL_EXPORTER_OTLP_ENDPOINT"] = "http://localhost:4318"
 strands_telemetry = StrandsTelemetry()
 strands_telemetry.setup_otlp_exporter()
 
-# 配置加载器
-config_loader = ConfigLoader()
+# 设置环境变量
+os.environ["BYPASS_TOOL_CONSENT"] = "true"
+
+# 创建 agent 的通用参数（不启用日志，因为Graph不支持）
+agent_params = {
+    "env": "production",
+    "version": "latest", 
+    "model_id": "default"
+}
+
+# 使用 agent_factory 创建编排器 agent
+orchestrator = create_agent_from_prompt_template(
+    agent_name="system_agents_prompts/agent_build_workflow/orchestrator", 
+    **agent_params
+)
+
+# 创建意图分析 agent
+intent_analyzer = create_agent_from_prompt_template(
+    agent_name="system_agents_prompts/agent_build_workflow/agent_intent_analyzer",
+    nocallback=True,
+    **agent_params
+)
+
+
+def _get_project_id():
+    """获取当前项目ID"""
+    return os.environ.get("NEXUS_STAGE_TRACKER_PROJECT_ID")
 
 
 def _load_build_rules() -> str:
@@ -44,50 +72,54 @@ def _load_build_rules() -> str:
     build_rules = get_build_workflow_rules()
     return base_rules + "\n" + build_rules + "\n=====规则声明结束，请遵守以上规则=====\n"
 
-def create_workflow_agents(env: str = "production", version: str = None):
-    """
-    创建所有工作流相关的 Agents
+
+def _create_stage_tracking_wrapper(agent, stage_name: str):
+    """创建带阶段跟踪的Agent包装器
     
-    Args:
-        env (str): 环境名称，默认为 "production"
-        version (str, optional): 版本号，如果不提供则从配置中读取
+    直接修改Agent对象的__call__方法，添加阶段跟踪功能，然后返回Agent对象本身。
+    这样可以保持Agent类型，满足strands GraphBuilder的要求。
+    """
+    # 检查是否已经包装过，避免重复包装
+    if getattr(agent, f"_stage_tracking_wrapped_{stage_name}", False):
+        return agent
+    
+    # 保存原始的__call__方法
+    original_call = agent.__call__
+    
+    def wrapped_call(*args, **kwargs):
+        """带阶段跟踪的Agent调用方法"""
+        project_id = _get_project_id()
         
-    Returns:
-        dict: 包含所有 agents 的字典
-    """
-    if version is None:
-        version = config_loader.get_nested("nexus_ai", "workflow_default_version", "agent_build")
+        if project_id:
+            print(f"\n🔄 [{stage_name}] 标记阶段为运行中...")
+            mark_stage_running(project_id, stage_name)
+        
+        try:
+            # 调用原始的Agent方法
+            result = original_call(*args, **kwargs)
+            
+            if project_id:
+                print(f"✅ [{stage_name}] 标记阶段为已完成")
+                mark_stage_completed(project_id, stage_name)
+            
+            return result
+        except Exception as e:
+            if project_id:
+                print(f"❌ [{stage_name}] 标记阶段为失败: {str(e)}")
+                mark_stage_failed(project_id, stage_name, str(e))
+            raise
     
-    agents = {
-        "orchestrator": create_agent_from_prompt_template(
-            agent_name="system_agents_prompts/agent_build_workflow/orchestrator",
-            env=env,
-            version=version
-        ),
-        "intent_analyzer": create_agent_from_prompt_template(
-            agent_name="system_agents_prompts/agent_build_workflow/agent_intent_analyzer",
-            nocallback=True,
-            env=env,
-            version=version
-        ),
-        "requirements_analyzer": get_requirements_analyzer(env=env, version=version),
-        "system_architect": get_system_architect(env=env, version=version),
-        "agent_designer": get_agent_designer(env=env, version=version),
-        "agent_developer_manager": get_agent_developer_manager(env=env, version=version),
-        "agent_deployer": get_agent_deployer(env=env, version=version),
-    }
+    # 替换Agent的__call__方法
+    agent.__call__ = wrapped_call  # type: ignore[assignment]
+    # 标记已包装，避免重复包装
+    setattr(agent, f"_stage_tracking_wrapped_{stage_name}", True)
     
-    return agents
+    # 返回Agent对象本身，而不是包装函数
+    return agent
 
 
-def analyze_user_intent(user_input: str, intent_analyzer):
-    """
-    分析用户意图
-    
-    Args:
-        user_input (str): 用户输入
-        intent_analyzer: 意图分析 agent
-    """
+def analyze_user_intent(user_input: str):
+    """分析用户意图"""
     print(f"\n{'='*80}")
     print(f"🔍 [INTENT] 开始分析用户意图")
     print(f"{'='*80}")
@@ -120,31 +152,45 @@ def analyze_user_intent(user_input: str, intent_analyzer):
         )
 
 
-def create_build_workflow(agents: dict = None):
-    """
-    创建智能体构建工作流
+def create_build_workflow():
+    """创建智能体构建工作流"""
     
-    Args:
-        agents (dict, optional): Agents 字典，如果不提供则自动创建
-    """
     print(f"\n{'='*80}")
     print(f"🏗️  [WORKFLOW] 创建工作流")
     print(f"{'='*80}")
 
-    # 如果没有提供 agents，则创建它们
-    if agents is None:
-        agents = create_workflow_agents()
-
     builder = GraphBuilder()
     
-    # 添加节点
-    print("📋 添加工作流节点...")
-    builder.add_node(agents["orchestrator"], "orchestrator")
-    builder.add_node(agents["requirements_analyzer"], "requirements_analyzer")
-    builder.add_node(agents["system_architect"], "system_architect")
-    builder.add_node(agents["agent_designer"], "agent_designer")
-    builder.add_node(agents["agent_developer_manager"], "agent_developer_manager")
-    builder.add_node(agents["agent_deployer"], "agent_deployer")
+    # 添加节点 - 使用包装器来跟踪阶段状态
+    print("📋 添加工作流节点（带状态跟踪）...")
+    
+    # 所有阶段都使用包装器来跟踪状态
+    builder.add_node(
+        _create_stage_tracking_wrapper(orchestrator, "orchestrator"),
+        "orchestrator"
+    )
+    
+    # 其他阶段需要包装以跟踪状态
+    builder.add_node(
+        _create_stage_tracking_wrapper(requirements_analyzer, "requirements_analyzer"),
+        "requirements_analyzer"
+    )
+    builder.add_node(
+        _create_stage_tracking_wrapper(system_architect, "system_architect"),
+        "system_architect"
+    )
+    builder.add_node(
+        _create_stage_tracking_wrapper(agent_designer, "agent_designer"),
+        "agent_designer"
+    )
+    builder.add_node(
+        _create_stage_tracking_wrapper(agent_developer_manager, "agent_developer_manager"),
+        "agent_developer_manager"
+    )
+    builder.add_node(
+        _create_stage_tracking_wrapper(agent_deployer, "agent_deployer"),
+        "agent_deployer"
+    )
 
     # 添加边 - 定义工作流顺序
     print("🔗 配置工作流连接...")
@@ -153,39 +199,26 @@ def create_build_workflow(agents: dict = None):
     builder.add_edge("system_architect", "agent_designer")
     builder.add_edge("agent_designer", "agent_developer_manager")
     builder.add_edge("agent_developer_manager", "agent_deployer")
+    
     # 构建图
     graph = builder.build()
-    print("✅ 工作流图构建完成")
+    print("✅ 工作流图构建完成（已启用阶段状态跟踪）")
     
     return graph
 
 
-def run_workflow(user_input: str, session_id="default", env: str = "production", version: str = None):
-    """
-    运行工作流
-    
-    Args:
-        user_input (str): 用户输入
-        session_id (str): 会话ID
-        env (str): 环境名称
-        version (str, optional): 版本号
-    """
+def run_workflow(user_input: str, session_id="default"):
     print(f"\n{'='*80}", flush=True)
     print(f"🎯 [WORKFLOW] 开始工作流执行", flush=True)
     print(f"{'='*80}", flush=True)
 
-    # 创建所有 agents
-    print(f"🏗️ [STEP 0] 创建工作流 Agents...", flush=True)
-    agents = create_workflow_agents(env=env, version=version)
-    print(f"✅ 所有 Agents 创建完成", flush=True)
-
     # 第一步：分析用户意图
-    print(f"\n🔍 [STEP 1] 分析用户意图...", flush=True)
-    intent_structured_result = analyze_user_intent(user_input, agents["intent_analyzer"])
+    print(f"🔍 [STEP 1] 分析用户意图...", flush=True)
+    intent_structured_result = analyze_user_intent(user_input)
 
     # 创建工作流
     print(f"\n🏗️ [STEP 2] 创建构建工作流...", flush=True)
-    workflow = create_build_workflow(agents=agents)
+    workflow = create_build_workflow()
     
     # 执行工作流
     print(f"\n{'='*80}", flush=True)
@@ -267,6 +300,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='工作流编排器 Agent 测试')
     parser.add_argument('-i', '--input', type=str, 
                        default="""
+
 请创建一个用于AWS产品报价的Agent，我需要他帮我完成AWS产品报价工作，我会提供自然语言描述的资源和配置要求，请分析并推荐合理AWS服务和配置，然后进行实时的报价并生成报告。
 具体要求如下：
 1.至少需要支持EC2、EBS、S3、网络流量、ELB、RDS、ElastiCache、Opensearch这几个产品，能够获取实时且真实的按需和预留实例价格
@@ -318,3 +352,4 @@ if __name__ == "__main__":
         print(f"❌ [SYSTEM] 工作流执行失败: {e}")
         import traceback
         traceback.print_exc()
+

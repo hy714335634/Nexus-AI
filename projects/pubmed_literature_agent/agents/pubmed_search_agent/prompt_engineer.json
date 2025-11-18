@@ -1,0 +1,191 @@
+# 项目上下文信息
+
+**项目名称**: pubmed_literature_agent
+**Agent名称**: pubmed_search_agent  
+**开发阶段**: prompt_engineer
+**生成时间**: 2025-09-18 05:55:38 UTC
+
+---
+
+{
+  "prompt_engineering_document": {
+    "project_name": "pubmed_literature_agent",
+    "agent_name": "pubmed_search_agent",
+    "version": "1.0",
+    "date": "2025-09-18",
+    "overview": "This document outlines the prompt engineering process for the PubMed Literature Search Agent, which retrieves, analyzes, and presents relevant medical literature from PubMed based on user queries.",
+    "prompt_design_approach": {
+      "template_selection": {
+        "selected_template": "deep_research_agent",
+        "rationale": "The Deep Research Agent template was selected as the foundation because it already includes many capabilities for comprehensive information gathering and analysis. It was customized specifically for medical literature search and PubMed integration.",
+        "customizations": [
+          "Adapted for medical domain with appropriate terminology and context",
+          "Integrated specialized PubMed API tools",
+          "Added medical literature-specific analysis framework",
+          "Customized output format for scientific article presentation"
+        ]
+      },
+      "design_principles": [
+        "Professional medical tone with appropriate terminology",
+        "Clear structure with explicit workflow steps",
+        "Comprehensive tool integration with PubMed API",
+        "Focus on evidence-based analysis and presentation",
+        "Emphasis on attribution and source tracking"
+      ]
+    },
+    "system_prompt_components": {
+      "role_definition": {
+        "content": "Medical Literature Research Specialist specialized in retrieving, analyzing, and presenting relevant medical literature from PubMed",
+        "rationale": "Establishes professional identity with clear domain expertise in medical research literature"
+      },
+      "core_capabilities": {
+        "content": [
+          "Query Processing & Optimization",
+          "Literature Retrieval",
+          "Content Extraction",
+          "Summary Generation",
+          "Relevance Ranking",
+          "Structured Presentation"
+        ],
+        "rationale": "Defines the six primary functions of the agent, aligned with the functional requirements"
+      },
+      "specialized_skills": {
+        "content": [
+          "Medical Terminology Recognition",
+          "MeSH Term Mapping",
+          "Multi-factor Relevance Assessment",
+          "Research Methodology Analysis",
+          "PubMed API Integration"
+        ],
+        "rationale": "Highlights domain-specific capabilities that distinguish this agent from general research agents"
+      },
+      "workflow": {
+        "content": [
+          "Query Analysis",
+          "Search Strategy Development",
+          "Literature Retrieval",
+          "Content Analysis",
+          "Summary Generation",
+          "Relevance Ranking",
+          "Results Presentation"
+        ],
+        "rationale": "Provides a clear, step-by-step process that the agent follows for each query"
+      },
+      "output_format": {
+        "content": "Structured format with Search Summary, Ranked Results, Analysis Overview, and Search Refinement Suggestions",
+        "rationale": "Ensures consistent, organized presentation of results that addresses all user information needs"
+      },
+      "constraints_and_limitations": {
+        "content": [
+          "Cannot access full-text content for paywalled articles",
+          "Limited to information available in PubMed abstracts and metadata",
+          "Cannot perform real-time citation analysis beyond what the API provides",
+          "Must comply with PubMed/NCBI E-utilities API usage terms and rate limits",
+          "Cannot store user queries or search results unless explicitly authorized"
+        ],
+        "rationale": "Clearly communicates the agent's limitations to set appropriate expectations"
+      },
+      "error_handling": {
+        "content": [
+          "Zero Results: Provide alternative search suggestions",
+          "API Rate Limits: Implement exponential backoff",
+          "Ambiguous Queries: Request clarification",
+          "Connectivity Issues: Provide clear error message"
+        ],
+        "rationale": "Ensures graceful handling of common error scenarios"
+      },
+      "tools_usage": {
+        "content": "Detailed instructions for using each of the 8 PubMed API tools with their parameters and use cases",
+        "rationale": "Ensures proper and efficient use of the specialized PubMed API tools"
+      },
+      "communication_style": {
+        "content": "Professional, precise, objective, thorough, helpful, and clear communication style",
+        "rationale": "Establishes appropriate tone for medical research communication"
+      }
+    },
+    "user_prompt_template": {
+      "content": "Simple template that passes the user's query and provides context on expected output",
+      "rationale": "Keeps the user prompt minimal and flexible while providing enough structure to guide the agent's response",
+      "parameters": [
+        {
+          "name": "user_input",
+          "description": "The user's natural language query about medical literature",
+          "required": true
+        }
+      ]
+    },
+    "metadata_configuration": {
+      "tags": ["medical_research", "pubmed", "literature_search", "medical_literature", "research_analysis"],
+      "rationale": "Accurately categorizes the agent's domain and functionality",
+      "supported_models": ["us.anthropic.claude-3-7-sonnet-20250219-v1:0", "us.anthropic.claude-opus-4-20250514-v1:0"],
+      "rationale": "Selected models with strong capabilities for understanding medical terminology and generating accurate summaries",
+      "tools_dependencies": [
+        "strands_tools/http_request",
+        "strands_tools/current_time",
+        "strands_tools/calculator",
+        "strands_tools/think",
+        "generated_tools/pubmed_search_agent/pubmed_api_tool/pubmed_search",
+        "generated_tools/pubmed_search_agent/pubmed_api_tool/pubmed_fetch_abstract",
+        "generated_tools/pubmed_search_agent/pubmed_api_tool/pubmed_advanced_search",
+        "generated_tools/pubmed_search_agent/pubmed_api_tool/pubmed_fetch_citations",
+        "generated_tools/pubmed_search_agent/pubmed_api_tool/pubmed_fetch_related",
+        "generated_tools/pubmed_search_agent/pubmed_api_tool/pubmed_get_trending_articles",
+        "generated_tools/pubmed_search_agent/pubmed_api_tool/pubmed_rank_articles",
+        "generated_tools/pubmed_search_agent/pubmed_api_tool/pubmed_get_author_publications"
+      ],
+      "rationale": "Includes all necessary tools for PubMed API interaction and basic utility functions"
+    },
+    "testing_scenarios": [
+      {
+        "scenario": "Basic medical query",
+        "test_input": "What are the latest treatments for type 2 diabetes?",
+        "expected_behavior": "Agent should retrieve recent articles on diabetes treatments, summarize key findings, and rank by relevance"
+      },
+      {
+        "scenario": "Specific research methodology query",
+        "test_input": "Find randomized controlled trials on COVID-19 vaccines published in the last year",
+        "expected_behavior": "Agent should use advanced search to filter for RCTs, apply date filter, and focus on vaccine studies"
+      },
+      {
+        "scenario": "Ambiguous query",
+        "test_input": "Tell me about hypertension",
+        "expected_behavior": "Agent should recognize the broad nature of the query and either request clarification or provide a well-organized overview of key subtopics"
+      },
+      {
+        "scenario": "Zero results handling",
+        "test_input": "Research on quantum computing applications in dermatology",
+        "expected_behavior": "Agent should recognize this likely has few/no results and suggest alternative search terms or related areas"
+      },
+      {
+        "scenario": "Author-specific query",
+        "test_input": "Recent papers by Anthony Fauci on infectious diseases",
+        "expected_behavior": "Agent should use the author publication tool to find Fauci's recent work and focus on infectious disease papers"
+      }
+    ],
+    "prompt_evaluation": {
+      "strengths": [
+        "Comprehensive coverage of all required PubMed search and analysis capabilities",
+        "Clear workflow that guides the agent through the entire process",
+        "Detailed tool usage instructions for each PubMed API tool",
+        "Appropriate medical research tone and terminology",
+        "Robust error handling for common scenarios"
+      ],
+      "limitations": [
+        "Limited guidance on handling very technical medical terminology",
+        "Could provide more specific instructions for evaluating study quality",
+        "May need refinement based on real-world usage patterns"
+      ],
+      "future_improvements": [
+        "Add more specific guidance on evaluating different study types (RCTs, meta-analyses, etc.)",
+        "Enhance capabilities for comparing conflicting findings across studies",
+        "Develop more sophisticated relevance ranking algorithms",
+        "Add support for specialized medical subdomains with domain-specific terminology"
+      ]
+    }
+  },
+  "implementation_details": {
+    "prompt_file_path": "prompts/generated_agents_prompts/pubmed_literature_agent/pubmed_search_agent.yaml",
+    "template_source": "Deep Research Agent with customizations for medical literature search",
+    "development_notes": "The prompt was designed to leverage the PubMed API tools while maintaining a professional medical research tone. Special attention was given to ensuring proper attribution of information and clear distinction between literature content and agent analysis."
+  }
+}

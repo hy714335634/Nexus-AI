@@ -1,7 +1,6 @@
 # Python-generated files
 __pycache__/
 *.py[oc]
-build/
 dist/
 wheels/
 *.egg-info
@@ -18,7 +17,6 @@ Tech Design/
 solution_review/
 tests/
 笔记.txt
-main.py
 docs
 backup/
 nohup.out
@@ -48,3 +46,4 @@ logs/
 
 .next/
 nohup.out
+api/.env

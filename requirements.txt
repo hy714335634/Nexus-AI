@@ -18,6 +18,8 @@ celery
 pydantic
 pydantic-settings
 python-dotenv
+dataclasses
+typing
 
 PyYAML
 duckduckgo-search

@@ -54,6 +54,9 @@ class Settings(BaseSettings):
     AGENTCORE_POST_DEPLOY_TEST: bool = True
     AGENTCORE_POST_DEPLOY_TEST_PROMPT: str = "Hello from Nexus-AI"
     
+    # Agent Runtime Integration
+    AGENT_RUNTIME_URL: str = "http://localhost:8080"
+    
     # Logging Configuration
     LOG_LEVEL: str = "INFO"
     LOG_FORMAT: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"

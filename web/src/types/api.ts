@@ -43,6 +43,41 @@ export interface CreateAgentResponseData {
 
 export type CreateAgentResponse = ApiResponse<CreateAgentResponseData>;
 
+export interface AgentDialogSession {
+  session_id: string;
+  display_name?: string;
+  created_at: string;
+  last_active_at?: string;
+}
+
+export interface AgentDialogSessionsResponse {
+  sessions: AgentDialogSession[];
+}
+
+export interface AgentDialogMessage {
+  message_id: string;
+  role: 'user' | 'assistant' | string;
+  content: string;
+  created_at: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface AgentDialogMessagesResponse {
+  messages: AgentDialogMessage[];
+}
+
+export interface AgentContextResponseData {
+  agent_id: string;
+  display_name?: string;
+  system_prompt_path?: string;
+  code_path?: string;
+  tools_path?: string;
+  description?: string;
+  tags?: string[];
+}
+
+export type AgentContextResponse = ApiResponse<AgentContextResponseData>;
+
 export interface TaskStatusData {
   task_id: string;
   status: string;

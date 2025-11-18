@@ -1,88 +1,122 @@
 'use client';
 
-import { FormEvent, useMemo, useState } from 'react';
+import { FormEvent, KeyboardEvent, useMemo, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import styles from './new-agent.module.css';
 import { createAgent } from '@/lib/agents';
 import type { CreateAgentRequest } from '@/types/api';
 import type { ProjectSummary } from '@/types/projects';
-import { LoadingState } from '@components/feedback/loading-state';
-import { ErrorState } from '@components/feedback/error-state';
+import { useProjectSummaries } from '@/hooks/use-projects';
 
 interface FormState {
   requirement: string;
-  user_id: string;
-  user_name: string;
-  agent_name: string;
+  agentName: string;
+  userId: string;
+  userName: string;
   priority: number;
-  tags: string;
+  tags: string[];
 }
 
-const INITIAL_STATE: FormState = {
+const INITIAL_FORM: FormState = {
   requirement: '',
-  user_id: 'console-user',
-  user_name: 'Console User',
-  agent_name: '',
+  agentName: '',
+  userId: 'console-user',
+  userName: 'Console User',
   priority: 3,
-  tags: '',
+  tags: [],
 };
 
-type Step = 'requirement' | 'metadata';
-
-const STEPS: { id: Step; title: string; description: string }[] = [
+const QUICK_START_TEMPLATES: Array<{
+  id: string;
+  title: string;
+  description: string;
+  requirement: string;
+  agentName: string;
+  tags: string[];
+}> = [
   {
-    id: 'requirement',
-    title: '需求描述',
-    description: '说明你希望构建的 Agent 目标、输入输出和关键限制。',
+    id: 'file-summary',
+    title: '📄 文件摘要助理',
+    description: '自动读取多格式文档并生成结构化摘要、要点和后续行动建议。',
+    requirement:
+      '帮我构建一个可以自动读取 PDF、Word、Markdown 等多种格式文件，并输出结构化摘要的 Agent，要包含关键要点、风险提示以及可执行建议。',
+    agentName: '结构化文件摘要官',
+    tags: ['summary', 'document', 'analysis'],
   },
   {
-    id: 'metadata',
-    title: '任务参数',
-    description: '配置调用信息并快速确认提交内容。',
+    id: 'ops-incident',
+    title: '🛡️ 运维巡检助手',
+    description: '每日拉取监控数据，生成巡检日报与异常告警，支持多渠道通知。',
+    requirement:
+      '我需要一个自动化运维巡检 Agent，可以每天早上 7 点汇总监控指标、异常日志与告警信息，输出日报并通过飞书推送。',
+    agentName: '云原生巡检助手',
+    tags: ['ops', 'monitor', 'daily-report'],
+  },
+  {
+    id: 'sales-insight',
+    title: '📈 销售洞察分析师',
+    description: '整合 CRM 与 BI 数据，自动生成周度复盘和 KPI 趋势报告。',
+    requirement:
+      '构建一个销售洞察 Agent，能够拉取 CRM 数据，生成周度复盘报告，重点包含成交趋势、客户画像和重点跟进建议。',
+    agentName: '销售洞察分析师',
+    tags: ['sales', 'crm', 'insight'],
   },
 ];
 
-function parseTags(input: string) {
-  return input
+const STAGE_PIPELINE: Array<{ id: string; title: string; description: string }> = [
+  {
+    id: 'requirements_analyzer',
+    title: '需求分析',
+    description: '识别目标与约束，补充业务上下文与验收标准。',
+  },
+  {
+    id: 'system_architect',
+    title: '系统设计',
+    description: '定义智能体架构、记忆策略及外部系统对接方案。',
+  },
+  {
+    id: 'agent_designer',
+    title: 'Agent 设计',
+    description: '构建角色设定、对话分层与响应样式。',
+  },
+  {
+    id: 'agent_developer_manager',
+    title: '交付管理',
+    description: '整合工件、联调测试，并评估交付质量。',
+  },
+];
+
+const SUGGESTED_TAGS = ['internal', 'automation', 'analysis', 'mcp', 'customer-service', 'qa'];
+
+function formatPercent(value: number): string {
+  return `${(value * 100).toFixed(1)}%`;
+}
+
+function parseTagInput(source: string): string[] {
+  return source
     .split(',')
     .map((tag) => tag.trim())
     .filter(Boolean);
 }
 
-function requirementError(requirement: string) {
-  const trimmed = requirement.trim();
-  if (!trimmed) {
-    return '需求描述不能为空';
-  }
-
-  if (trimmed.length < 10) {
-    return '至少需要 10 个字符';
-  }
-
-  return undefined;
-}
-
 export function NewAgentView() {
-  const [form, setForm] = useState<FormState>(INITIAL_STATE);
-  const [stepIndex, setStepIndex] = useState(0);
-  const [submittedTaskId, setSubmittedTaskId] = useState<string | null>(null);
+  const [form, setForm] = useState<FormState>(INITIAL_FORM);
+  const [tagInput, setTagInput] = useState('');
+  const [submittedTask, setSubmittedTask] = useState<{ id: string; name?: string } | null>(null);
 
-  const router = useRouter();
+  const { data: projectSummaries, isLoading: statsLoading, isError: statsError } = useProjectSummaries();
   const queryClient = useQueryClient();
-  const currentStep = STEPS[stepIndex];
-  const isLastStep = stepIndex === STEPS.length - 1;
-  const requirementValidation = useMemo(() => requirementError(form.requirement), [form.requirement]);
 
   const mutation = useMutation({
     mutationFn: (payload: CreateAgentRequest) => createAgent(payload),
     onSuccess: (data, variables) => {
-      setSubmittedTaskId(data.task_id);
+      setSubmittedTask({ id: data.task_id, name: data.agent_name ?? variables.agent_name });
       toast.success('已提交构建任务', {
-        description: `项目 ${data.agent_name ?? data.project_id} 正在排队构建。`,
+        description: `${data.agent_name ?? variables.agent_name ?? data.project_id} 正在创建中`,
       });
 
-      const optimisticProject: ProjectSummary = {
+      const optimistic: ProjectSummary = {
         projectId: data.project_id,
         projectName: variables.agent_name || variables.requirement.slice(0, 60) || data.project_id,
         status: 'building',
@@ -96,11 +130,12 @@ export function NewAgentView() {
 
       queryClient.setQueryData<ProjectSummary[] | undefined>(['projects', 'summaries'], (current) => {
         const existing = current ?? [];
-        const without = existing.filter((project) => project.projectId !== optimisticProject.projectId);
-        return [optimisticProject, ...without];
+        const filtered = existing.filter((item) => item.projectId !== optimistic.projectId);
+        return [optimistic, ...filtered];
       });
-
       queryClient.invalidateQueries({ queryKey: ['projects', 'summaries'] });
+      setForm((prev) => ({ ...INITIAL_FORM, userId: prev.userId, userName: prev.userName }));
+      setTagInput('');
     },
     onError: (error: unknown) => {
       const message = error instanceof Error ? error.message : '提交失败，请稍后重试';
@@ -108,341 +143,343 @@ export function NewAgentView() {
     },
   });
 
-  const onSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const stats = useMemo(() => {
+    const list = projectSummaries ?? [];
+    if (!list.length) {
+      return {
+        total: 0,
+        building: 0,
+        completed: 0,
+        successRate: 0,
+        averageProgress: 0,
+      };
+    }
+
+    const total = list.length;
+    const building = list.filter((item) => item.status === 'building').length;
+    const completed = list.filter((item) => item.status === 'completed').length;
+    const averageProgress =
+      list.reduce((sum, item) => sum + (item.progressPercentage ?? 0), 0) / Math.max(total, 1) / 100;
+    const successRate = completed / total;
+
+    return {
+      total,
+      building,
+      completed,
+      successRate,
+      averageProgress,
+    };
+  }, [projectSummaries]);
+
+  const canSubmit = form.requirement.trim().length >= 10 && form.userId.trim() && form.userName.trim();
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!canSubmit || mutation.isPending) {
+      return;
+    }
+
     mutation.reset();
-    setSubmittedTaskId(null);
+    const mergedTags = Array.from(new Set([...form.tags, ...parseTagInput(tagInput)])).map((tag) => tag.trim());
 
     const payload: CreateAgentRequest = {
       requirement: form.requirement.trim(),
-      user_id: form.user_id.trim(),
-      user_name: form.user_name.trim(),
-      agent_name: form.agent_name.trim() || undefined,
+      user_id: form.userId.trim(),
+      user_name: form.userName.trim(),
+      agent_name: form.agentName.trim() || undefined,
       priority: form.priority,
-      tags: parseTags(form.tags),
+      tags: mergedTags,
     };
 
     mutation.mutate(payload);
   };
 
-  const canProceed =
-    currentStep.id === 'requirement'
-      ? !requirementValidation
-      : form.user_id.trim().length > 0 && form.user_name.trim().length > 0;
-
-  const nextStep = () => {
-    if (!canProceed || isLastStep) {
+  const addSuggestedTag = (tag: string) => {
+    if (form.tags.includes(tag)) {
       return;
     }
-    setStepIndex((index) => Math.min(index + 1, STEPS.length - 1));
+    setForm((prev) => ({ ...prev, tags: [...prev.tags, tag] }));
   };
 
-  const prevStep = () => {
-    setStepIndex((index) => Math.max(index - 1, 0));
+  const removeTag = (tag: string) => {
+    setForm((prev) => ({ ...prev, tags: prev.tags.filter((item) => item !== tag) }));
+  };
+
+  const handleTagInputKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key !== 'Enter') {
+      return;
+    }
+    event.preventDefault();
+    const value = (event.currentTarget.value || '').trim();
+    if (!value) {
+      return;
+    }
+    addSuggestedTag(value);
+    setTagInput('');
+  };
+
+  const applyTemplate = (templateId: string) => {
+    const template = QUICK_START_TEMPLATES.find((item) => item.id === templateId);
+    if (!template) {
+      return;
+    }
+    setForm((prev) => ({
+      ...prev,
+      requirement: template.requirement,
+      agentName: template.agentName,
+      tags: Array.from(new Set([...prev.tags, ...template.tags])),
+    }));
+    toast('已应用预设模板', { description: template.title });
   };
 
   return (
-    <section style={{ display: 'grid', gap: '24px' }}>
-      <header>
-        <h1 style={{ margin: 0, fontSize: '26px', fontWeight: 600 }}>新建代理构建任务</h1>
-        <p style={{ margin: '6px 0 0', fontSize: '14px', color: 'var(--muted)' }}>
-          按步骤提供上下文，系统将自动启动端到端流水线。
+    <div className={styles.page}>
+      <section className={styles.hero}>
+        <div className={styles.heroLabel}>
+          <span>🚀 智能体构建中心</span>
+          <span>端到端工作流 · 60 秒即可提交</span>
+        </div>
+        <h1 className={styles.heroTitle}>完成需求表述，剩下交给 Nexus-AI</h1>
+        <p className={styles.heroSubtitle}>
+          只需描述业务诉求，系统将自动完成需求解析、架构设计、Agent 生成与交付验证，实现智能体的全链路构建。
         </p>
-      </header>
+        <div className={styles.statsGrid}>
+          <div className={styles.statCard}>
+            <div className={styles.statLabel}>累计构建</div>
+            <div className={styles.statValue}>{stats.total}</div>
+          </div>
+          <div className={styles.statCard}>
+            <div className={styles.statLabel}>进行中</div>
+            <div className={styles.statValue}>{stats.building}</div>
+          </div>
+          <div className={styles.statCard}>
+            <div className={styles.statLabel}>成功率</div>
+            <div className={styles.statValue}>{formatPercent(stats.successRate)}</div>
+          </div>
+          <div className={styles.statCard}>
+            <div className={styles.statLabel}>平均进度</div>
+            <div className={styles.statValue}>{formatPercent(stats.averageProgress)}</div>
+          </div>
+        </div>
+        {statsLoading ? <span className={styles.loadingBanner}>加载构建概览…</span> : null}
+        {statsError ? <span className={styles.errorCard}>统计数据暂时不可用，请稍后刷新。</span> : null}
+      </section>
 
-      <nav
-        aria-label="构建向导"
-        style={{
-          display: 'flex',
-          gap: '16px',
-          flexWrap: 'wrap',
-          padding: '12px 20px',
-          borderRadius: '12px',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
-          background: 'rgba(17, 20, 31, 0.75)',
-        }}
-      >
-        {STEPS.map((step, index) => {
-          const isActive = index === stepIndex;
-          const isCompleted = index < stepIndex;
-
-          return (
-            <div
-              key={step.id}
-              style={{
-                display: 'flex',
-                gap: '10px',
-                alignItems: 'center',
-                opacity: isActive || isCompleted ? 1 : 0.65,
-              }}
+      <section className={styles.quickStart}>
+        <div className={styles.sectionHeading}>
+          <div>
+            <div className={styles.sectionTitle}>快速开始</div>
+            <div className={styles.sectionDescription}>选择预设模板即可自动填充需求描述与推荐标签。</div>
+          </div>
+        </div>
+        <div className={styles.quickStartGrid}>
+          {QUICK_START_TEMPLATES.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              className={styles.quickStartCard}
+              onClick={() => applyTemplate(item.id)}
             >
-              <span
-                style={{
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '999px',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  background: isCompleted ? 'rgba(34,211,238,0.25)' : 'rgba(79,70,229,0.25)',
-                  border: isActive
-                    ? '1px solid rgba(34,211,238,0.6)'
-                    : '1px solid rgba(255,255,255,0.12)',
-                  color: '#fff',
-                  fontWeight: 600,
-                }}
-              >
-                {index + 1}
-              </span>
-              <div style={{ display: 'grid', gap: '4px' }}>
-                <span style={{ fontWeight: 600 }}>{step.title}</span>
-                <span style={{ fontSize: '12px', color: 'var(--muted)' }}>{step.description}</span>
+              <div className={styles.quickStartTitle}>{item.title}</div>
+              <div className={styles.quickStartBody}>{item.description}</div>
+              <div className={styles.tagList}>
+                {item.tags.map((tag) => (
+                  <span key={tag} className={styles.tagChip}>
+                    #{tag}
+                  </span>
+                ))}
               </div>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <form className={styles.formSection} onSubmit={handleSubmit}>
+        <div className={styles.formHeader}>
+          <div className={styles.formHeaderText}>
+            <div className={styles.formTitle}>填写需求，生成智能体方案</div>
+            <p className={styles.formSubtitle}>
+              描述你要解决的问题，越具体越好。系统会自动完成需求拆解、角色设计、提示词编排与代码生成。
+            </p>
+          </div>
+          <div className={styles.statusBadge}>
+            <span>⚡ 全流程自动构建</span>
+            <span>8 个阶段实时可视</span>
+          </div>
+        </div>
+
+        <div className={styles.formCard}>
+          <div className={styles.formBody}>
+            <div className={styles.requirementColumn}>
+              <label className={styles.label}>
+                <span>需求描述 *</span>
+                <textarea
+                  className={styles.textArea}
+                  placeholder="描述业务目标、输入输出、关键约束、上下文示例等。"
+                  value={form.requirement}
+                  onChange={(event) => setForm((prev) => ({ ...prev, requirement: event.target.value }))}
+                  required
+                />
+                <span className={styles.helperText}>不少于 10 个字符，包含角色定位、目标指标或差异化要求更佳。</span>
+              </label>
             </div>
-          );
-        })}
-      </nav>
 
-      <form
-        onSubmit={onSubmit}
-        style={{
-          display: 'grid',
-          gap: '20px',
-          padding: '24px',
-          borderRadius: '16px',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
-          background: 'rgba(15, 16, 24, 0.92)',
-        }}
-      >
-        {currentStep.id === 'requirement' ? (
-          <label style={{ display: 'grid', gap: '12px' }}>
-            <span style={{ fontSize: '14px', color: 'var(--muted)' }}>需求描述 *</span>
-            <textarea
-              required
-              rows={8}
-              value={form.requirement}
-              onChange={(event) => setForm((prev) => ({ ...prev, requirement: event.target.value }))}
-              placeholder="描述目标、输入、产出和关键约束。"
-              style={{
-                padding: '14px',
-                borderRadius: '12px',
-                border: '1px solid rgba(255, 255, 255, 0.12)',
-                background: 'rgba(255, 255, 255, 0.04)',
-                color: '#fff',
-                resize: 'vertical',
-              }}
-            />
-            {requirementValidation ? (
-              <span style={{ fontSize: '12px', color: '#f87171' }}>{requirementValidation}</span>
-            ) : null}
-          </label>
-        ) : null}
-
-        {currentStep.id === 'metadata' ? (
-          <div style={{ display: 'grid', gap: '18px' }}>
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-                gap: '16px',
-              }}
-            >
-              <label style={{ display: 'grid', gap: '8px' }}>
-                <span style={{ fontSize: '14px', color: 'var(--muted)' }}>用户 ID *</span>
+            <aside className={styles.metadataColumn}>
+              <label className={styles.label}>
+                <span>Agent 名称</span>
                 <input
+                  className={styles.input}
+                  placeholder="例如：客户服务质检官"
+                  value={form.agentName}
+                  onChange={(event) => setForm((prev) => ({ ...prev, agentName: event.target.value }))}
+                />
+              </label>
+
+              <label className={styles.label}>
+                <span>创建人 ID *</span>
+                <input
+                  className={styles.input}
+                  value={form.userId}
+                  onChange={(event) => setForm((prev) => ({ ...prev, userId: event.target.value }))}
                   required
-                  value={form.user_id}
-                  onChange={(event) => setForm((prev) => ({ ...prev, user_id: event.target.value }))}
-                  style={{
-                    padding: '10px 12px',
-                    borderRadius: '10px',
-                    border: '1px solid rgba(255, 255, 255, 0.12)',
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    color: '#fff',
-                  }}
                 />
               </label>
 
-              <label style={{ display: 'grid', gap: '8px' }}>
-                <span style={{ fontSize: '14px', color: 'var(--muted)' }}>用户名称 *</span>
+              <label className={styles.label}>
+                <span>创建人姓名 *</span>
                 <input
+                  className={styles.input}
+                  value={form.userName}
+                  onChange={(event) => setForm((prev) => ({ ...prev, userName: event.target.value }))}
                   required
-                  value={form.user_name}
-                  onChange={(event) => setForm((prev) => ({ ...prev, user_name: event.target.value }))}
-                  style={{
-                    padding: '10px 12px',
-                    borderRadius: '10px',
-                    border: '1px solid rgba(255, 255, 255, 0.12)',
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    color: '#fff',
-                  }}
                 />
               </label>
 
-              <label style={{ display: 'grid', gap: '8px' }}>
-                <span style={{ fontSize: '14px', color: 'var(--muted)' }}>Agent 名称</span>
+              <label className={styles.label}>
+                <span>优先级 (1-5)</span>
                 <input
-                  value={form.agent_name}
-                  onChange={(event) => setForm((prev) => ({ ...prev, agent_name: event.target.value }))}
-                  placeholder="例如：企业客服助理"
-                  style={{
-                    padding: '10px 12px',
-                    borderRadius: '10px',
-                    border: '1px solid rgba(255, 255, 255, 0.12)',
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    color: '#fff',
-                  }}
-                />
-              </label>
-
-              <label style={{ display: 'grid', gap: '8px' }}>
-                <span style={{ fontSize: '14px', color: 'var(--muted)' }}>优先级 (1-5)</span>
-                <input
+                  className={styles.input}
                   type="number"
                   min={1}
                   max={5}
                   value={form.priority}
-                  onChange={(event) => setForm((prev) => ({ ...prev, priority: Number(event.target.value) }))}
-                  style={{
-                    padding: '10px 12px',
-                    borderRadius: '10px',
-                    border: '1px solid rgba(255, 255, 255, 0.12)',
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    color: '#fff',
-                  }}
+                  onChange={(event) =>
+                    setForm((prev) => ({ ...prev, priority: Number.parseInt(event.target.value || '3', 10) }))
+                  }
                 />
               </label>
-            </div>
 
-            <label style={{ display: 'grid', gap: '8px' }}>
-              <span style={{ fontSize: '14px', color: 'var(--muted)' }}>标签 (逗号分隔)</span>
-              <input
-                value={form.tags}
-                onChange={(event) => setForm((prev) => ({ ...prev, tags: event.target.value }))}
-                placeholder="research, qa, internal"
-                style={{
-                  padding: '10px 12px',
-                  borderRadius: '10px',
-                  border: '1px solid rgba(255, 255, 255, 0.12)',
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  color: '#fff',
-                }}
-              />
-            </label>
+              <div>
+                <div className={styles.label}>
+                  <span>推荐标签</span>
+                  <span className={styles.helperText}>点击即可添加，支持自定义标签。</span>
+                </div>
+                <div className={styles.tagList}>
+                  {SUGGESTED_TAGS.map((tag) => (
+                    <button
+                      key={tag}
+                      type="button"
+                      className={styles.tagChip}
+                      onClick={() => addSuggestedTag(tag)}
+                    >
+                      #{tag}
+                    </button>
+                  ))}
+                </div>
+                {form.tags.length ? (
+                  <div className={styles.tagList} style={{ marginTop: 12 }}>
+                    {form.tags.map((tag) => (
+                      <button
+                        type="button"
+                        key={tag}
+                        className={styles.tagChip}
+                        onClick={() => removeTag(tag)}
+                        title="点击移除"
+                      >
+                        ✕ {tag}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
 
-            <div
-              style={{
-                display: 'grid',
-                gap: '12px',
-                padding: '18px',
-                borderRadius: '12px',
-                border: '1px solid rgba(34, 211, 238, 0.3)',
-                background: 'rgba(13, 148, 136, 0.08)',
-              }}
-            >
-              <div style={{ fontWeight: 600 }}>提交前确认</div>
-              <ul style={{ margin: 0, paddingLeft: '18px', color: 'var(--muted)', fontSize: '13px', lineHeight: 1.6 }}>
-                <li>需求描述将同步到 orchestrator 环节。</li>
-                <li>提交后可以在项目列表中查看阶段进度。</li>
-                <li>若要修改配置，可在构建完成后重新发起任务。</li>
-              </ul>
-            </div>
+              <label className={styles.label}>
+                <span>自定义标签</span>
+                <input
+                  className={styles.input}
+                  placeholder="输入后回车添加"
+                  value={tagInput}
+                  onChange={(event) => setTagInput(event.target.value)}
+                  onKeyDown={handleTagInputKeyDown}
+                />
+              </label>
+            </aside>
           </div>
-        ) : null}
 
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            gap: '16px',
-            flexWrap: 'wrap',
-          }}
-        >
-          <div style={{ fontSize: '13px', color: 'var(--muted)' }}>
-            步骤 {stepIndex + 1} / {STEPS.length}
-          </div>
-          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-            {stepIndex > 0 ? (
+          <div className={styles.submitBar}>
+            <div>
+              <div className={styles.helperText}>
+                👣 构建流水线：需求分析 → 架构设计 → Agent 设计 → 交付管理 → 部署验证
+              </div>
+              {mutation.isPending ? <span className={styles.loadingBanner}>正在提交构建任务…</span> : null}
+            </div>
+            <div className={styles.actions}>
               <button
                 type="button"
-                onClick={prevStep}
-                style={{
-                  padding: '10px 18px',
-                  borderRadius: '12px',
-                  border: '1px solid rgba(255, 255, 255, 0.12)',
-                  background: 'transparent',
-                  color: '#fff',
-                  cursor: 'pointer',
+                className={`${styles.actionButton} ${styles.secondary}`}
+                onClick={() => {
+                  setForm((prev) => ({ ...INITIAL_FORM, userId: prev.userId, userName: prev.userName }));
+                  setTagInput('');
                 }}
               >
-                上一步
+                清空表单
               </button>
-            ) : null}
-
-            {!isLastStep ? (
-              <button
-                type="button"
-                disabled={!canProceed}
-                onClick={nextStep}
-                style={{
-                  padding: '10px 18px',
-                  borderRadius: '12px',
-                  border: 'none',
-                  background: canProceed
-                    ? 'linear-gradient(135deg, #22d3ee, #6366f1)'
-                    : 'rgba(255, 255, 255, 0.08)',
-                  color: '#fff',
-                  fontWeight: 600,
-                  cursor: canProceed ? 'pointer' : 'not-allowed',
-                }}
-              >
-                下一步
-              </button>
-            ) : (
               <button
                 type="submit"
-                disabled={mutation.isPending || !canProceed}
-                style={{
-                  padding: '12px 20px',
-                  borderRadius: '12px',
-                  border: 'none',
-                  background: mutation.isPending
-                    ? 'rgba(255, 255, 255, 0.12)'
-                    : 'linear-gradient(135deg, #16a34a, #22c55e)',
-                  color: '#fff',
-                  fontWeight: 600,
-                  cursor: mutation.isPending ? 'wait' : 'pointer',
-                }}
+                className={`${styles.actionButton} ${styles.primary}`}
+                disabled={!canSubmit || mutation.isPending}
               >
                 {mutation.isPending ? '提交中…' : '提交构建任务'}
               </button>
-            )}
+            </div>
           </div>
         </div>
       </form>
 
-      {mutation.isPending ? <LoadingState message="正在提交构建任务…" /> : null}
-      {mutation.isError ? <ErrorState description="提交失败，请稍后重试" /> : null}
-
-      {submittedTaskId ? (
-        <section
-          style={{
-            padding: '20px',
-            borderRadius: '16px',
-            border: '1px solid rgba(34, 211, 238, 0.3)',
-            background: 'rgba(20, 184, 166, 0.1)',
-            display: 'grid',
-            gap: '6px',
-          }}
-        >
+      {submittedTask ? (
+        <section className={styles.successCard}>
           <div style={{ fontWeight: 600 }}>构建任务已创建</div>
-          <div style={{ fontSize: '14px', color: 'var(--muted)' }}>任务 ID：{submittedTaskId}</div>
-          <div style={{ fontSize: '13px', color: 'var(--muted)' }}>
-            即将跳转到项目详情，可随时在项目列表中查看实时状态。
-          </div>
+          <div>任务 ID：{submittedTask.id}</div>
+          {submittedTask.name ? <div>Agent 名称：{submittedTask.name}</div> : null}
+          <div>你可以在构建模块中查看实时进度与阶段日志。</div>
         </section>
       ) : null}
-    </section>
+
+      {mutation.isError ? (
+        <section className={styles.errorCard}>
+          <div style={{ fontWeight: 600 }}>提交失败</div>
+          <div>请稍后重试，或检查网络与表单内容是否符合要求。</div>
+        </section>
+      ) : null}
+
+      <section className={styles.pipeline}>
+        <div className={styles.sectionHeading}>
+          <div>
+            <div className={styles.sectionTitle}>标准构建流水线</div>
+            <div className={styles.sectionDescription}>
+              每个阶段都有专属 Agent 负责交付，系统会自动协调协作并沉淀可复用工件。
+            </div>
+          </div>
+        </div>
+        <div className={styles.pipelineGrid}>
+          {STAGE_PIPELINE.map((stage) => (
+            <div key={stage.id} className={styles.pipelineCard}>
+              <div className={styles.pipelineTitle}>{stage.title}</div>
+              <div className={styles.pipelineMeta}>{stage.description}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+    </div>
   );
 }
