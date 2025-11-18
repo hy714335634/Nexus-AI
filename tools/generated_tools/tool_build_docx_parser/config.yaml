@@ -1,0 +1,6 @@
+tool_project:
+  created_date: '2025-11-18T03:07:26.948110+00:00'
+  description: 一个用于解析docx文档的工具，能够提取元数据（如页数、字符数、章节标题），并按照章节拆分缓存，支持按页码或章节标题检索内容，以及处理文档中的图片。
+  name: tool_build_docx_parser
+  status: initialized
+  version: 1.0.0

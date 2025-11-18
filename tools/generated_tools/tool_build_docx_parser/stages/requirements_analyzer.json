@@ -1,0 +1,270 @@
+{
+  "requirements_document": {
+    "tool_name": "docx_parser",
+    "version": "1.0",
+    "date": "2025-11-18",
+    "overview": "一个用于解析docx文档的工具，能够提取元数据（如页数、字符数、章节标题），并按照章节拆分缓存，支持按页码或章节标题检索内容，以及处理文档中的图片。",
+    "functional_requirements": [
+      {
+        "id": "FR-001",
+        "title": "文档解析与元数据提取",
+        "description": "解析用户提供的docx文档，提取并返回文档的元数据信息，包括jobid、总页数、字符数、章节标题列表等信息。",
+        "input_parameters": [
+          {
+            "name": "docs_path",
+            "type": "string",
+            "required": true,
+            "description": "docx文档的文件路径"
+          },
+          {
+            "name": "job_id",
+            "type": "string",
+            "required": false,
+            "description": "用户指定的作业ID，用于标识解析任务",
+            "default": "自动生成的UUID"
+          }
+        ],
+        "output_format": {
+          "type": "JSON字符串",
+          "description": "包含文档元数据的JSON对象",
+          "example": "{'job_id': '12345', 'total_pages': 10, 'total_chars': 5000, 'sections': [{'title': '第一章', 'start_page': 1}, {'title': '第二章', 'start_page': 5}]}"
+        },
+        "use_cases": [
+          "用户需要快速了解文档基本信息",
+          "Agent需要获取文档结构以便进一步处理"
+        ],
+        "error_handling": [
+          "文件路径不存在时返回错误信息",
+          "非docx格式文件返回格式不支持的错误",
+          "文件损坏或无法解析时返回解析错误"
+        ]
+      },
+      {
+        "id": "FR-002",
+        "title": "文档章节拆分与缓存",
+        "description": "将解析的docx文档按照章节拆分，并缓存到本地文件系统，便于后续快速检索。",
+        "input_parameters": [
+          {
+            "name": "docs_path",
+            "type": "string",
+            "required": true,
+            "description": "docx文档的文件路径"
+          },
+          {
+            "name": "job_id",
+            "type": "string",
+            "required": false,
+            "description": "用户指定的作业ID，用于标识缓存目录",
+            "default": "自动生成的UUID"
+          }
+        ],
+        "output_format": {
+          "type": "JSON字符串",
+          "description": "包含缓存状态和路径的JSON对象",
+          "example": "{'job_id': '12345', 'cache_status': 'success', 'cache_path': '.cache/docx_parser/12345/', 'sections_count': 5}"
+        },
+        "use_cases": [
+          "为大型文档创建索引以便快速检索",
+          "减少重复解析文档的开销"
+        ],
+        "error_handling": [
+          "缓存目录创建失败时返回错误信息",
+          "写入权限不足时返回权限错误",
+          "缓存空间不足时返回存储错误"
+        ]
+      },
+      {
+        "id": "FR-003",
+        "title": "按页码检索文档内容",
+        "description": "根据用户指定的jobid和页码，从缓存中检索并返回对应页面的文档内容。",
+        "input_parameters": [
+          {
+            "name": "job_id",
+            "type": "string",
+            "required": true,
+            "description": "解析任务的作业ID"
+          },
+          {
+            "name": "page_number",
+            "type": "integer",
+            "required": true,
+            "description": "要检索的页码"
+          }
+        ],
+        "output_format": {
+          "type": "JSON字符串",
+          "description": "包含页面内容的JSON对象",
+          "example": "{'job_id': '12345', 'page': 3, 'content': '这是第三页的内容...', 'images': [{'image_id': 'img1', 'path': '.cache/docx_parser/12345/images/img1.png'}]}"
+        },
+        "use_cases": [
+          "用户需要查看文档特定页面内容",
+          "Agent需要按页面处理文档"
+        ],
+        "error_handling": [
+          "作业ID不存在时返回错误信息",
+          "页码超出范围时返回页码错误",
+          "缓存已过期或被删除时返回缓存错误"
+        ]
+      },
+      {
+        "id": "FR-004",
+        "title": "按章节标题检索文档内容",
+        "description": "根据用户指定的jobid和章节标题，从缓存中检索并返回对应章节的文档内容。",
+        "input_parameters": [
+          {
+            "name": "job_id",
+            "type": "string",
+            "required": true,
+            "description": "解析任务的作业ID"
+          },
+          {
+            "name": "section_title",
+            "type": "string",
+            "required": true,
+            "description": "要检索的章节标题"
+          }
+        ],
+        "output_format": {
+          "type": "JSON字符串",
+          "description": "包含章节内容的JSON对象",
+          "example": "{'job_id': '12345', 'section': '第二章', 'content': '这是第二章的内容...', 'start_page': 5, 'end_page': 9, 'images': [{'image_id': 'img2', 'path': '.cache/docx_parser/12345/images/img2.png'}]}"
+        },
+        "use_cases": [
+          "用户需要查看文档特定章节内容",
+          "Agent需要按章节处理文档"
+        ],
+        "error_handling": [
+          "作业ID不存在时返回错误信息",
+          "章节标题不存在时返回章节错误",
+          "缓存已过期或被删除时返回缓存错误"
+        ]
+      },
+      {
+        "id": "FR-005",
+        "title": "图片处理与返回",
+        "description": "提取文档中的图片并保存到本地，根据用户需求返回图片的base64编码或图片路径。",
+        "input_parameters": [
+          {
+            "name": "job_id",
+            "type": "string",
+            "required": true,
+            "description": "解析任务的作业ID"
+          },
+          {
+            "name": "image_id",
+            "type": "string",
+            "required": true,
+            "description": "要获取的图片ID"
+          },
+          {
+            "name": "return_type",
+            "type": "string",
+            "required": false,
+            "description": "返回图片的方式，可选值为'base64'或'path'",
+            "default": "path"
+          }
+        ],
+        "output_format": {
+          "type": "JSON字符串",
+          "description": "包含图片信息的JSON对象",
+          "example": "{'job_id': '12345', 'image_id': 'img1', 'return_type': 'base64', 'image_data': 'base64编码的图片数据...', 'image_format': 'png'}"
+        },
+        "use_cases": [
+          "用户需要查看文档中的图片",
+          "Agent需要处理文档中的图像内容"
+        ],
+        "error_handling": [
+          "作业ID不存在时返回错误信息",
+          "图片ID不存在时返回图片错误",
+          "图片文件损坏或无法读取时返回读取错误"
+        ]
+      },
+      {
+        "id": "FR-006",
+        "title": "清理缓存",
+        "description": "清理指定作业ID的缓存文件，释放存储空间。",
+        "input_parameters": [
+          {
+            "name": "job_id",
+            "type": "string",
+            "required": true,
+            "description": "要清理的作业ID"
+          }
+        ],
+        "output_format": {
+          "type": "JSON字符串",
+          "description": "包含清理结果的JSON对象",
+          "example": "{'job_id': '12345', 'status': 'success', 'message': '缓存已成功清理'}"
+        },
+        "use_cases": [
+          "任务完成后释放存储空间",
+          "清理过期或不再需要的缓存"
+        ],
+        "error_handling": [
+          "作业ID不存在时返回警告信息",
+          "删除权限不足时返回权限错误",
+          "文件被锁定或使用中时返回锁定错误"
+        ]
+      }
+    ],
+    "dependencies": [
+      {
+        "package": "python-docx",
+        "version": ">=0.8.10",
+        "purpose": "解析docx文档的核心库"
+      },
+      {
+        "package": "Pillow",
+        "version": ">=8.0.0",
+        "purpose": "处理文档中的图片"
+      },
+      {
+        "package": "uuid",
+        "version": "",
+        "purpose": "生成唯一的作业ID"
+      },
+      {
+        "package": "json",
+        "version": "",
+        "purpose": "处理JSON格式的输入输出"
+      },
+      {
+        "package": "os",
+        "version": "",
+        "purpose": "文件系统操作"
+      },
+      {
+        "package": "shutil",
+        "version": "",
+        "purpose": "用于文件复制和目录操作"
+      },
+      {
+        "package": "base64",
+        "version": "",
+        "purpose": "图片base64编码"
+      }
+    ],
+    "constraints": {
+      "technical": [
+        "工具必须能处理大型docx文档（100MB以上）",
+        "缓存设计应考虑存储效率和检索速度的平衡",
+        "图片提取应保持原始格式和质量",
+        "应保留文档的层次结构和格式信息",
+        "需要考虑文档的重建可能性，即使不实现"
+      ],
+      "business": [
+        "工具应支持多用户并发使用，每个作业有独立的缓存",
+        "缓存应有合理的过期机制，避免无限增长",
+        "工具应有清晰的错误提示，方便用户理解问题"
+      ]
+    },
+    "success_criteria": [
+      "能够成功解析标准docx文档并提取准确的元数据",
+      "能够按章节拆分文档并在本地正确缓存",
+      "能够通过页码或章节标题精确检索文档内容",
+      "能够正确提取和处理文档中的图片",
+      "工具执行效率满足用户体验需求",
+      "错误处理机制能够有效应对各种异常情况"
+    ]
+  }
+}

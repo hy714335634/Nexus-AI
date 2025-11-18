@@ -1,0 +1,225 @@
+{
+  "design_document": {
+    "tool_name": "docx_parser",
+    "version": "1.0",
+    "date": "2025-11-18",
+    "overview": "DOCX 文档解析工具，能够解析文档、提取元数据、按章节缓存内容，并支持按页码或章节标题检索内容",
+    "core_functions": [
+      {
+        "function_name": "parse_document",
+        "description": "解析DOCX文档并提取元数据",
+        "parameters": [
+          {
+            "name": "doc_path",
+            "type": "str",
+            "description": "DOCX文档路径"
+          },
+          {
+            "name": "job_id",
+            "type": "str",
+            "description": "可选的作业ID，如不提供则自动生成"
+          }
+        ],
+        "returns": {
+          "type": "str (JSON)",
+          "description": "包含job_id、页数、字符数、章节信息等元数据的JSON字符串"
+        }
+      },
+      {
+        "function_name": "get_page_content",
+        "description": "获取指定页码的文档内容",
+        "parameters": [
+          {
+            "name": "job_id",
+            "type": "str",
+            "description": "作业ID"
+          },
+          {
+            "name": "page_num",
+            "type": "int",
+            "description": "页码"
+          }
+        ],
+        "returns": {
+          "type": "str (JSON)",
+          "description": "包含页面内容的JSON字符串，包括文本和图片信息"
+        }
+      },
+      {
+        "function_name": "get_section_content",
+        "description": "获取指定章节的文档内容",
+        "parameters": [
+          {
+            "name": "job_id",
+            "type": "str",
+            "description": "作业ID"
+          },
+          {
+            "name": "section_title",
+            "type": "str",
+            "description": "章节标题"
+          }
+        ],
+        "returns": {
+          "type": "str (JSON)",
+          "description": "包含章节内容的JSON字符串，包括文本和图片信息"
+        }
+      },
+      {
+        "function_name": "get_image",
+        "description": "获取文档中的图片",
+        "parameters": [
+          {
+            "name": "job_id",
+            "type": "str",
+            "description": "作业ID"
+          },
+          {
+            "name": "image_id",
+            "type": "str",
+            "description": "图片ID"
+          },
+          {
+            "name": "return_type",
+            "type": "str",
+            "description": "返回类型，'base64'或'path'"
+          }
+        ],
+        "returns": {
+          "type": "str (JSON)",
+          "description": "包含图片信息的JSON字符串，根据return_type返回base64编码或文件路径"
+        }
+      },
+      {
+        "function_name": "clean_cache",
+        "description": "清理指定作业的缓存文件",
+        "parameters": [
+          {
+            "name": "job_id",
+            "type": "str",
+            "description": "作业ID"
+          }
+        ],
+        "returns": {
+          "type": "str (JSON)",
+          "description": "清理操作结果"
+        }
+      }
+    ],
+    "technical_implementation": {
+      "libraries": [
+        {
+          "name": "python-docx",
+          "purpose": "解析DOCX文档"
+        },
+        {
+          "name": "Pillow",
+          "purpose": "处理图片"
+        },
+        {
+          "name": "uuid",
+          "purpose": "生成唯一作业ID"
+        },
+        {
+          "name": "json",
+          "purpose": "处理JSON数据"
+        },
+        {
+          "name": "os",
+          "purpose": "文件系统操作"
+        },
+        {
+          "name": "base64",
+          "purpose": "图片编码"
+        }
+      ],
+      "cache_structure": {
+        "base_path": ".cache/docx_parser/",
+        "job_folder": "{job_id}/",
+        "metadata_file": "{job_id}/metadata.json",
+        "sections_folder": "{job_id}/sections/",
+        "section_file": "{job_id}/sections/{section_id}.json",
+        "images_folder": "{job_id}/images/",
+        "image_file": "{job_id}/images/{image_id}.{ext}"
+      }
+    },
+    "error_handling": [
+      {
+        "error_type": "文件不存在",
+        "handling": "返回错误信息，指示文件不存在"
+      },
+      {
+        "error_type": "格式不支持",
+        "handling": "返回错误信息，指示只支持DOCX格式"
+      },
+      {
+        "error_type": "作业ID不存在",
+        "handling": "返回错误信息，指示需要先解析文档"
+      },
+      {
+        "error_type": "页码无效",
+        "handling": "返回错误信息，指示页码超出范围"
+      },
+      {
+        "error_type": "章节标题不存在",
+        "handling": "返回错误信息，指示找不到指定章节"
+      },
+      {
+        "error_type": "图片处理失败",
+        "handling": "返回错误信息，指示图片处理过程中出现错误"
+      }
+    ],
+    "test_cases": [
+      {
+        "name": "基本文档解析测试",
+        "description": "测试文档解析和元数据提取功能",
+        "expected_result": "成功解析文档并返回元数据"
+      },
+      {
+        "name": "按页码检索测试",
+        "description": "测试按页码检索文档内容",
+        "expected_result": "返回指定页码的文档内容"
+      },
+      {
+        "name": "按章节标题检索测试",
+        "description": "测试按章节标题检索文档内容",
+        "expected_result": "返回指定章节的文档内容"
+      },
+      {
+        "name": "图片处理测试(base64)",
+        "description": "测试以base64格式返回图片",
+        "expected_result": "返回图片的base64编码"
+      },
+      {
+        "name": "图片处理测试(路径)",
+        "description": "测试以文件路径返回图片",
+        "expected_result": "返回图片的文件路径"
+      },
+      {
+        "name": "缓存清理测试",
+        "description": "测试缓存清理功能",
+        "expected_result": "成功清理指定作业的缓存文件"
+      },
+      {
+        "name": "文件不存在测试",
+        "description": "测试处理不存在的文件",
+        "expected_result": "返回适当的错误信息"
+      },
+      {
+        "name": "非法页码测试",
+        "description": "测试处理非法页码",
+        "expected_result": "返回适当的错误信息"
+      },
+      {
+        "name": "非法章节测试",
+        "description": "测试处理不存在的章节",
+        "expected_result": "返回适当的错误信息"
+      },
+      {
+        "name": "非法作业ID测试",
+        "description": "测试处理不存在的作业ID",
+        "expected_result": "返回适当的错误信息"
+      }
+    ]
+  }
+}

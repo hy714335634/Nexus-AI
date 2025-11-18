@@ -6,6 +6,7 @@ default-config:
       agent_build: 'latest'
       agent_update: 'latest'
       tool_build: 'latest'
+    OTEL_EXPORTER_OTLP_ENDPOINT: 'http://localhost:4318'
   aws:
     bedrock_region_name: 'us-west-2'  # Region for Amazon Bedrock API calls
     aws_region_name: 'us-west-2'      # Default AWS region for other services

@@ -1,0 +1,28 @@
+{
+  "tool_project": "tool_build_docx_parser",
+  "description": "一个用于解析docx文档的工具，能够提取元数据（如页数、字符数、章节标题），并按照章节拆分缓存，支持按页码或章节标题检索内容，以及处理文档中的图片。",
+  "user_request": "我需要工具，能够接受用户或Agent给出的docs路径参数，解析docx文档，并返回解析结果（jobid、总页数、字符数、章节标题等元数据），同时Agent或用户能够指定jobid和页码或章节标题，工具返回对应文档指定页码或章节的内容。基本要求如下：\n1、工具解析后应能够完整保留所有内容，并按照章节拆分缓存在本地\n2、对于图片内容，应同样提取保存在本地，根据用户需求，可以返回图片的base64编码或图片路径\n3、理论上工具能够基于解析后的文档内容，能够再合并成原始文档，但不需要实现这个功能，需要从这个角度出发去设计工具",
+  "created_at": "2025-11-18T03:07:26.949589+00:00",
+  "project_path": "tools/generated_tools/tool_build_docx_parser",
+  "workflow_stages": [
+    "requirements_analyzer",
+    "tool_designer",
+    "tool_developer",
+    "tool_validator", 
+    "tool_documenter"
+  ],
+  "requirements_summary": {
+    "main_features": [
+      "解析docx文档并提取元数据（jobid、总页数、字符数、章节标题等）",
+      "按章节拆分并缓存文档内容",
+      "支持通过jobid和页码或章节标题检索内容",
+      "提取和保存文档中的图片，支持返回base64编码或图片路径"
+    ],
+    "technical_constraints": [
+      "完整保留文档的所有内容",
+      "设计应考虑未来可能需要重新合并文档的功能",
+      "遵循Nexus-AI平台的目录结构和缓存规则",
+      "工具函数应使用@tool装饰器并返回JSON字符串"
+    ]
+  }
+}

@@ -1,0 +1,391 @@
+{
+  "design_document": {
+    "tool_name": "docx_parser",
+    "version": "1.0",
+    "date": "2025-11-18",
+    "architecture": {
+      "file_structure": [
+        {
+          "file_name": "docx_parser.py",
+          "description": "主要工具文件，包含所有docx解析和处理功能",
+          "functions": [
+            {
+              "function_name": "parse_document",
+              "description": "解析docx文档并提取元数据，同时按章节缓存文档内容",
+              "parameters": [
+                {
+                  "name": "docs_path",
+                  "type": "str",
+                  "required": true,
+                  "description": "docx文档的文件路径"
+                },
+                {
+                  "name": "job_id",
+                  "type": "str",
+                  "required": false,
+                  "description": "用户指定的作业ID，用于标识缓存目录，默认自动生成UUID"
+                }
+              ],
+              "return_type": "str",
+              "return_description": "包含文档元数据的JSON字符串，包括job_id、总页数、字符数、章节信息等",
+              "implementation_logic": "使用python-docx库打开并解析文档，提取元数据，按章节分割文档，保存到缓存目录，处理并保存文档中的图片，返回解析结果",
+              "error_handling": "处理文件不存在、格式错误、解析失败等异常情况，返回适当的错误信息"
+            },
+            {
+              "function_name": "get_page_content",
+              "description": "根据作业ID和页码，获取文档指定页面的内容",
+              "parameters": [
+                {
+                  "name": "job_id",
+                  "type": "str",
+                  "required": true,
+                  "description": "解析任务的作业ID"
+                },
+                {
+                  "name": "page_number",
+                  "type": "int",
+                  "required": true,
+                  "description": "要获取的页码"
+                }
+              ],
+              "return_type": "str",
+              "return_description": "包含指定页面内容的JSON字符串，包括页面文本、图片信息等",
+              "implementation_logic": "从缓存中读取对应页面的内容和相关图片信息，组装为完整的页面内容返回",
+              "error_handling": "处理作业ID不存在、页码超出范围、缓存已删除等异常情况"
+            },
+            {
+              "function_name": "get_section_content",
+              "description": "根据作业ID和章节标题，获取文档指定章节的内容",
+              "parameters": [
+                {
+                  "name": "job_id",
+                  "type": "str",
+                  "required": true,
+                  "description": "解析任务的作业ID"
+                },
+                {
+                  "name": "section_title",
+                  "type": "str",
+                  "required": true,
+                  "description": "要获取的章节标题"
+                }
+              ],
+              "return_type": "str",
+              "return_description": "包含指定章节内容的JSON字符串，包括章节文本、图片信息、页面范围等",
+              "implementation_logic": "从缓存中读取对应章节的内容和相关图片信息，组装为完整的章节内容返回",
+              "error_handling": "处理作业ID不存在、章节标题不存在、缓存已删除等异常情况"
+            },
+            {
+              "function_name": "get_image",
+              "description": "获取文档中的图片，支持以base64编码或路径形式返回",
+              "parameters": [
+                {
+                  "name": "job_id",
+                  "type": "str",
+                  "required": true,
+                  "description": "解析任务的作业ID"
+                },
+                {
+                  "name": "image_id",
+                  "type": "str",
+                  "required": true,
+                  "description": "图片ID"
+                },
+                {
+                  "name": "return_type",
+                  "type": "str",
+                  "required": false,
+                  "description": "返回图片的方式，可选值为'base64'或'path'，默认为'path'"
+                }
+              ],
+              "return_type": "str",
+              "return_description": "包含图片信息的JSON字符串，根据return_type返回图片的base64编码或文件路径",
+              "implementation_logic": "从缓存中查找并读取图片文件，根据return_type参数决定返回base64编码或文件路径",
+              "error_handling": "处理作业ID不存在、图片ID不存在、图片文件损坏等异常情况"
+            },
+            {
+              "function_name": "clean_cache",
+              "description": "清理指定作业ID的缓存文件",
+              "parameters": [
+                {
+                  "name": "job_id",
+                  "type": "str",
+                  "required": true,
+                  "description": "要清理的作业ID"
+                }
+              ],
+              "return_type": "str",
+              "return_description": "包含清理结果的JSON字符串",
+              "implementation_logic": "删除与指定作业ID关联的所有缓存文件和目录",
+              "error_handling": "处理作业ID不存在、删除权限不足、文件被锁定等异常情况"
+            },
+            {
+              "function_name": "_extract_document_metadata",
+              "description": "从docx文档中提取元数据信息（内部辅助函数）",
+              "parameters": [
+                {
+                  "name": "doc",
+                  "type": "Document",
+                  "required": true,
+                  "description": "python-docx库的Document对象"
+                }
+              ],
+              "return_type": "dict",
+              "return_description": "包含文档元数据的字典，包括总页数、字符数等",
+              "implementation_logic": "解析Document对象，计算页数、字符数、提取文档属性等",
+              "error_handling": "处理文档结构异常或属性缺失的情况"
+            },
+            {
+              "function_name": "_identify_sections",
+              "description": "识别文档中的章节结构（内部辅助函数）",
+              "parameters": [
+                {
+                  "name": "doc",
+                  "type": "Document",
+                  "required": true,
+                  "description": "python-docx库的Document对象"
+                }
+              ],
+              "return_type": "list",
+              "return_description": "包含章节信息的列表，每个章节包含标题、起始页码等信息",
+              "implementation_logic": "通过分析段落样式、标题级别等识别文档的章节结构",
+              "error_handling": "处理文档无明确章节结构的情况"
+            },
+            {
+              "function_name": "_extract_and_save_images",
+              "description": "提取并保存文档中的图片（内部辅助函数）",
+              "parameters": [
+                {
+                  "name": "doc",
+                  "type": "Document",
+                  "required": true,
+                  "description": "python-docx库的Document对象"
+                },
+                {
+                  "name": "cache_dir",
+                  "type": "str",
+                  "required": true,
+                  "description": "缓存目录路径"
+                }
+              ],
+              "return_type": "dict",
+              "return_description": "图片信息映射表，包含图片ID、路径、尺寸等信息",
+              "implementation_logic": "遍历文档中的所有图片，保存到缓存目录，记录图片信息",
+              "error_handling": "处理图片提取失败、格式不支持、写入失败等异常情况"
+            },
+            {
+              "function_name": "_split_and_cache_sections",
+              "description": "按章节拆分并缓存文档内容（内部辅助函数）",
+              "parameters": [
+                {
+                  "name": "doc",
+                  "type": "Document",
+                  "required": true,
+                  "description": "python-docx库的Document对象"
+                },
+                {
+                  "name": "sections",
+                  "type": "list",
+                  "required": true,
+                  "description": "章节信息列表"
+                },
+                {
+                  "name": "cache_dir",
+                  "type": "str",
+                  "required": true,
+                  "description": "缓存目录路径"
+                }
+              ],
+              "return_type": "bool",
+              "return_description": "缓存操作是否成功",
+              "implementation_logic": "按照章节信息，将文档内容分割并保存到对应的缓存文件中",
+              "error_handling": "处理章节分割失败、写入权限不足等异常情况"
+            },
+            {
+              "function_name": "_calculate_pages",
+              "description": "估算文档页数（内部辅助函数）",
+              "parameters": [
+                {
+                  "name": "doc",
+                  "type": "Document",
+                  "required": true,
+                  "description": "python-docx库的Document对象"
+                }
+              ],
+              "return_type": "int",
+              "return_description": "估算的文档页数",
+              "implementation_logic": "基于段落数、字符数、图片尺寸等因素估算文档的页数",
+              "error_handling": "处理异常文档结构导致的计算错误"
+            },
+            {
+              "function_name": "_encode_image_to_base64",
+              "description": "将图片编码为base64字符串（内部辅助函数）",
+              "parameters": [
+                {
+                  "name": "image_path",
+                  "type": "str",
+                  "required": true,
+                  "description": "图片文件路径"
+                }
+              ],
+              "return_type": "str",
+              "return_description": "base64编码的图片数据",
+              "implementation_logic": "读取图片文件并转换为base64编码字符串",
+              "error_handling": "处理文件不存在或读取失败的情况"
+            }
+          ]
+        }
+      ]
+    },
+    "implementation_plan": {
+      "steps": [
+        {
+          "step": 1,
+          "description": "设置项目结构和缓存目录",
+          "code_snippet": "# 创建缓存目录结构\nimport os\n\ndef ensure_cache_dir(job_id):\n    cache_dir = os.path.join('.cache', 'docx_parser', job_id)\n    os.makedirs(cache_dir, exist_ok=True)\n    os.makedirs(os.path.join(cache_dir, 'images'), exist_ok=True)\n    os.makedirs(os.path.join(cache_dir, 'sections'), exist_ok=True)\n    return cache_dir"
+        },
+        {
+          "step": 2,
+          "description": "实现文档解析和元数据提取功能",
+          "code_snippet": "from docx import Document\nimport uuid\nimport json\n\ndef parse_document(docs_path, job_id=None):\n    if job_id is None:\n        job_id = str(uuid.uuid4())\n        \n    try:\n        # 验证文件存在且为docx格式\n        if not os.path.exists(docs_path):\n            return json.dumps({\n                'status': 'error',\n                'message': f'文件不存在: {docs_path}'\n            })\n            \n        if not docs_path.lower().endswith('.docx'):\n            return json.dumps({\n                'status': 'error',\n                'message': '仅支持.docx格式的文档'\n            })\n        \n        # 打开文档\n        doc = Document(docs_path)\n        \n        # 创建缓存目录\n        cache_dir = ensure_cache_dir(job_id)\n        \n        # 提取元数据\n        metadata = _extract_document_metadata(doc)\n        \n        # 识别章节\n        sections = _identify_sections(doc)\n        \n        # 提取并保存图片\n        images_info = _extract_and_save_images(doc, cache_dir)\n        \n        # 按章节拆分并缓存内容\n        _split_and_cache_sections(doc, sections, cache_dir)\n        \n        # 保存元数据到缓存\n        with open(os.path.join(cache_dir, 'metadata.json'), 'w', encoding='utf-8') as f:\n            json.dump({\n                'job_id': job_id,\n                'metadata': metadata,\n                'sections': sections,\n                'images': list(images_info.values())\n            }, f, ensure_ascii=False)\n        \n        # 构建返回结果\n        result = {\n            'status': 'success',\n            'job_id': job_id,\n            'total_pages': metadata['total_pages'],\n            'total_chars': metadata['total_chars'],\n            'sections': sections\n        }\n        \n        return json.dumps(result, ensure_ascii=False)\n        \n    except Exception as e:\n        return json.dumps({\n            'status': 'error',\n            'message': f'解析文档时出错: {str(e)}'\n        })"
+        },
+        {
+          "step": 3,
+          "description": "实现按页码检索文档内容功能",
+          "code_snippet": "def get_page_content(job_id, page_number):\n    try:\n        page_number = int(page_number)\n        cache_dir = os.path.join('.cache', 'docx_parser', job_id)\n        \n        # 检查缓存是否存在\n        if not os.path.exists(cache_dir):\n            return json.dumps({\n                'status': 'error',\n                'message': f'找不到作业ID: {job_id}的缓存'\n            })\n        \n        # 读取元数据\n        with open(os.path.join(cache_dir, 'metadata.json'), 'r', encoding='utf-8') as f:\n            metadata = json.load(f)\n        \n        # 检查页码是否有效\n        if page_number < 1 or page_number > metadata['metadata']['total_pages']:\n            return json.dumps({\n                'status': 'error',\n                'message': f'页码超出范围: 1-{metadata[\"metadata\"][\"total_pages\"]}'\n            })\n        \n        # 查找包含该页码的章节\n        target_section = None\n        for i, section in enumerate(metadata['sections']):\n            start_page = section['start_page']\n            end_page = metadata['sections'][i+1]['start_page']-1 if i+1 < len(metadata['sections']) else metadata['metadata']['total_pages']\n            \n            if start_page <= page_number <= end_page:\n                target_section = section\n                break\n        \n        # 读取章节内容\n        section_file = os.path.join(cache_dir, 'sections', f\"{target_section['id']}.json\")\n        with open(section_file, 'r', encoding='utf-8') as f:\n            section_data = json.load(f)\n        \n        # 提取页面内容\n        page_content = section_data['pages'].get(str(page_number), '')\n        \n        # 查找页面中包含的图片\n        page_images = []\n        for img in metadata['images']:\n            if img['page'] == page_number:\n                page_images.append(img)\n        \n        return json.dumps({\n            'status': 'success',\n            'job_id': job_id,\n            'page': page_number,\n            'content': page_content,\n            'images': page_images\n        }, ensure_ascii=False)\n        \n    except Exception as e:\n        return json.dumps({\n            'status': 'error',\n            'message': f'获取页面内容时出错: {str(e)}'\n        })"
+        },
+        {
+          "step": 4,
+          "description": "实现按章节标题检索文档内容功能",
+          "code_snippet": "def get_section_content(job_id, section_title):\n    try:\n        cache_dir = os.path.join('.cache', 'docx_parser', job_id)\n        \n        # 检查缓存是否存在\n        if not os.path.exists(cache_dir):\n            return json.dumps({\n                'status': 'error',\n                'message': f'找不到作业ID: {job_id}的缓存'\n            })\n        \n        # 读取元数据\n        with open(os.path.join(cache_dir, 'metadata.json'), 'r', encoding='utf-8') as f:\n            metadata = json.load(f)\n        \n        # 查找目标章节\n        target_section = None\n        for section in metadata['sections']:\n            if section['title'] == section_title:\n                target_section = section\n                break\n        \n        if not target_section:\n            return json.dumps({\n                'status': 'error',\n                'message': f'找不到章节: {section_title}'\n            })\n        \n        # 读取章节内容\n        section_file = os.path.join(cache_dir, 'sections', f\"{target_section['id']}.json\")\n        with open(section_file, 'r', encoding='utf-8') as f:\n            section_data = json.load(f)\n        \n        # 计算章节结束页\n        section_index = metadata['sections'].index(target_section)\n        end_page = metadata['sections'][section_index+1]['start_page']-1 if section_index+1 < len(metadata['sections']) else metadata['metadata']['total_pages']\n        \n        # 查找章节中包含的图片\n        section_images = []\n        for img in metadata['images']:\n            if target_section['start_page'] <= img['page'] <= end_page:\n                section_images.append(img)\n        \n        return json.dumps({\n            'status': 'success',\n            'job_id': job_id,\n            'section': section_title,\n            'content': section_data['content'],\n            'start_page': target_section['start_page'],\n            'end_page': end_page,\n            'images': section_images\n        }, ensure_ascii=False)\n        \n    except Exception as e:\n        return json.dumps({\n            'status': 'error',\n            'message': f'获取章节内容时出错: {str(e)}'\n        })"
+        },
+        {
+          "step": 5,
+          "description": "实现图片处理与返回功能",
+          "code_snippet": "import base64\n\ndef get_image(job_id, image_id, return_type='path'):\n    try:\n        cache_dir = os.path.join('.cache', 'docx_parser', job_id)\n        \n        # 检查缓存是否存在\n        if not os.path.exists(cache_dir):\n            return json.dumps({\n                'status': 'error',\n                'message': f'找不到作业ID: {job_id}的缓存'\n            })\n        \n        # 读取元数据\n        with open(os.path.join(cache_dir, 'metadata.json'), 'r', encoding='utf-8') as f:\n            metadata = json.load(f)\n        \n        # 查找目标图片\n        target_image = None\n        for img in metadata['images']:\n            if img['id'] == image_id:\n                target_image = img\n                break\n        \n        if not target_image:\n            return json.dumps({\n                'status': 'error',\n                'message': f'找不到图片ID: {image_id}'\n            })\n        \n        image_path = os.path.join(cache_dir, 'images', f\"{image_id}{target_image['extension']}\")\n        \n        # 检查图片文件是否存在\n        if not os.path.exists(image_path):\n            return json.dumps({\n                'status': 'error',\n                'message': f'图片文件不存在: {image_path}'\n            })\n        \n        # 根据return_type返回不同格式\n        result = {\n            'status': 'success',\n            'job_id': job_id,\n            'image_id': image_id,\n            'return_type': return_type,\n            'image_format': target_image['extension'][1:],  # 去掉点号\n            'width': target_image.get('width'),\n            'height': target_image.get('height')\n        }\n        \n        if return_type.lower() == 'base64':\n            result['image_data'] = _encode_image_to_base64(image_path)\n        else:  # path\n            result['image_path'] = image_path\n        \n        return json.dumps(result, ensure_ascii=False)\n        \n    except Exception as e:\n        return json.dumps({\n            'status': 'error',\n            'message': f'获取图片时出错: {str(e)}'\n        })"
+        },
+        {
+          "step": 6,
+          "description": "实现缓存清理功能",
+          "code_snippet": "import shutil\n\ndef clean_cache(job_id):\n    try:\n        cache_dir = os.path.join('.cache', 'docx_parser', job_id)\n        \n        # 检查缓存是否存在\n        if not os.path.exists(cache_dir):\n            return json.dumps({\n                'status': 'warning',\n                'message': f'找不到作业ID: {job_id}的缓存，无需清理'\n            })\n        \n        # 删除缓存目录\n        shutil.rmtree(cache_dir)\n        \n        return json.dumps({\n            'status': 'success',\n            'job_id': job_id,\n            'message': '缓存已成功清理'\n        })\n        \n    except Exception as e:\n        return json.dumps({\n            'status': 'error',\n            'message': f'清理缓存时出错: {str(e)}'\n        })"
+        },
+        {
+          "step": 7,
+          "description": "实现辅助函数：元数据提取",
+          "code_snippet": "def _extract_document_metadata(doc):\n    \"\"\"从docx文档中提取元数据\"\"\"\n    # 计算总字符数\n    total_chars = sum(len(p.text) for p in doc.paragraphs)\n    \n    # 估算页数\n    total_pages = _calculate_pages(doc)\n    \n    # 提取文档属性\n    properties = {}\n    if doc.core_properties:\n        if doc.core_properties.title:\n            properties['title'] = doc.core_properties.title\n        if doc.core_properties.author:\n            properties['author'] = doc.core_properties.author\n        if doc.core_properties.created:\n            properties['created'] = doc.core_properties.created.isoformat()\n        if doc.core_properties.modified:\n            properties['modified'] = doc.core_properties.modified.isoformat()\n    \n    return {\n        'total_pages': total_pages,\n        'total_chars': total_chars,\n        'properties': properties\n    }"
+        },
+        {
+          "step": 8,
+          "description": "实现辅助函数：章节识别",
+          "code_snippet": "def _identify_sections(doc):\n    \"\"\"识别文档中的章节结构\"\"\"\n    sections = []\n    current_page = 1\n    section_id = 0\n    \n    # 添加默认章节（文档开头）\n    sections.append({\n        'id': f'section_{section_id}',\n        'title': '文档开头',\n        'start_page': current_page,\n        'level': 0\n    })\n    section_id += 1\n    \n    # 遍历段落寻找标题\n    for para in doc.paragraphs:\n        # 检查段落是否为标题\n        if para.style.name.startswith('Heading') or para.style.name.startswith('标题'):\n            # 提取标题级别\n            level_match = re.search(r'\\d+', para.style.name)\n            level = int(level_match.group(0)) if level_match else 1\n            \n            # 估算当前页码（这里需要一个更精确的算法）\n            # 在实际实现中，需要基于段落位置计算页码\n            # 这里简化处理，假设每50个段落为一页\n            paragraphs_before = doc.paragraphs.index(para)\n            current_page = 1 + paragraphs_before // 50\n            \n            sections.append({\n                'id': f'section_{section_id}',\n                'title': para.text.strip(),\n                'start_page': current_page,\n                'level': level\n            })\n            section_id += 1\n    \n    return sections"
+        },
+        {
+          "step": 9,
+          "description": "实现辅助函数：图片提取与保存",
+          "code_snippet": "from PIL import Image\nimport io\n\ndef _extract_and_save_images(doc, cache_dir):\n    \"\"\"提取并保存文档中的图片\"\"\"\n    images_info = {}\n    image_id = 0\n    image_dir = os.path.join(cache_dir, 'images')\n    \n    # 处理文档中的每个关系\n    for rel in doc.part.rels.values():\n        if 'image' in rel.reltype:\n            try:\n                # 获取图片数据\n                image_data = rel.target_part.blob\n                \n                # 确定图片格式\n                image_stream = io.BytesIO(image_data)\n                img = Image.open(image_stream)\n                format_ext = f'.{img.format.lower()}'\n                \n                # 生成图片ID和路径\n                img_id = f'img_{image_id}'\n                img_filename = f'{img_id}{format_ext}'\n                img_path = os.path.join(image_dir, img_filename)\n                \n                # 保存图片\n                with open(img_path, 'wb') as f:\n                    f.write(image_data)\n                \n                # 记录图片信息\n                # 在实际实现中，需要确定图片所在页码\n                # 这里假设图片在第1页\n                images_info[rel.rId] = {\n                    'id': img_id,\n                    'extension': format_ext,\n                    'path': img_path,\n                    'width': img.width,\n                    'height': img.height,\n                    'page': 1  # 需要更准确的算法\n                }\n                \n                image_id += 1\n            except Exception as e:\n                print(f\"处理图片时出错: {e}\")\n    \n    return images_info"
+        },
+        {
+          "step": 10,
+          "description": "实现辅助函数：章节拆分与缓存",
+          "code_snippet": "def _split_and_cache_sections(doc, sections, cache_dir):\n    \"\"\"按章节拆分并缓存文档内容\"\"\"\n    sections_dir = os.path.join(cache_dir, 'sections')\n    \n    # 遍历章节\n    for i, section in enumerate(sections):\n        # 确定章节结束位置\n        next_section_index = i + 1\n        end_index = len(doc.paragraphs)\n        if next_section_index < len(sections):\n            # 查找下一章节标题的段落索引\n            for j, para in enumerate(doc.paragraphs):\n                if para.text.strip() == sections[next_section_index]['title']:\n                    end_index = j\n                    break\n        \n        # 查找章节开始位置\n        start_index = 0\n        for j, para in enumerate(doc.paragraphs):\n            if para.text.strip() == section['title']:\n                start_index = j\n                break\n        \n        # 提取章节内容\n        content = '\\n'.join(p.text for p in doc.paragraphs[start_index:end_index])\n        \n        # 将内容按页拆分（这里需要更精确的算法）\n        # 在实际实现中，需要准确计算每页的内容\n        # 这里简化处理，假设每1000个字符为一页\n        pages = {}\n        chars_per_page = 1000\n        for page_offset in range(0, len(content), chars_per_page):\n            page_number = section['start_page'] + page_offset // chars_per_page\n            page_content = content[page_offset:page_offset+chars_per_page]\n            pages[str(page_number)] = page_content\n        \n        # 保存章节内容\n        section_data = {\n            'id': section['id'],\n            'title': section['title'],\n            'content': content,\n            'pages': pages\n        }\n        \n        with open(os.path.join(sections_dir, f\"{section['id']}.json\"), 'w', encoding='utf-8') as f:\n            json.dump(section_data, f, ensure_ascii=False)\n    \n    return True"
+        },
+        {
+          "step": 11,
+          "description": "实现辅助函数：页数计算",
+          "code_snippet": "def _calculate_pages(doc):\n    \"\"\"估算文档页数\"\"\"\n    # 这是一个简化的估算方法，实际实现需要更准确的算法\n    # 一般A4页面约能容纳2000个字符，加上图片和格式因素\n    \n    # 计算文本字符数\n    total_chars = sum(len(p.text) for p in doc.paragraphs)\n    \n    # 计算图片数量（每张图片按1/4页计算）\n    image_count = 0\n    for rel in doc.part.rels.values():\n        if 'image' in rel.reltype:\n            image_count += 1\n    \n    # 基于字符数和图片数估算页数\n    estimated_pages = (total_chars // 2000) + (image_count // 4) + 1\n    \n    return max(1, estimated_pages)  # 至少返回1页"
+        },
+        {
+          "step": 12,
+          "description": "实现辅助函数：图片base64编码",
+          "code_snippet": "def _encode_image_to_base64(image_path):\n    \"\"\"将图片编码为base64字符串\"\"\"\n    with open(image_path, 'rb') as f:\n        image_data = f.read()\n    return base64.b64encode(image_data).decode('utf-8')"
+        },
+        {
+          "step": 13,
+          "description": "添加Strands工具装饰器并完成主函数",
+          "code_snippet": "from strands import tool\n\n@tool\ndef parse_document(docs_path, job_id=None):\n    \"\"\"解析docx文档并提取元数据，同时按章节缓存文档内容\n    \n    Args:\n        docs_path (str): docx文档的文件路径\n        job_id (str, optional): 用户指定的作业ID，用于标识缓存目录，默认自动生成UUID\n        \n    Returns:\n        str: 包含文档元数据的JSON字符串，包括job_id、总页数、字符数、章节信息等\n    \"\"\"\n    # 实现内容见上方\n\n@tool\ndef get_page_content(job_id, page_number):\n    \"\"\"根据作业ID和页码，获取文档指定页面的内容\n    \n    Args:\n        job_id (str): 解析任务的作业ID\n        page_number (int): 要获取的页码\n        \n    Returns:\n        str: 包含指定页面内容的JSON字符串，包括页面文本、图片信息等\n    \"\"\"\n    # 实现内容见上方\n\n@tool\ndef get_section_content(job_id, section_title):\n    \"\"\"根据作业ID和章节标题，获取文档指定章节的内容\n    \n    Args:\n        job_id (str): 解析任务的作业ID\n        section_title (str): 要获取的章节标题\n        \n    Returns:\n        str: 包含指定章节内容的JSON字符串，包括章节文本、图片信息、页面范围等\n    \"\"\"\n    # 实现内容见上方\n\n@tool\ndef get_image(job_id, image_id, return_type='path'):\n    \"\"\"获取文档中的图片，支持以base64编码或路径形式返回\n    \n    Args:\n        job_id (str): 解析任务的作业ID\n        image_id (str): 图片ID\n        return_type (str, optional): 返回图片的方式，可选值为'base64'或'path'，默认为'path'\n        \n    Returns:\n        str: 包含图片信息的JSON字符串，根据return_type返回图片的base64编码或文件路径\n    \"\"\"\n    # 实现内容见上方\n\n@tool\ndef clean_cache(job_id):\n    \"\"\"清理指定作业ID的缓存文件\n    \n    Args:\n        job_id (str): 要清理的作业ID\n        \n    Returns:\n        str: 包含清理结果的JSON字符串\n    \"\"\"\n    # 实现内容见上方"
+        }
+      ]
+    },
+    "dependencies": [
+      {
+        "package": "python-docx",
+        "version": ">=0.8.10",
+        "purpose": "解析docx文档的核心库"
+      },
+      {
+        "package": "Pillow",
+        "version": ">=8.0.0",
+        "purpose": "处理文档中的图片"
+      },
+      {
+        "package": "strands",
+        "version": "",
+        "purpose": "Strands SDK工具装饰器"
+      }
+    ],
+    "testing_strategy": {
+      "test_cases": [
+        {
+          "test_name": "测试文档解析功能",
+          "description": "验证工具能够成功解析docx文档并提取正确的元数据",
+          "input": "docs_path='test_document.docx'",
+          "expected_output": "包含job_id、total_pages、total_chars和sections的JSON对象"
+        },
+        {
+          "test_name": "测试按页码检索",
+          "description": "验证能够根据作业ID和页码正确检索文档内容",
+          "input": "job_id='test_job', page_number=2",
+          "expected_output": "包含页面内容和图片信息的JSON对象"
+        },
+        {
+          "test_name": "测试按章节检索",
+          "description": "验证能够根据作业ID和章节标题正确检索文档内容",
+          "input": "job_id='test_job', section_title='第二章'",
+          "expected_output": "包含章节内容、页面范围和图片信息的JSON对象"
+        },
+        {
+          "test_name": "测试图片base64编码",
+          "description": "验证能够正确返回图片的base64编码",
+          "input": "job_id='test_job', image_id='img_1', return_type='base64'",
+          "expected_output": "包含图片base64编码的JSON对象"
+        },
+        {
+          "test_name": "测试图片路径返回",
+          "description": "验证能够正确返回图片的文件路径",
+          "input": "job_id='test_job', image_id='img_1', return_type='path'",
+          "expected_output": "包含图片路径的JSON对象"
+        },
+        {
+          "test_name": "测试缓存清理",
+          "description": "验证能够正确清理指定作业ID的缓存文件",
+          "input": "job_id='test_job'",
+          "expected_output": "包含清理成功状态的JSON对象"
+        },
+        {
+          "test_name": "测试错误处理-文件不存在",
+          "description": "验证当文件不存在时能够返回适当的错误信息",
+          "input": "docs_path='non_existent_file.docx'",
+          "expected_output": "包含'error'状态和错误信息的JSON对象"
+        },
+        {
+          "test_name": "测试错误处理-非法文件格式",
+          "description": "验证当文件格式不是docx时能够返回适当的错误信息",
+          "input": "docs_path='test_document.txt'",
+          "expected_output": "包含'error'状态和格式错误信息的JSON对象"
+        },
+        {
+          "test_name": "测试错误处理-无效作业ID",
+          "description": "验证当作业ID不存在时能够返回适当的错误信息",
+          "input": "job_id='invalid_job', page_number=1",
+          "expected_output": "包含'error'状态和作业ID错误信息的JSON对象"
+        },
+        {
+          "test_name": "测试错误处理-无效页码",
+          "description": "验证当页码超出范围时能够返回适当的错误信息",
+          "input": "job_id='test_job', page_number=999",
+          "expected_output": "包含'error'状态和页码错误信息的JSON对象"
+        }
+      ]
+    }
+  }
+}

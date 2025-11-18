@@ -267,7 +267,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='工作流编排器 Agent 测试')
     parser.add_argument('-i', '--input', type=str, 
                        default="""
-
 请创建一个用于AWS产品报价的Agent，我需要他帮我完成AWS产品报价工作，我会提供自然语言描述的资源和配置要求，请分析并推荐合理AWS服务和配置，然后进行实时的报价并生成报告。
 具体要求如下：
 1.至少需要支持EC2、EBS、S3、网络流量、ELB、RDS、ElastiCache、Opensearch这几个产品，能够获取实时且真实的按需和预留实例价格
