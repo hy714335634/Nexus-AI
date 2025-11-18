@@ -353,11 +353,37 @@ nexus-ai/
                 yaml.dump(status_content, f, default_flow_style=False, allow_unicode=True, indent=2)
             files_created.append("status.yaml")
 
+        # 更新 DynamoDB 中的 project_name
+        project_id = _current_project_id()
+        print(f"🔍 [project_init] project_id from env: {project_id}")
+        print(f"🔍 [project_init] project_name to update: {project_name}")
+        
+        if project_id:
+            try:
+                db_client = DynamoDBClient()
+                print(f"🔄 [project_init] Updating DynamoDB...")
+                db_client.projects_table.update_item(
+                    Key={"project_id": project_id},
+                    UpdateExpression="SET project_name = :project_name, updated_at = :updated_at",
+                    ExpressionAttributeValues={
+                        ":project_name": project_name,
+                        ":updated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+                    },
+                )
+                print(f"✅ [project_init] Updated project_name in DynamoDB: {project_name}")
+                logger.info(f"Updated project_name in DynamoDB: project_id={project_id}, project_name={project_name}")
+            except Exception as e:
+                print(f"❌ [project_init] Failed to update DynamoDB: {e}")
+                logger.warning(f"Failed to update project_name in DynamoDB: {e}")
+        else:
+            print(f"⚠️ [project_init] No project_id found, skipping DynamoDB update")
+        
         # 返回成功信息
         result = {
             "status": "success",
             "message": f"项目 '{project_name}' 初始化成功",
             "project_path": project_root,
+            "project_name": project_name,
             "directories_created": [
                 "agents/"
             ],

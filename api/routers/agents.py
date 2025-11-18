@@ -624,7 +624,11 @@ async def list_agents(
                 created_at = datetime.now(timezone.utc)
                 if agent_data.get('created_at'):
                     try:
-                        created_at = datetime.fromisoformat(agent_data['created_at'].replace('Z', '+00:00'))
+                        ca = agent_data['created_at']
+                        if isinstance(ca, datetime):
+                            created_at = ca
+                        elif isinstance(ca, str):
+                            created_at = datetime.fromisoformat(ca.replace('Z', '+00:00'))
                     except (ValueError, AttributeError):
                         pass
 
@@ -635,6 +639,21 @@ async def list_agents(
                 except ValueError:
                     agent_status = AgentStatus.BUILDING if raw_status == 'building' else AgentStatus.OFFLINE
 
+                # Handle call_count and success_rate - ensure they are numbers
+                call_count = agent_data.get('call_count', 0)
+                if isinstance(call_count, str):
+                    try:
+                        call_count = int(call_count)
+                    except (ValueError, TypeError):
+                        call_count = 0
+                
+                success_rate = agent_data.get('success_rate', 0.0)
+                if isinstance(success_rate, str):
+                    try:
+                        success_rate = float(success_rate)
+                    except (ValueError, TypeError):
+                        success_rate = 0.0
+
                 agent_summary = AgentSummary(
                     agent_id=agent_data.get('agent_id', ''),
                     project_id=agent_data.get('project_id', ''),
@@ -643,8 +662,8 @@ async def list_agents(
                     status=agent_status,
                     version=agent_data.get('version', 'v1.0.0'),
                     created_at=created_at,
-                    call_count=agent_data.get('call_count', 0),
-                    success_rate=agent_data.get('success_rate', 0.0)
+                    call_count=call_count,
+                    success_rate=success_rate
                 )
                 agent_summaries.append(agent_summary)
                 
@@ -716,13 +735,21 @@ async def get_agent_details(
         
         if agent_data.get('created_at'):
             try:
-                created_at = datetime.fromisoformat(agent_data['created_at'].replace('Z', '+00:00'))
+                ca = agent_data['created_at']
+                if isinstance(ca, datetime):
+                    created_at = ca
+                elif isinstance(ca, str):
+                    created_at = datetime.fromisoformat(ca.replace('Z', '+00:00'))
             except (ValueError, AttributeError):
                 pass
         
         if agent_data.get('last_called_at'):
             try:
-                last_called_at = datetime.fromisoformat(agent_data['last_called_at'].replace('Z', '+00:00'))
+                lca = agent_data['last_called_at']
+                if isinstance(lca, datetime):
+                    last_called_at = lca
+                elif isinstance(lca, str):
+                    last_called_at = datetime.fromisoformat(lca.replace('Z', '+00:00'))
             except (ValueError, AttributeError):
                 pass
         
@@ -751,6 +778,28 @@ async def get_agent_details(
             except json.JSONDecodeError:
                 tags = [tags]
         
+        # Handle call_count and success_rate - ensure they are numbers
+        call_count = agent_data.get('call_count', 0)
+        if isinstance(call_count, str):
+            try:
+                call_count = int(call_count)
+            except (ValueError, TypeError):
+                call_count = 0
+        
+        success_rate = agent_data.get('success_rate', 0.0)
+        if isinstance(success_rate, str):
+            try:
+                success_rate = float(success_rate)
+            except (ValueError, TypeError):
+                success_rate = 0.0
+        
+        tools_count = agent_data.get('tools_count', 0)
+        if isinstance(tools_count, str):
+            try:
+                tools_count = int(tools_count)
+            except (ValueError, TypeError):
+                tools_count = 0
+        
         # Create agent details
         agent_details = AgentDetails(
             agent_id=agent_id,
@@ -762,12 +811,12 @@ async def get_agent_details(
             status=AgentStatus(agent_data.get('status', 'offline')),
             script_path=agent_data.get('script_path'),
             prompt_path=agent_data.get('prompt_path'),
-            tools_count=agent_data.get('tools_count', 0),
+            tools_count=tools_count,
             dependencies=dependencies,
             supported_models=supported_models,
             tags=tags,
-            call_count=agent_data.get('call_count', 0),
-            success_rate=agent_data.get('success_rate', 0.0),
+            call_count=call_count,
+            success_rate=success_rate,
             last_called_at=last_called_at,
             created_at=created_at
         )

@@ -29,6 +29,23 @@ services:
       - redis
     restart: unless-stopped
 
+  # OpenTelemetry Collector (遥测数据收集)
+  otel-collector:
+    image: otel/opentelemetry-collector:latest
+    container_name: nexus-ai-otel-collector
+    ports:
+      - "4318:4318"  # OTLP HTTP receiver
+      - "4317:4317"  # OTLP gRPC receiver
+      - "13133:13133"  # Health check
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otelcol/config.yaml
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:13133/"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
 volumes:
   redis_data:
     driver: local

@@ -21,6 +21,7 @@
     "/agents/new/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
+      "static/css/app/agents/new/page.css",
       "static/chunks/app/agents/new/page.js"
     ],
     "/build/page": [

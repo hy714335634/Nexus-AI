@@ -32,39 +32,39 @@ declare namespace __next_route_internal_types__ {
     | `/`
     | `/agents/dialog`
     | `/agents/new`
-    | `/build`
-    | `/build/modules`
-    | `/build/graph`
     | `/demos/chat`
+    | `/build`
+    | `/build/graph`
+    | `/build/modules`
     | `/evolution`
     | `/evolution/agents`
     | `/evolution/analytics`
     | `/evolution/history`
     | `/evolution/progress`
     | `/evolution/submit`
-    | `/management`
     | `/ops`
-    | `/pfr`
-    | `/pfr/history`
+    | `/management`
     | `/projects`
     | `/tools`
     | `/tools/build`
-    | `/tools/create`
     | `/tools/mcp/create`
+    | `/tools/create`
     | `/troubleshoot`
+    | `/troubleshoot/analysis`
+    | `/troubleshoot/reproduction`
     | `/troubleshoot/code-review`
     | `/troubleshoot/fix`
-    | `/troubleshoot/reproduction`
     | `/troubleshoot/tracking`
-    | `/troubleshoot/analysis`
+    | `/pfr`
+    | `/pfr/history`
   type DynamicRoutes<T extends string = string> = 
     | `/agents/${SafeSlug<T>}`
-    | `/pfr/iterations/${SafeSlug<T>}`
     | `/projects/${SafeSlug<T>}`
     | `/projects/${SafeSlug<T>}/deploy`
     | `/tools/${SafeSlug<T>}/config`
     | `/tools/${SafeSlug<T>}/logs`
     | `/tools/${SafeSlug<T>}/detail`
+    | `/pfr/iterations/${SafeSlug<T>}`
 
   type RouteImpl<T> = 
     | StaticRoutes

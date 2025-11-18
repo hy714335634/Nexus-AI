@@ -13,6 +13,11 @@ from strands.multiagent import GraphBuilder,Swarm
 from nexus_utils.agent_factory import create_agent_from_prompt_template
 from nexus_utils.structured_output_model.project_intent_recognition import IntentRecognitionResult
 from strands.session.file_session_manager import FileSessionManager
+from tools.system_tools.agent_build_workflow.stage_tracker import (
+    mark_stage_running,
+    mark_stage_completed,
+    mark_stage_failed,
+)
 
 # 导入其他 agents
 from agents.system_agents.agent_build_workflow.requirements_analyzer_agent import requirements_analyzer
@@ -53,6 +58,37 @@ intent_analyzer = create_agent_from_prompt_template(
     nocallback=True,
     **agent_params
 )
+
+
+def _get_project_id():
+    """获取当前项目ID"""
+    return os.environ.get("NEXUS_STAGE_TRACKER_PROJECT_ID")
+
+
+def _create_stage_tracking_wrapper(agent, stage_name: str):
+    """创建带阶段跟踪的Agent包装器"""
+    def wrapped_agent(input_data):
+        project_id = _get_project_id()
+        
+        if project_id:
+            print(f"\n🔄 [{stage_name}] 标记阶段为运行中...")
+            mark_stage_running(project_id, stage_name)
+        
+        try:
+            result = agent(input_data)
+            
+            if project_id:
+                print(f"✅ [{stage_name}] 标记阶段为已完成")
+                mark_stage_completed(project_id, stage_name)
+            
+            return result
+        except Exception as e:
+            if project_id:
+                print(f"❌ [{stage_name}] 标记阶段为失败: {str(e)}")
+                mark_stage_failed(project_id, stage_name, str(e))
+            raise
+    
+    return wrapped_agent
 
 
 def analyze_user_intent(user_input: str):
@@ -96,17 +132,38 @@ def create_build_workflow():
     print(f"🏗️  [WORKFLOW] 创建工作流")
     print(f"{'='*80}")
 
-
     builder = GraphBuilder()
     
-    # 添加节点
-    print("📋 添加工作流节点...")
-    builder.add_node(orchestrator, "orchestrator")
-    builder.add_node(requirements_analyzer, "requirements_analyzer")
-    builder.add_node(system_architect, "system_architect")
-    builder.add_node(agent_designer, "agent_designer")
-    builder.add_node(agent_developer_manager, "agent_developer_manager")
-    builder.add_node(agent_deployer, "agent_deployer")
+    # 添加节点 - 使用包装器来跟踪阶段状态
+    print("📋 添加工作流节点（带状态跟踪）...")
+    
+    # 所有阶段都使用包装器来跟踪状态
+    builder.add_node(
+        _create_stage_tracking_wrapper(orchestrator, "orchestrator"),
+        "orchestrator"
+    )
+    
+    # 其他阶段需要包装以跟踪状态
+    builder.add_node(
+        _create_stage_tracking_wrapper(requirements_analyzer, "requirements_analyzer"),
+        "requirements_analyzer"
+    )
+    builder.add_node(
+        _create_stage_tracking_wrapper(system_architect, "system_architect"),
+        "system_architect"
+    )
+    builder.add_node(
+        _create_stage_tracking_wrapper(agent_designer, "agent_designer"),
+        "agent_designer"
+    )
+    builder.add_node(
+        _create_stage_tracking_wrapper(agent_developer_manager, "agent_developer_manager"),
+        "agent_developer_manager"
+    )
+    builder.add_node(
+        _create_stage_tracking_wrapper(agent_deployer, "agent_deployer"),
+        "agent_deployer"
+    )
 
     # 添加边 - 定义工作流顺序
     print("🔗 配置工作流连接...")
@@ -124,7 +181,7 @@ def create_build_workflow():
     
     # 构建图
     graph = builder.build()
-    print("✅ 工作流图构建完成")
+    print("✅ 工作流图构建完成（已启用阶段状态跟踪）")
     
     return graph
 
