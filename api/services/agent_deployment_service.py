@@ -15,7 +15,7 @@ import yaml
 from api.core.config import settings
 from api.core.exceptions import APIException
 from api.database.dynamodb_client import DynamoDBClient
-from api.models.schemas import AgentRecord, AgentStatus
+from api.models.schemas import AgentRecord, AgentStatus, AgentCoreConfig
 
 logger = logging.getLogger(__name__)
 
@@ -174,10 +174,14 @@ class AgentDeploymentService:
             self._archive_deployment_artifacts(deployment_dir)
 
             agent_runtime_arn = self._extract_runtime_arn(launch_result)
+            agent_alias_id = self._extract_agent_alias_id(launch_result)
+            agent_alias_arn = self._extract_agent_alias_arn(launch_result)
             deployment_status = self._extract_runtime_status(status_response)
 
             post_deploy_details: Dict[str, Any] = {
                 "agent_runtime_arn": agent_runtime_arn,
+                "agent_alias_id": agent_alias_id,
+                "agent_alias_arn": agent_alias_arn,
                 "status_response": status_response,
                 "launch_result": launch_result,
                 "region": deployment_region,
@@ -211,6 +215,20 @@ class AgentDeploymentService:
                 last_deployment_error=None,
                 deployment_type="agentcore",
             )
+
+            # Register agent instance after successful deployment (Task 18.2)
+            if agent_runtime_arn and agent_alias_id and agent_alias_arn:
+                self._register_agent_instance(
+                    agent_id=agent_record.agent_id,
+                    project_id=agent_record.project_id,
+                    agent_name=metadata.agent_name,
+                    agent_runtime_arn=agent_runtime_arn,
+                    agent_alias_id=agent_alias_id,
+                    agent_alias_arn=agent_alias_arn,
+                    description=metadata.description,
+                    category=metadata.category,
+                    region=deployment_region,
+                )
 
             return DeploymentResult(
                 agent_id=agent_record.agent_id,
@@ -794,6 +812,28 @@ class AgentDeploymentService:
             return launch_result.get("agent_arn") or launch_result.get("agentRuntimeArn")
         return getattr(launch_result, "agent_arn", None) or getattr(launch_result, "agentRuntimeArn", None)
 
+    def _extract_agent_alias_id(self, launch_result: Any) -> Optional[str]:
+        """Extract agent_alias_id from launch result
+
+        Requirements: 4.1
+        """
+        if launch_result is None:
+            return None
+        if isinstance(launch_result, dict):
+            return launch_result.get("agent_alias_id") or launch_result.get("agentAliasId")
+        return getattr(launch_result, "agent_alias_id", None) or getattr(launch_result, "agentAliasId", None)
+
+    def _extract_agent_alias_arn(self, launch_result: Any) -> Optional[str]:
+        """Extract agent_alias_arn from launch result
+
+        Requirements: 4.1
+        """
+        if launch_result is None:
+            return None
+        if isinstance(launch_result, dict):
+            return launch_result.get("agent_alias_arn") or launch_result.get("agentAliasArn")
+        return getattr(launch_result, "agent_alias_arn", None) or getattr(launch_result, "agentAliasArn", None)
+
     def _extract_runtime_status(self, status_response: Any) -> Optional[str]:
         if status_response is None:
             return None
@@ -836,6 +876,155 @@ class AgentDeploymentService:
             return str(path.relative_to(self.repo_root))
         except ValueError:  # pragma: no cover - defensive
             return str(path)
+
+    def _register_agent_instance(
+        self,
+        *,
+        agent_id: str,
+        project_id: str,
+        agent_name: str,
+        agent_runtime_arn: str,
+        agent_alias_id: str,
+        agent_alias_arn: str,
+        description: Optional[str],
+        category: Optional[str],
+        region: Optional[str],
+    ) -> None:
+        """
+        Register agent instance after successful deployment.
+
+        Creates AgentInstances record with AgentCore configuration.
+        Requirements: 4.1 (Task 18.2)
+        """
+        try:
+            # Import here to avoid circular dependency
+            from api.services.agent_service import agent_service
+
+            # Create AgentCore configuration
+            agentcore_config = AgentCoreConfig(
+                agent_arn=agent_runtime_arn,
+                agent_alias_id=agent_alias_id,
+                agent_alias_arn=agent_alias_arn,
+            )
+
+            # Extract capabilities from agent design
+            capabilities = self._extract_capabilities(project_id, agent_name)
+
+            # Register agent instance
+            logger.info(
+                "Registering agent instance %s after successful deployment",
+                agent_id
+            )
+
+            agent_service.register_agent(
+                agent_id=agent_id,
+                project_id=project_id,
+                agent_name=agent_name,
+                agentcore_config=agentcore_config,
+                capabilities=capabilities,
+                description=description,
+                category=category,
+                region=region,
+            )
+
+            logger.info("Successfully registered agent instance %s", agent_id)
+        except Exception as exc:
+            # Log error but don't fail deployment
+            logger.error(
+                "Failed to register agent instance %s: %s",
+                agent_id,
+                str(exc),
+                exc_info=True
+            )
+
+    def _extract_capabilities(self, project_id: str, agent_name: str) -> List[str]:
+        """
+        Extract capabilities from agent design.
+
+        Looks for agent_designer.json in project artifacts to extract capabilities.
+        Requirements: 4.1 (Task 18.2)
+        """
+        try:
+            # Try to find agent design file
+            project_name = project_id.split(":")[0] if ":" in project_id else project_id
+            project_dir = self.repo_root / "projects" / project_name
+            agents_dir = project_dir / "agents"
+
+            if not agents_dir.exists():
+                logger.warning(
+                    "Agents directory not found for project %s, returning empty capabilities",
+                    project_id
+                )
+                return []
+
+            # Find agent directory
+            agent_dirs = [d for d in agents_dir.iterdir() if d.is_dir()]
+            target_dir = None
+            for candidate in agent_dirs:
+                candidate_name = candidate.name
+                if candidate_name == agent_name or candidate_name == f"{agent_name}_agent":
+                    target_dir = candidate
+                    break
+
+            if not target_dir:
+                target_dir = agent_dirs[0] if agent_dirs else None
+
+            if not target_dir:
+                logger.warning("No agent directory found for %s", agent_name)
+                return []
+
+            # Load agent designer JSON
+            designer_json_path = target_dir / "agent_designer.json"
+            if not designer_json_path.exists():
+                logger.warning("agent_designer.json not found for %s", agent_name)
+                return []
+
+            designer_data = json.loads(designer_json_path.read_text(encoding="utf-8"))
+            agent_design = designer_data.get("agent_design") or {}
+
+            # Extract capabilities from various fields
+            capabilities = set()
+
+            # From capabilities field
+            if "capabilities" in agent_design:
+                caps = agent_design["capabilities"]
+                if isinstance(caps, list):
+                    capabilities.update(caps)
+                elif isinstance(caps, str):
+                    capabilities.add(caps)
+
+            # From tools/actions
+            if "tools" in agent_design:
+                tools = agent_design["tools"]
+                if isinstance(tools, list):
+                    for tool in tools:
+                        if isinstance(tool, dict) and "name" in tool:
+                            capabilities.add(f"tool:{tool['name']}")
+                        elif isinstance(tool, str):
+                            capabilities.add(f"tool:{tool}")
+
+            # From supported operations
+            if "supported_operations" in agent_design:
+                ops = agent_design["supported_operations"]
+                if isinstance(ops, list):
+                    capabilities.update(ops)
+
+            logger.info(
+                "Extracted %d capabilities for agent %s: %s",
+                len(capabilities),
+                agent_name,
+                list(capabilities)
+            )
+
+            return list(capabilities)
+        except Exception as exc:
+            logger.error(
+                "Failed to extract capabilities for agent %s: %s",
+                agent_name,
+                str(exc),
+                exc_info=True
+            )
+            return []
 
 
 __all__ = [

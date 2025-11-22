@@ -1,4 +1,8 @@
-"""Stateless helpers for tracking build stage progress in DynamoDB."""
+"""Stateless helpers for tracking build stage progress in DynamoDB.
+
+This module has been updated to use StageService for stage tracking,
+removing direct file system operations and using centralized stage management.
+"""
 
 from __future__ import annotations
 
@@ -9,9 +13,15 @@ from typing import Dict, List, Optional, Tuple
 import re
 
 from api.database.dynamodb_client import DynamoDBClient
-from api.models.schemas import ProjectStatus
+from api.models.schemas import ProjectStatus, BuildStage, StageStatus
 
 logger = logging.getLogger(__name__)
+
+
+def _get_stage_service():
+    """Lazy import to avoid circular dependency"""
+    from api.services.stage_service import stage_service
+    return stage_service
 
 # Ordered list of workflow stages with display names.
 STAGE_SEQUENCE: List[Tuple[str, str]] = [
@@ -67,63 +77,111 @@ def initialize_project_record(
 
 
 def mark_stage_running(project_id: str, stage_name: str) -> None:
-    """Mark the given stage as running."""
+    """
+    Mark the given stage as running.
 
-    snapshot = _load_snapshot(project_id)
-    stage = _ensure_stage_entry(snapshot, stage_name)
-    if stage is None:
-        logger.warning("mark_stage_running: stage %s not found for project %s", stage_name, project_id)
-        return
+    Updated to use StageService instead of direct DynamoDB operations.
+    Requirements: 7.2
+    """
+    try:
+        # Convert stage_name to BuildStage enum
+        stage_enum = _stage_name_to_enum(stage_name)
+        if stage_enum is None:
+            logger.warning("mark_stage_running: invalid stage %s for project %s", stage_name, project_id)
+            return
 
-    stage["status"] = "running"
-    stage.setdefault("started_at", _now())
-    stage.pop("completed_at", None)
-    stage.pop("error", None)
+        # Use StageService to update stage status
+        stage_service = _get_stage_service()
+        stage_service.update_stage_status(
+            project_id=project_id,
+            stage=stage_enum,
+            status=StageStatus.RUNNING,
+            started_at=_now()
+        )
+        logger.info("Project %s stage %s set to running", project_id, stage_name)
+    except Exception as e:
+        logger.error("Failed to mark stage running for project %s stage %s: %s", project_id, stage_name, str(e))
+        raise
 
-    _write_snapshot(project_id, snapshot)
-    logger.debug("Project %s stage %s set to running", project_id, stage_name)
 
+def mark_stage_completed(project_id: str, stage_name: str, output_data: Optional[Dict] = None) -> None:
+    """
+    Mark the given stage as completed and update project progress.
 
-def mark_stage_completed(project_id: str, stage_name: str) -> None:
-    """Mark the given stage as completed and update project progress."""
+    Updated to use StageService instead of direct DynamoDB operations.
+    Requirements: 7.3
 
-    snapshot = _load_snapshot(project_id)
-    stage = _ensure_stage_entry(snapshot, stage_name)
-    if stage is None:
-        logger.warning("mark_stage_completed: stage %s not found for project %s", stage_name, project_id)
-        return
+    Args:
+        project_id: Project ID
+        stage_name: Stage name
+        output_data: Optional output data from the stage
+    """
+    try:
+        # Convert stage_name to BuildStage enum
+        stage_enum = _stage_name_to_enum(stage_name)
+        if stage_enum is None:
+            logger.warning("mark_stage_completed: invalid stage %s for project %s", stage_name, project_id)
+            return
 
-    stage.setdefault("started_at", _now())
-    stage["status"] = "completed"
-    stage["completed_at"] = _now()
-    stage.pop("error", None)
+        # Prepare kwargs for update
+        kwargs = {
+            "completed_at": _now()
+        }
+        if output_data:
+            kwargs["output_data"] = output_data
 
-    project_status = None
-    if _is_project_completed(snapshot):
-        project_status = ProjectStatus.COMPLETED.value
-
-    _write_snapshot(project_id, snapshot, project_status=project_status)
-    logger.info("Project %s stage %s completed", project_id, stage_name)
+        # Use StageService to update stage status
+        stage_service = _get_stage_service()
+        stage_service.update_stage_status(
+            project_id=project_id,
+            stage=stage_enum,
+            status=StageStatus.COMPLETED,
+            **kwargs
+        )
+        logger.info("Project %s stage %s completed", project_id, stage_name)
+    except Exception as e:
+        logger.error("Failed to mark stage completed for project %s stage %s: %s", project_id, stage_name, str(e))
+        raise
 
 
 def mark_stage_failed(project_id: str, stage_name: str, error_message: str) -> None:
-    """Mark the given stage (and project) as failed."""
+    """
+    Mark the given stage (and project) as failed.
 
-    snapshot = _load_snapshot(project_id)
-    stage = _ensure_stage_entry(snapshot, stage_name)
-    if stage is not None:
-        stage.setdefault("started_at", _now())
-        stage["status"] = "failed"
-        stage["completed_at"] = _now()
-        stage["error"] = error_message
+    Updated to use StageService instead of direct DynamoDB operations.
+    Requirements: 7.4
 
-    _write_snapshot(
-        project_id,
-        snapshot,
-        project_status=ProjectStatus.FAILED.value,
-        error_info={"error": error_message},
-    )
-    logger.error("Project %s stage %s failed: %s", project_id, stage_name, error_message)
+    Args:
+        project_id: Project ID
+        stage_name: Stage name
+        error_message: Error message describing the failure
+    """
+    try:
+        # Convert stage_name to BuildStage enum
+        stage_enum = _stage_name_to_enum(stage_name)
+        if stage_enum is None:
+            logger.warning("mark_stage_failed: invalid stage %s for project %s", stage_name, project_id)
+            # Still update project status to failed even if stage is invalid
+            _update_project_status_to_failed(project_id, error_message)
+            return
+
+        # Use StageService to update stage status
+        stage_service = _get_stage_service()
+        stage_service.update_stage_status(
+            project_id=project_id,
+            stage=stage_enum,
+            status=StageStatus.FAILED,
+            completed_at=_now(),
+            error_message=error_message
+        )
+
+        # Update project status to failed
+        _update_project_status_to_failed(project_id, error_message)
+
+        logger.error("Project %s stage %s failed: %s", project_id, stage_name, error_message)
+    except Exception as e:
+        logger.error("Failed to mark stage failed for project %s stage %s: %s", project_id, stage_name, str(e))
+        raise
 
 
 def mark_project_completed(project_id: str) -> None:
@@ -142,8 +200,142 @@ def mark_project_completed(project_id: str) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Sub-stage tracking functions (for Developer Manager stage)
+# Requirements: 7.2, 7.3, 7.4
+# ---------------------------------------------------------------------------
+
+
+def mark_sub_stage_running(project_id: str, sub_stage_name: str) -> None:
+    """
+    Mark a sub-stage as running within the agent_developer_manager stage.
+
+    Args:
+        project_id: Project ID
+        sub_stage_name: Sub-stage name (tool_developer, prompt_engineer, agent_code_developer)
+
+    Requirements: 7.2
+    """
+    try:
+        stage_service = _get_stage_service()
+        stage_service.update_sub_stage_status(
+            project_id=project_id,
+            sub_stage_name=sub_stage_name,
+            status=StageStatus.RUNNING,
+            started_at=_now()
+        )
+        logger.info("Project %s sub-stage %s set to running", project_id, sub_stage_name)
+    except Exception as e:
+        logger.error("Failed to mark sub-stage running for project %s sub-stage %s: %s",
+                    project_id, sub_stage_name, str(e))
+        raise
+
+
+def mark_sub_stage_completed(project_id: str, sub_stage_name: str, artifacts: Optional[List[str]] = None) -> None:
+    """
+    Mark a sub-stage as completed within the agent_developer_manager stage.
+
+    Args:
+        project_id: Project ID
+        sub_stage_name: Sub-stage name (tool_developer, prompt_engineer, agent_code_developer)
+        artifacts: Optional list of artifact file paths generated by this sub-stage
+
+    Requirements: 7.3
+    """
+    try:
+        stage_service = _get_stage_service()
+        stage_service.update_sub_stage_status(
+            project_id=project_id,
+            sub_stage_name=sub_stage_name,
+            status=StageStatus.COMPLETED,
+            completed_at=_now(),
+            artifacts=artifacts or []
+        )
+        logger.info("Project %s sub-stage %s completed with %d artifacts",
+                   project_id, sub_stage_name, len(artifacts or []))
+    except Exception as e:
+        logger.error("Failed to mark sub-stage completed for project %s sub-stage %s: %s",
+                    project_id, sub_stage_name, str(e))
+        raise
+
+
+def mark_sub_stage_failed(project_id: str, sub_stage_name: str, error_message: str) -> None:
+    """
+    Mark a sub-stage as failed within the agent_developer_manager stage.
+
+    Args:
+        project_id: Project ID
+        sub_stage_name: Sub-stage name (tool_developer, prompt_engineer, agent_code_developer)
+        error_message: Error message describing the failure
+
+    Requirements: 7.4
+    """
+    try:
+        stage_service = _get_stage_service()
+        stage_service.update_sub_stage_status(
+            project_id=project_id,
+            sub_stage_name=sub_stage_name,
+            status=StageStatus.FAILED,
+            completed_at=_now()
+        )
+        logger.error("Project %s sub-stage %s failed: %s", project_id, sub_stage_name, error_message)
+    except Exception as e:
+        logger.error("Failed to mark sub-stage failed for project %s sub-stage %s: %s",
+                    project_id, sub_stage_name, str(e))
+        raise
+
+
+# ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
+
+
+def _stage_name_to_enum(stage_name: str) -> Optional[BuildStage]:
+    """
+    Convert stage name string to BuildStage enum.
+
+    Args:
+        stage_name: Stage name string
+
+    Returns:
+        BuildStage enum or None if invalid
+    """
+    # Map old stage names to new BuildStage enum values
+    stage_mapping = {
+        "orchestrator": BuildStage.ORCHESTRATOR,
+        "requirements_analyzer": BuildStage.REQUIREMENTS_ANALYSIS,
+        "system_architect": BuildStage.SYSTEM_ARCHITECTURE,
+        "agent_designer": BuildStage.AGENT_DESIGN,
+        "agent_developer_manager": BuildStage.AGENT_DEVELOPER_MANAGER,
+        "agent_deployer": BuildStage.AGENT_DEPLOYER,
+    }
+    return stage_mapping.get(stage_name)
+
+
+def _update_project_status_to_failed(project_id: str, error_message: str) -> None:
+    """
+    Update project status to FAILED.
+
+    Args:
+        project_id: Project ID
+        error_message: Error message
+    """
+    try:
+        db_client = DynamoDBClient()
+        now = _now()
+        db_client.projects_table.update_item(
+            Key={"project_id": project_id},
+            UpdateExpression="SET #status = :status, completed_at = :completed_at, error_info = :error_info, updated_at = :updated_at",
+            ExpressionAttributeNames={"#status": "status"},
+            ExpressionAttributeValues={
+                ":status": ProjectStatus.FAILED.value,
+                ":completed_at": now,
+                ":error_info": {"error": error_message},
+                ":updated_at": now
+            }
+        )
+    except Exception as e:
+        logger.error("Failed to update project status to failed for project %s: %s", project_id, str(e))
+        raise
 
 
 def _load_snapshot(project_id: str) -> Dict[str, any]:
@@ -316,4 +508,7 @@ __all__ = [
     "mark_stage_completed",
     "mark_stage_failed",
     "mark_project_completed",
+    "mark_sub_stage_running",
+    "mark_sub_stage_completed",
+    "mark_sub_stage_failed",
 ]
