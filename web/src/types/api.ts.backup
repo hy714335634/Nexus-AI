@@ -1,13 +1,18 @@
 export type ProjectStatus = 'pending' | 'building' | 'completed' | 'failed' | 'paused';
 export type StageStatus = 'pending' | 'running' | 'completed' | 'failed';
-export type AgentStatus = 'running' | 'offline' | 'error';
+export type AgentStatus = 'running' | 'building' | 'offline';
 
-// BuildStage enum - matches backend exactly
 export type BuildStage =
   | 'orchestrator'
+  | 'requirements_analyzer'
   | 'requirements_analysis'
+  | 'system_architect'
   | 'system_architecture'
+  | 'agent_designer'
   | 'agent_design'
+  | 'prompt_engineer'
+  | 'tools_developer'
+  | 'agent_code_developer'
   | 'agent_developer_manager'
   | 'agent_deployer';
 
@@ -15,45 +20,9 @@ export interface ApiResponse<T> {
   success: boolean;
   data: T;
   timestamp: string;
-  request_id?: string;
+  request_id: string;
 }
 
-// AgentCore configuration for deployed agents
-export interface AgentCoreConfig {
-  agent_arn: string;
-  agent_alias_id: string;
-  agent_alias_arn: string;
-}
-
-// Runtime statistics for agent invocations
-export interface RuntimeStats {
-  total_invocations: number;
-  successful_invocations: number;
-  failed_invocations: number;
-  avg_duration_ms: number;
-  last_invoked_at?: string;
-}
-
-// Create Project Request (replaces CreateAgentRequest)
-export interface CreateProjectRequest {
-  requirement: string;
-  user_id?: string;
-  project_name?: string;
-  agent_name_map?: Record<string, string>;
-}
-
-export interface CreateProjectResponseData {
-  project_id: string;
-  project_name?: string;
-  status: ProjectStatus;
-  progress: number;
-  created_at: string;
-  updated_at: string;
-}
-
-export type CreateProjectResponse = ApiResponse<CreateProjectResponseData>;
-
-// Legacy CreateAgentRequest (may be deprecated)
 export interface CreateAgentRequest {
   requirement: string;
   user_id: string;
@@ -152,12 +121,8 @@ export interface AgentSummary {
   status: AgentStatus;
   version?: string | null;
   created_at: string;
-  call_count?: number;
-  success_rate?: number;
-  capabilities?: string[];
-  region?: string;
-  agentcore_config?: AgentCoreConfig;
-  runtime_stats?: RuntimeStats;
+  call_count: number;
+  success_rate: number;
 }
 
 export interface PaginationMeta {
@@ -207,19 +172,14 @@ export interface AgentDetails {
   status: AgentStatus;
   script_path?: string | null;
   prompt_path?: string | null;
-  tools_count?: number;
-  dependencies?: string[];
-  supported_models?: string[];
-  tags?: string[];
-  call_count?: number;
-  success_rate?: number;
+  tools_count: number;
+  dependencies: string[];
+  supported_models: string[];
+  tags: string[];
+  call_count: number;
+  success_rate: number;
   last_called_at?: string | null;
   created_at: string;
-  updated_at?: string;
-  capabilities?: string[];
-  region?: string;
-  agentcore_config?: AgentCoreConfig;
-  runtime_stats?: RuntimeStats;
 }
 
 export type AgentDetailsResponse = ApiResponse<AgentDetails>;
@@ -327,118 +287,3 @@ export interface BuildDashboardDataRecord {
 }
 
 export type BuildDashboardResponse = ApiResponse<BuildDashboardDataRecord>;
-
-// Project Control Operations
-export type ProjectControlAction = 'pause' | 'resume' | 'stop' | 'restart';
-
-export interface ProjectControlRequest {
-  action: ProjectControlAction;
-}
-
-export interface ProjectControlResponseData {
-  project_id: string;
-  action: ProjectControlAction;
-  new_status: ProjectStatus;
-  message: string;
-}
-
-export type ProjectControlResponse = ApiResponse<ProjectControlResponseData>;
-
-// Agent Invocation
-export interface AgentInvocationRequest {
-  input_text: string;
-  session_id?: string;
-  enable_trace?: boolean;
-  end_session?: boolean;
-  session_state?: Record<string, unknown>;
-}
-
-export interface AgentInvocationResponseData {
-  invocation_id: string;
-  session_id?: string;
-  output: string;
-  duration_ms: number;
-  status: 'success' | 'failed';
-  trace?: Record<string, unknown>;
-  created_at: string;
-}
-
-export type AgentInvocationResponse = ApiResponse<AgentInvocationResponseData>;
-
-// Session Message Send
-export interface SendMessageRequest {
-  content: string;
-  role?: 'user' | 'assistant';
-  metadata?: Record<string, unknown>;
-}
-
-export interface SendMessageResponseData {
-  message_id: string;
-  session_id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  metadata?: Record<string, unknown>;
-  created_at: string;
-}
-
-export type SendMessageResponse = ApiResponse<SendMessageResponseData>;
-
-// Agent Update
-export interface UpdateAgentRequest {
-  description?: string;
-  status?: AgentStatus;
-  metadata?: Record<string, unknown>;
-}
-
-export interface UpdateAgentStatusRequest {
-  status: AgentStatus;
-  error_message?: string;
-}
-
-// Statistics Types
-export interface StatisticsOverviewData {
-  total_agents: number;
-  running_agents: number;
-  building_agents: number;
-  offline_agents: number;
-  total_builds: number;
-  success_rate: number;
-  avg_build_time_minutes: number;
-  today_calls: number;
-}
-
-export type StatisticsOverviewResponse = ApiResponse<StatisticsOverviewData>;
-
-export interface BuildStatisticsData {
-  date: string;
-  total_builds: number;
-  successful_builds: number;
-  failed_builds: number;
-  avg_duration_minutes: number;
-  builds_by_stage?: Record<string, number>;
-}
-
-export type BuildStatisticsResponse = ApiResponse<BuildStatisticsData[]>;
-
-export interface InvocationStatisticsData {
-  date: string;
-  total_invocations: number;
-  successful_invocations: number;
-  failed_invocations: number;
-  success_rate: number;
-  avg_duration_ms: number;
-}
-
-export type InvocationStatisticsResponse = ApiResponse<InvocationStatisticsData[]>;
-
-export interface TrendDataPoint {
-  date: string;
-  value: number;
-}
-
-export interface TrendData {
-  metric: string;
-  data_points: TrendDataPoint[];
-}
-
-export type TrendDataResponse = ApiResponse<TrendData>;

@@ -73,7 +73,7 @@ export default function TroubleshootHomePage() {
         <h3>快速导航</h3>
         <div className={styles.quickLinks}>
           {QUICK_LINKS.map((link) => (
-            <Link key={link.href} href={link.href} className={styles.quickLink}>
+            <Link key={link.href} href={link.href as any} className={styles.quickLink}>
               <span>{link.label}</span>
               <span>→</span>
             </Link>

@@ -30,7 +30,7 @@ export default function OpsDashboardPage() {
         <div className={styles.title}>🚀 AgentOps 运维总览</div>
         <div style={{ color: '#666' }}>查看运行状况、告警信息与部署节奏。</div>
         <div>
-          <Link href="/tools/build" style={{ color: 'var(--accent, #667eea)', marginRight: 12 }}>
+          <Link href={'/tools/build' as any} style={{ color: 'var(--accent, #667eea)', marginRight: 12 }}>
             查看工具构建流水线 →
           </Link>
           <button
