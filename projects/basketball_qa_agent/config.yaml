@@ -1,0 +1,7 @@
+project:
+  created_date: '2025-11-23T08:00:08.596228+00:00'
+  description: An AI Agent to search and organize online answers to basketball-related
+    questions.
+  name: basketball_qa_agent
+  updated_date: '2025-11-23T09:02:13.846132+00:00'
+  version: 1.0.0

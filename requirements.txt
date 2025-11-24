@@ -46,3 +46,4 @@ networkx
 streamlit
 
 setuptools
+strands-agents

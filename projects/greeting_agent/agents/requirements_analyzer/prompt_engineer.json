@@ -1,0 +1,100 @@
+```yaml
+agent:
+  name: "greeting_rules_and_templates"
+  description: "问候Agent的规则配置和模板定义"
+  category: "api_service"
+  environments:
+    development:
+      max_tokens: 1024
+      temperature: 0.7
+      top_p: 0.9
+      streaming: True
+    production:
+      max_tokens: 1024
+      temperature: 0.5
+      top_p: 0.9
+      streaming: True
+    testing:
+      max_tokens: 1024
+      temperature: 0.5
+      top_p: 0.9
+      streaming: True
+  versions:
+    - version: "1.0"
+      status: "stable"
+      created_date: "2025-11-23"
+      author: "ai_team"
+      description: "定义问候Agent的核心规则和模板"
+      system_prompt: |
+        这是问候Agent的核心规则和模板配置。
+
+        # 时间段划分规则
+        - 早晨：06:00-12:00
+        - 下午：12:00-18:00
+        - 晚上：18:00-22:00
+        - 深夜：22:00-06:00
+
+        # 中文问候模板
+        - 早晨问候：
+          - 通用：早上好！
+          - 个性化：早上好，{name}！
+        - 下午问候：
+          - 通用：下午好！
+          - 个性化：下午好，{name}！
+        - 晚上问候：
+          - 通用：晚上好！
+          - 个性化：晚上好，{name}！
+        - 深夜问候：
+          - 通用：您好！
+          - 个性化：您好，{name}！
+
+        # 英文问候模板
+        - 早晨问候：
+          - 通用：Good morning!
+          - 个性化：Good morning, {name}!
+        - 下午问候：
+          - 通用：Good afternoon!
+          - 个性化：Good afternoon, {name}!
+        - 晚上问候：
+          - 通用：Good evening!
+          - 个性化：Good evening, {name}!
+        - 深夜问候：
+          - 通用：Hello!
+          - 个性化：Hello, {name}!
+
+        # 错误消息模板
+        - 输入验证错误：
+          - 中文：输入参数无效：{error_detail}
+          - 英文：Invalid input parameter: {error_detail}
+        - 不支持的语言：
+          - 中文：不支持的语言：{language}。支持的语言有：zh（中文），en（英文）
+          - 英文：Unsupported language: {language}. Supported languages are: zh (Chinese), en (English)
+        - 无效的时区：
+          - 中文：无效的时区格式：{timezone}
+          - 英文：Invalid timezone format: {timezone}
+        - 内部错误：
+          - 中文：服务器内部错误，请稍后重试
+          - 英文：Internal server error, please try again later
+
+        # 健康检查响应模板
+        - 健康状态：
+          - 正常：healthy
+          - 异常：unhealthy
+        - 版本格式：{major}.{minor}.{patch}
+        - 运行时间格式：{hours}h {minutes}m {seconds}s
+      user_prompt_template: |
+        # 请求参数
+        - 名称: {name}
+        - 语言: {language}
+        - 时区: {timezone}
+        - 当前时间: {current_time}
+
+        请根据以上信息生成合适的问候语。
+      metadata:
+        tags: ["greeting", "api", "time-aware", "multilingual"]
+        supported_models:
+          - "no_llm_required"
+        tools_dependencies:
+          - "time_processor"
+          - "greeting_generator"
+```

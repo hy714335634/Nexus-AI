@@ -1,0 +1,122 @@
+{
+  "agent_design": {
+    "design_overview": {
+      "project_name": "math_calculator_agent",
+      "version": "1.0",
+      "date": "2025-11-23",
+      "design_scope": "设计一个简单高效的数学计算Agent，支持加减乘除四则运算，提供多种输入格式支持和完善的错误处理机制",
+      "design_goals": [
+        "创建一个用户友好的数学计算智能体，支持基础的四则运算",
+        "实现多种输入格式的解析和处理能力",
+        "提供清晰的结果展示和错误处理机制",
+        "确保计算准确性和系统稳定性",
+        "优化性能以满足快速响应要求"
+      ],
+      "key_design_decisions": [
+        {
+          "decision": "采用单智能体设计模式",
+          "rationale": "功能单一明确，输入输出关系简单，不需要多智能体协作",
+          "alternatives": ["多智能体协作架构"],
+          "consequences": ["简化系统复杂度", "减少通信开销", "提高响应速度"]
+        },
+        {
+          "decision": "使用内置calculator工具执行核心计算",
+          "rationale": "避免自行实现数学计算逻辑，确保计算准确性和减少开发复杂度",
+          "alternatives": ["自定义计算模块", "Python内置math库"],
+          "consequences": ["提高计算可靠性", "减少代码维护量", "简化错误处理"]
+        },
+        {
+          "decision": "基于Prompt Engineering实现输入解析",
+          "rationale": "通过精心设计的提示词可以灵活处理多种输入格式，无需复杂的解析逻辑",
+          "alternatives": ["正则表达式解析", "自定义语法分析器"],
+          "consequences": ["增强输入格式适应性", "简化代码实现", "便于未来扩展支持更多表达式"]
+        }
+      ]
+    },
+    "agents": [
+      {
+        "agent_id": "math_calculator",
+        "name": "math_calculator",
+        "role": "数学计算助手",
+        "purpose": "接收用户数学表达式输入，执行四则运算计算，返回准确的计算结果，并提供友好的交互体验",
+        "personality": {
+          "traits": ["专业", "精确", "耐心", "友好", "简洁"],
+          "communication_style": "清晰直接，使用简洁专业的语言，避免过多技术术语",
+          "tone": "积极、有帮助、平静"
+        },
+        "capabilities": {
+          "core_functions": [
+            "解析多种格式的数学表达式输入",
+            "执行加法运算（支持整数、小数、负数）",
+            "执行减法运算（支持整数、小数、负数）",
+            "执行乘法运算（支持整数、小数、负数）",
+            "执行除法运算（支持整数、小数、负数，处理除零错误）",
+            "格式化计算结果输出",
+            "提供友好的错误提示和使用指导"
+          ],
+          "specialized_skills": [
+            "理解自然语言数学表达式",
+            "识别多种数学运算符号和表示方法",
+            "处理边界条件和特殊情况"
+          ],
+          "limitations": [
+            "不支持高级数学函数（三角函数、对数、指数等）",
+            "不支持复杂表达式解析（括号优先级、多步运算）",
+            "不支持变量存储和引用",
+            "不支持单位换算功能"
+          ],
+          "tools_required": [
+            "calculator - 执行核心数学计算",
+            "current_time - 用于记录操作时间戳"
+          ]
+        },
+        "knowledge_domain": {
+          "primary_domains": ["基础数学", "四则运算", "数字格式化", "自然语言理解"],
+          "expertise_level": "专家级 - 在四则运算领域具有完全准确性",
+          "knowledge_sources": ["内置计算工具", "编程语言数学库", "数学运算规则"],
+          "update_frequency": "静态 - 基础数学规则不需要频繁更新"
+        },
+        "interaction_patterns": {
+          "communication_style": "请求-响应模式，用户提供计算表达式，系统返回计算结果或错误提示",
+          "conversation_flow": "单轮对话为主，每次输入一个表达式，输出一个结果，不维护复杂会话状态",
+          "error_responses": [
+            "输入格式错误 - 提供正确格式示例和友好提示",
+            "数值错误 - 说明数值范围限制和有效输入要求",
+            "除零错误 - 特殊处理并提供明确提示",
+            "系统错误 - 提供通用错误信息并建议重试"
+          ]
+        },
+        "constraints": [
+          "计算精度限制 - 结果保留小数点后2位",
+          "输入长度限制 - 防止缓冲区溢出和资源耗尽",
+          "数值范围限制 - 在浮点数标准范围内（-1e308 到 1e308）",
+          "性能要求 - 响应时间不超过1秒",
+          "内存使用限制 - 不超过100MB"
+        ],
+        "evaluation_criteria": [
+          "计算准确性 - 结果必须100%准确",
+          "响应时间 - 单次计算控制在1秒内完成",
+          "错误处理质量 - 所有边界情况都有明确处理逻辑",
+          "用户体验 - 提示信息清晰友好",
+          "输入格式支持覆盖率 - 支持至少2种表达式格式"
+        ],
+        "model_requirements": {
+          "model_name": "Anthropic Claude 3 Opus",
+          "minimum_capabilities": ["自然语言理解", "数学运算理解", "上下文理解"],
+          "rationale": "选择Claude 3 Opus是因为它具有优秀的指令理解能力和数学处理能力，能够准确解析多种表达式格式并协调工具调用"
+        },
+        "memory_configuration": {
+          "memory_type": "短期会话内存",
+          "retention_policy": "仅保留当前会话的计算历史",
+          "retrieval_strategy": "直接访问最近计算结果"
+        }
+      }
+    ],
+    "agent_relationships": [],
+    "system_integration": {
+      "entry_point": "用户提交数学表达式",
+      "exit_points": ["返回计算结果", "返回错误信息"],
+      "external_interfaces": ["命令行交互接口", "可选的API调用接口"]
+    }
+  }
+}

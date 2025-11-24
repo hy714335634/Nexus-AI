@@ -1,0 +1,6 @@
+project:
+  created_date: '2025-11-23T03:25:13.820579+00:00'
+  description: 轻量级问候API服务，用于API验证测试。提供基础问候功能、时间感知问候、多语言支持和健康检查端点。基于FastAPI框架，支持快速部署和高性能处理。
+  name: greeting_agent
+  updated_date: '2025-11-23T03:32:47.573229+00:00'
+  version: 1.0.0

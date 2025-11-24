@@ -1,0 +1,487 @@
+{
+  "tools_development": {
+    "design_overview": {
+      "project_name": "short_story_agent",
+      "agent_name": "story_generator_agent",
+      "version": "1.0",
+      "date": "2025-11-23",
+      "design_scope": "为短篇小说生成Agent开发完整的工具集，支持输入验证、文本处理、LLM调用、内容验证和输出格式化"
+    },
+    "tools_list": [
+      {
+        "tool_id": "input_validator",
+        "tool_name": "输入验证工具",
+        "file_name": "input_validator.py",
+        "description": "验证用户输入的场景描述和关键词是否符合要求",
+        "functions": [
+          {
+            "function_name": "validate_scene_description",
+            "signature": "validate_scene_description(text: str) -> dict",
+            "description": "验证场景描述的有效性",
+            "parameters": {
+              "text": "场景描述文本"
+            },
+            "returns": {
+              "is_valid": "布尔值，表示是否有效",
+              "error_message": "如果无效，返回错误信息",
+              "suggestions": "改进建议",
+              "cleaned_text": "清理后的文本"
+            },
+            "validation_rules": [
+              "不能为空",
+              "长度在5-500字之间",
+              "不包含危险的特殊字符",
+              "不包含敏感词汇"
+            ]
+          },
+          {
+            "function_name": "validate_keywords",
+            "signature": "validate_keywords(keywords: Union[List[str], str]) -> dict",
+            "description": "验证关键词的有效性",
+            "parameters": {
+              "keywords": "关键词列表或逗号分隔的字符串"
+            },
+            "returns": {
+              "is_valid": "布尔值，表示是否有效",
+              "error_message": "如果无效，返回错误信息",
+              "suggestions": "改进建议",
+              "processed_keywords": "处理后的关键词列表"
+            },
+            "validation_rules": [
+              "至少包含1个关键词",
+              "最多包含10个关键词",
+              "每个关键词长度不超过20字",
+              "不包含重复的关键词",
+              "不包含危险的特殊字符"
+            ]
+          }
+        ]
+      },
+      {
+        "tool_id": "text_processor",
+        "tool_name": "文本处理工具",
+        "file_name": "text_processor.py",
+        "description": "处理和规范化文本，包括关键词解析、字数统计等",
+        "functions": [
+          {
+            "function_name": "parse_keywords",
+            "signature": "parse_keywords(text: str) -> List[str]",
+            "description": "从文本中解析关键词，支持多种分隔符",
+            "parameters": {
+              "text": "包含关键词的文本，可以用逗号、空格、顿号等分隔"
+            },
+            "returns": "关键词列表（已去重和清理）",
+            "supported_separators": ["逗号，", "空格 ", "顿号、", "分号；"]
+          },
+          {
+            "function_name": "clean_text",
+            "signature": "clean_text(text: str) -> str",
+            "description": "清理和规范化文本",
+            "parameters": {
+              "text": "原始文本"
+            },
+            "returns": "清理后的文本",
+            "cleaning_operations": [
+              "移除多余的空格和换行符",
+              "规范化标点符号",
+              "移除控制字符",
+              "统一中文和英文标点"
+            ]
+          },
+          {
+            "function_name": "count_words",
+            "signature": "count_words(text: str) -> int",
+            "description": "精确统计中文文本的字数",
+            "parameters": {
+              "text": "要统计的文本"
+            },
+            "returns": "字数（整数）",
+            "counting_method": "中文字符计为1个字，英文单词计为1个字，标点符号和空格不计入"
+          },
+          {
+            "function_name": "split_into_paragraphs",
+            "signature": "split_into_paragraphs(text: str, auto_format: bool = True) -> List[str]",
+            "description": "将文本分段，可选自动格式化",
+            "parameters": {
+              "text": "原始文本",
+              "auto_format": "是否自动添加段落缩进"
+            },
+            "returns": "分段后的文本列表",
+            "formatting_rules": [
+              "每段开头空两格（使用全角空格）",
+              "段落之间保留单行空白",
+              "保留原始段落分界"
+            ]
+          },
+          {
+            "function_name": "extract_title",
+            "signature": "extract_title(text: str) -> str",
+            "description": "从生成的文本中提取标题",
+            "parameters": {
+              "text": "包含标题的文本"
+            },
+            "returns": "提取的标题或生成的标题",
+            "extraction_logic": [
+              "如果文本以标题标记开头，提取标题",
+              "否则，从第一行或第一个自然段提取",
+              "如果无法提取，返回None"
+            ]
+          }
+        ]
+      },
+      {
+        "tool_id": "prompt_builder",
+        "tool_name": "提示词构建工具",
+        "file_name": "prompt_builder.py",
+        "description": "根据场景和关键词构建优化的提示词",
+        "functions": [
+          {
+            "function_name": "build_prompt",
+            "signature": "build_prompt(scene: str, keywords: List[str], style: str = 'default') -> dict",
+            "description": "根据输入构建完整的提示词",
+            "parameters": {
+              "scene": "场景描述",
+              "keywords": "关键词列表",
+              "style": "文学风格（default/realism/scifi/mystery/romantic）"
+            },
+            "returns": {
+              "system_prompt": "系统提示词",
+              "user_prompt": "用户提示词",
+              "style_used": "实际使用的风格",
+              "keywords_formatted": "格式化后的关键词"
+            },
+            "style_options": ["default", "realism", "scifi", "mystery", "romantic"]
+          },
+          {
+            "function_name": "get_available_styles",
+            "signature": "get_available_styles() -> List[str]",
+            "description": "获取支持的文学风格列表",
+            "returns": "可用的风格列表"
+          },
+          {
+            "function_name": "detect_style",
+            "signature": "detect_style(scene: str) -> str",
+            "description": "根据场景描述自动检测合适的文学风格",
+            "parameters": {
+              "scene": "场景描述"
+            },
+            "returns": "检测到的风格"
+          },
+          {
+            "function_name": "format_keywords_for_prompt",
+            "signature": "format_keywords_for_prompt(keywords: List[str]) -> str",
+            "description": "格式化关键词用于提示词",
+            "parameters": {
+              "keywords": "关键词列表"
+            },
+            "returns": "格式化后的关键词字符串（例如：'关键词1、关键词2、关键词3'）"
+          }
+        ]
+      },
+      {
+        "tool_id": "llm_caller",
+        "tool_name": "LLM调用工具",
+        "file_name": "llm_caller.py",
+        "description": "调用AWS Bedrock Claude模型生成小说",
+        "functions": [
+          {
+            "function_name": "call_bedrock_llm",
+            "signature": "call_bedrock_llm(prompt: dict, max_retries: int = 3, timeout: int = 60) -> dict",
+            "description": "调用Bedrock Claude模型生成文本",
+            "parameters": {
+              "prompt": "包含system_prompt和user_prompt的字典",
+              "max_retries": "最大重试次数（默认3次）",
+              "timeout": "超时时间（秒，默认60秒）"
+            },
+            "returns": {
+              "success": "布尔值，表示是否成功",
+              "content": "生成的文本内容",
+              "model_used": "使用的模型名称",
+              "tokens_used": "消耗的token数",
+              "generation_time": "生成耗时（秒）",
+              "error_message": "如果失败，返回错误信息"
+            },
+            "model_config": {
+              "model_id": "anthropic.claude-opus-4-1-20250805",
+              "max_tokens": "4096",
+              "temperature": "0.7（创意生成的平衡温度）",
+              "top_p": "0.9"
+            }
+          },
+          {
+            "function_name": "handle_retry_logic",
+            "signature": "handle_retry_logic(error: Exception, retry_count: int, original_prompt: dict) -> dict",
+            "description": "处理重试逻辑和策略调整",
+            "parameters": {
+              "error": "发生的异常",
+              "retry_count": "当前重试次数",
+              "original_prompt": "原始提示词"
+            },
+            "returns": {
+              "should_retry": "是否应该重试",
+              "adjusted_prompt": "调整后的提示词（如果重试）",
+              "retry_strategy": "采用的重试策略描述"
+            },
+            "retry_strategies": [
+              "第1次重试：保持原始提示词，直接重试",
+              "第2次重试：简化提示词，强调核心要求",
+              "第3次重试：进一步简化，降低非核心要求"
+            ]
+          },
+          {
+            "function_name": "parse_json_response",
+            "signature": "parse_json_response(raw_text: str) -> dict",
+            "description": "从LLM生成的文本中解析JSON格式的响应",
+            "parameters": {
+              "raw_text": "LLM返回的原始文本"
+            },
+            "returns": {
+              "parsed_data": "解析后的JSON数据",
+              "success": "是否成功解析",
+              "error_message": "如果失败，返回错误信息"
+            }
+          }
+        ]
+      },
+      {
+        "tool_id": "content_validator",
+        "tool_name": "内容验证工具",
+        "file_name": "content_validator.py",
+        "description": "验证生成的小说是否符合质量标准",
+        "functions": [
+          {
+            "function_name": "validate_story_length",
+            "signature": "validate_story_length(text: str, min_length: int = 800, max_length: int = 2000) -> dict",
+            "description": "验证故事长度是否在规定范围内",
+            "parameters": {
+              "text": "故事文本",
+              "min_length": "最小字数（默认800）",
+              "max_length": "最大字数（默认2000）"
+            },
+            "returns": {
+              "is_valid": "是否有效",
+              "word_count": "实际字数",
+              "status": "状态信息（'valid'/'too_short'/'too_long'）",
+              "error_message": "如果无效，返回错误信息"
+            }
+          },
+          {
+            "function_name": "validate_story_structure",
+            "signature": "validate_story_structure(text: str) -> dict",
+            "description": "验证故事结构是否完整",
+            "parameters": {
+              "text": "故事文本"
+            },
+            "returns": {
+              "has_opening": "是否有开头",
+              "has_development": "是否有发展",
+              "has_climax": "是否有高潮",
+              "has_ending": "是否有结局",
+              "structure_score": "结构完整度评分（0-100）",
+              "is_valid": "是否通过验证"
+            },
+            "structure_detection_method": "基于文本长度比例和关键词检测的启发式方法"
+          },
+          {
+            "function_name": "validate_keywords_usage",
+            "signature": "validate_keywords_usage(story: str, keywords: List[str]) -> dict",
+            "description": "验证所有关键词是否被使用",
+            "parameters": {
+              "story": "故事文本",
+              "keywords": "原始关键词列表"
+            },
+            "returns": {
+              "all_used": "是否所有关键词都被使用",
+              "keywords_found": "找到的关键词列表",
+              "keywords_missing": "未找到的关键词列表",
+              "usage_count": "各关键词的使用次数字典"
+            }
+          },
+          {
+            "function_name": "validate_content_safety",
+            "signature": "validate_content_safety(text: str) -> dict",
+            "description": "检测生成的内容是否包含不当内容",
+            "parameters": {
+              "text": "要检查的文本"
+            },
+            "returns": {
+              "is_safe": "内容是否安全",
+              "safety_score": "安全评分（0-100）",
+              "violations": "违规内容列表",
+              "error_message": "如果不安全，返回错误信息"
+            },
+            "safety_checks": [
+              "敏感词汇检测",
+              "暴力内容检测",
+              "不当内容检测",
+              "法律合规检测"
+            ]
+          },
+          {
+            "function_name": "validate_story_quality",
+            "signature": "validate_story_quality(text: str, keywords: List[str]) -> dict",
+            "description": "综合验证故事质量",
+            "parameters": {
+              "text": "故事文本",
+              "keywords": "关键词列表"
+            },
+            "returns": {
+              "overall_quality": "总体质量评分（0-100）",
+              "length_score": "字数评分",
+              "structure_score": "结构评分",
+              "keywords_score": "关键词融入评分",
+              "safety_score": "安全性评分",
+              "is_qualified": "是否符合质量标准（>70分）"
+            }
+          }
+        ]
+      },
+      {
+        "tool_id": "output_formatter",
+        "tool_name": "输出格式化工具",
+        "file_name": "output_formatter.py",
+        "description": "格式化和结构化最终的输出结果",
+        "functions": [
+          {
+            "function_name": "format_story_output",
+            "signature": "format_story_output(raw_text: str, metadata: dict) -> dict",
+            "description": "格式化故事输出",
+            "parameters": {
+              "raw_text": "原始生成的文本",
+              "metadata": "包含标题、字数、风格等元数据的字典"
+            },
+            "returns": {
+              "title": "故事标题",
+              "content": "格式化后的故事正文",
+              "word_count": "字数",
+              "style": "文学风格",
+              "keywords_used": "使用的关键词列表",
+              "generation_metadata": "生成过程元数据"
+            }
+          },
+          {
+            "function_name": "generate_success_response",
+            "signature": "generate_success_response(story: dict, generation_time: float) -> dict",
+            "description": "生成成功的响应",
+            "parameters": {
+              "story": "格式化后的故事字典",
+              "generation_time": "生成耗时"
+            },
+            "returns": {
+              "success": "true",
+              "data": "故事数据",
+              "timestamp": "生成时间戳",
+              "message": "成功消息"
+            }
+          },
+          {
+            "function_name": "generate_error_response",
+            "signature": "generate_error_response(error_type: str, error_message: str, suggestions: List[str] = None) -> dict",
+            "description": "生成错误的响应",
+            "parameters": {
+              "error_type": "错误类型（validation_error/generation_error/quality_error等）",
+              "error_message": "错误信息",
+              "suggestions": "改进建议列表"
+            },
+            "returns": {
+              "success": "false",
+              "error": {
+                "type": "错误类型",
+                "message": "错误信息",
+                "suggestions": "改进建议"
+              },
+              "timestamp": "错误发生时间戳"
+            }
+          },
+          {
+            "function_name": "format_json_response",
+            "signature": "format_json_response(success: bool, data: dict = None, error: dict = None) -> str",
+            "description": "生成最终的JSON响应",
+            "parameters": {
+              "success": "操作是否成功",
+              "data": "成功时的数据",
+              "error": "失败时的错误信息"
+            },
+            "returns": "格式化的JSON字符串"
+          }
+        ]
+      }
+    ],
+    "tool_integration_requirements": {
+      "dependencies": [
+        "boto3 (AWS SDK for Python)",
+        "json (标准库)",
+        "re (正则表达式，标准库)",
+        "logging (日志记录，标准库)",
+        "time (时间处理，标准库)",
+        "typing (类型提示，标准库)"
+      ],
+      "external_services": [
+        "AWS Bedrock Claude API"
+      ],
+      "environment_variables": [
+        "AWS_ACCESS_KEY_ID",
+        "AWS_SECRET_ACCESS_KEY",
+        "AWS_REGION (默认: us-west-2)",
+        "BEDROCK_MODEL_ID (默认: anthropic.claude-opus-4-1-20250805)"
+      ]
+    },
+    "error_handling_strategy": {
+      "input_validation_errors": {
+        "handling": "立即返回友好的错误提示，包含具体的改进建议",
+        "examples": [
+          "场景描述过短：'场景描述需要至少5个字，当前为3个字。请提供更详细的场景描述。'",
+          "关键词过多：'最多支持10个关键词，当前为15个。请选择最重要的10个关键词。'"
+        ]
+      },
+      "api_errors": {
+        "handling": "自动重试（最多3次），每次重试前等待递增的时间",
+        "retry_delays": ["1秒", "3秒", "5秒"],
+        "timeout_handling": "如果超过60秒，返回超时错误提示"
+      },
+      "generation_quality_errors": {
+        "handling": "自动重新生成，调整提示词策略",
+        "quality_check_points": [
+          "字数验证",
+          "结构完整性",
+          "关键词使用",
+          "内容安全"
+        ]
+      }
+    },
+    "logging_strategy": {
+      "log_levels": {
+        "DEBUG": "详细的执行步骤和中间数据",
+        "INFO": "主要的流程事件和结果",
+        "WARNING": "潜在的问题和非致命错误",
+        "ERROR": "致命错误和异常"
+      },
+      "log_events": [
+        "输入接收和验证",
+        "提示词构建",
+        "API调用",
+        "生成完成",
+        "质量验证",
+        "错误和异常",
+        "重试事件"
+      ],
+      "log_format": "JSON格式，包含时间戳、日志级别、消息、上下文信息"
+    },
+    "testing_strategy": {
+      "unit_tests": "每个工具函数都应该有对应的单元测试",
+      "integration_tests": "测试工具之间的协作流程",
+      "test_cases": [
+        "有效输入测试",
+        "边界条件测试（最小、最大字数等）",
+        "错误输入测试",
+        "API失败模拟测试",
+        "超时处理测试"
+      ]
+    },
+    "performance_optimization": {
+      "caching": "缓存提示词模板和风格检测结果",
+      "batch_processing": "支持批量生成（未来扩展）",
+      "async_support": "提供异步版本的API调用函数"
+    }
+  }
+}

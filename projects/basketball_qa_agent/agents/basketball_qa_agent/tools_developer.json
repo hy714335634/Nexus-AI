@@ -1,0 +1,479 @@
+{
+  "tools_specification": {
+    "project_name": "basketball_qa_agent",
+    "agent_name": "basketball_qa_agent",
+    "development_date": "2025-11-23",
+    "tools_overview": "篮球问答Agent所需的5个核心工具规范和实现",
+    "tools": [
+      {
+        "tool_id": "web_search_enhanced",
+        "tool_name": "Enhanced Web Search Tool",
+        "description": "多源网络搜索工具，用于从多个搜索引擎获取篮球相关信息",
+        "version": "1.0",
+        "purpose": "支持多引擎整合查询，获取多元化的篮球信息来源",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "搜索关键词或自然语言查询"
+            },
+            "search_type": {
+              "type": "string",
+              "enum": ["web", "news", "image", "video"],
+              "description": "搜索类型，默认为web"
+            },
+            "num_results": {
+              "type": "integer",
+              "description": "返回结果数量，默认10，最大50",
+              "default": 10
+            },
+            "language": {
+              "type": "string",
+              "description": "搜索语言，默认zh-CN",
+              "default": "zh-CN"
+            },
+            "safe_search": {
+              "type": "boolean",
+              "description": "是否启用安全搜索，默认true",
+              "default": true
+            }
+          },
+          "required": ["query"]
+        },
+        "output_schema": {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": ["success", "error"],
+              "description": "搜索状态"
+            },
+            "query": {
+              "type": "string",
+              "description": "实际执行的搜索词"
+            },
+            "results": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "rank": {"type": "integer", "description": "结果排名"},
+                  "title": {"type": "string", "description": "搜索结果标题"},
+                  "url": {"type": "string", "description": "网页URL"},
+                  "snippet": {"type": "string", "description": "搜索结果摘要"},
+                  "source": {"type": "string", "description": "来源网站"},
+                  "publish_date": {"type": "string", "description": "发布日期（如有）"},
+                  "relevance_score": {"type": "number", "description": "相关度评分0-1"}
+                }
+              },
+              "description": "搜索结果列表"
+            },
+            "total_results": {
+              "type": "integer",
+              "description": "搜索到的总结果数"
+            },
+            "search_time": {
+              "type": "number",
+              "description": "搜索耗时（秒）"
+            },
+            "error_message": {
+              "type": "string",
+              "description": "错误信息（如有）"
+            }
+          }
+        },
+        "features": [
+          "支持多搜索引擎整合（Google、Bing、百度等）",
+          "高级搜索语法支持（引号、减号、site等）",
+          "自动去重和结果排序",
+          "相关度评分",
+          "发布日期识别",
+          "反爬虫机制处理",
+          "缓存结果以提高性能"
+        ],
+        "error_handling": [
+          "网络连接失败：返回错误信息和重试建议",
+          "搜索引擎限流：使用备选引擎或延迟重试",
+          "查询格式错误：返回格式建议",
+          "无搜索结果：返回空结果集而不是错误"
+        ],
+        "rate_limits": {
+          "requests_per_minute": 10,
+          "requests_per_hour": 500,
+          "max_results_per_query": 50
+        },
+        "implementation_notes": "使用requests库和BeautifulSoup进行网页抓取，支持代理配置，包含User-Agent轮换机制"
+      },
+      {
+        "tool_id": "http_request",
+        "tool_name": "HTTP Request Tool",
+        "description": "用于发送HTTP请求获取网页内容的工具",
+        "version": "1.0",
+        "purpose": "直接访问网页获取详细内容，支持各种HTTP方法和请求参数",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "url": {
+              "type": "string",
+              "description": "目标URL地址"
+            },
+            "method": {
+              "type": "string",
+              "enum": ["GET", "POST", "PUT", "DELETE", "HEAD"],
+              "description": "HTTP请求方法，默认GET",
+              "default": "GET"
+            },
+            "headers": {
+              "type": "object",
+              "description": "请求头信息"
+            },
+            "data": {
+              "type": "object",
+              "description": "POST/PUT请求的数据"
+            },
+            "timeout": {
+              "type": "integer",
+              "description": "请求超时时间（秒），默认10",
+              "default": 10
+            },
+            "allow_redirects": {
+              "type": "boolean",
+              "description": "是否允许重定向，默认true",
+              "default": true
+            },
+            "verify_ssl": {
+              "type": "boolean",
+              "description": "是否验证SSL证书，默认true",
+              "default": true
+            }
+          },
+          "required": ["url"]
+        },
+        "output_schema": {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": ["success", "error"],
+              "description": "请求状态"
+            },
+            "status_code": {
+              "type": "integer",
+              "description": "HTTP状态码"
+            },
+            "headers": {
+              "type": "object",
+              "description": "响应头信息"
+            },
+            "content": {
+              "type": "string",
+              "description": "响应体内容"
+            },
+            "content_type": {
+              "type": "string",
+              "description": "内容类型"
+            },
+            "encoding": {
+              "type": "string",
+              "description": "字符编码"
+            },
+            "response_time": {
+              "type": "number",
+              "description": "响应时间（秒）"
+            },
+            "error_message": {
+              "type": "string",
+              "description": "错误信息（如有）"
+            }
+          }
+        },
+        "features": [
+          "支持多种HTTP方法",
+          "自定义请求头",
+          "Cookie和会话管理",
+          "自动编码检测",
+          "重定向处理",
+          "超时控制",
+          "SSL证书验证选项",
+          "User-Agent轮换"
+        ],
+        "error_handling": [
+          "连接超时：返回超时错误",
+          "SSL证书错误：提供绕过选项",
+          "HTTP错误状态码：返回详细的错误信息",
+          "编码错误：自动尝试多种编码"
+        ],
+        "rate_limits": {
+          "requests_per_minute": 20,
+          "concurrent_requests": 5
+        },
+        "implementation_notes": "基于requests库实现，支持代理配置，包含自动重试机制和连接池"
+      },
+      {
+        "tool_id": "file_read",
+        "tool_name": "File Read Tool",
+        "description": "用于读取本地文件内容的工具",
+        "version": "1.0",
+        "purpose": "读取缓存文件和日志，支持多种文件格式",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "file_path": {
+              "type": "string",
+              "description": "文件路径"
+            },
+            "mode": {
+              "type": "string",
+              "enum": ["text", "json", "csv", "binary"],
+              "description": "读取模式，默认text",
+              "default": "text"
+            },
+            "encoding": {
+              "type": "string",
+              "description": "文件编码，默认utf-8",
+              "default": "utf-8"
+            },
+            "start_line": {
+              "type": "integer",
+              "description": "开始行号（用于大文件）"
+            },
+            "end_line": {
+              "type": "integer",
+              "description": "结束行号（用于大文件）"
+            }
+          },
+          "required": ["file_path"]
+        },
+        "output_schema": {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": ["success", "error"],
+              "description": "读取状态"
+            },
+            "content": {
+              "description": "文件内容（根据mode返回不同类型）"
+            },
+            "file_size": {
+              "type": "integer",
+              "description": "文件大小（字节）"
+            },
+            "line_count": {
+              "type": "integer",
+              "description": "文件行数"
+            },
+            "encoding": {
+              "type": "string",
+              "description": "实际使用的编码"
+            },
+            "error_message": {
+              "type": "string",
+              "description": "错误信息（如有）"
+            }
+          }
+        },
+        "features": [
+          "支持多种文件格式",
+          "自动编码检测",
+          "部分读取（针对大文件）",
+          "错误恢复",
+          "文件信息获取",
+          "路径安全检查"
+        ],
+        "error_handling": [
+          "文件不存在：返回明确错误信息",
+          "权限不足：返回权限错误",
+          "编码错误：尝试其他编码或返回二进制",
+          "文件被锁定：返回重试建议"
+        ],
+        "implementation_notes": "支持安全的路径访问，限制只能访问项目目录内的文件"
+      },
+      {
+        "tool_id": "file_write",
+        "tool_name": "File Write Tool",
+        "description": "用于将数据写入本地文件的工具",
+        "version": "1.0",
+        "purpose": "写入缓存数据和日志，支持多种文件格式",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "file_path": {
+              "type": "string",
+              "description": "文件路径"
+            },
+            "content": {
+              "description": "要写入的内容"
+            },
+            "mode": {
+              "type": "string",
+              "enum": ["text", "json", "csv", "append"],
+              "description": "写入模式，默认text",
+              "default": "text"
+            },
+            "encoding": {
+              "type": "string",
+              "description": "文件编码，默认utf-8",
+              "default": "utf-8"
+            },
+            "create_dirs": {
+              "type": "boolean",
+              "description": "是否自动创建目录，默认true",
+              "default": true
+            },
+            "overwrite": {
+              "type": "boolean",
+              "description": "是否覆盖现有文件，默认false",
+              "default": false
+            }
+          },
+          "required": ["file_path", "content"]
+        },
+        "output_schema": {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": ["success", "error"],
+              "description": "写入状态"
+            },
+            "file_path": {
+              "type": "string",
+              "description": "实际写入的文件路径"
+            },
+            "bytes_written": {
+              "type": "integer",
+              "description": "写入的字节数"
+            },
+            "file_size": {
+              "type": "integer",
+              "description": "文件最终大小"
+            },
+            "error_message": {
+              "type": "string",
+              "description": "错误信息（如有）"
+            }
+          }
+        },
+        "features": [
+          "支持多种写入模式",
+          "自动目录创建",
+          "原子写入（防止部分写入）",
+          "覆盖保护",
+          "编码支持",
+          "路径安全检查"
+        ],
+        "error_handling": [
+          "路径无效：返回路径错误",
+          "权限不足：返回权限错误",
+          "磁盘满：返回磁盘空间错误",
+          "文件被锁定：返回重试建议"
+        ],
+        "implementation_notes": "支持安全的路径访问，限制只能写入项目目录内的文件"
+      },
+      {
+        "tool_id": "current_time",
+        "tool_name": "Current Time Tool",
+        "description": "用于获取当前时间戳的工具",
+        "version": "1.0",
+        "purpose": "获取当前时间用于时间戳和新鲜度检查",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "timezone": {
+              "type": "string",
+              "description": "时区，默认UTC",
+              "default": "UTC"
+            },
+            "format": {
+              "type": "string",
+              "enum": ["iso8601", "timestamp", "readable"],
+              "description": "时间格式，默认iso8601",
+              "default": "iso8601"
+            }
+          }
+        },
+        "output_schema": {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": ["success", "error"],
+              "description": "获取状态"
+            },
+            "current_time": {
+              "type": "string",
+              "description": "当前时间"
+            },
+            "timezone": {
+              "type": "string",
+              "description": "时区信息"
+            },
+            "unix_timestamp": {
+              "type": "number",
+              "description": "Unix时间戳"
+            },
+            "iso8601": {
+              "type": "string",
+              "description": "ISO 8601格式时间"
+            },
+            "error_message": {
+              "type": "string",
+              "description": "错误信息（如有）"
+            }
+          }
+        },
+        "features": [
+          "多时区支持",
+          "多种时间格式",
+          "毫秒级精度",
+          "时区转换",
+          "时间差计算支持"
+        ],
+        "error_handling": [
+          "无效的时区：返回支持的时区列表",
+          "系统时间问题：返回错误信息"
+        ],
+        "implementation_notes": "使用Python datetime库实现，支持pytz库的所有时区"
+      }
+    ],
+    "tool_integration": {
+      "dependency_graph": {
+        "web_search_enhanced": ["http_request", "current_time"],
+        "http_request": ["current_time"],
+        "file_read": [],
+        "file_write": ["current_time"],
+        "current_time": []
+      },
+      "tool_usage_flow": [
+        "1. Agent接收用户问题",
+        "2. 使用current_time获取当前时间",
+        "3. 使用web_search_enhanced进行搜索",
+        "4. 对每个搜索结果使用http_request获取详细内容",
+        "5. 使用file_write缓存搜索结果",
+        "6. 整理信息并生成答案",
+        "7. 使用file_read读取缓存（如需要）"
+      ]
+    },
+    "tool_configuration": {
+      "timeout_settings": {
+        "web_search": 15,
+        "http_request": 10,
+        "file_operations": 5
+      },
+      "cache_settings": {
+        "cache_enabled": true,
+        "cache_ttl": 3600,
+        "cache_path": "cache/basketball_qa"
+      },
+      "retry_settings": {
+        "max_retries": 3,
+        "retry_delay": 2,
+        "backoff_multiplier": 1.5
+      }
+    },
+    "development_status": "completed",
+    "next_steps": "Proceed to prompt_engineer stage for creating Agent prompts"
+  }
+}

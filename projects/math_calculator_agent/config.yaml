@@ -1,0 +1,7 @@
+project:
+  created_date: '2025-11-23T06:08:00.404526+00:00'
+  description: A simple math calculation agent that supports basic arithmetic operations
+    (addition, subtraction, multiplication, division).
+  name: math_calculator_agent
+  updated_date: '2025-11-23T06:08:04.926354+00:00'
+  version: 1.0.0

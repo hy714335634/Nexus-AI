@@ -299,12 +299,15 @@ def _stage_name_to_enum(stage_name: str) -> Optional[BuildStage]:
     Returns:
         BuildStage enum or None if invalid
     """
-    # Map old stage names to new BuildStage enum values
+    # Map stage names to BuildStage enum values
     stage_mapping = {
         "orchestrator": BuildStage.ORCHESTRATOR,
         "requirements_analyzer": BuildStage.REQUIREMENTS_ANALYSIS,
         "system_architect": BuildStage.SYSTEM_ARCHITECTURE,
         "agent_designer": BuildStage.AGENT_DESIGN,
+        "prompt_engineer": BuildStage.PROMPT_ENGINEER,
+        "tools_developer": BuildStage.TOOLS_DEVELOPER,
+        "agent_code_developer": BuildStage.AGENT_CODE_DEVELOPER,
         "agent_developer_manager": BuildStage.AGENT_DEVELOPER_MANAGER,
         "agent_deployer": BuildStage.AGENT_DEPLOYER,
     }

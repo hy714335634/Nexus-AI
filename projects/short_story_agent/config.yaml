@@ -1,0 +1,7 @@
+project:
+  created_date: '2025-11-23T03:00:45.705569+00:00'
+  description: AI短篇小说生成智能体系统。用户输入场景和关键词，系统自动生成800-2000字的完整短篇小说。支持多种文学风格（现实主义、科幻、悬疑、爱情等）。基于AWS
+    Bedrock Claude-Opus模型，提供高质量的创意写作功能。"
+  name: short_story_agent
+  updated_date: '2025-11-23T03:09:15.788682+00:00'
+  version: 1.0.0

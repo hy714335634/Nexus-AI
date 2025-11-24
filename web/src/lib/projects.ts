@@ -54,13 +54,13 @@ function normalizeStage(stage?: string | null): BuildStage | undefined {
 }
 
 export async function fetchProjectSummaries(): Promise<ProjectSummary[]> {
-  const response = await apiFetch<ProjectListResponse>('/api/v1/projects?limit=200').catch(() => undefined);
+  const response = await apiFetch<ProjectListResponse>('/api/v1/projects?limit=100').catch(() => undefined);
 
   if (!response?.success) {
     return [];
   }
 
-  const projects = response.data.projects.map((project) => {
+  const projects = response.data.items.map((project) => {
     const updatedAt = project.updated_at ?? project.created_at ?? undefined;
     return {
       projectId: project.project_id,

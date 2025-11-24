@@ -1,0 +1,6 @@
+project:
+  created_date: '2025-11-23T05:39:32.575013+00:00'
+  description: An agent that queries weather information based on city names.
+  name: weather_query_agent
+  updated_date: '2025-11-23T05:39:35.492956+00:00'
+  version: 1.0.0

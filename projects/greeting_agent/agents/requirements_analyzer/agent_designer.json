@@ -1,0 +1,159 @@
+{
+  "agent_design": {
+    "design_overview": {
+      "project_name": "greeting_agent",
+      "version": "1.0",
+      "date": "2025-11-23",
+      "design_scope": "设计一个轻量级的问候API服务，能够根据当前时间返回适当的问候语（早上好、下午好、晚上好）",
+      "design_goals": [
+        "创建一个响应迅速的时间感知问候Agent",
+        "实现根据时间段返回不同问候语的功能",
+        "提供标准化的RESTful API接口",
+        "确保P95响应时间<100ms",
+        "支持个性化和多语言问候"
+      ],
+      "key_design_decisions": [
+        {
+          "decision": "采用FastAPI框架",
+          "rationale": "FastAPI提供高性能、类型安全的API开发体验，自动生成OpenAPI文档，支持异步处理",
+          "alternatives": ["Flask", "Django REST Framework"],
+          "consequences": ["更快的响应时间", "自动生成API文档", "类型安全"]
+        },
+        {
+          "decision": "基于规则的时间段划分",
+          "rationale": "时间段划分为四个区间（早晨6-12点、下午12-18点、晚上18-22点、深夜22-6点），使逻辑清晰且易于维护",
+          "alternatives": ["更多时间段划分", "动态时间段"],
+          "consequences": ["逻辑简单明确", "易于维护和测试", "符合用户常规期望"]
+        },
+        {
+          "decision": "内存存储问候模板",
+          "rationale": "问候模板数量有限，存储在内存中可避免数据库查询开销",
+          "alternatives": ["数据库存储", "文件系统存储"],
+          "consequences": ["最小化延迟", "无需外部依赖", "易于部署和扩展"]
+        },
+        {
+          "decision": "模块化设计",
+          "rationale": "将功能拆分为独立模块（时间处理、问候生成、输入验证等），提高代码复用性和可维护性",
+          "alternatives": ["单文件实现", "微服务架构"],
+          "consequences": ["代码组织清晰", "便于单元测试", "功能扩展灵活"]
+        }
+      ]
+    },
+    "agents": [
+      {
+        "agent_id": "greeting_api",
+        "name": "greeting_api_agent",
+        "role": "时间感知问候服务提供者",
+        "purpose": "提供根据当前时间返回适当问候语的API服务，支持个性化和多语言",
+        "personality": {
+          "traits": ["高效", "可靠", "准确", "友好", "专业"],
+          "communication_style": "简洁、清晰、标准化的API响应",
+          "tone": "友好、专业"
+        },
+        "capabilities": {
+          "core_functions": [
+            "时间感知问候",
+            "个性化问候（包含用户名）",
+            "多语言支持（中英文）",
+            "RESTful API接口",
+            "健康状态监控"
+          ],
+          "specialized_skills": [
+            "根据时间段选择合适问候语（早上好、下午好、晚上好、晚安）",
+            "时区处理",
+            "支持中英文切换",
+            "高性能API处理",
+            "标准化错误处理"
+          ],
+          "limitations": [
+            "仅支持中英文两种语言",
+            "固定的时间段划分",
+            "问候模板预定义，不支持自定义",
+            "无状态服务，不保存历史数据",
+            "无用户认证机制"
+          ],
+          "tools_required": [
+            "time_processor - 时间处理工具",
+            "greeting_generator - 问候生成工具",
+            "input_validator - 输入验证工具",
+            "response_formatter - 响应格式化工具",
+            "metrics_collector - 指标收集工具",
+            "logger - 日志记录工具"
+          ]
+        },
+        "knowledge_domain": {
+          "primary_domains": [
+            "时间处理",
+            "API开发",
+            "问候语生成",
+            "多语言支持",
+            "Web服务"
+          ],
+          "expertise_level": "专家级API开发",
+          "knowledge_sources": [
+            "预定义问候模板",
+            "时间段规则配置",
+            "FastAPI文档",
+            "RESTful API设计规范"
+          ],
+          "update_frequency": "静态知识，随代码更新"
+        },
+        "interaction_patterns": {
+          "communication_style": "同步HTTP请求-响应",
+          "conversation_flow": "单轮交互，无状态处理",
+          "error_responses": [
+            "参数验证错误（400 Bad Request）",
+            "方法不支持错误（405 Method Not Allowed）",
+            "内部服务错误（500 Internal Server Error）",
+            "语言不支持错误（400 Bad Request）",
+            "时区格式错误（400 Bad Request）"
+          ]
+        },
+        "constraints": [
+          "P95响应时间<100ms",
+          "支持至少100 QPS",
+          "内存占用<200MB",
+          "启动时间<5秒",
+          "Docker容器大小<100MB"
+        ],
+        "evaluation_criteria": [
+          "问候语时间匹配准确率",
+          "响应时间达标率",
+          "API功能正确性",
+          "错误处理有效性",
+          "文档完整性",
+          "代码覆盖率"
+        ],
+        "model_requirements": {
+          "model_name": "不适用（基于规则的实现）",
+          "minimum_capabilities": ["不适用"],
+          "rationale": "问候功能基于简单规则和模板实现，不需要LLM"
+        },
+        "memory_configuration": {
+          "memory_type": "无状态内存",
+          "retention_policy": "请求处理完成后释放",
+          "retrieval_strategy": "不适用"
+        }
+      }
+    ],
+    "agent_relationships": [
+      {
+        "source_agent": "greeting_api",
+        "target_agent": "greeting_api",
+        "relationship_type": "自我调用",
+        "interaction_protocol": "内部函数调用",
+        "data_exchange": ["请求参数", "处理结果"]
+      }
+    ],
+    "system_integration": {
+      "entry_point": "HTTP API端点 (/api/greet, /health)",
+      "exit_points": ["JSON响应", "HTTP状态码"],
+      "external_interfaces": [
+        "FastAPI Web服务器",
+        "Docker容器接口",
+        "日志系统",
+        "监控系统"
+      ]
+    }
+  }
+}

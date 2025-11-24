@@ -191,8 +191,9 @@ export interface ProjectListItemRecord {
 }
 
 export interface ProjectListResponseData {
-  projects: ProjectListItemRecord[];
-  pagination: PaginationMeta;
+  items: ProjectListItemRecord[];
+  last_evaluated_key?: string | null;
+  count: number;
 }
 
 export type ProjectListResponse = ApiResponse<ProjectListResponseData>;

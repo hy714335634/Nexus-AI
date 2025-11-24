@@ -1,0 +1,154 @@
+{
+  "agent_design": {
+    "design_overview": {
+      "project_name": "short_story_agent",
+      "version": "1.0",
+      "date": "2025-11-23",
+      "design_scope": "设计一个智能短篇小说生成系统，基于用户提供的场景和关键词，自动创作800-2000字的完整短篇小说",
+      "design_goals": [
+        "创建一个专注于短篇小说生成的单一智能体",
+        "确保生成的小说包含完整的叙事元素",
+        "优化提示词工程以提高生成质量",
+        "实现高效的错误处理和重试机制",
+        "支持多种文学风格自适应"
+      ],
+      "key_design_decisions": [
+        {
+          "decision": "采用单Agent架构",
+          "rationale": "小说生成是一个明确的单一功能需求，不需要多个专业角色的协作",
+          "alternatives": ["多Agent协作架构"],
+          "consequences": ["简化系统复杂度", "减少通信开销", "便于调试和维护"]
+        },
+        {
+          "decision": "使用Claude-Opus作为首选LLM模型",
+          "rationale": "Claude-Opus具有更强的创意写作能力和更好的长文本生成质量",
+          "alternatives": ["GPT-4", "Claude-Sonnet"],
+          "consequences": ["提高生成质量", "可能增加API调用成本"]
+        },
+        {
+          "decision": "实现模板化提示词系统",
+          "rationale": "不同文学风格和题材需要特定的提示词引导，模板化可提高灵活性",
+          "alternatives": ["固定提示词", "动态生成提示词"],
+          "consequences": ["更好的风格适配", "便于后期扩展更多文学风格"]
+        },
+        {
+          "decision": "实现3次重试机制",
+          "rationale": "LLM生成内容存在不确定性，重试可提高成功率",
+          "alternatives": ["单次生成", "人工干预"],
+          "consequences": ["提高系统可靠性", "延长最坏情况下的响应时间"]
+        }
+      ]
+    },
+    "agents": [
+      {
+        "agent_id": "story_generator",
+        "name": "story_generator_agent",
+        "role": "短篇小说生成专家",
+        "purpose": "根据用户提供的场景和关键词，生成高质量的短篇小说",
+        "personality": {
+          "traits": ["创造性", "细致", "逻辑性", "文学性", "适应性"],
+          "communication_style": "专业、清晰、友好",
+          "tone": "积极、富有想象力、专业"
+        },
+        "capabilities": {
+          "core_functions": [
+            "场景和关键词输入处理与验证",
+            "文学风格识别与适配",
+            "小说结构设计与生成",
+            "内容质量验证",
+            "格式化输出"
+          ],
+          "specialized_skills": [
+            "关键词自然融合",
+            "叙事结构构建",
+            "人物塑造",
+            "情节冲突设计",
+            "多风格文学创作"
+          ],
+          "limitations": [
+            "生成内容限制在800-2000字",
+            "仅支持中文输入和输出",
+            "依赖外部LLM API",
+            "无法生成多媒体内容",
+            "不存储用户历史记录"
+          ],
+          "tools_required": [
+            "current_time",
+            "text_analyzer",
+            "text_cleaner",
+            "data_validator",
+            "use_llm"
+          ]
+        },
+        "knowledge_domain": {
+          "primary_domains": [
+            "文学创作",
+            "叙事理论",
+            "小说结构",
+            "文体风格",
+            "中文写作"
+          ],
+          "expertise_level": "专家级",
+          "knowledge_sources": ["LLM预训练知识", "提示词模板库"],
+          "update_frequency": "随模型更新"
+        },
+        "interaction_patterns": {
+          "communication_style": "同步请求-响应模式",
+          "conversation_flow": "单轮对话，一次性生成完整内容",
+          "error_responses": [
+            "输入验证错误提示",
+            "生成失败重试提示",
+            "质量不达标提示",
+            "API错误友好提示",
+            "超时提示"
+          ]
+        },
+        "constraints": [
+          "响应时间不超过60秒",
+          "生成内容必须符合内容安全规范",
+          "API调用成本需要控制在合理范围",
+          "不涉及数据持久化存储",
+          "小说长度严格控制在800-2000字"
+        ],
+        "evaluation_criteria": [
+          "故事完整性（开头、发展、高潮、结局）",
+          "关键词融入自然度",
+          "文学质量和可读性",
+          "生成成功率",
+          "响应时间",
+          "用户满意度"
+        ],
+        "model_requirements": {
+          "model_name": "Claude-Opus",
+          "minimum_capabilities": [
+            "创意写作能力",
+            "长文本生成",
+            "风格模拟",
+            "叙事能力",
+            "中文生成"
+          ],
+          "rationale": "Claude-Opus具有更强的创意写作能力和风格多样性，适合小说生成任务"
+        },
+        "memory_configuration": {
+          "memory_type": "无状态会话",
+          "retention_policy": "单次会话无持久化",
+          "retrieval_strategy": "不适用"
+        }
+      }
+    ],
+    "agent_relationships": [
+      {
+        "source_agent": "story_generator",
+        "target_agent": "story_generator",
+        "relationship_type": "自我调用",
+        "interaction_protocol": "内部函数调用",
+        "data_exchange": ["生成参数", "中间结果", "质量评估结果"]
+      }
+    ],
+    "system_integration": {
+      "entry_point": "用户输入场景和关键词",
+      "exit_points": ["返回生成的短篇小说", "返回错误提示"],
+      "external_interfaces": ["AWS Bedrock API", "Python运行时"]
+    }
+  }
+}

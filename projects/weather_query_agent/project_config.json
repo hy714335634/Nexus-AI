@@ -1,0 +1,110 @@
+{
+  "project_name": "weather_query_agent",
+  "validation_timestamp": "2025-11-23T05:55:11.528268+00:00",
+  "overall_status": "success",
+  "agent_scripts": [
+    {
+      "script_path": "agents/generated_agents/weather_query_agent/weather_query_agent.py",
+      "syntax_valid": true,
+      "dependencies": [
+        "os",
+        "nexus_utils.agent_factory",
+        "strands.telemetry",
+        "argparse",
+        "logging",
+        "traceback"
+      ],
+      "execution_params": [],
+      "argparse_params": [
+        {
+          "name": "-i",
+          "type": "str",
+          "description": "查询输入（城市名称或自然语言描述）",
+          "required": false,
+          "default": "北京的天气怎么样？",
+          "action": null
+        },
+        {
+          "name": "-e",
+          "type": "str",
+          "description": "运行环境 (默认: production)",
+          "required": false,
+          "default": "production",
+          "action": null
+        },
+        {
+          "name": "-v",
+          "type": "str",
+          "description": "Agent版本 (默认: latest)",
+          "required": false,
+          "default": "latest",
+          "action": null
+        },
+        {
+          "name": "-m",
+          "type": "str",
+          "description": "模型ID (默认: default)",
+          "required": false,
+          "default": "default",
+          "action": null
+        },
+        {
+          "name": "--debug",
+          "type": "str",
+          "description": "启用调试模式",
+          "required": false,
+          "default": null,
+          "action": "store_true"
+        }
+      ],
+      "error_message": ""
+    }
+  ],
+  "prompt_files": [
+    {
+      "prompt_path": "generated_agents_prompts/weather_query_agent/weather_query_agent.yaml",
+      "tool_count": 5,
+      "valid": true,
+      "error_message": "",
+      "metadata": {
+        "tags": [
+          "天气查询",
+          "API集成",
+          "数据格式化",
+          "information_retrieval"
+        ],
+        "supported_models": [
+          "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
+        ],
+        "tools_dependencies": [
+          "strands_tools/current_time",
+          "strands_tools/calculator",
+          "generated_tools/weather_query_agent/weather_tools/city_name_normalizer_tool",
+          "generated_tools/weather_query_agent/weather_tools/weather_formatter_tool",
+          "generated_tools/weather_query_agent/weather_tools/weather_query_tool"
+        ]
+      },
+      "agent_info": {
+        "name": "weather_query_agent",
+        "description": "天气查询专家，可以根据用户提供的城市名称查询并返回实时天气信息",
+        "category": "information_retrieval"
+      }
+    }
+  ],
+  "generated_tools": [
+    {
+      "tool_path": "generated_tools/weather_query_agent/weather_tools.py",
+      "syntax_valid": true,
+      "error_message": ""
+    }
+  ],
+  "total_tools": 5,
+  "summary": {
+    "agent_scripts_count": 1,
+    "prompt_files_count": 1,
+    "generated_tool_files_count": 1,
+    "all_scripts_valid": true,
+    "all_tools_valid": true,
+    "all_prompts_valid": true
+  }
+}

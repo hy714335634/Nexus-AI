@@ -1,0 +1,147 @@
+{"agent_design": {
+  "design_overview": {
+    "project_name": "weather_query_agent",
+    "version": "1.0",
+    "date": "2025-11-23",
+    "design_scope": "设计一个专门用于天气查询的智能体，能够根据用户提供的城市名称返回实时天气信息",
+    "design_goals": [
+      "创建一个高效可靠的天气查询服务",
+      "支持中英文城市名称输入",
+      "提供清晰易读的天气信息输出",
+      "确保API调用安全和错误处理",
+      "优化性能和用户体验"
+    ],
+    "key_design_decisions": [
+      {
+        "decision": "采用API集成专家模板作为基础",
+        "rationale": "该模板提供了完整的API调用、认证管理、数据转换和错误处理能力，完全匹配天气API集成需求",
+        "alternatives": ["自定义Agent设计", "通用查询Agent"],
+        "consequences": ["加速开发流程", "确保API调用安全可靠", "标准化错误处理"]
+      },
+      {
+        "decision": "使用http_request工具进行API调用",
+        "rationale": "内置工具提供完整的HTTP请求功能，支持各种请求方法和参数配置",
+        "alternatives": ["自定义HTTP客户端", "第三方请求库"],
+        "consequences": ["与Strands SDK无缝集成", "简化代码复杂度", "提高可维护性"]
+      },
+      {
+        "decision": "实现简单的内存缓存机制",
+        "rationale": "通过Python内置数据结构实现缓存，减少API调用频率，提高响应速度",
+        "alternatives": ["使用外部缓存系统", "不使用缓存"],
+        "consequences": ["降低API调用成本", "提升用户体验", "减少API限流风险"]
+      },
+      {
+        "decision": "采用模块化错误处理策略",
+        "rationale": "将错误分类并提供专门的处理逻辑，提供清晰的错误提示",
+        "alternatives": ["统一错误处理", "最小化错误处理"],
+        "consequences": ["提高系统健壮性", "提供更好的用户反馈", "简化调试和维护"]
+      }
+    ]
+  },
+  "agents": [
+    {
+      "agent_id": "weather_query_agent",
+      "name": "weather_query_agent",
+      "role": "天气查询专家",
+      "purpose": "根据用户提供的城市名称，查询并返回该城市的实时天气信息，包括温度、湿度、天气状况、风速等关键指标",
+      "personality": {
+        "traits": ["专业可靠", "反应迅速", "友好热心", "清晰简洁"],
+        "communication_style": "简洁明了，专业友好，重点突出关键天气信息",
+        "tone": "正式但亲切，提供事实性天气信息，并在适当时给予简单建议"
+      },
+      "capabilities": {
+        "core_functions": [
+          "解析和验证用户输入的城市名称（支持中英文）",
+          "调用天气API获取实时天气数据",
+          "解析API响应并提取关键天气信息",
+          "格式化天气信息为用户友好的输出",
+          "处理各种错误场景并提供友好提示",
+          "实现简单的缓存机制优化性能"
+        ],
+        "specialized_skills": [
+          "中英文城市名称识别和转换",
+          "天气数据格式化和展示",
+          "温度单位转换（摄氏度/华氏度）",
+          "天气状况描述的语言本地化"
+        ],
+        "limitations": [
+          "仅支持实时天气查询，不提供天气预报功能",
+          "仅支持单个城市查询，不支持多城市批量查询",
+          "依赖第三方天气API服务，受其可用性和数据准确性影响",
+          "不提供历史天气数据和趋势分析"
+        ],
+        "tools_required": [
+          "http_request - 用于调用天气API",
+          "python_repl - 用于数据处理和缓存实现",
+          "current_time - 用于缓存时间控制和结果时间戳"
+        ]
+      },
+      "knowledge_domain": {
+        "primary_domains": [
+          "天气数据和信息",
+          "城市地理信息",
+          "API集成和数据处理"
+        ],
+        "expertise_level": "专业级 - 在天气信息查询和展示方面具有专业知识",
+        "knowledge_sources": [
+          "第三方天气API服务（如OpenWeatherMap或和风天气）",
+          "城市名称数据库或映射表",
+          "天气术语和描述标准"
+        ],
+        "update_frequency": "实时 - 每次查询获取最新天气数据，缓存有效期为5分钟"
+      },
+      "interaction_patterns": {
+        "communication_style": "请求-响应模式，用户提供城市名称，Agent返回格式化天气信息",
+        "conversation_flow": "单轮对话，每次交互独立完成一次天气查询",
+        "error_responses": [
+          "城市名称无效：'很抱歉，无法找到该城市，请检查城市名称是否正确。'",
+          "API调用失败：'天气服务暂时不可用，请稍后再试。'",
+          "数据解析错误：'获取天气数据时出现问题，请稍后重试。'",
+          "输入为空：'请输入要查询天气的城市名称。'"
+        ]
+      },
+      "constraints": [
+        "API调用频率受天气服务提供商限制",
+        "城市名称必须能被API识别",
+        "响应时间应在3秒内（不包括网络延迟）",
+        "输出格式必须清晰易读，重点突出关键天气信息"
+      ],
+      "evaluation_criteria": [
+        "查询成功率（目标：>95%）",
+        "响应时间（目标：<3秒）",
+        "城市名称识别准确率（目标：>90%）",
+        "用户满意度（基于输出清晰度和有用性）",
+        "错误处理有效性（提供准确的错误原因和建议）"
+      ],
+      "model_requirements": {
+        "model_name": "Claude 3.7 Sonnet",
+        "minimum_capabilities": [
+          "理解自然语言城市名称查询",
+          "处理JSON格式的API响应",
+          "格式化输出天气信息",
+          "提供多语言支持"
+        ],
+        "rationale": "Claude 3.7 Sonnet提供了优秀的自然语言理解能力和多语言支持，能够高效处理JSON数据，满足天气查询Agent的需求"
+      },
+      "memory_configuration": {
+        "memory_type": "短期会话内存 + 简单缓存",
+        "retention_policy": "缓存天气数据5分钟，不保留用户查询历史",
+        "retrieval_strategy": "基于城市名称的精确匹配检索"
+      }
+    }
+  ],
+  "agent_relationships": [
+    {
+      "source_agent": "weather_query_agent",
+      "target_agent": "weather_query_agent",
+      "relationship_type": "自引用 - 单Agent架构",
+      "interaction_protocol": "内部函数调用",
+      "data_exchange": ["城市名称", "天气数据", "错误信息"]
+    }
+  ],
+  "system_integration": {
+    "entry_point": "用户查询请求 -> weather_query_agent.query(city_name)",
+    "exit_points": ["格式化天气信息响应", "错误提示响应"],
+    "external_interfaces": ["第三方天气API服务"]
+  }
+}}

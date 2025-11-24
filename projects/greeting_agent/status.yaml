@@ -1,0 +1,71 @@
+agents: {}
+created_at: '2025-11-23T03:25:13.836961+00:00'
+last_updated: '2025-11-23T03:25:13.836981+00:00'
+project: greeting_agent
+project_info:
+- agents:
+  - created_date: '2025-11-23T03:25:16.444642+00:00'
+    description: 智能体：requirements_analyzer
+    last_updated: '2025-11-23T05:35:29.566256+00:00'
+    name: requirements_analyzer
+    pipeline:
+    - description: 需求分析阶段 - 分析用户需求，定义功能规格
+      doc_path: projects/greeting_agent/agents/requirements_analyzer/requirements_analyzer.json
+      stage: requirements_analyzer
+      status: true
+      updated_date: '2025-11-23T05:28:52.464194+00:00'
+    - description: 系统架构设计阶段 - 设计系统架构和技术方案
+      doc_path: projects/greeting_agent/agents/requirements_analyzer/system_architect.json
+      stage: system_architect
+      status: true
+      updated_date: '2025-11-23T03:28:34.575149+00:00'
+    - description: Agent设计阶段 - 设计智能体结构和交互模式
+      doc_path: projects/greeting_agent/agents/requirements_analyzer/agent_designer.json
+      stage: agent_designer
+      status: true
+      updated_date: '2025-11-23T05:31:12.528730+00:00'
+    - agent_artifact_path:
+      - projects/greeting_agent/prompts/generated_agents_prompts/greeting_rules_and_templates.yaml
+      description: 提示词工程阶段 - 设计和优化提示词模板
+      doc_path: projects/greeting_agent/agents/requirements_analyzer/prompt_engineer.json
+      stage: prompt_engineer
+      status: true
+      updated_date: '2025-11-23T05:31:39.311664+00:00'
+    - agent_artifact_path:
+      - projects/greeting_agent/tools/generated_tools/response_formatter.py
+      - projects/greeting_agent/tools/generated_tools/input_validator.py
+      - projects/greeting_agent/tools/generated_tools/time_processor.py
+      - projects/greeting_agent/tools/generated_tools/metrics_collector.py
+      - projects/greeting_agent/tools/generated_tools/logger.py
+      - projects/greeting_agent/tools/generated_tools/greeting_generator.py
+      description: 工具开发阶段 - 开发必要的工具和函数
+      doc_path: projects/greeting_agent/agents/requirements_analyzer/tools_developer.json
+      stage: tools_developer
+      status: true
+      updated_date: '2025-11-23T05:33:04.796261+00:00'
+    - agent_artifact_path:
+      - projects/greeting_agent/agents/generated_agents/greeting_agent/services.py
+      - projects/greeting_agent/agents/generated_agents/greeting_agent/main.py
+      - projects/greeting_agent/agents/generated_agents/greeting_agent/models.py
+      - projects/greeting_agent/agents/generated_agents/greeting_agent/middleware.py
+      - projects/greeting_agent/agents/generated_agents/greeting_agent/config.py
+      - projects/greeting_agent/agents/generated_agents/greeting_agent/routes.py
+      description: Agent代码开发阶段 - 实现智能体代码
+      doc_path: projects/greeting_agent/agents/requirements_analyzer/agent_code_developer.json
+      stage: agent_code_developer
+      status: true
+      updated_date: '2025-11-23T05:34:34.015864+00:00'
+    - description: Agent开发管理阶段 - 管理和协调开发流程
+      doc_path: projects/greeting_agent/agents/requirements_analyzer/agent_developer_manager.json
+      stage: agent_developer_manager
+      status: true
+      updated_date: '2025-11-23T05:35:29.566258+00:00'
+  description: 轻量级问候API服务，用于API验证测试。提供基础问候功能、时间感知问候、多语言支持和健康检查端点。基于FastAPI框架，支持快速部署和高性能处理。
+  last_updated: '2025-11-23T05:35:29.566251+00:00'
+  name: greeting_agent
+  progress:
+  - completed: 7
+    total: 7
+  version: 1.0.0
+status: initialized
+true: 1.0.0

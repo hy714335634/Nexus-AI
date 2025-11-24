@@ -1,0 +1,249 @@
+{
+  "tool_development": {
+    "development_overview": {
+      "project_name": "weather_query_agent",
+      "version": "1.0",
+      "date": "2025-11-23",
+      "development_scope": "为天气查询Agent开发三个核心工具：天气数据查询、城市名称规范化和天气数据格式化",
+      "design_principles": [
+        "遵循Strands框架规范，使用@tool装饰器",
+        "实现完整的错误处理和重试机制",
+        "支持数据缓存以提高性能",
+        "提供中英文双语支持",
+        "实现真实的API调用（OpenWeatherMap）",
+        "支持摄氏度和华氏度温度单位转换",
+        "提供多种输出格式（文本、HTML、JSON）"
+      ],
+      "key_decisions": [
+        "使用OpenWeatherMap作为天气数据源",
+        "实现5分钟的本地文件缓存机制",
+        "支持最多3次的API请求重试",
+        "提供模拟数据功能用于演示（未配置API密钥时）",
+        "使用丰富的城市名称映射表支持中英文转换",
+        "集成天气emoji和视觉化HTML输出",
+        "实现详细的日志记录用于调试"
+      ]
+    },
+    "tools": [
+      {
+        "tool_name": "weather_query_tool",
+        "description": "调用天气API获取指定城市的实时天气信息，支持中英文城市名称、多种温度单位和数据缓存",
+        "function_signature": "weather_query_tool(city_name: str, language: str = 'zh', units: str = 'metric', use_cache: bool = True) -> str",
+        "parameters": [
+          {
+            "name": "city_name",
+            "type": "str",
+            "description": "城市名称，支持中英文，如'北京'、'Beijing'",
+            "required": true
+          },
+          {
+            "name": "language",
+            "type": "str",
+            "description": "返回语言，支持'zh'(中文)、'en'(英文)，默认为'zh'",
+            "required": false
+          },
+          {
+            "name": "units",
+            "type": "str",
+            "description": "温度单位，支持'metric'(摄氏度)、'imperial'(华氏度)，默认为'metric'",
+            "required": false
+          },
+          {
+            "name": "use_cache",
+            "type": "bool",
+            "description": "是否使用缓存，默认为True",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的天气数据，包含城市、温度、湿度、气压、风速、日出日落等完整信息",
+        "dependencies": [
+          "requests",
+          "json",
+          "os",
+          "time",
+          "logging",
+          "pathlib"
+        ],
+        "implementation_notes": [
+          "首先调用city_name_normalizer_tool规范化城市名称",
+          "检查缓存是否存在且有效（5分钟内）",
+          "从环境变量OPENWEATHER_API_KEY获取API密钥",
+          "使用OpenWeatherMap API获取实时天气数据",
+          "实现最多3次的重试机制，指数退避延迟",
+          "支持摄氏度和华氏度的双重温度显示",
+          "将成功的查询结果缓存到本地文件",
+          "未配置API密钥时返回模拟数据用于演示",
+          "详细的日志记录所有操作和错误"
+        ],
+        "error_handling": [
+          "INVALID_CITY: 城市名称无效或无法规范化",
+          "CITY_NOT_FOUND: API返回404，城市不存在",
+          "INVALID_API_KEY: API密钥无效或未授权",
+          "API_QUOTA_EXCEEDED: API调用配额已超限",
+          "REQUEST_TIMEOUT: 请求超时（10秒）",
+          "CONNECTION_ERROR: 网络连接失败",
+          "MAX_RETRIES_EXCEEDED: 达到最大重试次数（3次）",
+          "API_ERROR: 其他API错误",
+          "UNKNOWN_ERROR: 未知错误"
+        ],
+        "usage_examples": [
+          "weather_query_tool('北京')",
+          "weather_query_tool('Beijing', language='en')",
+          "weather_query_tool('上海', units='imperial')",
+          "weather_query_tool('London', language='en', use_cache=False)"
+        ]
+      },
+      {
+        "tool_name": "city_name_normalizer_tool",
+        "description": "规范化和验证用户输入的城市名称，支持中英文识别和转换，提供模糊匹配建议",
+        "function_signature": "city_name_normalizer_tool(city_name: str, language: Optional[str] = None) -> str",
+        "parameters": [
+          {
+            "name": "city_name",
+            "type": "str",
+            "description": "用户输入的城市名称",
+            "required": true
+          },
+          {
+            "name": "language",
+            "type": "Optional[str]",
+            "description": "输入语言类型，如果不提供则自动检测",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的规范化结果，包含规范化后的名称、原始名称、语言、置信度和建议列表",
+        "dependencies": [
+          "re",
+          "json",
+          "logging"
+        ],
+        "implementation_notes": [
+          "清理输入中的空格和特殊字符",
+          "自动检测输入语言（中文或英文）",
+          "对中文城市名称移除'市'后缀",
+          "使用预定义的城市名称映射表进行转换",
+          "支持模糊匹配，当精确匹配失败时提供建议",
+          "返回置信度评分（0.5-1.0）",
+          "包含丰富的中国城市和国际主要城市",
+          "支持城市名称的常见变体"
+        ],
+        "error_handling": [
+          "NORMALIZATION_ERROR: 规范化过程中发生错误"
+        ],
+        "usage_examples": [
+          "city_name_normalizer_tool('北京市')",
+          "city_name_normalizer_tool('beijing')",
+          "city_name_normalizer_tool('上海', language='zh')",
+          "city_name_normalizer_tool('New York', language='en')"
+        ]
+      },
+      {
+        "tool_name": "weather_formatter_tool",
+        "description": "格式化天气数据为用户友好的输出格式，支持简洁和详细两种模式，提供文本、HTML和JSON三种输出",
+        "function_signature": "weather_formatter_tool(weather_data: str, format_type: str = 'simple', language: str = 'zh') -> str",
+        "parameters": [
+          {
+            "name": "weather_data",
+            "type": "str",
+            "description": "原始天气数据（JSON字符串）",
+            "required": true
+          },
+          {
+            "name": "format_type",
+            "type": "str",
+            "description": "格式类型，支持'simple'(简洁)、'detailed'(详细)，默认为'simple'",
+            "required": false
+          },
+          {
+            "name": "language",
+            "type": "str",
+            "description": "输出语言，支持'zh'(中文)、'en'(英文)，默认为'zh'",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的格式化结果，包含formatted_text（纯文本）、formatted_html（HTML）和formatted_json（结构化数据）",
+        "dependencies": [
+          "json",
+          "logging"
+        ],
+        "implementation_notes": [
+          "解析输入的JSON天气数据",
+          "简洁模式显示核心信息：温度、天气状况、湿度",
+          "详细模式显示完整信息：温度、体感温度、风速、气压、云量、能见度、日出日落",
+          "文本格式使用emoji图标增强可读性",
+          "HTML格式使用渐变背景和网格布局",
+          "自动选择合适的天气emoji",
+          "支持中英文双语输出",
+          "HTML输出采用响应式设计"
+        ],
+        "error_handling": [
+          "INVALID_JSON: 输入的天气数据不是有效的JSON",
+          "INVALID_WEATHER_DATA: 天气数据结构无效",
+          "FORMATTING_ERROR: 格式化过程中发生错误"
+        ],
+        "usage_examples": [
+          "weather_formatter_tool(weather_data)",
+          "weather_formatter_tool(weather_data, format_type='detailed')",
+          "weather_formatter_tool(weather_data, format_type='simple', language='en')",
+          "weather_formatter_tool(weather_data, format_type='detailed', language='zh')"
+        ]
+      }
+    ],
+    "code_quality": {
+      "code_standards": [
+        "遵循PEP 8代码规范",
+        "使用完整的类型注解",
+        "提供详细的文档字符串",
+        "实现健壮的错误处理",
+        "使用logging进行日志记录",
+        "代码结构清晰，函数职责单一",
+        "使用常量定义配置数据"
+      ],
+      "testing_strategy": [
+        "测试城市名称规范化的各种输入",
+        "测试天气查询的成功和失败场景",
+        "测试缓存机制的有效性",
+        "测试重试机制",
+        "测试格式化输出的正确性",
+        "测试中英文支持",
+        "测试温度单位转换",
+        "测试错误处理和边界条件"
+      ],
+      "performance_considerations": [
+        "使用本地文件缓存减少API调用",
+        "缓存有效期设置为5分钟",
+        "API请求超时设置为10秒",
+        "使用指数退避重试策略",
+        "城市名称映射表使用字典实现O(1)查找",
+        "缓存数据使用JSON文件存储"
+      ],
+      "security_measures": [
+        "API密钥从环境变量读取",
+        "不在代码中硬编码敏感信息",
+        "输入参数验证和清理",
+        "错误信息不泄露敏感数据",
+        "请求超时防止资源耗尽"
+      ]
+    },
+    "integration_details": {
+      "aws_services": [],
+      "external_libraries": [
+        "requests: HTTP请求库，用于调用天气API",
+        "strands: Strands框架，提供@tool装饰器"
+      ],
+      "api_endpoints": [
+        "OpenWeatherMap API: https://api.openweathermap.org/data/2.5/weather"
+      ],
+      "data_formats": [
+        "输入：字符串参数（城市名称、语言、单位等）",
+        "输出：JSON格式字符串",
+        "缓存：JSON文件",
+        "日志：标准日志格式"
+      ]
+    },
+    "development_notes": "工具开发完成，实现了三个核心功能：1) weather_query_tool提供实时天气查询，支持OpenWeatherMap API集成、缓存机制和重试策略；2) city_name_normalizer_tool实现城市名称的智能规范化，包含丰富的中英文城市映射和模糊匹配；3) weather_formatter_tool提供灵活的输出格式化，支持简洁/详细模式和文本/HTML/JSON三种输出格式。所有工具都遵循Strands框架规范，实现了完整的错误处理、日志记录和类型注解。代码质量高，易于维护和扩展。特别注意：未配置API密钥时会返回模拟数据，方便演示和测试。"
+  }
+}

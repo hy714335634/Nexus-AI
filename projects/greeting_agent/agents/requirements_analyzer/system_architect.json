@@ -1,0 +1,272 @@
+{
+  "system_design": {
+    "design_overview": {
+      "project_name": "greeting_agent",
+      "version": "1.0",
+      "date": "2025-11-23",
+      "design_scope": "设计一个轻量级的问候API服务，用于API验证测试，提供基础问候功能和健康检查端点",
+      "design_principles": [
+        "极简设计原则：功能简单明确，代码量最小化",
+        "快速响应原则：P95响应时间<100ms，优化性能",
+        "无状态服务原则：不依赖数据库，易于扩展部署",
+        "标准化原则：遵循RESTful API设计规范",
+        "测试友好原则：高可测试性，支持自动化验证"
+      ],
+      "key_decisions": [
+        "采用单Agent架构，避免不必要的复杂性",
+        "使用FastAPI框架，自动生成API文档",
+        "基于规则的逻辑实现，不使用LLM",
+        "内存存储问候模板，无需数据库",
+        "标准化JSON响应格式"
+      ],
+      "workflow_type": "single_agent",
+      "recommended_templates": [
+        "API服务Agent模板",
+        "轻量级Web服务模板",
+        "FastAPI基础模板"
+      ]
+    },
+    "architecture": {
+      "system_context": "问候Agent是一个独立的API服务，专门用于API验证测试。它提供简单的问候功能，支持多语言和时间感知，通过RESTful API对外提供服务。系统设计为无状态服务，不依赖外部数据库，可快速部署和扩展。",
+      "agent_topology": "单Agent拓扑结构：客户端 → 问候API服务Agent → 响应。Agent作为唯一的服务节点，处理所有API请求，包括问候生成、健康检查、错误处理等功能。",
+      "interaction_model": "同步HTTP请求-响应模型：客户端发送HTTP请求 → Agent验证参数 → 执行业务逻辑 → 格式化响应 → 返回JSON结果。支持GET和POST方法，响应时间优化在100ms以内。",
+      "technology_stack": {
+        "sdk": "Strands SDK",
+        "runtime": "Local",
+        "integrations": [
+          "FastAPI (Web框架)",
+          "Uvicorn (ASGI服务器)",
+          "Pydantic (数据验证)",
+          "Python标准库(datetime、logging)",
+          "Docker (容器化部署)"
+        ]
+      }
+    },
+    "agents": [
+      {
+        "name": "greeting_api_agent",
+        "purpose": "提供轻量级的问候API服务，用于API验证测试和基础问候功能",
+        "responsibilities": [
+          "处理问候API请求，生成个性化问候消息",
+          "实现时间感知逻辑，根据时间段选择合适问候语",
+          "支持多语言问候（中文、英文）",
+          "提供健康检查端点，监控服务状态",
+          "执行输入参数验证和错误处理",
+          "记录API请求日志和性能指标",
+          "格式化标准JSON响应"
+        ],
+        "interfaces": {
+          "inputs": [
+            "name: str - 用户名称，1-50字符",
+            "language: Optional[str] - 语言代码，支持'zh'/'en'",
+            "timezone: Optional[str] - 时区信息（可选）"
+          ],
+          "outputs": [
+            "greeting_response: dict - 包含问候消息和元数据",
+            "health_status: dict - 服务健康状态信息",
+            "error_response: dict - 错误信息和状态码",
+            "api_metrics: dict - 请求处理指标"
+          ]
+        },
+        "dependencies": [
+          "FastAPI框架",
+          "Pydantic数据模型",
+          "Python datetime模块",
+          "Logging模块"
+        ],
+        "implementation_notes": [
+          "使用FastAPI自动生成OpenAPI文档",
+          "实现请求中间件记录日志和性能指标",
+          "预定义问候消息模板，支持变量替换",
+          "添加CORS支持，便于前端集成",
+          "实现优雅关闭和错误恢复机制"
+        ],
+        "recommended_template": "FastAPI API服务模板 - 适用于轻量级API服务的标准模板"
+      }
+    ],
+    "data_models": [
+      {
+        "name": "GreetingRequest",
+        "schema": "{\n  \"name\": \"string (1-50字符，必填)\",\n  \"language\": \"string (可选，默认'zh'，支持'zh'/'en')\",\n  \"timezone\": \"string (可选，ISO时区格式)\"\n}",
+        "validation_rules": [
+          "name字段必填且长度在1-50字符之间",
+          "language如果提供必须是'zh'或'en'",
+          "timezone如果提供必须是有效的时区格式",
+          "请求体必须是有效的JSON格式"
+        ],
+        "relationships": ["作为greeting_api_agent的输入参数"]
+      },
+      {
+        "name": "GreetingResponse",
+        "schema": "{\n  \"status\": \"string ('success' | 'error')\",\n  \"message\": \"string (问候消息)\",\n  \"data\": {\n    \"greeting_type\": \"string (问候类型)\",\n    \"language\": \"string (使用的语言)\",\n    \"timestamp\": \"string (ISO 8601格式时间戳)\",\n    \"processing_time_ms\": \"number (处理耗时)\"\n  }\n}",
+        "validation_rules": [
+          "status必须是'success'或'error'",
+          "message不能为空字符串",
+          "timestamp必须是ISO 8601格式",
+          "processing_time_ms必须是正数"
+        ],
+        "relationships": ["作为greeting_api_agent的成功响应格式"]
+      },
+      {
+        "name": "ErrorResponse",
+        "schema": "{\n  \"status\": \"string ('error')\",\n  \"error\": \"string (错误描述)\",\n  \"error_code\": \"string (错误代码)\",\n  \"details\": \"object (错误详情，可选)\",\n  \"timestamp\": \"string (ISO 8601格式时间戳)\"\n}",
+        "validation_rules": [
+          "status必须是'error'",
+          "error和error_code不能为空",
+          "timestamp必须是ISO 8601格式",
+          "details如果存在必须是有效对象"
+        ],
+        "relationships": ["作为greeting_api_agent的错误响应格式"]
+      },
+      {
+        "name": "HealthResponse",
+        "schema": "{\n  \"status\": \"string ('healthy' | 'unhealthy')\",\n  \"version\": \"string (服务版本)\",\n  \"uptime\": \"string (运行时长)\",\n  \"timestamp\": \"string (ISO 8601格式时间戳)\",\n  \"metrics\": {\n    \"total_requests\": \"number (总请求数)\",\n    \"avg_response_time\": \"number (平均响应时间)\"\n  }\n}",
+        "validation_rules": [
+          "status必须是'healthy'或'unhealthy'",
+          "version必须遵循语义版本格式",
+          "uptime格式为'Xh Ym Zs'",
+          "metrics中的数值必须非负"
+        ],
+        "relationships": ["作为健康检查端点的响应格式"]
+      }
+    ],
+    "interaction_flows": [
+      {
+        "name": "标准问候API流程",
+        "description": "客户端请求问候服务，系统根据参数生成个性化问候消息",
+        "steps": [
+          {
+            "step": "接收HTTP请求",
+            "agent": "greeting_api_agent",
+            "action": "receive_request",
+            "data": "HTTP request with name, language, timezone"
+          },
+          {
+            "step": "验证输入参数",
+            "agent": "greeting_api_agent",
+            "action": "validate_parameters",
+            "data": "GreetingRequest model validation"
+          },
+          {
+            "step": "确定问候类型",
+            "agent": "greeting_api_agent",
+            "action": "determine_greeting_type",
+            "data": "current_time, timezone, time_ranges"
+          },
+          {
+            "step": "生成问候消息",
+            "agent": "greeting_api_agent",
+            "action": "generate_greeting",
+            "data": "name, language, greeting_type, templates"
+          },
+          {
+            "step": "格式化响应",
+            "agent": "greeting_api_agent",
+            "action": "format_response",
+            "data": "greeting_message, metadata, processing_time"
+          },
+          {
+            "step": "记录请求日志",
+            "agent": "greeting_api_agent",
+            "action": "log_request",
+            "data": "request_info, response_status, processing_time"
+          }
+        ]
+      },
+      {
+        "name": "健康检查流程",
+        "description": "监控系统调用健康检查端点，获取服务状态信息",
+        "steps": [
+          {
+            "step": "接收健康检查请求",
+            "agent": "greeting_api_agent",
+            "action": "receive_health_check",
+            "data": "GET /health request"
+          },
+          {
+            "step": "检查服务状态",
+            "agent": "greeting_api_agent",
+            "action": "check_service_health",
+            "data": "service_status, dependencies"
+          },
+          {
+            "step": "收集运行指标",
+            "agent": "greeting_api_agent",
+            "action": "collect_metrics",
+            "data": "uptime, request_count, avg_response_time"
+          },
+          {
+            "step": "返回健康状态",
+            "agent": "greeting_api_agent",
+            "action": "return_health_status",
+            "data": "HealthResponse with metrics"
+          }
+        ]
+      },
+      {
+        "name": "错误处理流程",
+        "description": "当请求参数错误或系统异常时的处理流程",
+        "steps": [
+          {
+            "step": "捕获异常",
+            "agent": "greeting_api_agent",
+            "action": "catch_exception",
+            "data": "exception_type, error_message, stack_trace"
+          },
+          {
+            "step": "分析错误类型",
+            "agent": "greeting_api_agent",
+            "action": "analyze_error",
+            "data": "error_classification, severity_level"
+          },
+          {
+            "step": "生成错误响应",
+            "agent": "greeting_api_agent",
+            "action": "generate_error_response",
+            "data": "error_code, user_friendly_message"
+          },
+          {
+            "step": "记录错误日志",
+            "agent": "greeting_api_agent",
+            "action": "log_error",
+            "data": "error_details, context_info, timestamp"
+          }
+        ]
+      }
+    ],
+    "security_considerations": [
+      "输入参数验证：防止注入攻击和恶意输入",
+      "请求大小限制：防止大文件攻击和资源耗尽",
+      "CORS配置：控制跨域访问权限",
+      "日志脱敏：敏感信息不记录到日志中",
+      "错误信息过滤：不暴露系统内部信息",
+      "请求频率监控：检测异常请求模式"
+    ],
+    "error_handling": [
+      "参数验证错误：返回400状态码和具体验证失败信息",
+      "不支持的HTTP方法：返回405状态码",
+      "请求格式错误：返回400状态码和格式要求说明",
+      "内部服务错误：返回500状态码，记录详细日志",
+      "超时处理：设置合理超时时间，防止请求阻塞",
+      "优雅降级：服务异常时返回基础问候消息"
+    ],
+    "performance_considerations": [
+      "响应时间优化：目标P95<100ms，平均<50ms",
+      "内存缓存：预加载问候模板，避免重复计算",
+      "异步处理：使用FastAPI的异步特性",
+      "连接池管理：优化HTTP连接复用",
+      "日志异步写入：避免日志记录影响响应时间",
+      "静态资源优化：API文档和静态文件缓存"
+    ],
+    "monitoring_strategy": [
+      "响应时间监控：记录每个请求的处理时间",
+      "请求量统计：监控QPS和并发数",
+      "错误率监控：跟踪各类错误的发生频率",
+      "健康检查监控：定期检查服务可用性",
+      "资源使用监控：CPU、内存使用情况",
+      "API调用统计：不同端点的使用情况分析",
+      "日志聚合分析：结构化日志便于查询分析"
+    ]
+  },
+  "design_rationale": "本设计采用单Agent架构的核心理由如下：\n\n1. **需求匹配性**：问候Agent是一个功能极其简单的API服务，主要用于API验证测试。所有功能都围绕基础问候逻辑，不需要复杂的业务协作或多Agent交互。单Agent完全满足需求。\n\n2. **性能优先考虑**：需求明确要求P95响应时间<100ms，这是一个严格的性能要求。单Agent架构避免了Agent间通信开销，最大化响应速度。多Agent架构会引入不必要的延迟。\n\n3. **技术实现策略**：\n   - 所有8个功能需求都可以在单个API服务中实现\n   - 基于规则的简单逻辑（时间判断、语言选择）不需要复杂架构\n   - 使用FastAPI框架提供高性能的API服务\n   - 内存存储问候模板，无需外部依赖\n\n4. **无状态服务设计**：\n   - 不依赖数据库或外部存储\n   - 每个请求独立处理，便于水平扩展\n   - 容器化部署友好，支持快速启动和销毁\n   - 降低运维复杂度\n\n5. **测试验证导向**：\n   - 单Agent架构简化了测试复杂度\n   - 所有功能在一个服务中，便于集成测试\n   - API端点集中，便于自动化测试覆盖\n   - 确定性输出，便于验证功能正确性\n\n6. **框架选择理由**：\n   - **FastAPI**：自动生成OpenAPI文档，类型安全，高性能异步处理\n   - **Pydantic**：强大的数据验证和序列化\n   - **Uvicorn**：高性能ASGI服务器\n   - 这个技术栈专为快速API开发优化\n\n7. **不使用LLM的决策**：\n   - 问候消息是预定义模板，不需要生成式AI\n   - 追求极快响应时间，LLM调用会增加延迟\n   - 用于API验证，需要确定性和可预测的输出\n   - 降低成本和系统复杂度\n   - 减少外部依赖，提高可靠性\n\n8. **模板推荐逻辑**：\n   - **API服务Agent模板**：提供标准的RESTful API结构\n   - **FastAPI基础模板**：包含路由、中间件、错误处理等基础组件\n   - **轻量级Web服务模板**：优化的性能配置和监控集成\n\n9. **扩展性考虑**：\n   - 虽然当前是单Agent，但架构支持未来扩展\n   - 可以轻松添加新的API端点\n   - 支持插件式的问候模板扩展\n   - 便于集成到更大的微服务架构中\n\n10. **运维友好设计**：\n    - Docker容器化，支持标准化部署\n    - 结构化日志，便于日志聚合分析\n    - 健康检查端点，支持负载均衡器探测\n    - 优雅关闭机制，支持滚动更新\n\n这种设计确保了系统的简洁性、高性能和易维护性，完美匹配API验证测试的使用场景。"
+}

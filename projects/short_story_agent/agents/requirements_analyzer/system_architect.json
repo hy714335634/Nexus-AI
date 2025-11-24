@@ -1,0 +1,228 @@
+{
+  "system_design": {
+    "design_overview": {
+      "project_name": "short_story_agent",
+      "version": "1.0",
+      "date": "2025-11-23",
+      "design_scope": "设计一个智能短篇小说生成系统，基于用户提供的场景和关键词，自动创作800-2000字的完整短篇小说",
+      "design_principles": [
+        "单一职责原则：Agent专注于小说生成功能",
+        "简洁性原则：架构简单清晰，易于理解和维护",
+        "可靠性优先：确保生成结果的稳定性和质量",
+        "用户体验优先：输入简单，输出高质量",
+        "提示词驱动：核心功能通过精心设计的提示词实现"
+      ],
+      "key_decisions": [
+        "采用单Agent架构，避免复杂的多Agent协调",
+        "核心生成逻辑完全依赖LLM和提示词工程",
+        "输入验证和错误处理通过代码实现",
+        "支持多种文学风格的自适应选择",
+        "采用模板化的提示词设计模式"
+      ],
+      "workflow_type": "single_agent",
+      "recommended_templates": [
+        "创意内容生成Agent模板",
+        "文本生成Agent基础模板",
+        "LLM调用标准模板"
+      ]
+    },
+    "architecture": {
+      "system_context": "短篇小说生成Agent是一个独立的创意生成系统，接收用户的场景描述和关键词输入，通过调用大语言模型API生成完整的短篇小说。系统设计为轻量级单Agent架构，专注于文本创作功能，不涉及复杂的业务逻辑或数据持久化。",
+      "agent_topology": "单Agent拓扑结构：用户 → 短篇小说生成Agent → LLM API → 用户。Agent作为中心节点，负责输入处理、提示词构建、API调用、输出格式化等全部功能。",
+      "interaction_model": "同步请求-响应模型：用户提交输入 → Agent验证和处理 → 构建提示词 → 调用LLM → 解析和格式化输出 → 返回结果。整个流程为同步执行，用户等待完整结果返回。",
+      "technology_stack": {
+        "sdk": "Strands SDK",
+        "runtime": "Local",
+        "integrations": [
+          "AWS Bedrock (Claude/GPT模型)",
+          "Python标准库(输入验证、文本处理)",
+          "Boto3 SDK(AWS服务集成)"
+        ]
+      }
+    },
+    "agents": [
+      {
+        "name": "story_generator_agent",
+        "purpose": "基于用户提供的场景和关键词，生成高质量的短篇小说",
+        "responsibilities": [
+          "接收和验证用户输入的场景描述",
+          "解析和处理用户提供的关键词",
+          "根据场景和关键词构建优化的提示词",
+          "调用LLM API生成短篇小说内容",
+          "验证生成内容的质量和完整性",
+          "格式化输出结果",
+          "处理各类异常情况和错误"
+        ],
+        "interfaces": {
+          "inputs": [
+            "scene_description: str - 场景描述，5-500字",
+            "keywords: List[str] - 关键词列表，1-10个关键词",
+            "style_preference: Optional[str] - 风格偏好（可选）"
+          ],
+          "outputs": [
+            "generated_story: dict - 包含标题、正文、元数据的完整小说",
+            "generation_metadata: dict - 生成过程的元数据信息",
+            "success_status: bool - 生成是否成功",
+            "error_message: Optional[str] - 错误信息（如有）"
+          ]
+        },
+        "dependencies": [
+          "AWS Bedrock Claude模型",
+          "输入验证工具函数",
+          "提示词模板库",
+          "文本后处理工具"
+        ],
+        "implementation_notes": [
+          "使用多层提示词模板，支持不同风格和题材",
+          "实现重试机制，最多3次重试",
+          "添加内容安全过滤器",
+          "支持生成质量评估和自动重生成",
+          "记录详细的生成日志用于调试"
+        ],
+        "recommended_template": "创意内容生成Agent - 适用于文本创作类Agent的标准模板"
+      }
+    ],
+    "data_models": [
+      {
+        "name": "StoryRequest",
+        "schema": "{\n  \"scene_description\": \"string (5-500字)\",\n  \"keywords\": \"array of strings (1-10个元素)\",\n  \"style_preference\": \"string (optional)\",\n  \"max_length\": \"integer (default: 2000)\",\n  \"min_length\": \"integer (default: 800)\"\n}",
+        "validation_rules": [
+          "scene_description不能为空且长度在5-500字之间",
+          "keywords数组至少包含1个元素，最多10个",
+          "每个keyword长度不超过20字",
+          "style_preference如果提供，必须在预定义列表中"
+        ],
+        "relationships": ["作为story_generator_agent的输入参数"]
+      },
+      {
+        "name": "StoryResponse",
+        "schema": "{\n  \"title\": \"string\",\n  \"content\": \"string (800-2000字)\",\n  \"style\": \"string\",\n  \"word_count\": \"integer\",\n  \"keywords_used\": \"array of strings\",\n  \"generation_time\": \"float\",\n  \"success\": \"boolean\",\n  \"error_message\": \"string (optional)\"\n}",
+        "validation_rules": [
+          "content长度必须在800-2000字之间",
+          "title不能为空",
+          "keywords_used必须包含原始输入的所有关键词",
+          "word_count必须与实际content字数匹配"
+        ],
+        "relationships": ["作为story_generator_agent的输出结果"]
+      },
+      {
+        "name": "PromptTemplate",
+        "schema": "{\n  \"template_id\": \"string\",\n  \"style_type\": \"string\",\n  \"system_prompt\": \"string\",\n  \"user_prompt_template\": \"string\",\n  \"variables\": \"array of strings\",\n  \"examples\": \"array of objects\"\n}",
+        "validation_rules": [
+          "template_id必须唯一",
+          "system_prompt和user_prompt_template不能为空",
+          "variables必须与模板中的占位符匹配"
+        ],
+        "relationships": ["被story_generator_agent使用来构建实际提示词"]
+      }
+    ],
+    "interaction_flows": [
+      {
+        "name": "标准小说生成流程",
+        "description": "用户输入场景和关键词，系统生成完整短篇小说的主要流程",
+        "steps": [
+          {
+            "step": "输入接收和验证",
+            "agent": "story_generator_agent",
+            "action": "validate_input",
+            "data": "scene_description, keywords"
+          },
+          {
+            "step": "风格识别和模板选择",
+            "agent": "story_generator_agent", 
+            "action": "select_style_template",
+            "data": "processed_scene, analyzed_keywords"
+          },
+          {
+            "step": "提示词构建",
+            "agent": "story_generator_agent",
+            "action": "build_prompt",
+            "data": "selected_template, scene_description, keywords"
+          },
+          {
+            "step": "LLM调用生成",
+            "agent": "story_generator_agent",
+            "action": "call_llm_api",
+            "data": "constructed_prompt"
+          },
+          {
+            "step": "内容质量验证",
+            "agent": "story_generator_agent",
+            "action": "validate_generated_content",
+            "data": "raw_generated_text"
+          },
+          {
+            "step": "格式化和输出",
+            "agent": "story_generator_agent",
+            "action": "format_output",
+            "data": "validated_content"
+          }
+        ]
+      },
+      {
+        "name": "错误处理和重试流程",
+        "description": "当生成失败或质量不达标时的处理流程",
+        "steps": [
+          {
+            "step": "检测生成失败",
+            "agent": "story_generator_agent",
+            "action": "detect_failure",
+            "data": "generation_result, quality_metrics"
+          },
+          {
+            "step": "分析失败原因",
+            "agent": "story_generator_agent",
+            "action": "analyze_failure_cause",
+            "data": "error_info, input_data"
+          },
+          {
+            "step": "调整策略重试",
+            "agent": "story_generator_agent",
+            "action": "retry_with_adjusted_strategy",
+            "data": "adjusted_prompt, retry_count"
+          },
+          {
+            "step": "返回友好错误信息",
+            "agent": "story_generator_agent",
+            "action": "return_user_friendly_error",
+            "data": "error_summary, suggestions"
+          }
+        ]
+      }
+    ],
+    "security_considerations": [
+      "输入内容安全过滤：检测和阻止恶意输入、注入攻击",
+      "生成内容审查：过滤不当内容，确保输出符合内容安全规范",
+      "API密钥安全：使用环境变量存储，不在代码中硬编码",
+      "输入长度限制：防止过长输入导致的资源耗尽",
+      "敏感词过滤：建立敏感词库，过滤不当关键词",
+      "调用频率限制：防止恶意大量调用消耗资源"
+    ],
+    "error_handling": [
+      "输入验证错误：返回具体的验证失败信息和修正建议",
+      "API调用失败：实现自动重试机制，最多3次重试",
+      "生成内容质量不达标：自动重新生成，最多2次重试",
+      "超时处理：设置合理的超时时间，超时后返回友好提示",
+      "网络异常：捕获网络错误，提供重试选项",
+      "服务不可用：优雅降级，提供离线提示或替代方案"
+    ],
+    "performance_considerations": [
+      "响应时间优化：目标60秒内完成生成，通常30-45秒",
+      "提示词长度控制：平衡详细程度和API调用效率",
+      "并发处理：支持多个用户同时请求，合理控制并发数",
+      "缓存策略：对常用提示词模板进行缓存",
+      "资源监控：监控API调用频率和成本消耗",
+      "生成质量与速度平衡：在质量和响应时间之间找到最佳平衡点"
+    ],
+    "monitoring_strategy": [
+      "生成成功率监控：跟踪生成成功/失败的比例",
+      "响应时间监控：记录每次生成的耗时",
+      "内容质量指标：监控字数、结构完整性、关键词融入度",
+      "用户满意度跟踪：收集用户对生成内容的反馈",
+      "API调用统计：监控API使用量和成本",
+      "错误日志记录：详细记录各类错误和异常情况",
+      "系统资源监控：监控CPU、内存使用情况"
+    ]
+  },
+  "design_rationale": "本设计采用单Agent架构的核心理由如下：\n\n1. **需求匹配性**：短篇小说生成是一个明确的单一功能需求，不需要多个专业角色的协作。一个专门的创意生成Agent即可完成从输入处理到输出生成的全部流程。\n\n2. **复杂度适宜性**：虽然小说生成看似复杂，但实际上主要依赖LLM的创作能力和精心设计的提示词。系统的复杂度主要体现在提示词工程上，而非架构复杂性。\n\n3. **技术实现策略**：通过分析需求文档，识别出以下关键技术决策：\n   - FR-003(小说生成)、FR-004(故事完整性)、FR-005(风格适配)、FR-006(格式规范)都可以通过提示词工程实现\n   - FR-001(场景输入)、FR-002(关键词处理)、FR-007(错误处理)需要代码实现\n   - 这种分工明确，适合单Agent架构\n\n4. **性能和可维护性**：单Agent架构避免了多Agent间的通信开销，减少了系统复杂性，更容易调试和维护。对于60秒的响应时间要求，单Agent架构更容易达到。\n\n5. **扩展性考虑**：虽然是单Agent，但通过模块化的提示词模板设计，可以轻松扩展支持更多文学风格和题材。未来如需支持更复杂功能（如多轮交互、个性化定制），可以在此基础上演进。\n\n6. **风险控制**：单Agent架构降低了系统失败的风险点，错误处理和质量控制更容易实现。通过在单个Agent内实现重试机制和质量验证，可以有效保证生成结果的稳定性。\n\n7. **模板推荐逻辑**：基于需求特点，推荐使用创意内容生成类Agent模板，这类模板通常包含：\n   - 输入验证和预处理模块\n   - 提示词模板管理系统\n   - LLM API调用封装\n   - 输出后处理和格式化\n   - 错误处理和重试机制\n\n这种设计确保了系统的简洁性、可靠性和可维护性，同时满足了用户对高质量短篇小说生成的需求。"
+}

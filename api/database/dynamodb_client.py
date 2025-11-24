@@ -173,7 +173,7 @@ class DynamoDBClient:
         if self._agent_session_messages_table is None:
             self._agent_session_messages_table = self.dynamodb.Table('AgentSessionMessages')
         return self._agent_session_messages_table
-    
+
     @retry_on_error(max_retries=3, delay=1.0, backoff=2.0)
     def health_check(self) -> bool:
         """Check DynamoDB connection health"""
@@ -202,7 +202,7 @@ class DynamoDBClient:
             self._invocations_table = None
             self._agent_sessions_table = None
             self._agent_session_messages_table = None
-            
+
             # Force health check
             self._last_health_check = None
             if not self.health_check():
@@ -927,7 +927,7 @@ class DynamoDBClient:
             
             update_expression = "SET progress_percentage = :progress, updated_at = :updated_at"
             expression_values = {
-                ':progress': progress_percentage,
+                ':progress': Decimal(str(progress_percentage)),  # Convert float to Decimal
                 ':updated_at': datetime.utcnow().isoformat() + "Z"
             }
             expression_names = {}
@@ -944,18 +944,23 @@ class DynamoDBClient:
                 
                 update_expression += ", current_stage = :current_stage, current_stage_number = :stage_number"
                 expression_values[':current_stage'] = stage_value
-                expression_values[':stage_number'] = stage_number
+                expression_values[':stage_number'] = Decimal(stage_number)  # Convert int to Decimal
             
             if estimated_completion:
                 update_expression += ", estimated_completion = :estimated_completion"
                 expression_values[':estimated_completion'] = estimated_completion.isoformat() + "Z"
-            
-            self.projects_table.update_item(
-                Key={'project_id': project_id},
-                UpdateExpression=update_expression,
-                ExpressionAttributeValues=expression_values,
-                ExpressionAttributeNames=expression_names if expression_names else None
-            )
+
+            # Build update_item parameters conditionally
+            update_params = {
+                'Key': {'project_id': project_id},
+                'UpdateExpression': update_expression,
+                'ExpressionAttributeValues': expression_values
+            }
+            # Only add ExpressionAttributeNames if it has content
+            if expression_names:
+                update_params['ExpressionAttributeNames'] = expression_names
+
+            self.projects_table.update_item(**update_params)
             logger.info(f"Updated project {project_id} progress to {progress_percentage}%")
         except Exception as e:
             logger.error(f"Error updating project progress: {str(e)}")
@@ -1556,79 +1561,63 @@ class DynamoDBClient:
             logger.error(f"Error searching agents: {str(e)}")
             raise APIException(f"Failed to search agents: {str(e)}")
 
-    # Artifact operations
-    @retry_on_error(max_retries=3, delay=1.0, backoff=2.0)
+    # Artifact operations (DEPRECATED - artifacts now stored in stages_snapshot)
+    # These methods are retained as stubs to prevent crashes during refactoring
+
     def create_artifact_record(self, artifact: ArtifactRecord) -> None:
-        try:
-            self._ensure_connection()
-            item = self._serialize_item(artifact.dict())
-            self.artifacts_table.put_item(Item=item)
-            logger.debug("Created artifact record %s", artifact.artifact_id)
-        except Exception as e:
-            logger.error("Error creating artifact record: %s", e)
-            raise APIException(f"Failed to create artifact record: {e}")
+        """
+        DEPRECATED: AgentArtifacts table has been removed per design specs.
+        Artifacts are now stored in AgentProjects.stages_snapshot.
+        This method is a no-op stub to prevent crashes.
+        """
+        logger.warning(
+            "create_artifact_record called but AgentArtifacts table no longer exists. "
+            "Artifacts should be stored in stages_snapshot. artifact_id=%s",
+            artifact.artifact_id
+        )
+        # No-op - do nothing
 
-    @retry_on_error(max_retries=3, delay=1.0, backoff=2.0)
     def list_artifacts_by_agent(self, agent_id: str, limit: int = 20, last_key: Optional[str] = None) -> Dict[str, Any]:
-        try:
-            self._ensure_connection()
-            query_kwargs = {
-                'IndexName': 'AgentIndex',
-                'KeyConditionExpression': Key('agent_id').eq(agent_id),
-                'ScanIndexForward': False,
-                'Limit': limit,
-            }
-            if last_key:
-                query_kwargs['ExclusiveStartKey'] = {'agent_id': agent_id, 'created_at': last_key}
-            response = self.artifacts_table.query(**query_kwargs)
-            items = [self._deserialize_item(item) for item in response.get('Items', [])]
-            return {
-                'items': items,
-                'last_key': response.get('LastEvaluatedKey', {}).get('created_at'),
-                'count': len(items),
-            }
-        except Exception as e:
-            logger.error("Error listing artifacts for agent %s: %s", agent_id, e)
-            raise APIException(f"Failed to list artifacts: {e}")
+        """
+        DEPRECATED: AgentArtifacts table has been removed per design specs.
+        This method returns empty results to prevent crashes.
+        """
+        logger.warning(
+            "list_artifacts_by_agent called but AgentArtifacts table no longer exists. "
+            "Returning empty results. agent_id=%s",
+            agent_id
+        )
+        return {
+            'items': [],
+            'last_key': None,
+            'count': 0,
+        }
 
-    @retry_on_error(max_retries=3, delay=1.0, backoff=2.0)
     def list_artifacts_by_project(self, project_id: str, stage: Optional[str] = None) -> List[Dict[str, Any]]:
-        try:
-            self._ensure_connection()
-            query_kwargs = {
-                'IndexName': 'ProjectIndex',
-                'KeyConditionExpression': Key('project_id').eq(project_id),
-                'ScanIndexForward': False,
-            }
-            if stage:
-                query_kwargs['FilterExpression'] = Attr('stage').eq(stage)
-            response = self.artifacts_table.query(**query_kwargs)
-            items = response.get('Items', [])
-            return [self._deserialize_item(item) for item in items]
-        except Exception as e:
-            logger.error("Error listing artifacts for project %s: %s", project_id, e)
-            raise APIException(f"Failed to list artifacts: {e}")
+        """
+        DEPRECATED: AgentArtifacts table has been removed per design specs.
+        This method returns empty results to prevent crashes.
+        """
+        logger.warning(
+            "list_artifacts_by_project called but AgentArtifacts table no longer exists. "
+            "Returning empty results. project_id=%s stage=%s",
+            project_id,
+            stage
+        )
+        return []
 
-    @retry_on_error(max_retries=3, delay=1.0, backoff=2.0)
     def delete_artifacts_for_stage(self, project_id: str, stage: str) -> None:
-        try:
-            self._ensure_connection()
-            query_kwargs = {
-                'IndexName': 'ProjectIndex',
-                'KeyConditionExpression': Key('project_id').eq(project_id),
-                'FilterExpression': Attr('stage').eq(stage),
-            }
-            response = self.artifacts_table.query(**query_kwargs)
-            for item in response.get('Items', []):
-                self.artifacts_table.delete_item(Key={'artifact_id': item['artifact_id']})
-        except Exception as e:
-            logger.error(
-                "Error deleting artifacts for project %s stage %s: %s",
-                project_id,
-                stage,
-                e,
-            )
-            raise APIException(f"Failed to delete artifacts: {e}")
+        """
+        DEPRECATED: AgentArtifacts table has been removed per design specs.
+        This method is a no-op stub to prevent crashes.
+        """
+        logger.warning(
+            "delete_artifacts_for_stage called but AgentArtifacts table no longer exists. "
+            "No action taken. project_id=%s stage=%s",
+            project_id,
+            stage
+        )
+        # No-op - do nothing
 
     # Invocation operations
     @retry_on_error(max_retries=3, delay=1.0, backoff=2.0)

@@ -1,0 +1,17 @@
+{
+  "project_name": "greeting_agent",
+  "validation_timestamp": "2025-11-23T03:32:01.838184+00:00",
+  "overall_status": "success",
+  "agent_scripts": [],
+  "prompt_files": [],
+  "generated_tools": [],
+  "total_tools": 0,
+  "summary": {
+    "agent_scripts_count": 0,
+    "prompt_files_count": 0,
+    "generated_tool_files_count": 0,
+    "all_scripts_valid": true,
+    "all_tools_valid": true,
+    "all_prompts_valid": true
+  }
+}

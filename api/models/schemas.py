@@ -32,17 +32,23 @@ class BuildStage(str, Enum):
     REQUIREMENTS_ANALYSIS = "requirements_analysis"      # 1. 需求分析
     SYSTEM_ARCHITECTURE = "system_architecture"         # 2. 系统架构设计
     AGENT_DESIGN = "agent_design"                       # 3. Agent设计
-    AGENT_DEVELOPER_MANAGER = "agent_developer_manager" # 4. 开发管理
-    AGENT_DEPLOYER = "agent_deployer"                   # 5. 部署到运行时
-    
+    PROMPT_ENGINEER = "prompt_engineer"                 # 4. 提示词工程
+    TOOLS_DEVELOPER = "tools_developer"                 # 5. 工具开发
+    AGENT_CODE_DEVELOPER = "agent_code_developer"       # 6. 代码开发
+    AGENT_DEVELOPER_MANAGER = "agent_developer_manager" # 7. 开发管理
+    AGENT_DEPLOYER = "agent_deployer"                   # 8. 部署到运行时
+
     @classmethod
     def get_stage_number(cls, stage: 'BuildStage') -> int:
-        """Get stage number (1-8) from stage enum"""
+        """Get stage number (1-9) from stage enum"""
         stage_order = [
             cls.ORCHESTRATOR,
             cls.REQUIREMENTS_ANALYSIS,
             cls.SYSTEM_ARCHITECTURE,
             cls.AGENT_DESIGN,
+            cls.PROMPT_ENGINEER,
+            cls.TOOLS_DEVELOPER,
+            cls.AGENT_CODE_DEVELOPER,
             cls.AGENT_DEVELOPER_MANAGER,
             cls.AGENT_DEPLOYER,
         ]

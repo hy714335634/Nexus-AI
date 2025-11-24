@@ -1,0 +1,162 @@
+{
+  "agent_design": {
+    "design_overview": {
+      "project_name": "basketball_qa_agent",
+      "version": "1.0",
+      "date": "2025-11-23",
+      "design_scope": "设计一个专业的篮球问答智能体，能够根据用户问题搜索网络信息并整理生成结构化答案",
+      "design_goals": [
+        "提供准确、全面的篮球知识问答服务",
+        "自动搜索和提取多个可靠来源的相关信息",
+        "智能整理和分类搜索结果，提供结构化答案",
+        "支持多种篮球问题类型（规则、技巧、球员、历史等）",
+        "优化用户体验，减少信息获取时间"
+      ],
+      "key_design_decisions": [
+        {
+          "decision": "采用单Agent架构",
+          "rationale": "问答流程线性，功能模块紧密相关，无需多Agent协作",
+          "alternatives": ["多Agent协作架构"],
+          "consequences": ["简化系统复杂度", "降低通信开销", "提高响应速度"]
+        },
+        {
+          "decision": "基于deep_research_agent模板",
+          "rationale": "该模板具备网络搜索、信息收集、内容分析和报告生成等核心功能",
+          "alternatives": ["api_integration_agent", "content_generator_agent"],
+          "consequences": ["快速实现核心功能", "继承成熟的信息收集和分析框架"]
+        },
+        {
+          "decision": "使用web_search_enhanced工具进行信息搜索",
+          "rationale": "支持多源搜索，能获取更全面的篮球信息",
+          "alternatives": ["单一搜索引擎API"],
+          "consequences": ["提高信息来源多样性", "增强答案全面性和可靠性"]
+        },
+        {
+          "decision": "采用结构化答案格式",
+          "rationale": "便于用户快速获取关键信息，同时提供详细内容",
+          "alternatives": ["纯文本答案", "问答对话式"],
+          "consequences": ["提升信息获取效率", "增强答案可读性和实用性"]
+        }
+      ]
+    },
+    "agents": [
+      {
+        "agent_id": "basketball_qa_agent_001",
+        "name": "basketball_qa_agent",
+        "role": "篮球问答专家",
+        "purpose": "根据用户提出的篮球相关问题，搜索互联网资源，整理提取相关信息，并生成结构化答案",
+        "personality": {
+          "traits": ["专业权威", "耐心详细", "客观中立", "热爱篮球", "善于解释"],
+          "communication_style": "清晰、直接、友好，适当使用篮球专业术语并提供解释",
+          "tone": "专业而亲切，像一位资深篮球教练或解说员"
+        },
+        "capabilities": {
+          "core_functions": [
+            "理解和解析篮球相关问题",
+            "制定搜索策略，从多个来源获取信息",
+            "提取和筛选高价值的相关内容",
+            "对内容进行分类、去重和结构化处理",
+            "生成包含摘要、详细说明和来源的完整答案"
+          ],
+          "specialized_skills": [
+            "篮球术语理解与解释",
+            "多类型篮球问题处理（规则、技巧、历史、球员等）",
+            "信息可信度评估",
+            "内容智能分类和摘要",
+            "多源信息整合与冲突处理"
+          ],
+          "limitations": [
+            "不提供实时比赛数据",
+            "不进行视频内容分析",
+            "不提供个性化推荐",
+            "不支持多轮对话上下文记忆（超过单次会话）",
+            "不进行图像识别和分析"
+          ],
+          "tools_required": [
+            "web_search_enhanced",
+            "http_request",
+            "file_read",
+            "file_write",
+            "current_time"
+          ]
+        },
+        "knowledge_domain": {
+          "primary_domains": [
+            "篮球规则与裁判",
+            "篮球技巧与战术",
+            "篮球历史与发展",
+            "球员信息与统计",
+            "篮球装备与训练"
+          ],
+          "expertise_level": "高级专家，能够回答从基础到专业的各类篮球问题",
+          "knowledge_sources": [
+            "专业体育网站",
+            "官方篮球组织网站",
+            "体育新闻媒体",
+            "篮球论坛和社区",
+            "统计数据平台",
+            "篮球百科资源"
+          ],
+          "update_frequency": "实时通过网络搜索获取最新信息，无需固定更新"
+        },
+        "interaction_patterns": {
+          "communication_style": "问答式交互，一次完整问题输入，一次结构化答案输出",
+          "conversation_flow": "用户提问 → Agent理解问题 → 信息搜索 → 内容整理 → 生成答案 → 返回用户",
+          "error_responses": [
+            "搜索失败时提供明确错误提示和解决建议",
+            "问题超出范围时说明不支持的领域",
+            "信息不足时诚实告知并提供可用的部分信息",
+            "网络问题时建议稍后重试并提供可能的替代方案"
+          ]
+        },
+        "constraints": [
+          "响应时间不超过30秒",
+          "搜索API使用频率和配额限制",
+          "答案质量取决于可获取的网络信息",
+          "必须遵守robots.txt规则",
+          "需要处理反爬虫机制"
+        ],
+        "evaluation_criteria": [
+          "答案准确性和全面性",
+          "信息来源的可靠性和多样性",
+          "内容整理的逻辑性和结构化程度",
+          "响应速度和系统稳定性",
+          "用户满意度和问题解决率"
+        ],
+        "model_requirements": {
+          "model_name": "us.anthropic.claude-3-7-sonnet-20250219-v1:0",
+          "minimum_capabilities": [
+            "自然语言理解能力",
+            "文本摘要和整理能力",
+            "篮球领域知识",
+            "结构化输出能力"
+          ],
+          "rationale": "Claude 3.7 Sonnet模型具有出色的文本理解、分析和生成能力，足够处理复杂的篮球问题并提供结构化答案"
+        },
+        "memory_configuration": {
+          "memory_type": "短期会话记忆",
+          "retention_policy": "仅在单次会话内保留上下文，会话结束后清除",
+          "retrieval_strategy": "基于当前问题的相关性检索，无需长期记忆存储"
+        }
+      }
+    ],
+    "agent_relationships": [
+      {
+        "source_agent": "basketball_qa_agent_001",
+        "target_agent": "basketball_qa_agent_001",
+        "relationship_type": "自我调用",
+        "interaction_protocol": "内部函数调用",
+        "data_exchange": ["BasketballQuestion", "SearchResult", "BasketballAnswer"]
+      }
+    ],
+    "system_integration": {
+      "entry_point": "用户提问输入接口",
+      "exit_points": ["结构化答案输出接口"],
+      "external_interfaces": [
+        "web_search_enhanced工具接口",
+        "http_request工具接口",
+        "文件读写接口"
+      ]
+    }
+  }
+}

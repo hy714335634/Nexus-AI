@@ -1,0 +1,70 @@
+agents: {}
+created_at: '2025-11-23T03:00:45.706391+00:00'
+last_updated: '2025-11-23T03:00:45.706394+00:00'
+project: short_story_agent
+project_info:
+- agents:
+  - created_date: '2025-11-23T03:00:48.527821+00:00'
+    description: 智能体：requirements_analyzer
+    last_updated: '2025-11-23T03:08:23.027671+00:00'
+    name: requirements_analyzer
+    pipeline:
+    - description: 需求分析阶段 - 分析用户需求，定义功能规格
+      doc_path: projects/short_story_agent/agents/requirements_analyzer/requirements_analyzer.json
+      stage: requirements_analyzer
+      status: true
+      updated_date: '2025-11-23T03:02:05.790471+00:00'
+    - description: 系统架构设计阶段 - 设计系统架构和技术方案
+      doc_path: projects/short_story_agent/agents/requirements_analyzer/system_architect.json
+      stage: system_architect
+      status: true
+      updated_date: '2025-11-23T03:03:55.119032+00:00'
+    - description: Agent设计阶段 - 设计智能体结构和交互模式
+      doc_path: projects/short_story_agent/agents/requirements_analyzer/agent_designer.json
+      stage: agent_designer
+      status: true
+      updated_date: '2025-11-23T03:05:13.093315+00:00'
+    - agent_artifact_path:
+      - projects/short_story_agent/prompts/generated_agents_prompts/story_generator_prompt_template.yaml
+      description: 提示词工程阶段 - 设计和优化提示词模板
+      doc_path: ''
+      stage: prompt_engineer
+      status: false
+      updated_date: '2025-11-23T03:06:43.628993+00:00'
+    - agent_artifact_path:
+      - projects/short_story_agent/tools/generated_tools/input_validator.py
+      - projects/short_story_agent/tools/generated_tools/text_processor.py
+      - projects/short_story_agent/tools/generated_tools/prompt_builder.py
+      - projects/short_story_agent/tools/generated_tools/llm_caller.py
+      - projects/short_story_agent/tools/generated_tools/content_validator.py
+      - projects/short_story_agent/tools/generated_tools/output_formatter.py
+      description: 工具开发阶段 - 开发必要的工具和函数
+      doc_path: projects/short_story_agent/agents/requirements_analyzer/tools_developer.json
+      stage: tools_developer
+      status: true
+      updated_date: '2025-11-23T03:08:23.027675+00:00'
+    - agent_artifact_path:
+      - projects/short_story_agent/agents/generated_agents/short_story_agent/story_generator_agent.py
+      - projects/short_story_agent/agents/generated_agents/short_story_agent/tool_manager.py
+      - projects/short_story_agent/agents/generated_agents/short_story_agent/prompt_manager.py
+      - projects/short_story_agent/agents/generated_agents/short_story_agent/generation_manager.py
+      - projects/short_story_agent/agents/generated_agents/short_story_agent/error_handler.py
+      description: Agent代码开发阶段 - 实现智能体代码
+      doc_path: ''
+      stage: agent_code_developer
+      status: false
+      updated_date: '2025-11-23T03:08:09.926059+00:00'
+    - description: Agent开发管理阶段 - 管理和协调开发流程
+      doc_path: ''
+      stage: agent_developer_manager
+      status: false
+      updated_date: null
+  description: AI智能体项目：short_story_agent
+  last_updated: '2025-11-23T03:08:23.027622+00:00'
+  name: short_story_agent
+  progress:
+  - completed: 4
+    total: 7
+  version: 1.0.0
+status: initialized
+ized

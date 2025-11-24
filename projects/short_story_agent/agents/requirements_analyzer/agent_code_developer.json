@@ -1,0 +1,363 @@
+{
+  "agent_code_development": {
+    "design_overview": {
+      "project_name": "short_story_agent",
+      "agent_name": "story_generator_agent",
+      "version": "1.0",
+      "date": "2025-11-23",
+      "design_scope": "实现一个完整的短篇小说生成Agent，整合提示词工程和工具集，提供用户友好的API接口"
+    },
+    "agent_architecture": {
+      "architecture_pattern": "单Agent模式 + 工具集成模式",
+      "core_components": [
+        "Agent核心类（StoryGeneratorAgent）",
+        "工具管理器（ToolManager）",
+        "提示词管理器（PromptManager）",
+        "生成管理器（GenerationManager）",
+        "错误处理器（ErrorHandler）"
+      ],
+      "data_flow": "用户输入 → 输入验证 → 风格检测 → 提示词构建 → LLM调用 → 内容验证 → 格式化输出 → 返回结果"
+    },
+    "main_agent_class": {
+      "class_name": "StoryGeneratorAgent",
+      "file_name": "story_generator_agent.py",
+      "description": "主Agent类，协调所有组件完成短篇小说生成",
+      "methods": [
+        {
+          "method_name": "__init__",
+          "signature": "__init__(model_id: str = 'anthropic.claude-opus-4-1-20250805', region: str = 'us-west-2')",
+          "description": "初始化Agent，加载配置和工具",
+          "responsibilities": [
+            "初始化AWS Bedrock客户端",
+            "加载提示词模板",
+            "初始化工具管理器",
+            "设置日志系统"
+          ]
+        },
+        {
+          "method_name": "generate_story",
+          "signature": "generate_story(scene_description: str, keywords: Union[List[str], str], style: str = 'default') -> dict",
+          "description": "主要的故事生成方法",
+          "parameters": {
+            "scene_description": "场景描述（5-500字）",
+            "keywords": "关键词列表或逗号分隔的字符串",
+            "style": "文学风格（default/realism/scifi/mystery/romantic）"
+          },
+          "returns": {
+            "success": "是否成功",
+            "data": "故事数据（包含title、content、word_count等）",
+            "error": "错误信息（如有）",
+            "metadata": "生成元数据（耗时、模型等）"
+          },
+          "workflow": [
+            "验证输入参数",
+            "解析和清理关键词",
+            "检测或验证文学风格",
+            "构建提示词",
+            "调用LLM生成",
+            "验证生成的内容",
+            "格式化输出",
+            "返回结果"
+          ]
+        },
+        {
+          "method_name": "validate_input",
+          "signature": "validate_input(scene: str, keywords: Union[List[str], str]) -> dict",
+          "description": "验证用户输入",
+          "responsibilities": [
+            "验证场景描述",
+            "验证关键词",
+            "返回验证结果和建议"
+          ]
+        },
+        {
+          "method_name": "generate_with_retry",
+          "signature": "generate_with_retry(prompt: dict, max_retries: int = 3) -> dict",
+          "description": "带重试机制的生成方法",
+          "responsibilities": [
+            "调用LLM",
+            "检查生成质量",
+            "根据质量调整策略重试",
+            "记录重试日志"
+          ]
+        },
+        {
+          "method_name": "get_available_styles",
+          "signature": "get_available_styles() -> List[str]",
+          "description": "获取支持的文学风格列表",
+          "returns": "风格列表"
+        },
+        {
+          "method_name": "set_model_parameters",
+          "signature": "set_model_parameters(temperature: float = 0.7, top_p: float = 0.9, max_tokens: int = 4096)",
+          "description": "设置LLM模型参数",
+          "parameters": {
+            "temperature": "温度参数（0-1，影响创意度）",
+            "top_p": "核采样参数",
+            "max_tokens": "最大token数"
+          }
+        }
+      ]
+    },
+    "supporting_classes": [
+      {
+        "class_name": "ToolManager",
+        "file_name": "tool_manager.py",
+        "description": "管理和协调所有工具",
+        "responsibilities": [
+          "加载工具",
+          "提供统一的工具调用接口",
+          "处理工具异常",
+          "记录工具调用日志"
+        ],
+        "key_methods": [
+          "load_tools()",
+          "call_tool(tool_name: str, **kwargs)",
+          "get_tool(tool_name: str)",
+          "list_available_tools()"
+        ]
+      },
+      {
+        "class_name": "PromptManager",
+        "file_name": "prompt_manager.py",
+        "description": "管理提示词模板和构建",
+        "responsibilities": [
+          "加载提示词模板",
+          "构建实际提示词",
+          "支持多风格模板",
+          "缓存常用提示词"
+        ],
+        "key_methods": [
+          "load_templates()",
+          "get_template(style: str)",
+          "build_prompt(scene: str, keywords: List[str], style: str)",
+          "detect_style(scene: str)"
+        ]
+      },
+      {
+        "class_name": "GenerationManager",
+        "file_name": "generation_manager.py",
+        "description": "管理生成过程和质量验证",
+        "responsibilities": [
+          "调用LLM",
+          "验证生成内容",
+          "管理重试逻辑",
+          "跟踪生成指标"
+        ],
+        "key_methods": [
+          "call_llm(prompt: dict) -> str",
+          "validate_output(text: str, keywords: List[str]) -> dict",
+          "should_retry(validation_result: dict) -> bool",
+          "get_generation_metrics() -> dict"
+        ]
+      },
+      {
+        "class_name": "ErrorHandler",
+        "file_name": "error_handler.py",
+        "description": "统一的错误处理",
+        "responsibilities": [
+          "捕获和分类错误",
+          "生成友好的错误消息",
+          "提供改进建议",
+          "记录错误日志"
+        ],
+        "key_methods": [
+          "handle_validation_error(error: Exception) -> dict",
+          "handle_api_error(error: Exception) -> dict",
+          "handle_quality_error(validation_result: dict) -> dict",
+          "generate_error_response(error_type: str, message: str) -> dict"
+        ]
+      }
+    ],
+    "configuration_management": {
+      "config_file": "config.yaml",
+      "config_structure": {
+        "model": {
+          "model_id": "anthropic.claude-opus-4-1-20250805",
+          "region": "us-west-2",
+          "temperature": 0.7,
+          "top_p": 0.9,
+          "max_tokens": 4096
+        },
+        "constraints": {
+          "min_scene_length": 5,
+          "max_scene_length": 500,
+          "min_keywords": 1,
+          "max_keywords": 10,
+          "min_story_length": 800,
+          "max_story_length": 2000,
+          "generation_timeout": 60
+        },
+        "retry": {
+          "max_retries": 3,
+          "retry_delays": [1, 3, 5]
+        },
+        "quality_thresholds": {
+          "min_quality_score": 70,
+          "structure_score_weight": 0.3,
+          "keywords_score_weight": 0.3,
+          "safety_score_weight": 0.2,
+          "length_score_weight": 0.2
+        }
+      }
+    },
+    "integration_with_strands": {
+      "framework": "Strands SDK",
+      "agent_type": "Creative Generation Agent",
+      "tools_integration": "通过Strands工具协议集成所有工具",
+      "key_integration_points": [
+        "Agent注册和生命周期管理",
+        "工具加载和执行",
+        "消息传递和状态管理",
+        "监控和日志记录"
+      ],
+      "strands_specific_implementation": [
+        "继承Strands Agent基类",
+        "实现必要的生命周期方法",
+        "使用Strands工具装饰器注册工具",
+        "利用Strands的消息队列系统",
+        "集成Strands的监控和告警"
+      ]
+    },
+    "api_interface": {
+      "public_methods": [
+        {
+          "method": "generate_story(scene: str, keywords: Union[List[str], str], style: str = 'default')",
+          "description": "主要的API接口，用户直接调用",
+          "returns": "格式化的故事结果或错误信息"
+        },
+        {
+          "method": "get_available_styles()",
+          "description": "获取支持的文学风格列表",
+          "returns": "风格列表"
+        },
+        {
+          "method": "validate_input(scene: str, keywords: Union[List[str], str])",
+          "description": "验证输入而不生成故事",
+          "returns": "验证结果"
+        }
+      ]
+    },
+    "code_structure": {
+      "directory_layout": {
+        "agents/generated_agents/short_story_agent/": {
+          "__init__.py": "包初始化，导出主Agent类",
+          "story_generator_agent.py": "主Agent类（500-800行）",
+          "tool_manager.py": "工具管理器（200-300行）",
+          "prompt_manager.py": "提示词管理器（200-300行）",
+          "generation_manager.py": "生成管理器（300-400行）",
+          "error_handler.py": "错误处理器（150-200行）",
+          "config.py": "配置加载和管理（100-150行）",
+          "constants.py": "常量定义（50-100行）",
+          "utils.py": "工具函数（100-150行）",
+          "tests/": "单元测试目录"
+        }
+      }
+    },
+    "implementation_details": {
+      "key_algorithms": [
+        {
+          "name": "风格检测算法",
+          "description": "根据场景描述中的关键词检测合适的文学风格",
+          "implementation": "关键词匹配 + 启发式评分"
+        },
+        {
+          "name": "质量评估算法",
+          "description": "综合评估生成的故事质量",
+          "metrics": ["字数完整性", "结构完整性", "关键词融入度", "内容安全性"],
+          "scoring": "加权平均评分"
+        },
+        {
+          "name": "重试策略",
+          "description": "根据失败原因调整提示词和参数进行重试",
+          "strategies": ["直接重试", "简化提示词重试", "调整参数重试"]
+        }
+      ],
+      "external_dependencies": [
+        "boto3 >= 1.28.0",
+        "pydantic >= 2.0.0 (数据验证)",
+        "pyyaml >= 6.0 (配置管理)",
+        "python-dotenv >= 1.0.0 (环境变量管理)"
+      ],
+      "async_support": "提供异步版本的generate_story方法以支持并发请求"
+    },
+    "error_handling_and_logging": {
+      "error_categories": [
+        "InputValidationError - 输入验证失败",
+        "PromptBuildError - 提示词构建失败",
+        "APICallError - API调用失败",
+        "GenerationError - 内容生成失败",
+        "QualityError - 质量验证失败",
+        "ConfigurationError - 配置错误"
+      ],
+      "logging_strategy": {
+        "log_file": "logs/story_generator.log",
+        "log_format": "JSON格式，包含时间戳、日志级别、消息、上下文",
+        "log_levels": ["DEBUG", "INFO", "WARNING", "ERROR"],
+        "rotation_policy": "按大小轮转（每个文件最大10MB，保留5个文件）"
+      }
+    },
+    "testing_strategy": {
+      "test_files": {
+        "test_story_generator_agent.py": "主Agent类的测试",
+        "test_tool_manager.py": "工具管理器的测试",
+        "test_prompt_manager.py": "提示词管理器的测试",
+        "test_generation_manager.py": "生成管理器的测试",
+        "test_integration.py": "集成测试"
+      },
+      "test_cases": [
+        "有效输入的故事生成",
+        "边界条件测试（最小/最大字数、关键词数等）",
+        "错误输入处理",
+        "API失败和重试",
+        "超时处理",
+        "质量验证",
+        "风格检测",
+        "并发请求处理"
+      ]
+    },
+    "performance_considerations": {
+      "optimization_techniques": [
+        "提示词模板缓存",
+        "API响应缓存（可选）",
+        "异步处理支持",
+        "连接池管理",
+        "流式处理支持（未来）"
+      ],
+      "monitoring_metrics": [
+        "平均生成时间",
+        "成功率",
+        "重试率",
+        "质量评分分布",
+        "API调用成本"
+      ]
+    },
+    "deployment_and_usage": {
+      "installation": [
+        "pip install -r requirements.txt",
+        "设置环境变量（AWS_ACCESS_KEY_ID等）",
+        "配置config.yaml"
+      ],
+      "basic_usage_example": [
+        "from story_generator_agent import StoryGeneratorAgent",
+        "",
+        "# 初始化Agent",
+        "agent = StoryGeneratorAgent()",
+        "",
+        "# 生成故事",
+        "result = agent.generate_story(",
+        "  scene_description='2050年的火星基地，一个孤独的宇航员',",
+        "  keywords=['秘密', '救赎', '希望', '回家'],",
+        "  style='scifi'",
+        ")",
+        "",
+        "# 处理结果",
+        "if result['success']:",
+        "  print(result['data']['title'])",
+        "  print(result['data']['content'])",
+        "else:",
+        "  print(result['error']['message'])"
+      ]
+    }
+  }
+}

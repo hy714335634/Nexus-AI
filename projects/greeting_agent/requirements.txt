@@ -1,0 +1,10 @@
+./nexus_utils
+strands-agents
+strands-agents-tools
+PyYAML
+fastapi>=0.100.0
+uvicorn[standard]>=0.23.0
+pydantic>=2.0.0
+python-dateutil>=2.8.2
+pyyaml>=6.0
+python-dotenv>=1.0.0

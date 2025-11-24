@@ -1,0 +1,177 @@
+{
+  "prompt_engineering_design": {
+    "design_overview": {
+      "project_name": "short_story_agent",
+      "agent_name": "story_generator_agent",
+      "version": "1.0",
+      "date": "2025-11-23",
+      "design_scope": "为短篇小说生成Agent设计完整的提示词工程方案，支持多种文学风格，确保生成高质量的短篇小说"
+    },
+    "system_prompts": {
+      "base_system_prompt": "你是一位创意写作专家和资深编剧，专门从事短篇小说创作。你拥有丰富的文学知识、深厚的叙事技巧和对人物心理的深刻理解。你的任务是根据用户提供的场景描述和关键词，创作出高质量的短篇小说。\n\n你的创作原则：\n1. 故事完整性：每部作品都必须包含明确的开头、发展、高潮和结局\n2. 人物塑造：创建1-3个鲜活的人物角色，具有清晰的性格特征和动机\n3. 关键词融合：自然而巧妙地将所有用户提供的关键词融入故事中，避免生硬堆砌\n4. 情节逻辑：确保故事逻辑严密、因果关系清晰、矛盾冲突明确\n5. 文学质量：运用生动的描写、恰当的修辞、符合中文表达习惯的语言\n6. 长度控制：严格控制故事长度在800-2000字之间\n7. 风格适配：根据场景和关键词自动适配合适的文学风格和基调\n8. 内容安全：确保内容符合道德和法律规范，不包含不当内容\n\n生成流程：\n1. 分析场景背景和关键词的含义\n2. 设计故事框架和主要冲突\n3. 创建人物角色和他们的关系\n4. 编织情节，确保关键词自然融入\n5. 完成故事，确保有合理的收尾和呼应\n6. 检查字数、结构和内容质量\n\n输出格式：\n返回一个包含以下内容的JSON对象：\n{\n  \"title\": \"故事标题\",\n  \"content\": \"完整的故事正文\",\n  \"metadata\": {\n    \"word_count\": 字数,\n    \"style\": \"文学风格\",\n    \"keywords_used\": [关键词列表],\n    \"story_structure\": {\"opening\": \"开头描述\", \"development\": \"发展描述\", \"climax\": \"高潮描述\", \"ending\": \"结局描述\"}\n  }\n}",
+      "claude_specific_notes": "针对Claude-Opus模型的优化：\n- Claude在创意写作上表现出色，特别是在长文本生成和风格模拟方面\n- 使用清晰的结构化指令可以获得更一致的输出\n- Claude倾向于遵循详细的格式指令\n- 在提示词中明确要求JSON格式会获得更结构化的输出"
+    },
+    "user_prompt_templates": {
+      "default_template": {
+        "template_name": "通用短篇小说生成模板",
+        "template_id": "default_story_generator",
+        "description": "适用于各种文学风格的通用短篇小说生成模板",
+        "variables": ["scene_description", "keywords_list", "style_hint"],
+        "prompt_structure": "请根据以下信息创作一篇短篇小说：\n\n【场景设定】\n{scene_description}\n\n【必须融入的关键词】\n{keywords_list}\n\n【创作要求】\n1. 字数：800-2000字（请精确统计）\n2. 结构：故事必须包含明确的开头、发展、高潮和结局\n3. 人物：创建1-3个主要人物，具有清晰的性格特征\n4. 冲突：故事中必须有明确的矛盾冲突和解决方案\n5. 风格：{style_hint}\n6. 关键词融合：所有关键词必须自然地融入故事中，不生硬堆砌\n7. 语言：运用生动的描写和恰当的修辞，符合中文表达习惯\n8. 格式：正文自动分段，每段开头空两格，使用规范的中文标点符号\n\n【输出格式】\n请以JSON格式返回结果，包含：\n- title: 故事标题\n- content: 完整的故事正文（800-2000字）\n- word_count: 实际字数\n- style: 实际采用的文学风格\n- keywords_used: 实际使用的关键词列表\n- structure_analysis: 简要分析故事的开头、发展、高潮、结局\n\n现在开始创作！"
+      },
+      "realism_template": {
+        "template_name": "现实主义风格模板",
+        "template_id": "realism_story_generator",
+        "description": "适用于现实主义题材的短篇小说生成模板",
+        "style_characteristics": "贴近生活、细节真实、人物心理描写深入、反映社会现实",
+        "prompt_structure": "请根据以下信息创作一篇现实主义风格的短篇小说：\n\n【场景设定】\n{scene_description}\n\n【必须融入的关键词】\n{keywords_list}\n\n【现实主义创作要求】\n1. 故事背景必须贴近现实生活，场景细节描写逼真\n2. 人物必须具有复杂的心理活动和真实的情感冲突\n3. 关键词应该代表现实生活中的真实事物或情感\n4. 故事应该反映某种社会现象或人生哲理\n5. 避免过度夸张或不切实际的情节\n6. 字数严格控制在800-2000字\n7. 以JSON格式返回，包含title、content、word_count、keywords_used"
+      },
+      "scifi_template": {
+        "template_name": "科幻风格模板",
+        "template_id": "scifi_story_generator",
+        "description": "适用于科幻题材的短篇小说生成模板",
+        "style_characteristics": "想象力丰富、科技元素、未来设定、冒险精神、思想深度",
+        "prompt_structure": "请根据以下信息创作一篇科幻风格的短篇小说：\n\n【场景设定】\n{scene_description}\n\n【必须融入的关键词】\n{keywords_list}\n\n【科幻创作要求】\n1. 故事背景可以设定在未来、异星或虚拟世界\n2. 融入科技元素，但需要符合基本的逻辑合理性\n3. 关键词可以是科技产品、未来社会现象或宇宙奥秘\n4. 故事应该具有冒险精神和想象力\n5. 即使是虚构的世界，故事逻辑也必须自洽\n6. 字数严格控制在800-2000字\n7. 以JSON格式返回，包含title、content、word_count、keywords_used"
+      },
+      "mystery_template": {
+        "template_name": "悬疑风格模板",
+        "template_id": "mystery_story_generator",
+        "description": "适用于悬疑题材的短篇小说生成模板",
+        "style_characteristics": "紧张刺激、烧脑情节、反转结局、心理战、谜团揭示",
+        "prompt_structure": "请根据以下信息创作一篇悬疑风格的短篇小说：\n\n【场景设定】\n{scene_description}\n\n【必须融入的关键词】\n{keywords_list}\n\n【悬疑创作要求】\n1. 故事开篇应该吸引人，制造悬念和疑问\n2. 情节应该步步紧张，充满反转和惊喜\n3. 关键词可以是线索、人物、物品或事件\n4. 故事中应该有明确的谜团和最后的揭示\n5. 逻辑严密，所有情节转折都有合理的解释\n6. 字数严格控制在800-2000字\n7. 以JSON格式返回，包含title、content、word_count、keywords_used、plot_twist"
+      },
+      "romantic_template": {
+        "template_name": "爱情风格模板",
+        "template_id": "romantic_story_generator",
+        "description": "适用于爱情题材的短篇小说生成模板",
+        "style_characteristics": "温暖感人、情感细腻、人物互动、情感冲突、温馨结局",
+        "prompt_structure": "请根据以下信息创作一篇爱情风格的短篇小说：\n\n【场景设定】\n{scene_description}\n\n【必须融入的关键词】\n{keywords_list}\n\n【爱情创作要求】\n1. 故事应该充满温暖和感人的情感\n2. 人物之间的互动应该细腻而真实\n3. 关键词应该与爱情、情感或人物关系相关\n4. 故事可以是甜蜜的、悲伤的或复杂的，但必须打动人心\n5. 避免过度煽情，保持文学性\n6. 字数严格控制在800-2000字\n7. 以JSON格式返回，包含title、content、word_count、keywords_used、emotional_arc"
+      }
+    },
+    "prompt_optimization_strategies": {
+      "keyword_integration": {
+        "strategy": "关键词自然融合策略",
+        "techniques": [
+          "将关键词视为故事元素的一部分，而非生硬插入",
+          "关键词可以代表人物、物品、地点、事件或情感",
+          "在故事的不同部分分散放置关键词，形成有机整体",
+          "让关键词之间形成逻辑关系和因果连接",
+          "避免在一个段落内堆砌多个关键词",
+          "关键词应该服务于情节发展，而非相反"
+        ],
+        "validation": "生成后需要检查所有关键词是否都被使用，是否自然融入"
+      },
+      "story_structure": {
+        "strategy": "故事结构保证策略",
+        "five_act_structure": {
+          "act_1_exposition": "介绍背景、人物和场景（5-10%字数）",
+          "act_2_rising_action": "事件发展，冲突升级（20-30%字数）",
+          "act_3_climax": "故事高潮，主要冲突激化（20-30%字数）",
+          "act_4_falling_action": "冲突解决，情节回落（20-30%字数）",
+          "act_5_resolution": "故事结局，收尾和呼应（5-15%字数）"
+        },
+        "validation": "在提示词中明确要求这样的结构，生成后验证各部分比例"
+      },
+      "character_development": {
+        "strategy": "人物塑造策略",
+        "requirements": [
+          "每个人物应该有明确的性格特征和背景",
+          "人物应该有明确的动机和目标",
+          "人物应该有心理变化或成长",
+          "人物之间应该有互动和冲突",
+          "避免人物设定过于复杂或模糊"
+        ]
+      },
+      "length_control": {
+        "strategy": "字数控制策略",
+        "methods": [
+          "在提示词中明确指出字数范围（800-2000字）",
+          "要求生成后进行字数统计",
+          "如果字数不符，触发重新生成",
+          "提供字数计算方法（中文字数统计规则）"
+        ]
+      },
+      "quality_assurance": {
+        "strategy": "质量保证策略",
+        "validation_points": [
+          "字数在800-2000字范围内",
+          "所有关键词都被使用",
+          "故事结构完整（开头、发展、高潮、结局）",
+          "语言流畅，符合中文表达习惯",
+          "人物塑造清晰，有心理深度",
+          "逻辑严密，无明显矛盾",
+          "内容符合安全规范"
+        ]
+      }
+    },
+    "error_handling_prompts": {
+      "retry_strategy": {
+        "first_attempt": "使用完整的详细提示词，要求所有质量标准",
+        "second_attempt": "如果第一次失败，调整提示词，强调关键要求（字数、结构、关键词）",
+        "third_attempt": "如果前两次都失败，简化提示词，降低一些非核心要求，但保留基本要求"
+      },
+      "quality_check_prompt": "请检查生成的故事是否满足以下条件：\n1. 字数在800-2000字之间吗？\n2. 所有关键词都被使用了吗？\n3. 故事有明确的开头、发展、高潮和结局吗？\n4. 语言流畅，符合中文表达习惯吗？\n5. 没有明显的逻辑矛盾吗？\n\n如果任何条件不满足，请重新生成满足所有条件的故事。"
+    },
+    "usage_examples": {
+      "example_1": {
+        "title": "示例1：现实主义风格",
+        "scene": "2025年的北京，一个普通的白领在公司遭遇职场困境",
+        "keywords": ["背叛", "成长", "选择", "坚持"],
+        "expected_output": "一个关于职场人生的故事，探讨背叛、成长、选择和坚持的主题"
+      },
+      "example_2": {
+        "title": "示例2：科幻风格",
+        "scene": "2150年的火星基地，人类第一次与外星文明接触",
+        "keywords": ["首次接触", "未知", "冒险", "和平"],
+        "expected_output": "一个关于太空探索和文明对话的科幻故事"
+      },
+      "example_3": {
+        "title": "示例3：悬疑风格",
+        "scene": "一个偏远的山间小镇，一宗离奇的失踪案件",
+        "keywords": ["线索", "真相", "陷阱", "反转"],
+        "expected_output": "一个充满悬念和反转的推理故事"
+      }
+    },
+    "style_detection_logic": {
+      "description": "根据场景描述自动检测合适的文学风格",
+      "detection_rules": [
+        {
+          "condition": "场景包含现代、日常、职场、生活等词汇",
+          "style": "现实主义"
+        },
+        {
+          "condition": "场景包含未来、太空、科技、星球等词汇",
+          "style": "科幻"
+        },
+        {
+          "condition": "场景包含失踪、谋杀、秘密、陷阱等词汇",
+          "style": "悬疑"
+        },
+        {
+          "condition": "场景包含爱情、相遇、感情、心动等词汇",
+          "style": "爱情"
+        },
+        {
+          "condition": "其他情况",
+          "style": "默认风格"
+        }
+      ]
+    },
+    "implementation_notes": {
+      "key_points": [
+        "所有提示词都应该强调关键词的自然融入",
+        "提示词中应该明确指出字数要求和结构要求",
+        "建议使用JSON格式的输出，便于后续处理",
+        "提示词应该支持重试机制，不同次数的提示词应该有所调整",
+        "应该为不同的文学风格设计专用提示词，而非通用模板",
+        "提示词中应该包含质量检查清单，指导模型自我检查"
+      ],
+      "claude_specific_optimization": [
+        "Claude对结构化指令反应良好，使用JSON格式的输出要求",
+        "Claude在长文本生成上表现出色，可以要求更详细的描写",
+        "Claude对中文的理解和生成能力较强，可以要求特定的中文表达风格",
+        "Claude支持复杂的推理，可以在提示词中要求更深层的逻辑思考"
+      ]
+    }
+  }
+}

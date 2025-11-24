@@ -1,0 +1,309 @@
+{
+  "agent_code_development": {
+    "development_overview": {
+      "project_name": "football_qa_agent",
+      "version": "1.0",
+      "date": "2025-11-23",
+      "development_scope": "开发football_search_organizer Agent的完整代码实现，包括Agent主类、工具集成、错误处理、命令行接口等",
+      "design_principles": [
+        "基于nexus_utils.agent_factory创建Agent，遵循Nexus-AI平台标准",
+        "参考deep_research_agent模板结构，确保代码规范性",
+        "集成所有自定义工具和系统工具，实现完整功能",
+        "实现健壮的错误处理和日志记录机制",
+        "提供友好的命令行接口和多种输出格式",
+        "遵循Python 3.13+最佳实践和PEP 8规范"
+      ],
+      "key_decisions": [
+        "使用create_agent_from_prompt_template创建Agent，简化配置管理",
+        "实现process_football_question函数处理问题，提供结构化返回",
+        "添加validate_question函数进行输入验证",
+        "提供format_answer_output函数支持多种输出格式",
+        "使用logging模块记录详细的处理过程",
+        "实现完整的命令行参数解析，支持多种测试场景"
+      ]
+    },
+    "agent_implementation": {
+      "agent_name": "football_search_organizer",
+      "file_path": "agents/generated_agents/football_qa_agent/football_search_organizer.py",
+      "main_class": "无需主类，使用函数式设计",
+      "entry_point": "create_football_search_organizer_agent",
+      "dependencies": [
+        "os",
+        "json",
+        "logging",
+        "typing.Dict",
+        "typing.Any",
+        "typing.Optional",
+        "nexus_utils.agent_factory.create_agent_from_prompt_template",
+        "strands.telemetry.StrandsTelemetry"
+      ],
+      "imports": [
+        "import os",
+        "import json",
+        "import logging",
+        "from typing import Dict, Any, Optional",
+        "from nexus_utils.agent_factory import create_agent_from_prompt_template",
+        "from strands.telemetry import StrandsTelemetry"
+      ]
+    },
+    "core_functions": [
+      {
+        "function_name": "create_football_search_organizer_agent",
+        "purpose": "创建并初始化football_search_organizer Agent实例",
+        "parameters": [
+          {
+            "name": "env",
+            "type": "str",
+            "description": "运行环境 (development, production, testing)",
+            "required": false,
+            "default": "production"
+          },
+          {
+            "name": "version",
+            "type": "str",
+            "description": "Agent版本",
+            "required": false,
+            "default": "latest"
+          },
+          {
+            "name": "model_id",
+            "type": "str",
+            "description": "模型ID",
+            "required": false,
+            "default": "default"
+          }
+        ],
+        "return_type": "Any",
+        "return_description": "已初始化的Agent实例",
+        "implementation_notes": [
+          "使用nexus_utils.agent_factory.create_agent_from_prompt_template创建Agent",
+          "配置agent_config_path为generated_agents_prompts/football_qa_agent/football_search_organizer",
+          "启用日志记录和遥测",
+          "捕获并记录创建过程中的异常"
+        ]
+      },
+      {
+        "function_name": "process_football_question",
+        "purpose": "处理足球问题并返回结构化答案",
+        "parameters": [
+          {
+            "name": "agent",
+            "type": "Any",
+            "description": "Agent实例",
+            "required": true
+          },
+          {
+            "name": "question",
+            "type": "str",
+            "description": "用户的足球问题",
+            "required": true
+          },
+          {
+            "name": "question_type",
+            "type": "str",
+            "description": "问题类型提示",
+            "required": false
+          },
+          {
+            "name": "search_scope",
+            "type": "str",
+            "description": "搜索范围限制",
+            "required": false
+          },
+          {
+            "name": "output_format",
+            "type": "str",
+            "description": "输出格式要求",
+            "required": false
+          }
+        ],
+        "return_type": "Dict[str, Any]",
+        "return_description": "包含status、question、answer、raw_response、processing_info的结构化结果",
+        "implementation_notes": [
+          "构建完整的用户输入，包含问题和可选参数",
+          "调用Agent处理问题",
+          "多层级响应内容提取（content、text、str）",
+          "尝试解析JSON格式的答案",
+          "提供文本格式的降级处理",
+          "记录详细的处理日志",
+          "捕获并处理所有异常"
+        ]
+      },
+      {
+        "function_name": "validate_question",
+        "purpose": "验证问题的有效性",
+        "parameters": [
+          {
+            "name": "question",
+            "type": "str",
+            "description": "用户问题",
+            "required": true
+          }
+        ],
+        "return_type": "Dict[str, Any]",
+        "return_description": "包含valid和error/question_length的验证结果",
+        "implementation_notes": [
+          "检查问题是否为空",
+          "检查问题长度（最小5字符，最大500字符）",
+          "返回详细的验证错误信息"
+        ]
+      },
+      {
+        "function_name": "format_answer_output",
+        "purpose": "格式化答案输出",
+        "parameters": [
+          {
+            "name": "result",
+            "type": "Dict[str, Any]",
+            "description": "处理结果",
+            "required": true
+          },
+          {
+            "name": "format_type",
+            "type": "str",
+            "description": "输出格式 (text, json, markdown)",
+            "required": false,
+            "default": "text"
+          }
+        ],
+        "return_type": "str",
+        "return_description": "格式化的输出字符串",
+        "implementation_notes": [
+          "支持三种输出格式：text、json、markdown",
+          "text格式：清晰的文本结构，易于阅读",
+          "json格式：标准JSON，便于程序处理",
+          "markdown格式：结构化Markdown，支持文档展示"
+        ]
+      }
+    ],
+    "tool_integration": {
+      "custom_tools": [
+        "web_search_enhanced - 增强的网络搜索工具",
+        "information_collector - 信息收集工具",
+        "data_analyzer - 数据分析工具",
+        "report_generator - 报告生成工具",
+        "http_request - HTTP请求工具（自定义版本）"
+      ],
+      "system_tools": [
+        "current_time - 时间获取工具（Strands内置）"
+      ],
+      "strands_tools": [
+        "http_request - HTTP请求工具（Strands内置）"
+      ],
+      "integration_notes": [
+        "所有工具通过提示词模板的tools_dependencies配置自动加载",
+        "Agent通过ReAct模式自主选择和调用工具",
+        "工具调用结果自动解析和处理",
+        "支持工具调用失败的错误恢复"
+      ]
+    },
+    "configuration": {
+      "environment_variables": [
+        "BYPASS_TOOL_CONSENT=true - 绕过工具使用确认",
+        "OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 - 遥测端点"
+      ],
+      "model_configuration": {
+        "model_name": "anthropic.claude-3-haiku-20240307-v1:0",
+        "max_tokens": {
+          "development": 4096,
+          "production": 60000,
+          "testing": 2048
+        },
+        "temperature": 0.3,
+        "top_p": 0.8,
+        "streaming": true
+      },
+      "streaming_config": {
+        "enabled": true,
+        "description": "支持流式响应以提供更好的用户体验"
+      }
+    },
+    "error_handling": {
+      "exception_types": [
+        "Agent创建异常 - 捕获并记录Agent初始化错误",
+        "问题处理异常 - 捕获并返回结构化错误信息",
+        "响应解析异常 - 提供降级的文本响应",
+        "JSON解析异常 - 返回原始文本内容",
+        "输入验证异常 - 提供清晰的验证错误信息"
+      ],
+      "error_responses": [
+        "所有错误都返回包含status和error字段的结构化响应",
+        "记录详细的错误日志以便调试",
+        "提供用户友好的错误提示",
+        "保留原始响应内容以便问题分析"
+      ],
+      "recovery_strategies": [
+        "JSON解析失败时返回文本格式响应",
+        "工具调用失败时由Agent自动重试或调整策略",
+        "网络异常时提供友好的错误提示",
+        "超时处理由Agent内部的超时机制控制"
+      ]
+    },
+    "testing": {
+      "test_cases": [
+        "基本球员信息查询 - 测试球员相关问题处理",
+        "球队战术分析 - 测试复杂分析问题",
+        "历史比赛查询 - 测试时间相关问题",
+        "足球规则解释 - 测试知识类问题",
+        "转会新闻查询 - 测试新闻类问题"
+      ],
+      "test_scenarios": [
+        "默认参数测试 - 使用默认配置运行",
+        "指定问题类型测试 - 测试问题类型参数",
+        "指定搜索范围测试 - 测试搜索范围参数",
+        "多种输出格式测试 - 测试text、json、markdown格式",
+        "不同环境测试 - 测试development、production、testing环境"
+      ],
+      "validation_criteria": [
+        "Agent成功创建并初始化",
+        "问题验证功能正常工作",
+        "Agent能够处理各类足球问题",
+        "输出格式正确且易读",
+        "错误处理机制有效",
+        "日志记录完整详细"
+      ]
+    },
+    "deployment": {
+      "deployment_requirements": [
+        "Python 3.13+运行环境",
+        "安装nexus_utils包",
+        "安装strands框架",
+        "配置AWS Bedrock访问权限",
+        "安装所有依赖包（见requirements.txt）"
+      ],
+      "runtime_dependencies": [
+        "nexus_utils - Agent工厂和配置管理",
+        "strands - Strands框架核心",
+        "ddgs - DuckDuckGo搜索引擎",
+        "requests - HTTP请求库",
+        "beautifulsoup4 - HTML解析库"
+      ],
+      "performance_considerations": [
+        "响应时间控制在30秒内（由Agent内部机制保证）",
+        "搜索结果获取时间不超过10秒",
+        "信息整理处理时间不超过15秒",
+        "支持并发处理多个请求（通过多实例部署）",
+        "日志级别可配置以优化性能"
+      ]
+    },
+    "command_line_interface": {
+      "parameters": [
+        "-i, --input - 足球问题（必填）",
+        "-t, --type - 问题类型（可选：player, team, match, tactics, history, general）",
+        "-s, --scope - 搜索范围（可选：general, news, statistics, matches, transfers, historical）",
+        "-f, --format - 输出格式（可选：text, json, markdown，默认text）",
+        "-e, --env - 运行环境（可选：development, production, testing，默认production）",
+        "-v, --version - Agent版本（可选，默认latest）",
+        "--verbose - 显示详细日志（可选）"
+      ],
+      "usage_examples": [
+        "python football_search_organizer.py -i \"梅西目前在哪个球队？\"",
+        "python football_search_organizer.py -i \"梅西的职业生涯成就\" -t player",
+        "python football_search_organizer.py -i \"昨天巴萨vs皇马的比赛\" -s matches",
+        "python football_search_organizer.py -i \"C罗转会历史\" -f json",
+        "python football_search_organizer.py -i \"梅西数据\" -e development --verbose"
+      ]
+    },
+    "development_notes": "Agent代码开发关键决策和实现细节：\n\n1. **架构设计**：\n   - 采用函数式设计而非类封装，保持代码简洁\n   - 使用nexus_utils.agent_factory创建Agent，遵循平台标准\n   - 参考deep_research_agent模板结构，确保规范性\n\n2. **工具集成**：\n   - 所有工具通过提示词模板配置自动加载\n   - Agent使用ReAct模式自主选择和调用工具\n   - 工具调用结果由Agent内部处理，代码只处理最终响应\n\n3. **错误处理**：\n   - 实现多层级的错误捕获和处理\n   - 响应解析支持多种格式（content、text、str）\n   - JSON解析失败时提供文本格式降级\n   - 所有错误都返回结构化响应\n\n4. **输出格式**：\n   - 支持三种输出格式：text（默认）、json、markdown\n   - text格式清晰易读，适合终端显示\n   - json格式便于程序处理\n   - markdown格式支持文档展示\n\n5. **日志记录**：\n   - 使用Python标准logging模块\n   - 记录Agent创建、问题处理、响应解析等关键步骤\n   - 支持--verbose参数显示详细日志\n\n6. **命令行接口**：\n   - 使用argparse实现完整的参数解析\n   - 提供丰富的帮助信息和使用示例\n   - 支持多种测试场景和配置选项\n\n7. **代码质量**：\n   - 遵循PEP 8规范\n   - 使用完整的类型注解\n   - 提供详细的文档字符串\n   - 代码结构清晰，易于维护\n\n8. **性能优化**：\n   - Agent内部机制保证30秒响应时间\n   - 工具调用由Agent优化管理\n   - 日志级别可配置以优化性能\n\n9. **扩展性**：\n   - 函数式设计便于扩展新功能\n   - 工具集成通过配置管理，易于添加新工具\n   - 输出格式支持扩展\n\n10. **测试支持**：\n    - 提供完整的命令行测试接口\n    - 支持多种测试场景\n    - 详细的日志记录便于调试"
+  }
+}

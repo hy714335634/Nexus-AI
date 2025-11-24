@@ -62,6 +62,34 @@ agent:
         - **Utils工具**：平台提供的配置和管理工具
         - **类型注解**：使用完整的类型提示系统
         - **其他开发**：基于boto3或使用use_aws工具，以及python默认工具进行构建
+
+        **Python依赖包规范**（生成requirements.txt时必须遵循）：
+
+        ✅ **必须包含的基础包**：
+        - `./nexus_utils` - 本地工具包（用于配置和Agent工厂）
+        - `strands-agents` - Strands Agent框架（正确的包名）
+        - `strands-agents-tools` - Strands工具框架
+        - `PyYAML` - YAML配置解析
+
+        ❌ **禁止包含的无效包**（这些包不存在于PyPI）：
+        - `nexus-ai` - **不存在**！"Nexus-AI"是平台名称，不是Python包
+        - `nexus` - 不存在，使用 `./nexus_utils` 代替
+        - `nexus_ai` - 不存在，使用 `./nexus_utils` 代替
+        - `strands` - 已弃用，使用 `strands-agents` 代替
+
+        ✅ **其他常用包**（根据工具需求添加）：
+        - `boto3` - AWS SDK（如需AWS服务）
+        - `botocore` - boto3核心库
+        - `requests` - HTTP请求（如需网络请求）
+        - `beautifulsoup4` - HTML解析（如需网页解析）
+        - `duckduckgo-search` - 搜索引擎（如需搜索功能）
+        - `pandas`, `numpy` - 数据处理（如需数据分析）
+
+        **重要提示**：
+        1. "Nexus-AI"是平台的名称，不要将其误认为Python包
+        2. 本地工具通过 `./nexus_utils` 引用，不需要PyPI包
+        3. 只使用工具开发文档中明确列出的外部依赖
+        4. 所有包必须在PyPI上真实存在
         
         **AgentCore部署和文件处理要求**：
         生成的Agent代码必须能够部署到AWS Bedrock AgentCore并正确处理文件输入：

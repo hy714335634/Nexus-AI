@@ -1,0 +1,355 @@
+{
+  "agent_code": {
+    "project_name": "basketball_qa_agent",
+    "agent_name": "basketball_qa_agent",
+    "development_date": "2025-11-23",
+    "code_version": "1.0",
+    "code_overview": "篮球问答Agent的完整代码实现",
+    "language": "Python 3.13+",
+    "framework": "Strands Framework with AWS Bedrock",
+    "dependencies": [
+      "anthropic",
+      "boto3",
+      "requests",
+      "beautifulsoup4",
+      "lxml",
+      "python-dateutil",
+      "pydantic",
+      "httpx"
+    ],
+    "main_code_structure": {
+      "file": "basketball_qa_agent.py",
+      "description": "Agent主程序文件",
+      "components": [
+        {
+          "component": "BasketballQAAgent",
+          "type": "Main Agent Class",
+          "description": "篮球问答Agent的主类"
+        },
+        {
+          "component": "SearchManager",
+          "type": "Tool Manager",
+          "description": "搜索工具管理器"
+        },
+        {
+          "component": "ContentProcessor",
+          "type": "Data Processor",
+          "description": "内容处理器"
+        },
+        {
+          "component": "AnswerFormatter",
+          "type": "Output Formatter",
+          "description": "答案格式化器"
+        }
+      ]
+    },
+    "code_implementation": {
+      "main_class": {
+        "class_name": "BasketballQAAgent",
+        "description": "主Agent类，继承自Strands Framework的Agent基类",
+        "methods": [
+          {
+            "method_name": "__init__",
+            "description": "初始化Agent",
+            "parameters": [
+              "model_id: str - 使用的AI模型ID",
+              "tools: List[Tool] - 可用工具列表",
+              "config: Dict - 配置参数"
+            ]
+          },
+          {
+            "method_name": "process_question",
+            "description": "处理篮球问题的主方法",
+            "parameters": [
+              "question: str - 用户问题",
+              "context: Optional[Dict] - 额外上下文"
+            ],
+            "returns": "Dict - 结构化答案"
+          },
+          {
+            "method_name": "analyze_question",
+            "description": "分析和理解用户问题",
+            "parameters": ["question: str"],
+            "returns": "Dict - 问题分析结果"
+          },
+          {
+            "method_name": "search_information",
+            "description": "根据分析结果搜索信息",
+            "parameters": [
+              "analysis: Dict - 问题分析结果",
+              "max_results: int - 最大结果数"
+            ],
+            "returns": "List[Dict] - 搜索结果"
+          },
+          {
+            "method_name": "process_content",
+            "description": "处理和整理搜索结果",
+            "parameters": ["search_results: List[Dict]"],
+            "returns": "Dict - 处理后的内容"
+          },
+          {
+            "method_name": "generate_answer",
+            "description": "生成结构化答案",
+            "parameters": [
+              "question: str - 原始问题",
+              "processed_content: Dict - 处理后的内容"
+            ],
+            "returns": "str - 格式化后的答案"
+          },
+          {
+            "method_name": "format_answer",
+            "description": "格式化最终答案",
+            "parameters": ["answer_data: Dict"],
+            "returns": "str - 最终答案"
+          }
+        ]
+      },
+      "search_manager": {
+        "class_name": "SearchManager",
+        "description": "管理所有搜索相关的工具调用",
+        "methods": [
+          {
+            "method_name": "web_search",
+            "description": "执行网络搜索",
+            "parameters": [
+              "query: str - 搜索关键词",
+              "num_results: int - 返回结果数"
+            ],
+            "returns": "List[Dict] - 搜索结果"
+          },
+          {
+            "method_name": "fetch_content",
+            "description": "获取网页详细内容",
+            "parameters": ["url: str"],
+            "returns": "str - 网页内容"
+          },
+          {
+            "method_name": "extract_text",
+            "description": "从HTML中提取文本",
+            "parameters": ["html: str"],
+            "returns": "str - 提取的文本"
+          }
+        ]
+      },
+      "content_processor": {
+        "class_name": "ContentProcessor",
+        "description": "处理和整理搜索结果内容",
+        "methods": [
+          {
+            "method_name": "deduplicate",
+            "description": "去除重复内容",
+            "parameters": ["content_list: List[str]"],
+            "returns": "List[str] - 去重后的内容"
+          },
+          {
+            "method_name": "categorize",
+            "description": "对内容进行分类",
+            "parameters": ["content_list: List[str]"],
+            "returns": "Dict - 分类后的内容"
+          },
+          {
+            "method_name": "extract_key_points",
+            "description": "提取关键要点",
+            "parameters": ["content: str"],
+            "returns": "List[str] - 关键要点列表"
+          },
+          {
+            "method_name": "summarize",
+            "description": "内容摘要",
+            "parameters": ["content: str"],
+            "returns": "str - 摘要"
+          }
+        ]
+      },
+      "answer_formatter": {
+        "class_name": "AnswerFormatter",
+        "description": "格式化最终答案",
+        "methods": [
+          {
+            "method_name": "format_structured_answer",
+            "description": "生成结构化答案",
+            "parameters": ["answer_data: Dict"],
+            "returns": "str - 格式化答案"
+          },
+          {
+            "method_name": "add_question_understanding",
+            "description": "添加问题理解部分",
+            "parameters": [
+              "analysis: Dict - 问题分析",
+              "answer: str"
+            ],
+            "returns": "str - 更新后的答案"
+          },
+          {
+            "method_name": "add_quick_answer",
+            "description": "添加快速答案部分",
+            "parameters": [
+              "answer: str - 完整答案",
+              "formatted"
+            ],
+            "returns": "str - 带快速答案的答案"
+          },
+          {
+            "method_name": "add_sources",
+            "description": "添加信息来源",
+            "parameters": [
+              "answer: str",
+              "sources: List[Dict]"
+            ],
+            "returns": "str - 带来源的答案"
+          }
+        ]
+      }
+    },
+    "tool_integration": {
+      "tools_used": [
+        {
+          "tool_name": "web_search_enhanced",
+          "integration_point": "SearchManager.web_search()",
+          "usage": "执行初始搜索获取相关信息"
+        },
+        {
+          "tool_name": "http_request",
+          "integration_point": "SearchManager.fetch_content()",
+          "usage": "获取网页详细内容"
+        },
+        {
+          "tool_name": "file_write",
+          "integration_point": "缓存管理",
+          "usage": "缓存搜索结果和处理过的内容"
+        },
+        {
+          "tool_name": "file_read",
+          "integration_point": "缓存管理",
+          "usage": "读取缓存的搜索结果"
+        },
+        {
+          "tool_name": "current_time",
+          "integration_point": "时间戳生成",
+          "usage": "获取当前时间用于缓存有效性检查"
+        }
+      ]
+    },
+    "error_handling": {
+      "error_types": [
+        {
+          "error": "SearchFailureError",
+          "handling": "捕获搜索失败，提供用户友好的错误消息和重试建议"
+        },
+        {
+          "error": "ContentFetchError",
+          "handling": "处理网页获取失败，尝试备选来源"
+        },
+        {
+          "error": "ProcessingError",
+          "handling": "内容处理错误，返回部分结果和错误说明"
+        },
+        {
+          "error": "TimeoutError",
+          "handling": "操作超时，返回缓存结果或提示重试"
+        }
+      ],
+      "logging": {
+        "level": "INFO",
+        "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        "output": "logs/basketball_qa_agent.log"
+      }
+    },
+    "caching_strategy": {
+      "cache_enabled": true,
+      "cache_ttl": 3600,
+      "cache_path": "cache/basketball_qa",
+      "cache_key_format": "md5(question)",
+      "cache_operations": [
+        {
+          "operation": "search_results",
+          "ttl": 3600,
+          "description": "缓存搜索结果"
+        },
+        {
+          "operation": "web_content",
+          "ttl": 86400,
+          "description": "缓存网页内容"
+        },
+        {
+          "operation": "processed_answers",
+          "ttl": 7200,
+          "description": "缓存处理后的答案"
+        }
+      ]
+    },
+    "performance_optimization": {
+      "strategies": [
+        "使用缓存减少重复查询",
+        "并行化搜索请求",
+        "增量加载内容",
+        "智能超时管理"
+      ],
+      "target_metrics": {
+        "response_time": "25-30秒",
+        "cache_hit_rate": ">70%",
+        "search_result_quality": ">80%",
+        "error_rate": "<5%"
+      }
+    },
+    "testing_strategy": {
+      "unit_tests": [
+        {
+          "test": "test_question_analysis",
+          "description": "测试问题分析功能"
+        },
+        {
+          "test": "test_search_manager",
+          "description": "测试搜索管理器"
+        },
+        {
+          "test": "test_content_processor",
+          "description": "测试内容处理器"
+        },
+        {
+          "test": "test_answer_formatter",
+          "description": "测试答案格式化器"
+        }
+      ],
+      "integration_tests": [
+        {
+          "test": "test_end_to_end",
+          "description": "端到端测试"
+        },
+        {
+          "test": "test_tool_integration",
+          "description": "工具集成测试"
+        }
+      ]
+    },
+    "code_example": {
+      "basic_usage": "# 初始化Agent\\nfrom basketball_qa_agent import BasketballQAAgent\\n\\nagent = BasketballQAAgent(\\n    model_id='us.anthropic.claude-3-7-sonnet-20250219-v1:0',\\n    tools=[web_search_enhanced, http_request, file_read, file_write, current_time]\\n)\\n\\n# 处理问题\\nquestion = '什么是篮球中的挡拆战术？'\\nanswer = agent.process_question(question)\\nprint(answer)",
+      "advanced_usage": "# 带上下文的问题处理\\ncontext = {\\n    'user_id': 'user123',\\n    'previous_questions': ['...'],\\n    'preferences': {'language': 'zh-CN'}\\n}\\nanswer = agent.process_question(question, context=context)"
+    },
+    "deployment_notes": {
+      "requirements": [
+        "Python 3.13+",
+        "AWS Bedrock access",
+        "Internet connection for web search",
+        "Local storage for cache",
+        "Minimum 2GB RAM"
+      ],
+      "environment_variables": [
+        "AWS_REGION",
+        "AWS_ACCESS_KEY_ID",
+        "AWS_SECRET_ACCESS_KEY",
+        "CACHE_PATH",
+        "LOG_LEVEL"
+      ],
+      "configuration_file": "config/agent_config.yaml"
+    },
+    "development_status": "completed",
+    "code_quality": {
+      "documentation": "完整的代码注释和文档字符串",
+      "error_handling": "全面的错误处理和日志记录",
+      "testing": "包含单元测试和集成测试",
+      "optimization": "性能优化和缓存策略"
+    },
+    "next_steps": "Ready for project verification and deployment"
+  }
+}

@@ -1,0 +1,23 @@
+agent:
+  name: "test_greeting_agent"
+  description: "测试问候 Agent"
+  category: "test"
+  environments:
+    production:
+      max_tokens: 4096
+      temperature: 0.7
+      top_p: 0.9
+      streaming: False
+  versions:
+    - version: "1.0"
+      status: "stable"
+      created_date: "2025-11-23"
+      system_prompt: |
+        你是一个测试用的问候 Agent。
+
+        你的职责是：
+        1. 接收用户的问候
+        2. 返回友好的问候响应
+
+      tools_dependencies:
+        - "strands_tools/current_time"
