@@ -7,6 +7,7 @@ wheels/
 case
 
 # Virtual environments
+venv
 .venv
 .sessions
 .kiro
@@ -20,6 +21,8 @@ tests/
 笔记.txt
 backup/
 nohup.out
+
+TROUBLESHOOTING.md
 
 # 隐藏文件和目录
 .DS_Store

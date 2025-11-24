@@ -5,7 +5,6 @@ bedrock-agentcore
 bedrock-agentcore-starter-toolkit
 tooluniverse
 .
-
 boto3
 botocore
 neo4j
@@ -46,3 +45,6 @@ networkx
 streamlit
 
 setuptools
+
+tabulate
+opentelemetry
