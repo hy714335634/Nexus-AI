@@ -22,7 +22,11 @@ tests/
 backup/
 nohup.out
 
+# Non useful 文档
+
 TROUBLESHOOTING.md
+#MODULE_LOADING_FIX.md
+PYTHON_PATH_FIX.md
 
 # 隐藏文件和目录
 .DS_Store
