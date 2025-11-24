@@ -412,12 +412,14 @@ agent:
           agent_params = {
               "env": "production",
               "version": "latest", 
-              "model_id": "default"
+              "model_id": "default",
+              "enable_logging": True
           }
           sample_agent = create_agent_from_prompt_template(
               agent_name="generated_agents_prompts/myproject/sample_agent", 
               **agent_params
           )
+        - 当有多个Agent时，应使用create_agent_from_prompt_template实例化多个Agent对象进行调用
         - 必须包含if __name__ == "__main__"部分，提供命令行测试功能
         - 必须参考template_agents中的标准格式
         - 必须正确集成所有自定义工具和系统工具

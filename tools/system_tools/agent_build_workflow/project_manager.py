@@ -2254,7 +2254,7 @@ def generate_content(type: Literal["agent", "prompt", "tool"], content: str, pro
         str: 操作结果信息
         
     Note:
-        为确保目录名和文件名一致，代理文件将命名为 {project_name}.py，
+        为确保目录名和文件名一致，agent脚本文件将命名为 {project_name}.py，
         提示词文件将命名为 {project_name}.yaml，工具文件保持使用artifact_name
     """
     stage = "prompt_engineer" if type == "prompt" else "tools_developer" if type == "tool" else "agent_code_developer"

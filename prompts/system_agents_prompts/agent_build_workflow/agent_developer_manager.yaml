@@ -152,9 +152,10 @@ agent:
         tools_dependencies:
           - "strands_tools/file_read"
           - "strands_tools/current_time"
-          - "system_tools/agent_build_workflow/agent_developer_team_members/agent_code_developer"
-          - "system_tools/agent_build_workflow/agent_developer_team_members/agent_tool_developer"
-          - "system_tools/agent_build_workflow/agent_developer_team_members/agent_prompt_engineer"
+          # 以下三个工具已改为在工作流中直接调用，不再通过Developer Manager调用
+          # - "system_tools/agent_build_workflow/agent_developer_team_members/agent_code_developer"
+          # - "system_tools/agent_build_workflow/agent_developer_team_members/agent_tool_developer"
+          # - "system_tools/agent_build_workflow/agent_developer_team_members/agent_prompt_engineer"
           - "system_tools/agent_build_workflow/project_manager/get_project_status"
           - "system_tools/agent_build_workflow/project_manager/get_project_config"
           - "system_tools/agent_build_workflow/project_manager/get_project_readme"
