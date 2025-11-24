@@ -18,17 +18,11 @@
       "static/css/app/build/modules/page.css",
       "static/chunks/app/build/modules/page.js"
     ],
-    "/build/page": [
+    "/agents/dialog/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/css/app/build/page.css",
-      "static/chunks/app/build/page.js"
-    ],
-    "/agents/new/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/css/app/agents/new/page.css",
-      "static/chunks/app/agents/new/page.js"
+      "static/css/app/agents/dialog/page.css",
+      "static/chunks/app/agents/dialog/page.js"
     ],
     "/management/page": [
       "static/chunks/webpack.js",
@@ -36,11 +30,11 @@
       "static/css/app/management/page.css",
       "static/chunks/app/management/page.js"
     ],
-    "/agents/dialog/page": [
+    "/agents/new/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/css/app/agents/dialog/page.css",
-      "static/chunks/app/agents/dialog/page.js"
+      "static/css/app/agents/new/page.css",
+      "static/chunks/app/agents/new/page.js"
     ],
     "/not-found": [
       "static/chunks/webpack.js",
