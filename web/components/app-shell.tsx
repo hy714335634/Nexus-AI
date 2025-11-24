@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ReactNode, useMemo } from 'react';
 import styles from './app-shell.module.css';
+import { useProjectSummaries } from '@/hooks/use-projects';
 
 interface AppShellProps {
   readonly children: ReactNode;
@@ -22,43 +23,53 @@ interface NavSection {
   readonly items: NavItem[];
 }
 
-const NAV_SECTIONS: NavSection[] = [
-  {
-    title: '核心模块',
-    items: [
-      { label: '首页概览', href: '/', icon: '🏠', status: 'online' },
-      { label: '构建模块', href: '/build/modules', icon: '🔨', badge: '3', status: 'building' },
-      { label: '管理模块', href: '/management', icon: '⚙️', status: 'online' },
-      { label: '迭代模块', href: '/iteration', icon: '🔄', badge: '1', status: 'online' },
-      { label: '问题排查', href: '/troubleshoot', icon: '🐛', status: 'online' },
-      { label: '日志分析', href: '/troubleshoot/analysis', icon: '📄', status: 'online' },
-      { label: '复现流程', href: '/troubleshoot/reproduction', icon: '🔁', status: 'online' },
-      { label: '代码诊断', href: '/troubleshoot/code-review', icon: '🧮', status: 'online' },
-      { label: '运维管理', href: '/operations', icon: '🔧', status: 'online' },
-      { label: '监控中心', href: '/monitoring', icon: '📊', badge: '2', status: 'online' },
-      { label: '工具&MCP', href: '/tools', icon: '🛠️', status: 'online' },
-    ],
-  },
-  {
-    title: '系统功能',
-    items: [
-      { label: 'Agent库', href: '/agent-library', icon: '🤖', status: 'online' },
-      { label: '构建配置', href: '/agents/dialog', icon: '📝', status: 'online' },
-      { label: '多Agent编排', href: '/multi-agent', icon: '🔗', status: 'online' },
-      { label: '自举式进化', href: '/evolution', icon: '🔄', badge: 'Beta', status: 'building' },
-      { label: '系统分析', href: '/analytics', icon: '📈', status: 'online' },
-    ],
-  },
-  {
-    title: '用户管理',
-    items: [
-      { label: '个人中心', href: '/profile', icon: '👤', status: 'online' },
-      { label: '团队管理', href: '/team', icon: '👥', status: 'online' },
-      { label: '帮助文档', href: '/help', icon: '📚', status: 'online' },
-      { label: '系统设置', href: '/settings', icon: '⚙️', status: 'online' },
-    ],
-  },
-];
+function getNavSections(buildingCount?: number, hasBuilding?: boolean): NavSection[] {
+  return [
+    {
+      title: '核心模块',
+      items: [
+        { label: '首页概览', href: '/', icon: '🏠' },
+        { label: '与Agent聊天', href: '/agents/dialog', icon: '💬' },
+        {
+          label: '构建模块',
+          href: '/build/modules',
+          icon: '🔨',
+          badge: buildingCount && buildingCount > 0 ? String(buildingCount) : undefined,
+          status: hasBuilding ? 'building' : undefined,
+        },
+        { label: '新建构建', href: '/agents/new', icon: '➕' },
+        { label: '管理模块', href: '/management', icon: '⚙️' },
+        { label: '迭代模块', href: '/iteration', icon: '🔄' },
+        { label: '问题排查', href: '/troubleshoot', icon: '🐛' },
+        { label: '日志分析', href: '/troubleshoot/analysis', icon: '📄' },
+        { label: '复现流程', href: '/troubleshoot/reproduction', icon: '🔁' },
+        { label: '代码诊断', href: '/troubleshoot/code-review', icon: '🧮' },
+        { label: '运维管理', href: '/operations', icon: '🔧' },
+        { label: '监控中心', href: '/monitoring', icon: '📊' },
+        { label: '工具&MCP', href: '/tools', icon: '🛠️' },
+      ],
+    },
+    {
+      title: '系统功能',
+      items: [
+        { label: 'Agent库', href: '/agent-library', icon: '🤖' },
+        { label: '构建配置', href: '/agents/config', icon: '📝' },
+        { label: '多Agent编排', href: '/multi-agent', icon: '🔗' },
+        { label: '自举式进化', href: '/evolution', icon: '🔄', badge: 'Beta' },
+        { label: '系统分析', href: '/analytics', icon: '📈' },
+      ],
+    },
+    {
+      title: '用户管理',
+      items: [
+        { label: '个人中心', href: '/profile', icon: '👤' },
+        { label: '团队管理', href: '/team', icon: '👥' },
+        { label: '帮助文档', href: '/help', icon: '📚' },
+        { label: '系统设置', href: '/settings', icon: '⚙️' },
+      ],
+    },
+  ];
+}
 
 function getStatusClass(status?: NavItem['status']) {
   switch (status) {
@@ -75,8 +86,21 @@ function getStatusClass(status?: NavItem['status']) {
 
 export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
+  const { data: projectSummaries } = useProjectSummaries();
 
-  const allItems = useMemo(() => NAV_SECTIONS.flatMap((section) => section.items), []);
+  const buildingCount = useMemo(() => {
+    if (!projectSummaries) return 0;
+    return projectSummaries.filter((p) => p.status === 'building').length;
+  }, [projectSummaries]);
+
+  const hasBuilding = buildingCount > 0;
+
+  const NAV_SECTIONS = useMemo(
+    () => getNavSections(buildingCount, hasBuilding),
+    [buildingCount, hasBuilding],
+  );
+
+  const allItems = useMemo(() => NAV_SECTIONS.flatMap((section) => section.items), [NAV_SECTIONS]);
 
   const activeItem = useMemo(() => {
     return allItems.find((item) => (item.href === '/' ? pathname === '/' : pathname.startsWith(item.href)));
