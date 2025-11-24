@@ -68,7 +68,7 @@ class BuildError(APIException):
 
 class RateLimitError(APIException):
     """Rate limit exceeded error"""
-    
+
     def __init__(self, retry_after: int = 60):
         super().__init__(
             message="Rate limit exceeded",
@@ -77,4 +77,82 @@ class RateLimitError(APIException):
             details=f"Too many requests. Please retry after {retry_after} seconds",
             suggestion="Reduce request frequency or contact support for higher limits",
             docs_url="https://docs.nexus-ai.com/api/rate-limits"
+        )
+
+class ResourceConflictError(APIException):
+    """Resource conflict error (e.g., duplicate name)"""
+
+    def __init__(self, message: str, details: Optional[str] = None):
+        super().__init__(
+            message=message,
+            status_code=409,
+            error_code="RESOURCE_CONFLICT",
+            details=details,
+            suggestion="Please use a different name or identifier",
+            docs_url="https://docs.nexus-ai.com/api/errors#resource-conflict"
+        )
+
+class InvalidStateError(APIException):
+    """Invalid state error (e.g., pausing a completed project)"""
+
+    def __init__(self, message: str, details: Optional[str] = None):
+        super().__init__(
+            message=message,
+            status_code=400,
+            error_code="INVALID_STATE",
+            details=details,
+            suggestion="Please check the resource's current state before performing this operation",
+            docs_url="https://docs.nexus-ai.com/api/errors#invalid-state"
+        )
+
+class PermissionDeniedError(APIException):
+    """Permission denied error"""
+
+    def __init__(self, message: str = "Permission denied", details: Optional[str] = None):
+        super().__init__(
+            message=message,
+            status_code=403,
+            error_code="PERMISSION_DENIED",
+            details=details,
+            suggestion="Please check your permissions or contact the administrator",
+            docs_url="https://docs.nexus-ai.com/api/errors#permission-denied"
+        )
+
+class StageUpdateError(APIException):
+    """Stage update failed error"""
+
+    def __init__(self, message: str, details: Optional[str] = None):
+        super().__init__(
+            message=message,
+            status_code=500,
+            error_code="STAGE_UPDATE_FAILED",
+            details=details,
+            suggestion="Please retry or check the stage status",
+            docs_url="https://docs.nexus-ai.com/api/errors#stage-update-failed"
+        )
+
+class AgentInvocationError(APIException):
+    """Agent invocation failed error"""
+
+    def __init__(self, message: str, details: Optional[str] = None):
+        super().__init__(
+            message=message,
+            status_code=500,
+            error_code="AGENT_INVOCATION_FAILED",
+            details=details,
+            suggestion="Please check the agent status and logs, or retry later",
+            docs_url="https://docs.nexus-ai.com/api/errors#agent-invocation-failed"
+        )
+
+class DatabaseError(APIException):
+    """Database operation error"""
+
+    def __init__(self, message: str, details: Optional[str] = None):
+        super().__init__(
+            message=message,
+            status_code=500,
+            error_code="DATABASE_ERROR",
+            details=details,
+            suggestion="Please retry or contact technical support",
+            docs_url="https://docs.nexus-ai.com/api/errors#database-error"
         )

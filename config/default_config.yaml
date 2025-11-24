@@ -51,7 +51,7 @@ default-config:
     pro_model_id: 'us.anthropic.claude-opus-4-20250514-v1:0' # Advanced model
     connect_config:
       retries:
-        max_attempts: 10
+        max_attempts: 100
         mode: "adaptive"
       connect_timeout: 3600
       read_timeout: 7200

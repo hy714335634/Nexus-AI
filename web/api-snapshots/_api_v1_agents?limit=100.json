@@ -1,0 +1,13 @@
+{
+  "endpoint": "/api/v1/agents?limit=100",
+  "timestamp": "2025-11-23T11:25:07.846906",
+  "response": {
+    "success": true,
+    "data": {
+      "items": [],
+      "last_evaluated_key": null,
+      "count": 0
+    },
+    "timestamp": "2025-11-23T03:25:07.845706Z"
+  }
+}

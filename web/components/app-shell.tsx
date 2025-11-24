@@ -101,7 +101,7 @@ export function AppShell({ children }: AppShellProps) {
                     : styles.navItem;
 
                   return (
-                    <Link key={item.label} href={item.href} className={className}>
+                    <Link key={item.label} href={item.href as any} className={className}>
                       <span className={styles.navIcon} aria-hidden="true">
                         {item.icon}
                       </span>

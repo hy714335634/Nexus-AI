@@ -44,7 +44,6 @@ logs/
 
 .env*
 
-.next/
+web/.next/
 nohup.out
 api/.env
-web/.next/cache

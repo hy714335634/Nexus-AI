@@ -32,17 +32,23 @@ class BuildStage(str, Enum):
     REQUIREMENTS_ANALYSIS = "requirements_analysis"      # 1. 需求分析
     SYSTEM_ARCHITECTURE = "system_architecture"         # 2. 系统架构设计
     AGENT_DESIGN = "agent_design"                       # 3. Agent设计
-    AGENT_DEVELOPER_MANAGER = "agent_developer_manager" # 4. 开发管理
-    AGENT_DEPLOYER = "agent_deployer"                   # 5. 部署到运行时
-    
+    PROMPT_ENGINEER = "prompt_engineer"                 # 4. 提示词工程
+    TOOLS_DEVELOPER = "tools_developer"                 # 5. 工具开发
+    AGENT_CODE_DEVELOPER = "agent_code_developer"       # 6. 代码开发
+    AGENT_DEVELOPER_MANAGER = "agent_developer_manager" # 7. 开发管理
+    AGENT_DEPLOYER = "agent_deployer"                   # 8. 部署到运行时
+
     @classmethod
     def get_stage_number(cls, stage: 'BuildStage') -> int:
-        """Get stage number (1-8) from stage enum"""
+        """Get stage number (1-9) from stage enum"""
         stage_order = [
             cls.ORCHESTRATOR,
             cls.REQUIREMENTS_ANALYSIS,
             cls.SYSTEM_ARCHITECTURE,
             cls.AGENT_DESIGN,
+            cls.PROMPT_ENGINEER,
+            cls.TOOLS_DEVELOPER,
+            cls.AGENT_CODE_DEVELOPER,
             cls.AGENT_DEVELOPER_MANAGER,
             cls.AGENT_DEPLOYER,
         ]
@@ -326,6 +332,12 @@ class StatisticsOverviewResponse(APIResponse):
     data: StatisticsOverview
 
 class BuildStatistics(BaseModel):
+    """
+    构建统计数据模型（用于实时聚合查询响应）
+
+    注意：此模型用于API响应格式定义，不对应DynamoDB表。
+    数据通过实时聚合查询AgentProjects表获取，避免数据冗余。
+    """
     date: str
     total_builds: int = 0
     successful_builds: int = 0
@@ -334,7 +346,39 @@ class BuildStatistics(BaseModel):
     builds_by_stage: Dict[str, int] = Field(default_factory=dict)
 
 class BuildStatisticsResponse(APIResponse):
+    """构建统计API响应（数据来自实时聚合查询）"""
     data: List[BuildStatistics]
+
+class InvocationStatistics(BaseModel):
+    """
+    调用统计数据模型（用于实时聚合查询响应）
+
+    数据通过实时聚合查询AgentInvocations表获取。
+    """
+    date: str
+    total_invocations: int = 0
+    successful_invocations: int = 0
+    failed_invocations: int = 0
+    success_rate: float = Field(0.0, ge=0.0, le=100.0)
+    avg_duration_ms: float = 0.0
+
+class InvocationStatisticsResponse(APIResponse):
+    """调用统计API响应（数据来自实时聚合查询）"""
+    data: List[InvocationStatistics]
+
+class TrendDataPoint(BaseModel):
+    """趋势数据点"""
+    date: str
+    value: float
+
+class TrendData(BaseModel):
+    """趋势数据模型"""
+    metric: str  # 指标名称（如 "builds", "invocations", "success_rate"）
+    data_points: List[TrendDataPoint]
+
+class TrendDataResponse(APIResponse):
+    """趋势数据API响应"""
+    data: TrendData
 
 # Database Models (for internal use)
 class ProjectRecord(BaseModel):
@@ -346,6 +390,7 @@ class ProjectRecord(BaseModel):
     status: ProjectStatus
     current_stage: Optional[BuildStage] = None
     current_stage_number: int = 0  # For DynamoDB storage
+    current_sub_stage: Optional[str] = None  # 当前子阶段（仅用于agent_developer_manager）
     progress_percentage: float = 0.0
     created_at: datetime
     updated_at: datetime
@@ -357,7 +402,26 @@ class ProjectRecord(BaseModel):
     error_info: Optional[Dict[str, Any]] = None
     tags: List[str] = Field(default_factory=list)
     priority: int = 3
-    stages_snapshot: Dict[str, Dict[str, Any]] = Field(default_factory=dict)
+    # 完整的阶段快照（包含所有阶段详情、子阶段）
+    # 新格式: {
+    #   "total": 6,
+    #   "completed": 0,
+    #   "stages": [
+    #     {
+    #       "stage_name": "orchestrator",
+    #       "stage_number": 1,
+    #       "display_name": "工作流编排",
+    #       "status": "pending",
+    #       "started_at": None,
+    #       "completed_at": None,
+    #       "duration_seconds": None,
+    #       "error_message": None,
+    #       "sub_stages": {}  # 仅agent_developer_manager有此字段
+    #     },
+    #     ...
+    #   ]
+    # }
+    stages_snapshot: Dict[str, Any] = Field(default_factory=dict)
     agents: List[str] = Field(default_factory=list)
     artifacts_base_path: Optional[str] = None
 
@@ -376,6 +440,22 @@ class StageRecord(BaseModel):
     error_message: Optional[str] = None
     logs: List[str] = Field(default_factory=list)
 
+class AgentCoreConfig(BaseModel):
+    """AgentCore部署配置"""
+    agent_arn: str
+    agent_alias_id: str
+    agent_alias_arn: str
+
+
+class RuntimeStats(BaseModel):
+    """Agent运行时统计"""
+    total_invocations: int = 0
+    successful_invocations: int = 0
+    failed_invocations: int = 0
+    avg_duration_ms: float = 0.0
+    last_invoked_at: Optional[datetime] = None
+
+
 class AgentRecord(BaseModel):
     agent_id: str
     project_id: str
@@ -384,44 +464,47 @@ class AgentRecord(BaseModel):
     category: Optional[str] = None
     version: str = "v1.0.0"
     status: AgentStatus
-    entrypoint: Optional[str] = None
+    # 新增字段
+    agentcore_config: Optional[AgentCoreConfig] = None  # AgentCore部署配置
+    capabilities: List[str] = Field(default_factory=list)  # Agent能力列表
+    runtime_stats: RuntimeStats = Field(default_factory=RuntimeStats)  # 运行时统计
+    # 保留字段
     agentcore_entrypoint: Optional[str] = None
     deployment_type: str = "local"
     deployment_status: str = "pending"
     code_path: Optional[str] = None
     prompt_path: Optional[str] = None
     tools_path: Optional[str] = None
+    tools: List[str] = Field(default_factory=list)  # 工具列表
     script_path: Optional[str] = None  # backwards compatibility
     tools_count: int = 0
     dependencies: List[str] = Field(default_factory=list)
     supported_models: List[str] = Field(default_factory=list)
     supported_inputs: List[str] = Field(default_factory=lambda: ["text"])
     tags: List[str] = Field(default_factory=list)
-    call_count: int = 0
-    success_rate: float = 0.0
-    last_called_at: Optional[datetime] = None
+    config: Optional[Dict[str, Any]] = None  # Agent配置（model_id, temperature, max_tokens等）
+    # 时间戳
     created_at: datetime
     updated_at: Optional[datetime] = None
-    # AgentCore Runtime fields
-    agentcore_runtime_arn: Optional[str] = None
-    agentcore_runtime_alias: Optional[str] = None
+    deployed_at: Optional[datetime] = None
+    # 向后兼容字段（已废弃，保留用于迁移）
+    call_count: int = 0  # 已废弃，使用runtime_stats.total_invocations
+    success_rate: float = 0.0  # 已废弃，计算自runtime_stats
+    last_called_at: Optional[datetime] = None  # 已废弃，使用runtime_stats.last_invoked_at
+    agentcore_runtime_arn: Optional[str] = None  # 已废弃，使用agentcore_config.agent_arn
+    agentcore_runtime_alias: Optional[str] = None  # 已废弃，使用agentcore_config.agent_alias_id
     agentcore_region: Optional[str] = None
     deployment_stage: Optional[str] = None  # built/packaged/deploying/deployed/failed
     last_deployment_job_id: Optional[str] = None
     model_id: Optional[str] = None
     invoke_url: Optional[str] = None
     runtime_config: Optional[Dict[str, Any]] = None
-    # Backwards compatibility
     agentcore_arn: Optional[str] = None
     agentcore_alias: Optional[str] = None
     region: Optional[str] = None
     last_deployed_at: Optional[datetime] = None
     last_deployment_error: Optional[str] = None
-    agentcore_runtime_arn: Optional[str] = None
-    agentcore_runtime_alias: Optional[str] = None
-    agentcore_region: Optional[str] = None
     runtime_model_id: Optional[str] = None
-    runtime_config: Optional[Dict[str, Any]] = None
 
 
 class AgentSessionRecord(BaseModel):
@@ -524,9 +607,17 @@ def get_all_stages() -> List[BuildStage]:
 def build_initial_stage_snapshot(
     include_agent_names: bool = False,
     agent_name_map: Optional[Dict[BuildStage, Optional[str]]] = None,
-) -> Dict[str, Dict[str, Any]]:
-    """Create the default stages snapshot map for a new project."""
-    snapshot: Dict[str, Dict[str, Any]] = {}
+) -> Dict[str, Any]:
+    """
+    创建新项目的完整阶段快照
+    
+    新格式包含:
+    - total: 总阶段数
+    - completed: 已完成阶段数
+    - stages: 阶段列表（包含所有详细信息）
+    """
+    stages_list = []
+    
     for stage in get_all_stages():
         stage_data = create_stage_data(
             stage,
@@ -534,9 +625,39 @@ def build_initial_stage_snapshot(
             logs=[],
         )
         payload = stage_data.model_dump(mode="json")
+        
         if include_agent_names and agent_name_map is not None:
             payload['agent_name'] = agent_name_map.get(stage)
         elif not include_agent_names:
             payload.pop("agent_name", None)
-        snapshot[stage.value] = payload
-    return snapshot
+        
+        # 为agent_developer_manager阶段初始化sub_stages
+        if stage == BuildStage.AGENT_DEVELOPER_MANAGER:
+            payload['sub_stages'] = {
+                "tool_developer": {
+                    "status": "pending",
+                    "started_at": None,
+                    "completed_at": None,
+                    "artifacts": []
+                },
+                "prompt_engineer": {
+                    "status": "pending",
+                    "started_at": None,
+                    "completed_at": None,
+                    "artifacts": []
+                },
+                "agent_code_developer": {
+                    "status": "pending",
+                    "started_at": None,
+                    "completed_at": None,
+                    "artifacts": []
+                }
+            }
+        
+        stages_list.append(payload)
+    
+    return {
+        "total": len(stages_list),
+        "completed": 0,
+        "stages": stages_list
+    }

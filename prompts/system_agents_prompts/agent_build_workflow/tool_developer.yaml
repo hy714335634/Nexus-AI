@@ -7,17 +7,17 @@ agent:
       max_tokens: 4096
       temperature: 0.3
       top_p: 0.8
-      streaming: True
+      streaming: False
     production:
       max_tokens: 60000
       temperature: 0.8
       top_p: 
-      streaming: True
+      streaming: False
     testing:
       max_tokens: 2048
       temperature: 0.3
       top_p: 0.8
-      streaming: True
+      streaming: False
   versions:
     - version: "latest"
       status: "stable"
@@ -68,6 +68,34 @@ agent:
         - **类型注解**：使用完整的类型提示
         - **错误处理**：实现健壮的异常处理机制
         - **Agent Tool**：通过工具获取当前支持的工具列表，考虑复用现有工具
+
+        **Python依赖包规范**（在工具开发文档中记录依赖时必须遵循）：
+
+        ✅ **框架核心包**（Agent运行时需要）：
+        - `strands` - 用于@tool装饰器（from strands import tool）
+        - `strands-agents` - Strands Agent框架
+        - `strands-agents-tools` - Strands工具框架
+
+        ❌ **禁止包含的无效包**（这些包不存在于PyPI）：
+        - `nexus-ai` - **不存在**！"Nexus-AI"是平台名称，不是Python包
+        - `nexus` - 不存在，本地工具通过 `nexus_utils` 模块导入
+        - `nexus_ai` - 不存在，本地工具通过 `nexus_utils` 模块导入
+        - 任何形式的"nexus"包名都不存在
+
+        ✅ **常用外部依赖包**（根据工具实际需求选择）：
+        - `boto3`, `botocore` - AWS服务集成
+        - `requests` - HTTP请求
+        - `beautifulsoup4`, `lxml` - HTML解析
+        - `duckduckgo-search` - 搜索引擎
+        - `pandas`, `numpy` - 数据处理
+        - `pyyaml` - YAML配置
+        - `jsonschema` - JSON验证
+
+        **重要提示**：
+        1. "Nexus-AI"是平台名称，不要误认为Python包
+        2. 只记录工具实际使用的外部依赖
+        3. 不要发明或臆测不存在的包名
+        4. 所有依赖包必须在PyPI上真实存在
         
         开发原则：
         1. **功能完整性**：实现设计规格中的所有工具需求

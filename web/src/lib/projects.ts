@@ -8,6 +8,11 @@ import type {
   BuildDashboardResponse,
   BuildDashboardStageRecord,
   ProjectListResponse,
+  CreateProjectRequest,
+  CreateProjectResponse,
+  ProjectControlRequest,
+  ProjectControlResponse,
+  BuildStage,
 } from '@/types/api';
 import type {
   BuildDashboard,
@@ -35,23 +40,27 @@ function normalizeStage(stage?: string | null): BuildStage | undefined {
     return undefined;
   }
 
+  // Map legacy/alternative stage names to correct BuildStage enum values
   const aliases: Record<string, BuildStage> = {
     requirements_analyzer: 'requirements_analysis',
     system_architect: 'system_architecture',
     agent_designer: 'agent_design',
+    prompt_engineer: 'agent_developer_manager',
+    tools_developer: 'agent_developer_manager',
+    agent_code_developer: 'agent_developer_manager',
   };
 
   return aliases[stage] ?? (stage as BuildStage);
 }
 
 export async function fetchProjectSummaries(): Promise<ProjectSummary[]> {
-  const response = await apiFetch<ProjectListResponse>('/api/v1/projects?limit=200').catch(() => undefined);
+  const response = await apiFetch<ProjectListResponse>('/api/v1/projects?limit=100').catch(() => undefined);
 
   if (!response?.success) {
     return [];
   }
 
-  const projects = response.data.projects.map((project) => {
+  const projects = response.data.items.map((project) => {
     const updatedAt = project.updated_at ?? project.created_at ?? undefined;
     return {
       projectId: project.project_id,
@@ -74,7 +83,7 @@ export async function fetchProjectSummaries(): Promise<ProjectSummary[]> {
 }
 
 async function fetchProjectStages(projectId: string): Promise<StageTimelineResponseData | undefined> {
-  const response = await apiFetch<StageTimelineResponse>(`/api/v1/agents/${projectId}/stages`).catch(() => undefined);
+  const response = await apiFetch<StageTimelineResponse>(`/api/v1/projects/${projectId}/stages`).catch(() => undefined);
   if (!response?.success) {
     return undefined;
   }
@@ -119,7 +128,7 @@ export async function fetchProjectDetail(projectId: string): Promise<ProjectDeta
     projectName: dashboard.projectName ?? projectId,
     status: dashboard.status,
     progressPercentage: dashboard.progressPercentage ?? 0,
-    currentStage: summary?.currentStage,
+    currentStage: undefined,
     updatedAt: dashboard.updatedAt ?? new Date().toISOString(),
     agentCount: agents.length,
     ownerName: undefined,
@@ -384,4 +393,85 @@ export async function fetchBuildDashboard(projectId: string): Promise<BuildDashb
   }
 
   return mapBuildDashboard(response.data);
+}
+
+/**
+ * Create a new project
+ * @param request - Project creation parameters
+ * @returns Created project data
+ */
+export async function createProject(request: CreateProjectRequest) {
+  const response = await apiFetch<CreateProjectResponse>(
+    '/api/v1/projects',
+    {
+      method: 'POST',
+      body: JSON.stringify(request),
+    },
+  );
+
+  if (!response.success) {
+    throw new Error('Failed to create project');
+  }
+
+  return response.data;
+}
+
+/**
+ * Control project execution (pause, resume, stop, restart)
+ * @param projectId - Project ID
+ * @param action - Control action to perform
+ * @returns Control operation result
+ */
+export async function controlProject(projectId: string, action: ProjectControlRequest['action']) {
+  const response = await apiFetch<ProjectControlResponse>(
+    `/api/v1/projects/${projectId}/control`,
+    {
+      method: 'PUT',
+      body: JSON.stringify({ action }),
+    },
+  );
+
+  if (!response.success) {
+    throw new Error(`Failed to ${action} project`);
+  }
+
+  return response.data;
+}
+
+/**
+ * Delete a project and all associated resources
+ * @param projectId - Project ID to delete
+ */
+export async function deleteProject(projectId: string) {
+  const response = await apiFetch<{ success: boolean; message?: string }>(
+    `/api/v1/projects/${projectId}`,
+    {
+      method: 'DELETE',
+    },
+  );
+
+  if (!response.success) {
+    throw new Error('Failed to delete project');
+  }
+
+  return response;
+}
+
+/**
+ * Get detailed information for a specific project stage
+ * @param projectId - Project ID
+ * @param stageName - Stage name
+ * @returns Stage details including logs and output data
+ */
+export async function fetchProjectStageDetail(projectId: string, stageName: string) {
+  const response = await apiFetch<{
+    success: boolean;
+    data: StageTimelineResponseData['stages'][number];
+  }>(`/api/v1/projects/${projectId}/stages/${stageName}`);
+
+  if (!response.success) {
+    throw new Error(`Failed to fetch stage ${stageName}`);
+  }
+
+  return response.data;
 }

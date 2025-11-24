@@ -127,10 +127,7 @@ class DynamoDBClient:
         
         # Table references - will be initialized lazily
         self._projects_table = None
-        self._stages_table = None
         self._agents_table = None
-        self._stats_table = None
-        self._artifacts_table = None
         self._invocations_table = None
         self._agent_sessions_table = None
         self._agent_session_messages_table = None
@@ -150,32 +147,11 @@ class DynamoDBClient:
         return self._projects_table
     
     @property
-    def stages_table(self):
-        """Lazy initialization of stages table"""
-        if self._stages_table is None:
-            self._stages_table = self.dynamodb.Table('BuildStages')
-        return self._stages_table
-    
-    @property
     def agents_table(self):
         """Lazy initialization of agents table"""
         if self._agents_table is None:
             self._agents_table = self.dynamodb.Table('AgentInstances')
         return self._agents_table
-    
-    @property
-    def stats_table(self):
-        """Lazy initialization of statistics table"""
-        if self._stats_table is None:
-            self._stats_table = self.dynamodb.Table('BuildStatistics')
-        return self._stats_table
-
-    @property
-    def artifacts_table(self):
-        """Lazy initialization of artifacts table"""
-        if self._artifacts_table is None:
-            self._artifacts_table = self.dynamodb.Table('AgentArtifacts')
-        return self._artifacts_table
 
     @property
     def invocations_table(self):
@@ -197,7 +173,7 @@ class DynamoDBClient:
         if self._agent_session_messages_table is None:
             self._agent_session_messages_table = self.dynamodb.Table('AgentSessionMessages')
         return self._agent_session_messages_table
-    
+
     @retry_on_error(max_retries=3, delay=1.0, backoff=2.0)
     def health_check(self) -> bool:
         """Check DynamoDB connection health"""
@@ -222,12 +198,11 @@ class DynamoDBClient:
             logger.warning("DynamoDB connection unhealthy, attempting to reconnect")
             # Reset table references to force reconnection
             self._projects_table = None
-            self._stages_table = None
             self._agents_table = None
-            self._stats_table = None
-            self._artifacts_table = None
             self._invocations_table = None
-            
+            self._agent_sessions_table = None
+            self._agent_session_messages_table = None
+
             # Force health check
             self._last_health_check = None
             if not self.health_check():
@@ -237,10 +212,7 @@ class DynamoDBClient:
         """Create DynamoDB tables if they don't exist"""
         try:
             self._create_projects_table()
-            self._create_stages_table()
             self._create_agents_table()
-            self._create_statistics_table()
-            self._create_artifacts_table()
             self._create_invocations_table()
             self._create_agent_sessions_table()
             self._create_agent_session_messages_table()
@@ -333,44 +305,6 @@ class DynamoDBClient:
                 return self.projects_table
             raise
     
-    def _create_stages_table(self):
-        """Create BuildStages table"""
-        try:
-            table = self.dynamodb.create_table(
-                TableName='BuildStages',
-                KeySchema=[
-                    {
-                        'AttributeName': 'project_id',
-                        'KeyType': 'HASH'
-                    },
-                    {
-                        'AttributeName': 'stage_number',
-                        'KeyType': 'RANGE'
-                    }
-                ],
-                AttributeDefinitions=[
-                    {
-                        'AttributeName': 'project_id',
-                        'AttributeType': 'S'
-                    },
-                    {
-                        'AttributeName': 'stage_number',
-                        'AttributeType': 'N'
-                    }
-                ],
-                ProvisionedThroughput={
-                    'ReadCapacityUnits': 10,
-                    'WriteCapacityUnits': 10
-                }
-            )
-            table.wait_until_exists()
-            return table
-        except ClientError as e:
-            if e.response['Error']['Code'] == 'ResourceInUseException':
-                logger.info("BuildStages table already exists")
-                return self.stages_table
-            raise
-    
     def _create_agents_table(self):
         """Create AgentInstances table"""
         try:
@@ -392,6 +326,10 @@ class DynamoDBClient:
                         'AttributeType': 'S'
                     },
                     {
+                        'AttributeName': 'status',
+                        'AttributeType': 'S'
+                    },
+                    {
                         'AttributeName': 'category',
                         'AttributeType': 'S'
                     },
@@ -407,6 +345,26 @@ class DynamoDBClient:
                             {
                                 'AttributeName': 'project_id',
                                 'KeyType': 'HASH'
+                            }
+                        ],
+                        'Projection': {
+                            'ProjectionType': 'ALL'
+                        },
+                        'ProvisionedThroughput': {
+                            'ReadCapacityUnits': 5,
+                            'WriteCapacityUnits': 5
+                        }
+                    },
+                    {
+                        'IndexName': 'StatusIndex',
+                        'KeySchema': [
+                            {
+                                'AttributeName': 'status',
+                                'KeyType': 'HASH'
+                            },
+                            {
+                                'AttributeName': 'created_at',
+                                'KeyType': 'RANGE'
                             }
                         ],
                         'Projection': {
@@ -449,90 +407,6 @@ class DynamoDBClient:
             if e.response['Error']['Code'] == 'ResourceInUseException':
                 logger.info("AgentInstances table already exists")
                 return self.agents_table
-            raise
-
-    def _create_artifacts_table(self):
-        """Create AgentArtifacts table"""
-        try:
-            table = self.dynamodb.create_table(
-                TableName='AgentArtifacts',
-                KeySchema=[
-                    {
-                        'AttributeName': 'artifact_id',
-                        'KeyType': 'HASH'
-                    }
-                ],
-                AttributeDefinitions=[
-                    {
-                        'AttributeName': 'artifact_id',
-                        'AttributeType': 'S'
-                    },
-                    {
-                        'AttributeName': 'agent_id',
-                        'AttributeType': 'S'
-                    },
-                    {
-                        'AttributeName': 'project_id',
-                        'AttributeType': 'S'
-                    },
-                    {
-                        'AttributeName': 'created_at',
-                        'AttributeType': 'S'
-                    }
-                ],
-                GlobalSecondaryIndexes=[
-                    {
-                        'IndexName': 'AgentIndex',
-                        'KeySchema': [
-                            {
-                                'AttributeName': 'agent_id',
-                                'KeyType': 'HASH'
-                            },
-                            {
-                                'AttributeName': 'created_at',
-                                'KeyType': 'RANGE'
-                            }
-                        ],
-                        'Projection': {
-                            'ProjectionType': 'ALL'
-                        },
-                        'ProvisionedThroughput': {
-                            'ReadCapacityUnits': 5,
-                            'WriteCapacityUnits': 5
-                        }
-                    },
-                    {
-                        'IndexName': 'ProjectIndex',
-                        'KeySchema': [
-                            {
-                                'AttributeName': 'project_id',
-                                'KeyType': 'HASH'
-                            },
-                            {
-                                'AttributeName': 'created_at',
-                                'KeyType': 'RANGE'
-                            }
-                        ],
-                        'Projection': {
-                            'ProjectionType': 'ALL'
-                        },
-                        'ProvisionedThroughput': {
-                            'ReadCapacityUnits': 5,
-                            'WriteCapacityUnits': 5
-                        }
-                    }
-                ],
-                ProvisionedThroughput={
-                    'ReadCapacityUnits': 10,
-                    'WriteCapacityUnits': 10
-                }
-            )
-            table.wait_until_exists()
-            return table
-        except ClientError as e:
-            if e.response['Error']['Code'] == 'ResourceInUseException':
-                logger.info("AgentArtifacts table already exists")
-                return self.artifacts_table
             raise
 
     def _create_invocations_table(self):
@@ -594,43 +468,7 @@ class DynamoDBClient:
                 logger.info("AgentInvocations table already exists")
                 return self.invocations_table
             raise
-    def _create_statistics_table(self):
-        """Create BuildStatistics table"""
-        try:
-            table = self.dynamodb.create_table(
-                TableName='BuildStatistics',
-                KeySchema=[
-                    {
-                        'AttributeName': 'date',
-                        'KeyType': 'HASH'
-                    },
-                    {
-                        'AttributeName': 'metric_type',
-                        'KeyType': 'RANGE'
-                    }
-                ],
-                AttributeDefinitions=[
-                    {
-                        'AttributeName': 'date',
-                        'AttributeType': 'S'
-                    },
-                    {
-                        'AttributeName': 'metric_type',
-                        'AttributeType': 'S'
-                    }
-                ],
-                ProvisionedThroughput={
-                    'ReadCapacityUnits': 5,
-                    'WriteCapacityUnits': 5
-                }
-            )
-            table.wait_until_exists()
-            return table
-        except ClientError as e:
-            if e.response['Error']['Code'] == 'ResourceInUseException':
-                logger.info("BuildStatistics table already exists")
-                return self.stats_table
-            raise
+
 
     def _create_agent_sessions_table(self):
         """Create AgentSessions table"""
@@ -1089,7 +927,7 @@ class DynamoDBClient:
             
             update_expression = "SET progress_percentage = :progress, updated_at = :updated_at"
             expression_values = {
-                ':progress': progress_percentage,
+                ':progress': Decimal(str(progress_percentage)),  # Convert float to Decimal
                 ':updated_at': datetime.utcnow().isoformat() + "Z"
             }
             expression_names = {}
@@ -1106,18 +944,23 @@ class DynamoDBClient:
                 
                 update_expression += ", current_stage = :current_stage, current_stage_number = :stage_number"
                 expression_values[':current_stage'] = stage_value
-                expression_values[':stage_number'] = stage_number
+                expression_values[':stage_number'] = Decimal(stage_number)  # Convert int to Decimal
             
             if estimated_completion:
                 update_expression += ", estimated_completion = :estimated_completion"
                 expression_values[':estimated_completion'] = estimated_completion.isoformat() + "Z"
-            
-            self.projects_table.update_item(
-                Key={'project_id': project_id},
-                UpdateExpression=update_expression,
-                ExpressionAttributeValues=expression_values,
-                ExpressionAttributeNames=expression_names if expression_names else None
-            )
+
+            # Build update_item parameters conditionally
+            update_params = {
+                'Key': {'project_id': project_id},
+                'UpdateExpression': update_expression,
+                'ExpressionAttributeValues': expression_values
+            }
+            # Only add ExpressionAttributeNames if it has content
+            if expression_names:
+                update_params['ExpressionAttributeNames'] = expression_names
+
+            self.projects_table.update_item(**update_params)
             logger.info(f"Updated project {project_id} progress to {progress_percentage}%")
         except Exception as e:
             logger.error(f"Error updating project progress: {str(e)}")
@@ -1152,30 +995,46 @@ class DynamoDBClient:
             project = self.get_project(project_id)
             if not project:
                 return None
+            
             stage = BuildStage.get_stage_by_number(stage_number)
             snapshot = project.get('stages_snapshot') or {}
-            entry = snapshot.get(stage.value)
-            return entry
+            
+            # 新格式：从stages列表中查找
+            if isinstance(snapshot, dict) and 'stages' in snapshot:
+                stages_list = snapshot.get('stages', [])
+                for s in stages_list:
+                    if s.get('stage_name') == stage.value:
+                        return s
+                return None
+            
+            # 格式不正确
+            logger.warning(f"Project {project_id} has invalid stages_snapshot format")
+            return None
         except Exception as e:
             logger.error(f"Error getting stage record {project_id}-{stage_number}: {str(e)}")
             raise APIException(f"Failed to get stage record: {str(e)}")
 
     @retry_on_error(max_retries=3, delay=1.0, backoff=2.0)
     def list_project_stages(self, project_id: str) -> List[Dict[str, Any]]:
-        """List all stage snapshot entries for a project."""
+        """
+        列出项目的所有阶段
+        
+        返回格式: stages_snapshot.stages 列表
+        """
         try:
             project = self.get_project(project_id)
             if not project:
                 return []
 
             snapshot = project.get('stages_snapshot') or {}
-            stages: List[Dict[str, Any]] = []
-            for stage in get_all_stages():
-                entry = snapshot.get(stage.value)
-                if not entry:
-                    entry = create_stage_data(stage, StageStatus.PENDING, logs=[]).model_dump(mode="json")
-                stages.append(entry)
-            return stages
+            
+            # 新格式：stages_snapshot包含stages列表
+            if isinstance(snapshot, dict) and 'stages' in snapshot:
+                return snapshot['stages']
+            
+            # 如果没有stages字段，返回空列表
+            logger.warning(f"Project {project_id} has invalid stages_snapshot format")
+            return []
         except Exception as e:
             logger.error(f"Error listing stages for project {project_id}: {str(e)}")
             raise APIException(f"Failed to list project stages: {str(e)}")
@@ -1258,7 +1117,14 @@ class DynamoDBClient:
         *,
         agent_name_map: Optional[Dict[BuildStage, Optional[str]]] = None,
     ) -> None:
-        """Initialize all 8 stages for a project with PENDING status"""
+        """
+        初始化项目的所有6个阶段（使用新的完整格式）
+        
+        新格式包含:
+        - total: 总阶段数
+        - completed: 已完成阶段数
+        - stages: 阶段列表（包含所有详细信息、日志、输出数据、子阶段）
+        """
         try:
             self._ensure_connection()
             snapshot = build_initial_stage_snapshot(
@@ -1274,7 +1140,7 @@ class DynamoDBClient:
                     ':updated_at': datetime.utcnow().replace(tzinfo=timezone.utc).isoformat().replace('+00:00', 'Z')
                 }
             )
-            logger.info("Initialized stage snapshot for project %s", project_id)
+            logger.info("Initialized complete stage snapshot for project %s with %d stages", project_id, snapshot['total'])
         except Exception as e:
             logger.error(f"Error initializing project stages: {str(e)}")
             raise APIException(f"Failed to initialize project stages: {str(e)}")
@@ -1346,6 +1212,11 @@ class DynamoDBClient:
         replace: bool = False,
         append_logs: bool = False,
     ) -> None:
+        """
+        更新阶段快照（仅支持新格式）
+        
+        格式: stages_snapshot.stages 是一个列表
+        """
         project = self.get_project(project_id)
         if not project:
             raise APIException(f"Project {project_id} not found for stage update")
@@ -1359,23 +1230,44 @@ class DynamoDBClient:
         if snapshot is None:
             snapshot = {}
 
-        existing = snapshot.get(stage.value)
-        if replace or not existing:
+        # 确保是新格式
+        if not isinstance(snapshot, dict) or 'stages' not in snapshot:
+            raise APIException(f"Project {project_id} has invalid stages_snapshot format. Expected format with 'stages' list.")
+        
+        # 在stages列表中查找并更新
+        stages_list = snapshot.get('stages', [])
+        stage_index = None
+        existing = None
+        
+        # 查找目标阶段
+        for i, s in enumerate(stages_list):
+            if s.get('stage_name') == stage.value:
+                stage_index = i
+                existing = s
+                break
+        
+        # 如果没找到，创建新条目
+        if existing is None:
             base_entry = create_stage_data(stage, StageStatus.PENDING, logs=[]).model_dump(mode="json")
             existing = base_entry
-
+            stages_list.append(existing)
+            stage_index = len(stages_list) - 1
+        
+        # 准备更新的条目
         entry = create_stage_data(stage, StageStatus.PENDING, logs=[]).model_dump(mode="json") if replace else existing.copy()
-
+        
         if not replace:
             entry.update(existing)
-
+        
+        # 处理日志
         if append_logs:
             new_logs = payload.get('logs') or []
             existing_logs = entry.get('logs') or []
             entry['logs'] = existing_logs + new_logs
         elif 'logs' in payload and payload['logs'] is not None:
             entry['logs'] = payload['logs']
-
+        
+        # 更新其他字段
         for key, value in payload.items():
             if key == 'logs' and append_logs:
                 continue
@@ -1387,14 +1279,20 @@ class DynamoDBClient:
                 entry[key] = value.value
             else:
                 entry[key] = value
-
+        
+        # 计算duration_seconds
         if entry.get('status') == StageStatus.COMPLETED.value and 'completed_at' in entry:
             start_dt = self._parse_datetime(entry.get('started_at'))
             end_dt = self._parse_datetime(entry.get('completed_at'))
             if start_dt and end_dt:
                 entry['duration_seconds'] = int(max((end_dt - start_dt).total_seconds(), 0))
-
-        snapshot[stage.value] = entry
+        
+        # 更新列表中的条目
+        stages_list[stage_index] = entry
+        
+        # 更新completed计数
+        completed_count = sum(1 for s in stages_list if s.get('status') == 'completed')
+        snapshot['completed'] = completed_count
 
         serialized_snapshot = json.dumps(snapshot, default=str)
         self.projects_table.update_item(
@@ -1663,79 +1561,63 @@ class DynamoDBClient:
             logger.error(f"Error searching agents: {str(e)}")
             raise APIException(f"Failed to search agents: {str(e)}")
 
-    # Artifact operations
-    @retry_on_error(max_retries=3, delay=1.0, backoff=2.0)
+    # Artifact operations (DEPRECATED - artifacts now stored in stages_snapshot)
+    # These methods are retained as stubs to prevent crashes during refactoring
+
     def create_artifact_record(self, artifact: ArtifactRecord) -> None:
-        try:
-            self._ensure_connection()
-            item = self._serialize_item(artifact.dict())
-            self.artifacts_table.put_item(Item=item)
-            logger.debug("Created artifact record %s", artifact.artifact_id)
-        except Exception as e:
-            logger.error("Error creating artifact record: %s", e)
-            raise APIException(f"Failed to create artifact record: {e}")
+        """
+        DEPRECATED: AgentArtifacts table has been removed per design specs.
+        Artifacts are now stored in AgentProjects.stages_snapshot.
+        This method is a no-op stub to prevent crashes.
+        """
+        logger.warning(
+            "create_artifact_record called but AgentArtifacts table no longer exists. "
+            "Artifacts should be stored in stages_snapshot. artifact_id=%s",
+            artifact.artifact_id
+        )
+        # No-op - do nothing
 
-    @retry_on_error(max_retries=3, delay=1.0, backoff=2.0)
     def list_artifacts_by_agent(self, agent_id: str, limit: int = 20, last_key: Optional[str] = None) -> Dict[str, Any]:
-        try:
-            self._ensure_connection()
-            query_kwargs = {
-                'IndexName': 'AgentIndex',
-                'KeyConditionExpression': Key('agent_id').eq(agent_id),
-                'ScanIndexForward': False,
-                'Limit': limit,
-            }
-            if last_key:
-                query_kwargs['ExclusiveStartKey'] = {'agent_id': agent_id, 'created_at': last_key}
-            response = self.artifacts_table.query(**query_kwargs)
-            items = [self._deserialize_item(item) for item in response.get('Items', [])]
-            return {
-                'items': items,
-                'last_key': response.get('LastEvaluatedKey', {}).get('created_at'),
-                'count': len(items),
-            }
-        except Exception as e:
-            logger.error("Error listing artifacts for agent %s: %s", agent_id, e)
-            raise APIException(f"Failed to list artifacts: {e}")
+        """
+        DEPRECATED: AgentArtifacts table has been removed per design specs.
+        This method returns empty results to prevent crashes.
+        """
+        logger.warning(
+            "list_artifacts_by_agent called but AgentArtifacts table no longer exists. "
+            "Returning empty results. agent_id=%s",
+            agent_id
+        )
+        return {
+            'items': [],
+            'last_key': None,
+            'count': 0,
+        }
 
-    @retry_on_error(max_retries=3, delay=1.0, backoff=2.0)
     def list_artifacts_by_project(self, project_id: str, stage: Optional[str] = None) -> List[Dict[str, Any]]:
-        try:
-            self._ensure_connection()
-            query_kwargs = {
-                'IndexName': 'ProjectIndex',
-                'KeyConditionExpression': Key('project_id').eq(project_id),
-                'ScanIndexForward': False,
-            }
-            if stage:
-                query_kwargs['FilterExpression'] = Attr('stage').eq(stage)
-            response = self.artifacts_table.query(**query_kwargs)
-            items = response.get('Items', [])
-            return [self._deserialize_item(item) for item in items]
-        except Exception as e:
-            logger.error("Error listing artifacts for project %s: %s", project_id, e)
-            raise APIException(f"Failed to list artifacts: {e}")
+        """
+        DEPRECATED: AgentArtifacts table has been removed per design specs.
+        This method returns empty results to prevent crashes.
+        """
+        logger.warning(
+            "list_artifacts_by_project called but AgentArtifacts table no longer exists. "
+            "Returning empty results. project_id=%s stage=%s",
+            project_id,
+            stage
+        )
+        return []
 
-    @retry_on_error(max_retries=3, delay=1.0, backoff=2.0)
     def delete_artifacts_for_stage(self, project_id: str, stage: str) -> None:
-        try:
-            self._ensure_connection()
-            query_kwargs = {
-                'IndexName': 'ProjectIndex',
-                'KeyConditionExpression': Key('project_id').eq(project_id),
-                'FilterExpression': Attr('stage').eq(stage),
-            }
-            response = self.artifacts_table.query(**query_kwargs)
-            for item in response.get('Items', []):
-                self.artifacts_table.delete_item(Key={'artifact_id': item['artifact_id']})
-        except Exception as e:
-            logger.error(
-                "Error deleting artifacts for project %s stage %s: %s",
-                project_id,
-                stage,
-                e,
-            )
-            raise APIException(f"Failed to delete artifacts: {e}")
+        """
+        DEPRECATED: AgentArtifacts table has been removed per design specs.
+        This method is a no-op stub to prevent crashes.
+        """
+        logger.warning(
+            "delete_artifacts_for_stage called but AgentArtifacts table no longer exists. "
+            "No action taken. project_id=%s stage=%s",
+            project_id,
+            stage
+        )
+        # No-op - do nothing
 
     # Invocation operations
     @retry_on_error(max_retries=3, delay=1.0, backoff=2.0)

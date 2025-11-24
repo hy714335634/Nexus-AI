@@ -7,6 +7,11 @@ from .agent_deployment_service import (
     DeploymentResult,
 )
 from .build_dashboard_service import BuildDashboardService
+from .stage_service import StageService, stage_service
+from .project_service import ProjectService, project_service
+from .agent_service import AgentService, agent_service
+from .statistics_service import StatisticsService, statistics_service
+from .session_service import SessionService, session_service
 
 
 __all__ = [
@@ -16,4 +21,14 @@ __all__ = [
     "AgentDeploymentError",
     "DeploymentResult",
     "BuildDashboardService",
+    "StageService",
+    "stage_service",
+    "ProjectService",
+    "project_service",
+    "AgentService",
+    "agent_service",
+    "StatisticsService",
+    "statistics_service",
+    "SessionService",
+    "session_service",
 ]

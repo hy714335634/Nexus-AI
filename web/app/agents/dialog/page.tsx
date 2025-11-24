@@ -84,21 +84,31 @@ export default function AgentDialogPage() {
     queryFn: () => fetchAgentSessions(activeAgentId as string),
     enabled: Boolean(activeAgentId),
     staleTime: 10_000,
-    onSuccess: (data) => {
-      setSessions(data);
-      if (!activeSessionId && data.length) {
-        setActiveSessionId(data[0].session_id);
-      }
-    },
   });
 
   // Load agent context
-  useQuery({
+  const contextQuery = useQuery({
     queryKey: ['dialog-context', activeAgentId],
     queryFn: () => fetchAgentContext(activeAgentId as string),
     enabled: Boolean(activeAgentId),
-    onSuccess: (data) => setContext(data),
   });
+
+  // Handle sessions data changes
+  useEffect(() => {
+    if (sessionsQuery.data) {
+      setSessions(sessionsQuery.data);
+      if (!activeSessionId && sessionsQuery.data.length > 0) {
+        setActiveSessionId(sessionsQuery.data[0].session_id);
+      }
+    }
+  }, [sessionsQuery.data, activeSessionId]);
+
+  // Handle context data changes
+  useEffect(() => {
+    if (contextQuery.data) {
+      setContext(contextQuery.data);
+    }
+  }, [contextQuery.data]);
 
   const createSessionMutation = useMutation({
     mutationFn: (displayName?: string) => createAgentSession(activeAgentId as string, displayName),
@@ -131,12 +141,14 @@ export default function AgentDialogPage() {
     queryKey: ['dialog-messages', activeAgentId, activeSessionId],
     queryFn: () => fetchAgentMessages(activeAgentId as string, activeSessionId as string),
     enabled: Boolean(activeAgentId && activeSessionId),
-    onSuccess: (data) => {
-      if (!isStreaming) {
-        setMessages(data);
-      }
-    },
   });
+
+  // Handle messages data changes
+  useEffect(() => {
+    if (messagesQuery.data && !isStreaming) {
+      setMessages(messagesQuery.data);
+    }
+  }, [messagesQuery.data, isStreaming]);
 
   const agentItems = useMemo(() => agentsQuery.data ?? [], [agentsQuery.data]);
 
@@ -163,7 +175,7 @@ export default function AgentDialogPage() {
     const currentSessions = sessionsQuery.data ?? [];
     if (!currentSessions.length && !autoSessionRequested) {
       setAutoSessionRequested(true);
-      createSessionMutation.mutate();
+      createSessionMutation.mutate(undefined);
     }
   }, [
     activeAgentId,
@@ -219,8 +231,8 @@ export default function AgentDialogPage() {
 
     try {
       await streamAgentResponse(activeAgentId, activeSessionId, userMessage.content, assistantDraft.message_id);
-      await queryClient.invalidateQueries(['dialog-sessions', activeAgentId]);
-      await queryClient.invalidateQueries(['dialog-messages', activeAgentId, activeSessionId]);
+      await queryClient.invalidateQueries({ queryKey: ['dialog-sessions', activeAgentId] });
+      await queryClient.invalidateQueries({ queryKey: ['dialog-messages', activeAgentId, activeSessionId] });
     } catch (error) {
       const message = error instanceof Error ? error.message : '对话过程中出现问题';
       setStreamError(message);
@@ -533,12 +545,12 @@ export default function AgentDialogPage() {
               <div className={styles.messageMeta}>
                 {message.role === 'user' ? '我' : 'Agent'} · {new Date(message.created_at).toLocaleTimeString()}
               </div>
-              {message.metadata && message.metadata.tool && (
+              {message.metadata && typeof message.metadata.tool === 'string' ? (
                 <div className={styles.toolCard}>
-                  <div className={styles.toolTitle}>工具调用：{String(message.metadata.tool)}</div>
+                  <div className={styles.toolTitle}>工具调用：{message.metadata.tool}</div>
                   <div>{JSON.stringify(message.metadata.result)}</div>
                 </div>
-              )}
+              ) : null}
             </div>
           ))}
           {!messages.length ? <div className={styles.emptyState}>{messageEmptyHint}</div> : null}

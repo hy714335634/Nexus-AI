@@ -1,0 +1,128 @@
+{
+  "endpoint": "/api/v1/projects",
+  "timestamp": "2025-11-23T11:25:07.036786",
+  "response": {
+    "success": true,
+    "data": {
+      "agents": [],
+      "created_at": "2025-11-23T03:25:06.254852+00:00",
+      "current_stage": "orchestrator",
+      "current_stage_number": 0,
+      "original_requirement": "Test API verification - create a simple greeting agent",
+      "priority": 3,
+      "progress_percentage": 0,
+      "project_id": "proj_b0520328c1e1",
+      "project_name": "Test API verification - create a simple greeting agent",
+      "stages_snapshot": {
+        "total": 6,
+        "completed": 0,
+        "stages": [
+          {
+            "stage": "orchestrator",
+            "stage_number": 1,
+            "stage_name": "orchestrator",
+            "stage_name_cn": "工作流编排",
+            "status": "pending",
+            "started_at": null,
+            "completed_at": null,
+            "duration_seconds": null,
+            "output_data": null,
+            "error_message": null,
+            "logs": []
+          },
+          {
+            "stage": "requirements_analysis",
+            "stage_number": 2,
+            "stage_name": "requirements_analysis",
+            "stage_name_cn": "需求分析",
+            "status": "pending",
+            "started_at": null,
+            "completed_at": null,
+            "duration_seconds": null,
+            "output_data": null,
+            "error_message": null,
+            "logs": []
+          },
+          {
+            "stage": "system_architecture",
+            "stage_number": 3,
+            "stage_name": "system_architecture",
+            "stage_name_cn": "系统架构设计",
+            "status": "pending",
+            "started_at": null,
+            "completed_at": null,
+            "duration_seconds": null,
+            "output_data": null,
+            "error_message": null,
+            "logs": []
+          },
+          {
+            "stage": "agent_design",
+            "stage_number": 4,
+            "stage_name": "agent_design",
+            "stage_name_cn": "Agent设计",
+            "status": "pending",
+            "started_at": null,
+            "completed_at": null,
+            "duration_seconds": null,
+            "output_data": null,
+            "error_message": null,
+            "logs": []
+          },
+          {
+            "stage": "agent_developer_manager",
+            "stage_number": 5,
+            "stage_name": "agent_developer_manager",
+            "stage_name_cn": "开发管理",
+            "status": "pending",
+            "started_at": null,
+            "completed_at": null,
+            "duration_seconds": null,
+            "output_data": null,
+            "error_message": null,
+            "logs": [],
+            "sub_stages": {
+              "tool_developer": {
+                "status": "pending",
+                "started_at": null,
+                "completed_at": null,
+                "artifacts": []
+              },
+              "prompt_engineer": {
+                "status": "pending",
+                "started_at": null,
+                "completed_at": null,
+                "artifacts": []
+              },
+              "agent_code_developer": {
+                "status": "pending",
+                "started_at": null,
+                "completed_at": null,
+                "artifacts": []
+              }
+            }
+          },
+          {
+            "stage": "agent_deployer",
+            "stage_number": 6,
+            "stage_name": "agent_deployer",
+            "stage_name_cn": "Agent部署",
+            "status": "pending",
+            "started_at": null,
+            "completed_at": null,
+            "duration_seconds": null,
+            "output_data": null,
+            "error_message": null,
+            "logs": []
+          }
+        ]
+      },
+      "status": "building",
+      "tags": [],
+      "updated_at": "2025-11-23T03:25:06.456341+00:00",
+      "user_id": "default"
+    },
+    "message": "Project proj_b0520328c1e1 created successfully and build started",
+    "timestamp": "2025-11-23T03:25:07.027213Z"
+  }
+}

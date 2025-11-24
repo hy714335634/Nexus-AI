@@ -1,0 +1,174 @@
+{
+  "endpoint": "/api/v1/projects?limit=100",
+  "timestamp": "2025-11-23T11:25:06.251970",
+  "response": {
+    "success": true,
+    "data": {
+      "items": [
+        {
+          "updated_at": "2025-11-23T03:10:29.267028+00:00",
+          "project_name": "我想要一个我输入一个场景和关键词，就可以返回给我一个短篇小说的agent",
+          "user_id": "console-user",
+          "created_at": "2025-11-23T03:00:18.584771+00:00",
+          "stages_snapshot": {
+            "stages": [
+              {
+                "name": "orchestrator",
+                "display_name": "工作流编排",
+                "order": "1",
+                "status": "pending"
+              },
+              {
+                "name": "requirements_analyzer",
+                "display_name": "需求分析",
+                "order": "2",
+                "status": "pending"
+              },
+              {
+                "name": "system_architect",
+                "display_name": "系统架构设计",
+                "order": "3",
+                "status": "pending"
+              },
+              {
+                "name": "agent_designer",
+                "display_name": "Agent设计",
+                "order": "4",
+                "status": "pending"
+              },
+              {
+                "name": "prompt_engineer",
+                "display_name": "提示词工程",
+                "order": "5",
+                "status": "pending"
+              },
+              {
+                "name": "tools_developer",
+                "display_name": "工具开发",
+                "order": "6",
+                "status": "pending"
+              },
+              {
+                "name": "agent_code_developer",
+                "display_name": "代码开发",
+                "order": "7",
+                "status": "pending"
+              },
+              {
+                "name": "agent_developer_manager",
+                "display_name": "开发管理",
+                "order": "8",
+                "status": "pending"
+              },
+              {
+                "name": "agent_deployer",
+                "display_name": "Agent部署",
+                "order": "9",
+                "status": "pending"
+              },
+              {
+                "stage": "requirements_analysis",
+                "stage_number": 2,
+                "stage_name": "requirements_analysis",
+                "stage_name_cn": "需求分析",
+                "status": "completed",
+                "started_at": "2025-11-23T03:00:48.530589Z",
+                "completed_at": "2025-11-23T03:02:05.794398Z",
+                "duration_seconds": 77,
+                "agent_name": null,
+                "output_data": null,
+                "error_message": null,
+                "logs": []
+              },
+              {
+                "stage": "system_architecture",
+                "stage_number": 3,
+                "stage_name": "system_architecture",
+                "stage_name_cn": "系统架构设计",
+                "status": "completed",
+                "started_at": null,
+                "completed_at": "2025-11-23T03:03:55.121745Z",
+                "duration_seconds": null,
+                "agent_name": null,
+                "output_data": null,
+                "error_message": null,
+                "logs": []
+              },
+              {
+                "stage": "agent_design",
+                "stage_number": 4,
+                "stage_name": "agent_design",
+                "stage_name_cn": "Agent设计",
+                "status": "completed",
+                "started_at": null,
+                "completed_at": "2025-11-23T03:05:13.098069Z",
+                "duration_seconds": null,
+                "agent_name": null,
+                "output_data": null,
+                "error_message": null,
+                "logs": []
+              },
+              {
+                "stage": "agent_developer_manager",
+                "stage_number": 5,
+                "stage_name": "agent_developer_manager",
+                "stage_name_cn": "开发管理",
+                "status": "completed",
+                "started_at": null,
+                "completed_at": "2025-11-23T03:08:23.034245Z",
+                "duration_seconds": null,
+                "agent_name": null,
+                "output_data": null,
+                "error_message": null,
+                "logs": []
+              },
+              {
+                "stage": "agent_deployer",
+                "stage_number": 6,
+                "stage_name": "agent_deployer",
+                "stage_name_cn": "Agent部署",
+                "status": "running",
+                "started_at": "2025-11-23T03:10:18.270283Z",
+                "completed_at": null,
+                "duration_seconds": null,
+                "agent_name": null,
+                "output_data": null,
+                "error_message": null,
+                "logs": []
+              }
+            ],
+            "total": 9,
+            "completed": 4
+          },
+          "latest_task": {
+            "started_at": "2025-11-23T03:00:23.703431+00:00",
+            "task_id": "e1c08f5b-6057-41e4-aaa5-0296137ae91d",
+            "metadata": {
+              "total_nodes": 6,
+              "project_name": "我想要一个我输入一个场景和关键词，就可以返回给我一个短篇小说的agent",
+              "execution_time_seconds": 597.6155779361725,
+              "failed_nodes": 0,
+              "completed_nodes": 6
+            },
+            "finished_at": "2025-11-23T03:10:29.265540Z",
+            "status": "completed"
+          },
+          "metrics_payload": {
+            "output_tokens": 44583,
+            "report_path": "./projects/short_story_agent/workflow_summary_report.md",
+            "input_tokens": 1311993,
+            "total_duration_seconds": 597.6155779361725
+          },
+          "status": "building",
+          "requirement": "我想要一个我输入一个场景和关键词，就可以返回给我一个短篇小说的agent",
+          "project_id": "job_adad68c72755445b9f27efbd09e03140",
+          "progress_percentage": 0,
+          "user_name": "Console User"
+        }
+      ],
+      "last_evaluated_key": null,
+      "count": 1
+    },
+    "timestamp": "2025-11-23T03:25:06.249473Z"
+  }
+}

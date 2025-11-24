@@ -1,0 +1,10 @@
+{
+  "verification_date": "2025-11-23T11:25:08.435471",
+  "base_url": "http://localhost:8000",
+  "results": {
+    "total": 7,
+    "passed": 6,
+    "failed": 1,
+    "endpoints": []
+  }
+}
