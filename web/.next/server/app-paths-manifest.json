@@ -1,14 +1,9 @@
 {
   "/not-found": "app/not-found.js",
   "/page": "app/page.js",
-  "/build/modules/page": "app/build/modules/page.js",
   "/agents/new/page": "app/agents/new/page.js",
-  "/management/page": "app/management/page.js",
   "/build/page": "app/build/page.js",
-  "/troubleshoot/page": "app/troubleshoot/page.js",
-  "/troubleshoot/analysis/page": "app/troubleshoot/analysis/page.js",
-  "/troubleshoot/code-review/page": "app/troubleshoot/code-review/page.js",
-  "/troubleshoot/reproduction/page": "app/troubleshoot/reproduction/page.js",
-  "/agents/dialog/page": "app/agents/dialog/page.js",
-  "/evolution/page": "app/evolution/page.js"
+  "/build/modules/page": "app/build/modules/page.js",
+  "/management/page": "app/management/page.js",
+  "/agents/dialog/page": "app/agents/dialog/page.js"
 }

@@ -141,7 +141,6 @@ AGENT_PARAMS = {
     "env": os.getenv("NEXUS_QA_AGENT_ENV", "production"),
     "version": os.getenv("NEXUS_QA_AGENT_VERSION", "latest"),
     "model_id": os.getenv("NEXUS_QA_AGENT_MODEL_ID", "default"),
-    "enable_logging": True,
     "nocallback": True,  # FastAPI 接口默认不使用回调以降低额外工具调用
 }
 
@@ -333,7 +332,7 @@ async def ask_question(payload: AskRequest) -> AskResponse:
 
 if __name__ == "__main__":
     import uvicorn
-    # uvicorn agents.generated_agents.Nexus-AI-QA-Assistant.nexus_qa_assistant_fastapi:app --host 0.0.0.0 --port 8000 --workers 7
+    # uvicorn agents.generated_agents.Nexus-AI-QA-Assistant.nexus_qa_assistant_fastapi:app --host 0.0.0.0 --port 8000 --workers 7 --reload
     host = os.getenv("NEXUS_QA_API_HOST", "0.0.0.0")
     port = int(os.getenv("NEXUS_QA_API_PORT", "8000"))
     uvicorn.run("agents.generated_agents.Nexus-AI-QA-Assistant.nexus_qa_assistant_fastapi:app", host=host, port=port, reload=True)

@@ -55,8 +55,7 @@ class PubmedLiteratureOptimizationWorkflow:
         self.agent_params = {
             "env": self.env,
             "version": self.version,
-            "model_id": self.model_id,
-            "enable_logging": True
+            "model_id": self.model_id
         }
         
         logger.info("Agent实例将在需要时创建")

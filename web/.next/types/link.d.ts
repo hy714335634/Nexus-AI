@@ -30,37 +30,37 @@ declare namespace __next_route_internal_types__ {
 
   type StaticRoutes = 
     | `/`
-    | `/demos/chat`
+    | `/agents/dialog`
+    | `/agents/new`
     | `/build`
     | `/build/graph`
     | `/build/modules`
+    | `/demos/chat`
     | `/evolution`
-    | `/evolution/analytics`
     | `/evolution/agents`
     | `/evolution/history`
-    | `/evolution/progress`
+    | `/evolution/analytics`
     | `/evolution/submit`
+    | `/evolution/progress`
     | `/management`
     | `/ops`
     | `/pfr`
     | `/pfr/history`
     | `/projects`
-    | `/agents/dialog`
-    | `/agents/new`
     | `/tools`
     | `/tools/create`
     | `/tools/mcp/create`
     | `/troubleshoot`
     | `/troubleshoot/analysis`
-    | `/troubleshoot/code-review`
     | `/troubleshoot/fix`
-    | `/troubleshoot/tracking`
+    | `/troubleshoot/code-review`
     | `/troubleshoot/reproduction`
+    | `/troubleshoot/tracking`
   type DynamicRoutes<T extends string = string> = 
+    | `/agents/${SafeSlug<T>}`
     | `/pfr/iterations/${SafeSlug<T>}`
     | `/projects/${SafeSlug<T>}`
     | `/projects/${SafeSlug<T>}/deploy`
-    | `/agents/${SafeSlug<T>}`
     | `/tools/${SafeSlug<T>}/config`
     | `/tools/${SafeSlug<T>}/detail`
 

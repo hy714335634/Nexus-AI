@@ -47,3 +47,4 @@ logs/
 .next/
 nohup.out
 api/.env
+web/.next/cache
