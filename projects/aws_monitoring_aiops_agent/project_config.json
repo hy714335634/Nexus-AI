@@ -1,0 +1,180 @@
+{
+  "project_name": "aws_monitoring_aiops_agent",
+  "validation_timestamp": "2025-11-09T08:59:13.089534+00:00",
+  "overall_status": "success",
+  "agent_scripts": [
+    {
+      "script_path": "agents/generated_agents/aws_monitoring_aiops_agent/aws_monitoring_aiops_agent.py",
+      "syntax_valid": true,
+      "dependencies": [
+        "os",
+        "json",
+        "argparse",
+        "time",
+        "datetime",
+        "typing",
+        "nexus_utils.agent_factory",
+        "strands.telemetry"
+      ],
+      "execution_params": [],
+      "argparse_params": [
+        {
+          "name": "--config",
+          "type": "str",
+          "description": "配置文件路径",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "--region",
+          "type": "str",
+          "description": "AWS区域",
+          "required": false,
+          "default": "us-east-1",
+          "action": null
+        },
+        {
+          "name": "--alarm-id",
+          "type": "str",
+          "description": "告警ID",
+          "required": true,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "--alarm-name",
+          "type": "str",
+          "description": "告警名称",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "--alarm-time",
+          "type": "str",
+          "description": "告警时间(ISO格式)",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "--description",
+          "type": "str",
+          "description": "问题描述",
+          "required": true,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "--resources",
+          "type": "str",
+          "description": "相关资源列表(逗号分隔)",
+          "required": true,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "--time-window",
+          "type": "int",
+          "description": "分析时间窗口(小时)",
+          "required": false,
+          "default": 6,
+          "action": null
+        },
+        {
+          "name": "--regions",
+          "type": "str",
+          "description": "要监控的AWS区域列表(逗号分隔)",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "--resources-file",
+          "type": "str",
+          "description": "要监控的资源JSON文件路径",
+          "required": true,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "--duration",
+          "type": "int",
+          "description": "监控持续时间(分钟)",
+          "required": false,
+          "default": null,
+          "action": null
+        }
+      ],
+      "error_message": ""
+    }
+  ],
+  "prompt_files": [
+    {
+      "prompt_path": "generated_agents_prompts/aws_monitoring_aiops_agent/aws_monitoring_aiops_agent.yaml",
+      "tool_count": 11,
+      "valid": true,
+      "error_message": "",
+      "metadata": {
+        "tags": [
+          "aws",
+          "cloudwatch",
+          "monitoring",
+          "aiops",
+          "log_analysis",
+          "anomaly_detection",
+          "remediation"
+        ],
+        "supported_models": [
+          "us.anthropic.claude-3-7-sonnet-20250219-v1:0",
+          "us.anthropic.claude-opus-4-20250514-v1:0"
+        ],
+        "tools_dependencies": [
+          "strands_tools/current_time",
+          "strands_tools/calculator",
+          "strands_tools/file_read",
+          "generated_tools/aws_monitoring_aiops_agent/aws_cloudwatch_tools/boto3_cloudwatch_client",
+          "generated_tools/aws_monitoring_aiops_agent/aws_cloudwatch_tools/boto3_logs_client",
+          "generated_tools/aws_monitoring_aiops_agent/aws_cloudwatch_tools/cloudwatch_logs_insights_query",
+          "generated_tools/aws_monitoring_aiops_agent/log_analysis_tools/llm_log_analyzer",
+          "generated_tools/aws_monitoring_aiops_agent/log_analysis_tools/report_formatter",
+          "generated_tools/aws_monitoring_aiops_agent/log_analysis_tools/script_generator",
+          "generated_tools/aws_monitoring_aiops_agent/task_cache_tools/cache_manager",
+          "generated_tools/aws_monitoring_aiops_agent/task_cache_tools/task_manager"
+        ]
+      },
+      "agent_info": {
+        "name": "aws_monitoring_aiops_agent",
+        "description": "智能监控与AIOps Agent，自动监控AWS CloudWatch指标、分析日志并生成自愈脚本",
+        "category": "aws_monitoring"
+      }
+    }
+  ],
+  "generated_tools": [
+    {
+      "tool_path": "generated_tools/aws_monitoring_aiops_agent/log_analysis_tools.py",
+      "syntax_valid": true,
+      "error_message": ""
+    },
+    {
+      "tool_path": "generated_tools/aws_monitoring_aiops_agent/task_cache_tools.py",
+      "syntax_valid": true,
+      "error_message": ""
+    },
+    {
+      "tool_path": "generated_tools/aws_monitoring_aiops_agent/aws_cloudwatch_tools.py",
+      "syntax_valid": true,
+      "error_message": ""
+    }
+  ],
+  "total_tools": 11,
+  "summary": {
+    "agent_scripts_count": 1,
+    "prompt_files_count": 1,
+    "generated_tool_files_count": 3,
+    "all_scripts_valid": true,
+    "all_tools_valid": true,
+    "all_prompts_valid": true
+  }
+}

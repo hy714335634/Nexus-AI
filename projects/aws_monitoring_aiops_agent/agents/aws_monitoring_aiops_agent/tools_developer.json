@@ -1,0 +1,559 @@
+{
+  "tool_development": {
+    "development_overview": {
+      "project_name": "aws_monitoring_aiops_agent",
+      "version": "1.0",
+      "date": "2025-11-09",
+      "development_scope": "Development of tools for AWS CloudWatch monitoring, log analysis, anomaly detection, root cause analysis, and remediation script generation",
+      "design_principles": [
+        "Modularity: Each tool has a clear, focused purpose",
+        "Reliability: Robust error handling and retry mechanisms",
+        "Security: No sensitive information in logs or reports",
+        "Scalability: Support for batch processing and pagination",
+        "Configurability: Flexible parameters for different use cases",
+        "Performance: Caching to reduce redundant API calls"
+      ],
+      "key_decisions": [
+        "Use boto3 for AWS service interactions",
+        "Implement automatic retries with exponential backoff for transient errors",
+        "Use AWS Bedrock for LLM-based log analysis and script generation",
+        "Implement hierarchical caching system for monitoring data and analysis results",
+        "Support multi-region monitoring through region parameter"
+      ]
+    },
+    "tools": [
+      {
+        "tool_name": "boto3_cloudwatch_client",
+        "description": "Interact with AWS CloudWatch API using boto3 for metrics and alarms operations",
+        "function_signature": "boto3_cloudwatch_client(region: str, operation: str, parameters: Dict[str, Any], max_retries: int = 3, retry_delay: int = 1) -> str",
+        "parameters": [
+          {
+            "name": "region",
+            "type": "str",
+            "description": "AWS region name (e.g., 'us-east-1', 'eu-west-1')",
+            "required": true
+          },
+          {
+            "name": "operation",
+            "type": "str",
+            "description": "CloudWatch API operation to perform (e.g., 'get_metric_data', 'describe_alarms')",
+            "required": true
+          },
+          {
+            "name": "parameters",
+            "type": "Dict[str, Any]",
+            "description": "Dictionary of parameters for the specified operation",
+            "required": true
+          },
+          {
+            "name": "max_retries",
+            "type": "int",
+            "description": "Maximum number of retry attempts for transient errors",
+            "required": false
+          },
+          {
+            "name": "retry_delay",
+            "type": "int",
+            "description": "Initial delay between retries in seconds, with exponential backoff",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON string containing the operation results or error information",
+        "dependencies": ["boto3", "json", "time"],
+        "implementation_notes": [
+          "Supports pagination for operations that return large result sets",
+          "Implements automatic retries with exponential backoff for throttling errors",
+          "Handles different response formats for various CloudWatch operations"
+        ],
+        "error_handling": [
+          "Catches and reports AWS ClientError exceptions with error codes",
+          "Implements retry logic for transient errors like throttling",
+          "Returns structured error responses with detailed information"
+        ],
+        "usage_examples": [
+          "List all CloudWatch metrics in a region",
+          "Get metric data for CPU utilization of EC2 instances",
+          "Describe all alarms in a critical state"
+        ]
+      },
+      {
+        "tool_name": "boto3_logs_client",
+        "description": "Interact with AWS CloudWatch Logs API using boto3 for log operations",
+        "function_signature": "boto3_logs_client(region: str, operation: str, parameters: Dict[str, Any], max_retries: int = 3, retry_delay: int = 1) -> str",
+        "parameters": [
+          {
+            "name": "region",
+            "type": "str",
+            "description": "AWS region name (e.g., 'us-east-1', 'eu-west-1')",
+            "required": true
+          },
+          {
+            "name": "operation",
+            "type": "str",
+            "description": "CloudWatch Logs API operation to perform",
+            "required": true
+          },
+          {
+            "name": "parameters",
+            "type": "Dict[str, Any]",
+            "description": "Dictionary of parameters for the specified operation",
+            "required": true
+          },
+          {
+            "name": "max_retries",
+            "type": "int",
+            "description": "Maximum number of retry attempts for transient errors",
+            "required": false
+          },
+          {
+            "name": "retry_delay",
+            "type": "int",
+            "description": "Initial delay between retries in seconds, with exponential backoff",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON string containing the operation results or error information",
+        "dependencies": ["boto3", "json", "time"],
+        "implementation_notes": [
+          "Supports pagination for operations that return large result sets",
+          "Handles different token parameter names for different API operations",
+          "Implements automatic retries with exponential backoff for throttling errors"
+        ],
+        "error_handling": [
+          "Catches and reports AWS ClientError exceptions with error codes",
+          "Implements retry logic for transient errors like throttling",
+          "Returns structured error responses with detailed information"
+        ],
+        "usage_examples": [
+          "List all log groups in a region",
+          "Get log events from a specific log stream",
+          "Filter log events across multiple log streams"
+        ]
+      },
+      {
+        "tool_name": "cloudwatch_logs_insights_query",
+        "description": "Execute CloudWatch Logs Insights queries and retrieve results",
+        "function_signature": "cloudwatch_logs_insights_query(region: str, query_string: str, log_group_names: List[str], start_time: Union[str, int], end_time: Union[str, int], limit: int = 1000, wait_for_results: bool = True, timeout_seconds: int = 60, max_retries: int = 3, retry_delay: int = 1) -> str",
+        "parameters": [
+          {
+            "name": "region",
+            "type": "str",
+            "description": "AWS region name (e.g., 'us-east-1', 'eu-west-1')",
+            "required": true
+          },
+          {
+            "name": "query_string",
+            "type": "str",
+            "description": "The CloudWatch Logs Insights query to execute",
+            "required": true
+          },
+          {
+            "name": "log_group_names",
+            "type": "List[str]",
+            "description": "List of log group names to query",
+            "required": true
+          },
+          {
+            "name": "start_time",
+            "type": "Union[str, int]",
+            "description": "Start time for the query in ISO8601 format or Unix timestamp",
+            "required": true
+          },
+          {
+            "name": "end_time",
+            "type": "Union[str, int]",
+            "description": "End time for the query in ISO8601 format or Unix timestamp",
+            "required": true
+          },
+          {
+            "name": "limit",
+            "type": "int",
+            "description": "Maximum number of log events to return",
+            "required": false
+          },
+          {
+            "name": "wait_for_results",
+            "type": "bool",
+            "description": "Whether to wait for query completion",
+            "required": false
+          },
+          {
+            "name": "timeout_seconds",
+            "type": "int",
+            "description": "Maximum time to wait for query results in seconds",
+            "required": false
+          },
+          {
+            "name": "max_retries",
+            "type": "int",
+            "description": "Maximum number of retry attempts for transient errors",
+            "required": false
+          },
+          {
+            "name": "retry_delay",
+            "type": "int",
+            "description": "Initial delay between retries in seconds, with exponential backoff",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON string containing the query results or error information",
+        "dependencies": ["boto3", "json", "time", "datetime"],
+        "implementation_notes": [
+          "Handles both synchronous and asynchronous query execution",
+          "Supports both ISO8601 and Unix timestamp formats",
+          "Implements timeout mechanism for long-running queries"
+        ],
+        "error_handling": [
+          "Catches and reports AWS ClientError exceptions with error codes",
+          "Implements retry logic for transient errors",
+          "Handles query timeout with partial results if available",
+          "Stops running queries if timeout is reached"
+        ],
+        "usage_examples": [
+          "Query error logs across multiple log groups",
+          "Analyze API call patterns over a specific time period",
+          "Start an asynchronous query for later retrieval"
+        ]
+      },
+      {
+        "tool_name": "llm_log_analyzer",
+        "description": "Analyze log content using LLM capabilities to identify patterns, errors, and root causes",
+        "function_signature": "llm_log_analyzer(log_data: str, analysis_type: str, context: Optional[Dict[str, Any]] = None, max_log_size: int = 10000) -> str",
+        "parameters": [
+          {
+            "name": "log_data",
+            "type": "str",
+            "description": "JSON string containing log entries to analyze",
+            "required": true
+          },
+          {
+            "name": "analysis_type",
+            "type": "str",
+            "description": "Type of analysis to perform (error_detection, root_cause, anomaly_detection, pattern_recognition)",
+            "required": true
+          },
+          {
+            "name": "context",
+            "type": "Optional[Dict[str, Any]]",
+            "description": "Optional contextual information like resource type, related metrics, etc.",
+            "required": false
+          },
+          {
+            "name": "max_log_size",
+            "type": "int",
+            "description": "Maximum size of log data to process (characters) to avoid token limits",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON string containing analysis results including identified issues, patterns, and recommendations",
+        "dependencies": ["boto3", "json", "re", "datetime"],
+        "implementation_notes": [
+          "Uses AWS Bedrock with Claude model for intelligent log analysis",
+          "Handles different log data formats and structures",
+          "Truncates large log data to fit within token limits",
+          "Constructs specialized prompts based on analysis type"
+        ],
+        "error_handling": [
+          "Validates input log data format",
+          "Handles oversized log data by truncating and prioritizing recent logs",
+          "Catches and reports AWS API errors with detailed information",
+          "Handles JSON parsing errors from LLM responses"
+        ],
+        "usage_examples": [
+          "Identify error patterns in application logs",
+          "Determine root cause of service disruptions",
+          "Detect anomalous patterns in system logs",
+          "Recognize recurring patterns in security logs"
+        ]
+      },
+      {
+        "tool_name": "script_generator",
+        "description": "Generate remediation scripts based on analysis results",
+        "function_signature": "script_generator(analysis_result: str, script_type: str, target_resources: List[str], aws_region: str, safety_level: str = \"high\") -> str",
+        "parameters": [
+          {
+            "name": "analysis_result",
+            "type": "str",
+            "description": "JSON string containing analysis results from llm_log_analyzer",
+            "required": true
+          },
+          {
+            "name": "script_type",
+            "type": "str",
+            "description": "Type of script to generate (aws_cli, python, shell)",
+            "required": true
+          },
+          {
+            "name": "target_resources",
+            "type": "List[str]",
+            "description": "List of AWS resources to target (e.g., instance IDs, function names)",
+            "required": true
+          },
+          {
+            "name": "aws_region",
+            "type": "str",
+            "description": "AWS region for the resources",
+            "required": true
+          },
+          {
+            "name": "safety_level",
+            "type": "str",
+            "description": "Level of safety measures to include (high, medium, low)",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON string containing the generated script, documentation, and execution instructions",
+        "dependencies": ["boto3", "json", "re", "uuid", "datetime"],
+        "implementation_notes": [
+          "Uses AWS Bedrock with Claude model for intelligent script generation",
+          "Includes safety measures based on specified safety level",
+          "Generates different script types (AWS CLI, Python, shell)",
+          "Includes documentation, prerequisites, and risk assessment"
+        ],
+        "error_handling": [
+          "Validates input analysis result format",
+          "Handles JSON parsing errors from LLM responses",
+          "Catches and reports AWS API errors with detailed information"
+        ],
+        "usage_examples": [
+          "Generate AWS CLI script to fix EC2 instance issues",
+          "Create Python script for Lambda function troubleshooting",
+          "Generate shell script for RDS database maintenance"
+        ]
+      },
+      {
+        "tool_name": "report_formatter",
+        "description": "Generate structured reports from analysis results and remediation scripts",
+        "function_signature": "report_formatter(analysis_data: str, remediation_scripts: Optional[str] = None, format_type: str = \"markdown\", include_summary: bool = True, include_details: bool = True) -> str",
+        "parameters": [
+          {
+            "name": "analysis_data",
+            "type": "str",
+            "description": "JSON string containing analysis results",
+            "required": true
+          },
+          {
+            "name": "remediation_scripts",
+            "type": "Optional[str]",
+            "description": "Optional JSON string containing remediation scripts",
+            "required": false
+          },
+          {
+            "name": "format_type",
+            "type": "str",
+            "description": "Output format (json, markdown, html)",
+            "required": false
+          },
+          {
+            "name": "include_summary",
+            "type": "bool",
+            "description": "Whether to include an executive summary",
+            "required": false
+          },
+          {
+            "name": "include_details",
+            "type": "bool",
+            "description": "Whether to include detailed findings",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "Formatted report in the specified format",
+        "dependencies": ["json", "uuid", "datetime"],
+        "implementation_notes": [
+          "Supports multiple output formats (JSON, Markdown, HTML)",
+          "Generates structured reports with consistent sections",
+          "Includes executive summary with key metrics and findings",
+          "Formats detailed findings with appropriate structure and styling"
+        ],
+        "error_handling": [
+          "Validates input data formats",
+          "Handles missing or incomplete data gracefully",
+          "Returns structured error responses for invalid inputs"
+        ],
+        "usage_examples": [
+          "Generate JSON report for programmatic processing",
+          "Create Markdown report for documentation",
+          "Generate HTML report for web display"
+        ]
+      },
+      {
+        "tool_name": "task_manager",
+        "description": "Manage monitoring tasks with unique IDs, state tracking, and progress monitoring",
+        "function_signature": "task_manager(operation: str, task_data: Optional[Dict[str, Any]] = None, task_id: Optional[str] = None, max_tasks: int = 100) -> str",
+        "parameters": [
+          {
+            "name": "operation",
+            "type": "str",
+            "description": "Operation to perform (create, update, get, list, delete)",
+            "required": true
+          },
+          {
+            "name": "task_data",
+            "type": "Optional[Dict[str, Any]]",
+            "description": "Task data for create/update operations",
+            "required": false
+          },
+          {
+            "name": "task_id",
+            "type": "Optional[str]",
+            "description": "Task ID for get/update/delete operations",
+            "required": false
+          },
+          {
+            "name": "max_tasks",
+            "type": "int",
+            "description": "Maximum number of tasks to return when listing",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON string containing operation results or error information",
+        "dependencies": ["json", "os", "uuid", "datetime", "threading"],
+        "implementation_notes": [
+          "Uses file-based storage with JSON format",
+          "Implements thread-safe operations with locks",
+          "Stores tasks with metadata including creation and update timestamps",
+          "Supports task status tracking and updates"
+        ],
+        "error_handling": [
+          "Validates required parameters for each operation",
+          "Handles file I/O errors gracefully",
+          "Returns structured error responses with detailed information"
+        ],
+        "usage_examples": [
+          "Create a new monitoring task",
+          "Update task status as processing progresses",
+          "Retrieve task details by ID",
+          "List recent monitoring tasks"
+        ]
+      },
+      {
+        "tool_name": "cache_manager",
+        "description": "Cache monitoring data and analysis results for improved performance and reduced API calls",
+        "function_signature": "cache_manager(operation: str, cache_key: Optional[str] = None, data: Optional[Any] = None, cache_type: str = \"monitoring_data\", ttl_days: int = 30, max_size_mb: int = 100) -> str",
+        "parameters": [
+          {
+            "name": "operation",
+            "type": "str",
+            "description": "Operation to perform (set, get, delete, list, clear, stats)",
+            "required": true
+          },
+          {
+            "name": "cache_key",
+            "type": "Optional[str]",
+            "description": "Key for the cached data",
+            "required": false
+          },
+          {
+            "name": "data",
+            "type": "Optional[Any]",
+            "description": "Data to cache",
+            "required": false
+          },
+          {
+            "name": "cache_type",
+            "type": "str",
+            "description": "Type of cache (monitoring_data, analysis_results, scripts, reports)",
+            "required": false
+          },
+          {
+            "name": "ttl_days",
+            "type": "int",
+            "description": "Time-to-live in days for cached data",
+            "required": false
+          },
+          {
+            "name": "max_size_mb",
+            "type": "int",
+            "description": "Maximum cache size in MB",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON string containing operation results or error information",
+        "dependencies": ["json", "os", "hashlib", "datetime", "threading"],
+        "implementation_notes": [
+          "Uses hierarchical file-based cache with different cache types",
+          "Implements time-to-live (TTL) for cached data",
+          "Manages cache size with automatic cleanup of oldest entries",
+          "Uses MD5 hashing for safe cache key filenames"
+        ],
+        "error_handling": [
+          "Validates required parameters for each operation",
+          "Handles file I/O errors gracefully",
+          "Implements thread-safe operations with locks",
+          "Returns structured error responses with detailed information"
+        ],
+        "usage_examples": [
+          "Cache CloudWatch metrics data to reduce API calls",
+          "Store analysis results for future reference",
+          "Retrieve cached data for faster response times",
+          "Get cache statistics to monitor usage"
+        ]
+      }
+    ],
+    "code_quality": {
+      "code_standards": [
+        "PEP 8 compliant code style",
+        "Complete type annotations for all functions and parameters",
+        "Comprehensive docstrings with detailed parameter descriptions",
+        "Consistent error handling and reporting format",
+        "Thread-safe implementations for shared resources"
+      ],
+      "testing_strategy": [
+        "Unit tests for individual tool functions",
+        "Integration tests for AWS service interactions",
+        "Error handling tests with simulated failures",
+        "Performance tests for caching mechanisms"
+      ],
+      "performance_considerations": [
+        "Pagination for large result sets to manage memory usage",
+        "Caching to reduce redundant API calls",
+        "Batch processing for multiple resources",
+        "Asynchronous operations for long-running queries",
+        "Resource cleanup to prevent memory leaks"
+      ],
+      "security_measures": [
+        "No hardcoded credentials or sensitive information",
+        "Secure handling of AWS credentials through boto3",
+        "Input validation to prevent injection attacks",
+        "Sanitization of log data to remove sensitive information",
+        "Secure storage of cached data"
+      ]
+    },
+    "integration_details": {
+      "aws_services": [
+        "CloudWatch (metrics and alarms)",
+        "CloudWatch Logs (log groups, streams, events)",
+        "CloudWatch Logs Insights (queries)",
+        "AWS Bedrock (LLM capabilities)"
+      ],
+      "external_libraries": [
+        "boto3 for AWS service interactions",
+        "json for data serialization/deserialization",
+        "datetime for timestamp handling",
+        "threading for thread-safe operations",
+        "hashlib for secure cache key generation"
+      ],
+      "api_endpoints": [
+        "CloudWatch API",
+        "CloudWatch Logs API",
+        "CloudWatch Logs Insights API",
+        "AWS Bedrock API"
+      ],
+      "data_formats": [
+        "JSON for structured data exchange",
+        "ISO8601 for timestamp representation",
+        "Markdown for human-readable reports",
+        "HTML for web-based reports"
+      ]
+    },
+    "development_notes": "The tools were developed with a focus on reliability, security, and performance. Special attention was given to error handling and retry mechanisms to ensure robustness when dealing with AWS service throttling and transient errors. The caching system was designed to reduce redundant API calls while maintaining data freshness through configurable TTL settings. LLM integration for log analysis and script generation leverages AWS Bedrock with Claude model to provide intelligent insights and context-aware remediation scripts. The task management system enables tracking of long-running operations and supports resumability for interrupted processes."
+  }
+}

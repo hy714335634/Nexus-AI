@@ -1,0 +1,15 @@
+./nexus_utils
+strands-agents
+strands-agents-tools
+PyYAML
+boto3>=1.28.0
+botocore>=1.31.0
+pyyaml>=6.0
+python-dateutil>=2.8.2
+nexus-utils>=0.1.0
+pandas>=2.0.0
+numpy>=1.24.0
+matplotlib>=3.7.0
+tabulate>=0.9.0
+markdown>=3.4.0
+jinja2>=3.1.0

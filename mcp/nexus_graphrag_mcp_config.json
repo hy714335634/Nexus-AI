@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "nexus-graphrag": {
+      "command": "python",
+      "args": ["/Users/peijiaw/Desktop/git_repos/Nexus-AI/mcp/nexus_graphrag_mcp_server.py"],
+      "env": {
+        "PYTHONPATH": "/Users/peijiaw/Desktop/git_repos/Nexus-AI"
+      },
+      "disabled": false
+    }
+  }
+}

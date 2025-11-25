@@ -1,0 +1,6 @@
+project:
+  created_date: '2025-11-05T13:46:22.410200+00:00'
+  description: AWS CloudWatch智能监控与AIOps系统，用于自动监控指标、分析日志并生成自愈脚本
+  name: aws_monitoring_aiops
+  updated_date: '2025-11-09T07:35:47.817435+00:00'
+  version: 1.0.0

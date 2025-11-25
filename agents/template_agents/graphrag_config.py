@@ -39,7 +39,7 @@ class GraphRAGConfig:
     tenant_id: str = "default"
 
     # LLM 配置（用于提取图结构和查询响应）
-    llm_model: str = "us.anthropic.claude-3-5-sonnet-20240620-v1:0"
+    llm_model: str = "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
 
     # Embedding 配置
     embedding_model: str = "cohere.embed-english-v3"
@@ -59,7 +59,7 @@ class GraphRAGConfig:
             # 向量存储配置
             vector_store_endpoint=os.getenv(
                 "VECTOR_STORE_ENDPOINT",
-                "aoss://https://your-aoss.region.aoss.amazonaws.com"
+                "https://e7d817u9qpa3uf4pbtmk.us-east-1.aoss.amazonaws.com"
             ),
             vector_store_type=os.getenv("VECTOR_STORE_TYPE", "aoss"),
 
@@ -79,7 +79,7 @@ class GraphRAGConfig:
             tenant_id=os.getenv("TENANT_ID", "default"),
 
             # LLM 配置
-            llm_model=os.getenv("LLM_MODEL", "us.anthropic.claude-3-5-sonnet-20240620-v1:0"),
+            llm_model=os.getenv("LLM_MODEL", "us.anthropic.claude-3-7-sonnet-20250219-v1:0"),
 
             # Embedding 配置
             embedding_model=os.getenv("EMBEDDING_MODEL", "cohere.embed-english-v3"),

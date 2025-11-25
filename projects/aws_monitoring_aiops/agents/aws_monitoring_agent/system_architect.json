@@ -1,0 +1,533 @@
+{
+  "system_design": {
+    "design_overview": {
+      "project_name": "aws_monitoring_aiops",
+      "version": "1.0",
+      "date": "2025-11-09",
+      "design_scope": "设计一个AWS CloudWatch智能监控与AIOps系统，用于自动监控AWS CloudWatch指标、分析日志并生成自愈脚本",
+      "design_principles": [
+        "模块化设计，每个功能模块职责单一明确",
+        "可扩展性，支持监控多种AWS服务和未来功能扩展",
+        "容错性，具备完善的错误处理和恢复机制",
+        "可观测性，支持监控、日志和调试",
+        "安全性，遵循AWS最佳安全实践",
+        "成本效率，优化API调用和资源使用"
+      ],
+      "key_decisions": [
+        "采用单Agent架构，集成多个功能模块",
+        "使用AWS SDK for Python (boto3)进行AWS服务集成",
+        "采用配置驱动设计，支持灵活的监控策略",
+        "实现缓存机制，减少重复API调用",
+        "使用LLM增强日志分析和自愈脚本生成",
+        "实现分批处理机制，支持大规模监控"
+      ],
+      "workflow_type": "single_agent",
+      "recommended_templates": ["api_integration_agent", "data_analyzer_agent"]
+    },
+    "architecture": {
+      "system_context": "系统作为AWS CloudWatch的智能监控层，通过AWS SDK与CloudWatch API交互，获取监控指标和日志数据，进行分析处理，识别异常，执行根因分析，并生成自愈脚本。系统可以运行在一次性分析模式或持续监控模式下。",
+      "agent_topology": "单Agent架构，包含多个功能模块：监控数据收集器、异常检测器、日志分析器、根因分析器、自愈脚本生成器和报告生成器。",
+      "interaction_model": "Agent通过配置文件接收监控参数，通过AWS SDK与CloudWatch API交互获取数据，内部模块间通过函数调用和数据传递进行交互，最终输出分析报告和自愈脚本。",
+      "technology_stack": {
+        "sdk": "Strands SDK",
+        "runtime": "Local",
+        "integrations": [
+          "AWS SDK for Python (boto3)",
+          "CloudWatch API",
+          "CloudWatch Logs API",
+          "CloudWatch Logs Insights",
+          "AWS Bedrock (LLM服务)",
+          "Python数据分析库"
+        ]
+      }
+    },
+    "agents": [
+      {
+        "name": "aws_monitoring_agent",
+        "purpose": "监控AWS CloudWatch指标、分析日志并生成自愈脚本，提供全面的AWS云基础设施监控和AIOps功能",
+        "responsibilities": [
+          "获取和监控AWS CloudWatch指标",
+          "检测异常和告警事件",
+          "分析CloudWatch日志以确定问题根因",
+          "生成针对性的自愈脚本",
+          "生成结构化的分析报告",
+          "管理历史记录和缓存"
+        ],
+        "interfaces": {
+          "inputs": [
+            "配置文件（监控参数、阈值、服务列表等）",
+            "AWS凭证（Access Key ID、Secret Access Key或IAM Role）",
+            "运行模式（一次性分析或持续监控）",
+            "监控时间范围",
+            "特定告警ID（可选，用于一次性分析模式）"
+          ],
+          "outputs": [
+            "实时告警通知",
+            "详细分析报告（JSON/Markdown格式）",
+            "自愈脚本文件",
+            "执行说明和风险提示",
+            "汇总的AIOps运行报告"
+          ]
+        },
+        "dependencies": [
+          "AWS CloudWatch服务",
+          "AWS Bedrock LLM服务",
+          "本地文件系统（存储报告和脚本）"
+        ],
+        "implementation_notes": [
+          "基于API集成专家模板构建核心框架",
+          "集成数据分析师模板的分析功能",
+          "使用boto3库与AWS服务交互",
+          "实现缓存机制减少API调用",
+          "使用LLM增强日志分析和脚本生成",
+          "支持两种运行模式：一次性分析和持续监控"
+        ],
+        "recommended_template": "api_integration_agent"
+      }
+    ],
+    "data_models": [
+      {
+        "name": "MonitoringConfiguration",
+        "schema": "包含监控参数的配置模型，定义监控的服务、资源、指标、阈值、频率等",
+        "validation_rules": [
+          "服务类型必须是有效的AWS服务",
+          "区域必须是有效的AWS区域",
+          "指标必须是所选服务支持的CloudWatch指标",
+          "阈值必须是数值类型",
+          "时间窗口不得超过24小时"
+        ],
+        "relationships": ["与ResourceMetadata关联"]
+      },
+      {
+        "name": "ResourceMetadata",
+        "schema": "AWS资源元数据模型，包含资源ID、类型、名称、区域等信息",
+        "validation_rules": [
+          "资源ID必须符合AWS资源ID格式",
+          "资源类型必须是有效的AWS资源类型"
+        ],
+        "relationships": ["与MetricData和LogData关联"]
+      },
+      {
+        "name": "MetricData",
+        "schema": "CloudWatch指标数据模型，包含指标名称、值、时间戳、统计信息等",
+        "validation_rules": [
+          "指标名称必须是有效的CloudWatch指标",
+          "时间戳必须是有效的ISO格式",
+          "统计值必须是数值类型"
+        ],
+        "relationships": ["与ResourceMetadata和AlertEvent关联"]
+      },
+      {
+        "name": "LogData",
+        "schema": "CloudWatch日志数据模型，包含日志组、日志流、日志事件、时间戳等",
+        "validation_rules": [
+          "日志组和日志流必须存在",
+          "时间戳必须是有效的ISO格式"
+        ],
+        "relationships": ["与ResourceMetadata和RootCauseAnalysis关联"]
+      },
+      {
+        "name": "AlertEvent",
+        "schema": "告警事件模型，包含告警ID、类型、严重性、触发条件、时间戳等",
+        "validation_rules": [
+          "告警ID必须唯一",
+          "严重性必须是预定义的级别",
+          "时间戳必须是有效的ISO格式"
+        ],
+        "relationships": ["与MetricData和RootCauseAnalysis关联"]
+      },
+      {
+        "name": "RootCauseAnalysis",
+        "schema": "根因分析结果模型，包含问题描述、影响范围、根本原因、证据链、置信度等",
+        "validation_rules": [
+          "根因类型必须是预定义的类型",
+          "置信度必须是0-100的数值"
+        ],
+        "relationships": ["与AlertEvent、LogData和RemediationScript关联"]
+      },
+      {
+        "name": "RemediationScript",
+        "schema": "自愈脚本模型，包含脚本ID、类型、内容、目标资源、使用说明、风险等级等",
+        "validation_rules": [
+          "脚本ID必须唯一",
+          "脚本类型必须是支持的类型（Shell、Python、AWS CLI等）",
+          "风险等级必须是预定义的级别"
+        ],
+        "relationships": ["与RootCauseAnalysis和AnalysisReport关联"]
+      },
+      {
+        "name": "AnalysisReport",
+        "schema": "分析报告模型，包含报告ID、生成时间、问题摘要、分析结果、建议操作等",
+        "validation_rules": [
+          "报告ID必须唯一",
+          "生成时间必须是有效的ISO格式"
+        ],
+        "relationships": ["与AlertEvent、RootCauseAnalysis和RemediationScript关联"]
+      },
+      {
+        "name": "TaskMetadata",
+        "schema": "任务元数据模型，包含任务ID、类型、状态、开始时间、结束时间、处理资源等",
+        "validation_rules": [
+          "任务ID必须唯一",
+          "状态必须是预定义的状态",
+          "时间戳必须是有效的ISO格式"
+        ],
+        "relationships": ["与所有其他数据模型关联"]
+      }
+    ],
+    "interaction_flows": [
+      {
+        "name": "配置加载流程",
+        "description": "加载和验证监控配置参数",
+        "steps": [
+          {
+            "step": "读取配置文件",
+            "agent": "aws_monitoring_agent",
+            "action": "加载配置文件",
+            "data": "配置文件路径"
+          },
+          {
+            "step": "验证配置参数",
+            "agent": "aws_monitoring_agent",
+            "action": "验证参数有效性",
+            "data": "MonitoringConfiguration"
+          },
+          {
+            "step": "初始化监控上下文",
+            "agent": "aws_monitoring_agent",
+            "action": "创建监控上下文",
+            "data": "验证后的配置参数"
+          }
+        ]
+      },
+      {
+        "name": "AWS凭证验证流程",
+        "description": "验证AWS凭证并建立AWS服务连接",
+        "steps": [
+          {
+            "step": "获取AWS凭证",
+            "agent": "aws_monitoring_agent",
+            "action": "从环境变量或配置中获取凭证",
+            "data": "AWS Access Key ID、Secret Access Key或IAM Role"
+          },
+          {
+            "step": "验证凭证有效性",
+            "agent": "aws_monitoring_agent",
+            "action": "测试AWS API连接",
+            "data": "AWS凭证"
+          },
+          {
+            "step": "创建AWS服务客户端",
+            "agent": "aws_monitoring_agent",
+            "action": "初始化boto3客户端",
+            "data": "验证后的AWS凭证和区域信息"
+          }
+        ]
+      },
+      {
+        "name": "指标监控流程",
+        "description": "获取和分析CloudWatch指标数据",
+        "steps": [
+          {
+            "step": "确定监控资源",
+            "agent": "aws_monitoring_agent",
+            "action": "根据配置识别要监控的资源",
+            "data": "资源列表和类型"
+          },
+          {
+            "step": "构建指标查询",
+            "agent": "aws_monitoring_agent",
+            "action": "为每个资源构建指标查询参数",
+            "data": "资源ID、指标名称、时间范围"
+          },
+          {
+            "step": "批量获取指标",
+            "agent": "aws_monitoring_agent",
+            "action": "调用CloudWatch API获取指标数据",
+            "data": "指标查询参数"
+          },
+          {
+            "step": "处理指标数据",
+            "agent": "aws_monitoring_agent",
+            "action": "解析和标准化指标数据",
+            "data": "原始指标数据"
+          },
+          {
+            "step": "缓存指标数据",
+            "agent": "aws_monitoring_agent",
+            "action": "将指标数据存入缓存",
+            "data": "处理后的指标数据"
+          }
+        ]
+      },
+      {
+        "name": "异常检测流程",
+        "description": "检测指标异常和识别告警事件",
+        "steps": [
+          {
+            "step": "应用阈值检测",
+            "agent": "aws_monitoring_agent",
+            "action": "根据配置的阈值检查指标",
+            "data": "指标数据和阈值配置"
+          },
+          {
+            "step": "应用智能检测算法",
+            "agent": "aws_monitoring_agent",
+            "action": "使用统计分析检测非明显异常",
+            "data": "指标数据和历史趋势"
+          },
+          {
+            "step": "获取现有告警",
+            "agent": "aws_monitoring_agent",
+            "action": "查询CloudWatch现有告警",
+            "data": "资源ID和时间范围"
+          },
+          {
+            "step": "合并检测结果",
+            "agent": "aws_monitoring_agent",
+            "action": "合并阈值检测、智能检测和现有告警",
+            "data": "所有检测结果"
+          },
+          {
+            "step": "生成告警事件",
+            "agent": "aws_monitoring_agent",
+            "action": "为检测到的异常创建告警事件",
+            "data": "异常信息和元数据"
+          }
+        ]
+      },
+      {
+        "name": "日志分析流程",
+        "description": "查询和分析CloudWatch日志以确定问题根因",
+        "steps": [
+          {
+            "step": "确定日志范围",
+            "agent": "aws_monitoring_agent",
+            "action": "根据告警事件确定相关日志组和时间范围",
+            "data": "告警事件和资源信息"
+          },
+          {
+            "step": "构建日志查询",
+            "agent": "aws_monitoring_agent",
+            "action": "根据告警类型构建Logs Insights查询",
+            "data": "告警类型和查询模板"
+          },
+          {
+            "step": "执行日志查询",
+            "agent": "aws_monitoring_agent",
+            "action": "调用CloudWatch Logs API执行查询",
+            "data": "查询参数和时间范围"
+          },
+          {
+            "step": "提取关键信息",
+            "agent": "aws_monitoring_agent",
+            "action": "从日志结果中提取关键错误信息",
+            "data": "日志查询结果"
+          },
+          {
+            "step": "LLM增强分析",
+            "agent": "aws_monitoring_agent",
+            "action": "使用LLM分析复杂日志内容",
+            "data": "提取的日志信息"
+          }
+        ]
+      },
+      {
+        "name": "根因分析流程",
+        "description": "综合分析指标和日志数据，确定问题根本原因",
+        "steps": [
+          {
+            "step": "收集分析数据",
+            "agent": "aws_monitoring_agent",
+            "action": "整合指标数据和日志分析结果",
+            "data": "指标数据和日志分析结果"
+          },
+          {
+            "step": "建立时间序列关联",
+            "agent": "aws_monitoring_agent",
+            "action": "分析事件时间线和相关性",
+            "data": "时间序列数据"
+          },
+          {
+            "step": "识别错误模式",
+            "agent": "aws_monitoring_agent",
+            "action": "识别常见错误模式和特征",
+            "data": "错误信息和模式库"
+          },
+          {
+            "step": "LLM根因推断",
+            "agent": "aws_monitoring_agent",
+            "action": "使用LLM进行根因推断",
+            "data": "综合分析数据"
+          },
+          {
+            "step": "生成根因报告",
+            "agent": "aws_monitoring_agent",
+            "action": "创建结构化的根因分析报告",
+            "data": "分析结论和证据链"
+          }
+        ]
+      },
+      {
+        "name": "自愈脚本生成流程",
+        "description": "基于根因分析结果生成针对性的修复脚本",
+        "steps": [
+          {
+            "step": "确定脚本类型",
+            "agent": "aws_monitoring_agent",
+            "action": "根据问题类型确定适合的脚本类型",
+            "data": "问题类型和资源信息"
+          },
+          {
+            "step": "收集资源信息",
+            "agent": "aws_monitoring_agent",
+            "action": "获取目标资源的详细信息",
+            "data": "资源ID和类型"
+          },
+          {
+            "step": "LLM脚本生成",
+            "agent": "aws_monitoring_agent",
+            "action": "使用LLM生成修复脚本",
+            "data": "问题描述、根因和资源信息"
+          },
+          {
+            "step": "添加安全检查",
+            "agent": "aws_monitoring_agent",
+            "action": "在脚本中添加安全检查和回滚机制",
+            "data": "生成的脚本内容"
+          },
+          {
+            "step": "生成使用说明",
+            "agent": "aws_monitoring_agent",
+            "action": "创建脚本使用说明和风险提示",
+            "data": "脚本内容和目标环境"
+          },
+          {
+            "step": "保存脚本文件",
+            "agent": "aws_monitoring_agent",
+            "action": "将脚本保存为文件",
+            "data": "脚本内容和文件名"
+          }
+        ]
+      },
+      {
+        "name": "报告生成流程",
+        "description": "生成结构化的分析报告和汇总报告",
+        "steps": [
+          {
+            "step": "收集报告数据",
+            "agent": "aws_monitoring_agent",
+            "action": "整合所有分析结果和脚本信息",
+            "data": "分析结果和脚本元数据"
+          },
+          {
+            "step": "格式化JSON报告",
+            "agent": "aws_monitoring_agent",
+            "action": "创建JSON格式的结构化报告",
+            "data": "报告数据"
+          },
+          {
+            "step": "生成Markdown报告",
+            "agent": "aws_monitoring_agent",
+            "action": "创建Markdown格式的可读报告",
+            "data": "报告数据"
+          },
+          {
+            "step": "添加图表链接",
+            "agent": "aws_monitoring_agent",
+            "action": "添加指标图表的CloudWatch链接",
+            "data": "指标数据和区域信息"
+          },
+          {
+            "step": "生成汇总报告",
+            "agent": "aws_monitoring_agent",
+            "action": "创建包含所有问题的AIOps运行报告",
+            "data": "所有单独的报告"
+          },
+          {
+            "step": "保存报告文件",
+            "agent": "aws_monitoring_agent",
+            "action": "将报告保存为文件",
+            "data": "报告内容和文件名"
+          }
+        ]
+      },
+      {
+        "name": "持续监控流程",
+        "description": "在持续监控模式下定期执行监控和分析",
+        "steps": [
+          {
+            "step": "初始化监控循环",
+            "agent": "aws_monitoring_agent",
+            "action": "设置监控间隔和初始状态",
+            "data": "配置的监控频率"
+          },
+          {
+            "step": "执行监控周期",
+            "agent": "aws_monitoring_agent",
+            "action": "按计划执行指标监控流程",
+            "data": "监控配置"
+          },
+          {
+            "step": "处理检测到的问题",
+            "agent": "aws_monitoring_agent",
+            "action": "对每个检测到的问题执行分析流程",
+            "data": "检测到的告警事件"
+          },
+          {
+            "step": "更新监控状态",
+            "agent": "aws_monitoring_agent",
+            "action": "更新监控状态和历史记录",
+            "data": "处理结果和状态信息"
+          },
+          {
+            "step": "等待下一周期",
+            "agent": "aws_monitoring_agent",
+            "action": "等待直到下一个监控周期",
+            "data": "下一周期的时间"
+          }
+        ]
+      }
+    ],
+    "security_considerations": [
+      "AWS凭证安全：使用IAM Role或安全存储Access Key，避免硬编码凭证",
+      "最小权限原则：只请求必要的IAM权限，遵循最小权限原则",
+      "敏感信息保护：确保日志、报告和脚本中不包含敏感信息如密码或密钥",
+      "脚本安全：生成的脚本必须包含安全检查和回滚机制",
+      "人工审核：自愈脚本必须经过人工审核才能执行，避免自动化操作引入新问题",
+      "数据传输安全：使用HTTPS进行API调用，确保数据传输安全",
+      "输入验证：对所有配置输入进行严格验证，防止注入攻击"
+    ],
+    "error_handling": [
+      "API错误处理：实现指数退避重试机制处理AWS API调用失败",
+      "配置错误处理：提供详细的配置验证和错误提示",
+      "权限错误处理：检测并报告IAM权限不足问题",
+      "资源不存在处理：优雅处理监控资源不存在的情况",
+      "超时处理：设置合理的超时并处理长时间运行的操作",
+      "LLM调用失败处理：提供备用分析方法当LLM服务不可用",
+      "日志查询失败处理：实现备用查询策略当主查询失败",
+      "状态恢复：支持从中断点恢复操作，避免数据丢失"
+    ],
+    "performance_considerations": [
+      "批量API调用：使用批量API调用减少请求次数",
+      "缓存机制：实现多级缓存减少重复查询",
+      "查询优化：优化CloudWatch Logs查询减少扫描数据量",
+      "并发处理：使用并发处理多个资源的监控任务",
+      "资源分批：大量资源时实现分批处理避免内存溢出",
+      "增量处理：实现增量处理避免重复分析已处理的告警",
+      "超时控制：为每个操作设置合理的超时时间",
+      "资源限制：实现资源使用限制，避免过度消耗系统资源"
+    ],
+    "monitoring_strategy": [
+      "操作日志：记录所有关键操作和决策过程",
+      "性能指标：跟踪API调用延迟和处理时间",
+      "错误跟踪：记录所有错误和异常情况",
+      "资源使用：监控内存和CPU使用情况",
+      "成功率：跟踪各流程的成功率和失败原因",
+      "LLM使用：监控LLM API调用次数和token使用量",
+      "自愈脚本质量：跟踪生成脚本的审核通过率",
+      "自我诊断：实现自我健康检查机制"
+    ]
+  },
+  "design_rationale": "本设计采用单Agent架构，主要基于以下考虑：1) 功能逻辑紧密相关，各模块间需要频繁数据交换，单Agent架构可减少通信开销；2) 监控和分析流程具有明确的顺序性，适合在单一控制流中处理；3) 单Agent架构简化部署和配置，降低维护复杂度；4) 数据共享更直接，无需复杂的状态同步机制。\n\n设计中推荐使用API集成专家模板作为基础，因为它提供了与外部API服务交互的完整框架，非常适合与AWS CloudWatch API集成。同时结合数据分析师模板的分析功能，增强系统的数据处理和分析能力。\n\n系统采用模块化设计，将功能划分为多个核心模块：监控数据收集器、异常检测器、日志分析器、根因分析器、自愈脚本生成器和报告生成器。这种设计使各模块职责清晰，便于开发和维护，同时保持了良好的可扩展性。\n\n为了满足性能和成本要求，设计中特别强调了缓存机制、批量处理和增量处理，以减少API调用次数和数据处理量。同时，通过配置驱动设计，使系统具有高度的灵活性，能够适应不同的监控需求和环境。\n\n安全性是设计的重要考量，包括AWS凭证安全、最小权限原则、敏感信息保护和脚本安全等多个方面。特别是自愈脚本生成功能，设计中明确要求包含安全检查和回滚机制，并强制人工审核，以防止自动化操作引入新问题。\n\n总体而言，本设计旨在提供一个功能完整、性能高效、安全可靠的AWS CloudWatch智能监控与AIOps系统，能够满足需求文档中列出的所有功能和技术要求。"
+}

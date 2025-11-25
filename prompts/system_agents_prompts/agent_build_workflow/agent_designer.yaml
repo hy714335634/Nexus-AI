@@ -55,6 +55,12 @@ agent:
         - 使用AWS Bedrock作为AI推理引擎
         - Python 3.13+开发环境
         - 基于AWS boto3 SDK与AWS服务和查询接口进行集成
+
+        模板选择指南：
+        - 优先使用 search_templates_with_graphrag 工具进行智能模板搜索
+        - 该工具使用知识图谱和语义搜索，能够理解任务描述并推荐最合适的模板
+        - 相比简单的关键词搜索，GraphRAG能够考虑行业、功能、依赖关系等多维度信息
+        - 如果GraphRAG搜索不可用，可回退到传统的标签或关键词搜索方法
         
         输出格式要求：
         生成的智能体设计文档必须严格按照以下JSON格式，不要包含任何markdown格式或其他内容：
@@ -219,6 +225,7 @@ agent:
           - "strands_tools/current_time"
           # - "strands_tools/think"
           - "system_tools/agent_build_workflow/agent_developer_team_members/agent_template_searcher"
+          - "system_tools/agent_build_workflow/agent_template_provider/search_templates_with_graphrag"
           - "system_tools/agent_build_workflow/agent_template_provider/get_template_content"
           - "system_tools/agent_build_workflow/prompt_template_provider/list_prompt_templates"
           - "system_tools/agent_build_workflow/prompt_template_provider/get_prompt_template"
@@ -270,6 +277,12 @@ agent:
         - 使用AWS Bedrock作为AI推理引擎
         - Python 3.13+开发环境
         - 基于AWS boto3 SDK与AWS服务和查询接口进行集成
+
+        模板选择指南：
+        - 优先使用 search_templates_with_graphrag 工具进行智能模板搜索
+        - 该工具使用知识图谱和语义搜索，能够理解任务描述并推荐最合适的模板
+        - 相比简单的关键词搜索，GraphRAG能够考虑行业、功能、依赖关系等多维度信息
+        - 如果GraphRAG搜索不可用，可回退到传统的标签或关键词搜索方法
         
         输出格式要求：
         生成的智能体设计文档必须严格按照以下JSON格式，不要包含任何markdown格式或其他内容：
@@ -436,6 +449,7 @@ agent:
           # - "strands_tools/think"
           # - "strands_tools/think"
           - "system_tools/agent_build_workflow/agent_template_provider/get_all_templates"
+          - "system_tools/agent_build_workflow/agent_template_provider/search_templates_with_graphrag"
           - "system_tools/agent_build_workflow/agent_template_provider/get_template_content"
           - "system_tools/agent_build_workflow/prompt_template_provider/list_prompt_templates"
           - "system_tools/agent_build_workflow/prompt_template_provider/get_prompt_template"

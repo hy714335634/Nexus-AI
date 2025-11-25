@@ -132,12 +132,18 @@ class AgentTemplateIndexer:
             'type': 'agent_template',
             'tags': agent_data.get('tags', []),
             # 分类信息
-            'core_functions': classification.get('core_functions', []),
-            'business_scenario': classification.get('business_scenario', ''),
-            'business_scenario_cn': classification.get('business_scenario_cn', ''),
-            'industries': classification.get('industries', []),
-            'subcategories': classification.get('subcategories', []),
-            'use_cases': classification.get('use_cases', [])
+            # 'core_functions': classification.get('core_functions', []),
+            # 'business_scenario': classification.get('business_scenario', ''),
+            # 'business_scenario_cn': classification.get('business_scenario_cn', ''),
+            # 'industries': classification.get('industries', []),
+            # 'subcategories': classification.get('subcategories', []),
+            # 'use_cases': classification.get('use_cases', []),
+            # Agent 配置数据（用于实际调用）
+            'description': agent_data.get('description', ''),
+            'agent_dependencies': agent_data.get('agent_dependencies', []),
+            'tools_dependencies': agent_data.get('tools_dependencies', []),
+            'path': agent_data.get('path', ''),
+            'prompt_template': agent_data.get('prompt_template', '')
         }
 
         return Document(

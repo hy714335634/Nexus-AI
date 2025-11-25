@@ -1,0 +1,62 @@
+agents: {}
+created_at: '2025-11-06T08:02:12.909047+00:00'
+last_updated: '2025-11-06T08:02:12.909052+00:00'
+project: aws_monitoring_aiops_agent
+project_info:
+- agents:
+  - created_date: '2025-11-06T08:02:41.248979+00:00'
+    description: 智能体：aws_monitoring_aiops_agent
+    last_updated: '2025-11-09T08:59:38.469850+00:00'
+    name: aws_monitoring_aiops_agent
+    pipeline:
+    - description: 需求分析阶段 - 分析用户需求，定义功能规格
+      doc_path: agents/aws_monitoring_aiops_agent/requirements_analyzer.json
+      stage: requirements_analyzer
+      status: true
+      updated_date: '2025-11-09T08:39:14.740028+00:00'
+    - description: 系统架构设计阶段 - 设计系统架构和技术方案
+      doc_path: agents/aws_monitoring_aiops_agent/system_architect.json
+      stage: system_architect
+      status: true
+      updated_date: '2025-11-09T08:42:35.564650+00:00'
+    - description: Agent设计阶段 - 设计智能体结构和交互模式
+      doc_path: agents/aws_monitoring_aiops_agent/agent_designer.json
+      stage: agent_designer
+      status: true
+      updated_date: '2025-11-09T08:43:51.306610+00:00'
+    - agent_artifact_path:
+      - generated_agents_prompts/aws_monitoring_aiops_agent/aws_monitoring_aiops_agent.yaml
+      description: 提示词工程阶段 - 设计和优化提示词模板
+      doc_path: agents/aws_monitoring_aiops_agent/prompt_engineer.json
+      stage: prompt_engineer
+      status: true
+      updated_date: '2025-11-09T08:59:29.737937+00:00'
+    - agent_artifact_path:
+      - generated_tools/aws_monitoring_aiops_agent/aws_cloudwatch_tools.py
+      - generated_tools/aws_monitoring_aiops_agent/log_analysis_tools.py
+      - generated_tools/aws_monitoring_aiops_agent/task_cache_tools.py
+      description: 工具开发阶段 - 开发必要的工具和函数
+      doc_path: agents/aws_monitoring_aiops_agent/tools_developer.json
+      stage: tools_developer
+      status: true
+      updated_date: '2025-11-09T08:59:24.836996+00:00'
+    - agent_artifact_path:
+      - agents/generated_agents/aws_monitoring_aiops_agent/aws_monitoring_aiops_agent.py
+      description: Agent代码开发阶段 - 实现智能体代码
+      doc_path: agents/aws_monitoring_aiops_agent/agent_code_developer.json
+      stage: agent_code_developer
+      status: true
+      updated_date: '2025-11-09T08:59:34.658176+00:00'
+    - description: Agent开发管理阶段 - 管理和协调开发流程
+      doc_path: agents/aws_monitoring_aiops_agent/agent_developer_manager.json
+      stage: agent_developer_manager
+      status: true
+      updated_date: '2025-11-09T08:59:38.469853+00:00'
+  description: 智能监控与AIOps Agent，自动监控AWS CloudWatch指标、分析日志并生成自愈脚本
+  last_updated: '2025-11-09T08:59:38.469833+00:00'
+  name: aws_monitoring_aiops_agent
+  progress:
+  - completed: 7
+    total: 7
+  version: 1.0.0
+status: initialized

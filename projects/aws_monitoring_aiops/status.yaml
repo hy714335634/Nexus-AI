@@ -1,0 +1,94 @@
+agents: {}
+created_at: '2025-11-05T13:46:22.412254+00:00'
+last_updated: '2025-11-05T13:46:22.412261+00:00'
+project: aws_monitoring_aiops
+project_info:
+- agents:
+  - created_date: '2025-11-05T13:47:19.738017+00:00'
+    description: 智能体：aws_monitoring_aiops_agent
+    last_updated: '2025-11-05T13:47:19.738061+00:00'
+    name: aws_monitoring_aiops_agent
+    pipeline:
+    - description: 需求分析阶段 - 分析用户需求，定义功能规格
+      doc_path: agents/aws_monitoring_aiops_agent/requirements_analyzer.json
+      stage: requirements_analyzer
+      status: false
+      updated_date: '2025-11-05T13:47:19.738067+00:00'
+    - description: 系统架构设计阶段 - 设计系统架构和技术方案
+      doc_path: ''
+      stage: system_architect
+      status: false
+      updated_date: null
+    - description: Agent设计阶段 - 设计智能体结构和交互模式
+      doc_path: ''
+      stage: agent_designer
+      status: false
+      updated_date: null
+    - description: 提示词工程阶段 - 设计和优化提示词模板
+      doc_path: ''
+      stage: prompt_engineer
+      status: false
+      updated_date: null
+    - description: 工具开发阶段 - 开发必要的工具和函数
+      doc_path: ''
+      stage: tools_developer
+      status: false
+      updated_date: null
+    - description: Agent代码开发阶段 - 实现智能体代码
+      doc_path: ''
+      stage: agent_code_developer
+      status: false
+      updated_date: null
+    - description: Agent开发管理阶段 - 管理和协调开发流程
+      doc_path: ''
+      stage: agent_developer_manager
+      status: false
+      updated_date: null
+  - created_date: '2025-11-09T07:36:23.039177+00:00'
+    description: 智能体：aws_monitoring_agent
+    last_updated: '2025-11-09T07:44:33.621746+00:00'
+    name: aws_monitoring_agent
+    pipeline:
+    - description: 需求分析阶段 - 分析用户需求，定义功能规格
+      doc_path: agents/aws_monitoring_agent/requirements_analyzer.json
+      stage: requirements_analyzer
+      status: true
+      updated_date: '2025-11-09T07:37:58.133672+00:00'
+    - description: 系统架构设计阶段 - 设计系统架构和技术方案
+      doc_path: agents/aws_monitoring_agent/system_architect.json
+      stage: system_architect
+      status: true
+      updated_date: '2025-11-09T07:41:42.198857+00:00'
+    - description: Agent设计阶段 - 设计智能体结构和交互模式
+      doc_path: agents/aws_monitoring_agent/agent_designer.json
+      stage: agent_designer
+      status: true
+      updated_date: '2025-11-09T07:44:33.621764+00:00'
+    - description: 提示词工程阶段 - 设计和优化提示词模板
+      doc_path: ''
+      stage: prompt_engineer
+      status: false
+      updated_date: null
+    - description: 工具开发阶段 - 开发必要的工具和函数
+      doc_path: ''
+      stage: tools_developer
+      status: false
+      updated_date: null
+    - description: Agent代码开发阶段 - 实现智能体代码
+      doc_path: ''
+      stage: agent_code_developer
+      status: false
+      updated_date: null
+    - description: Agent开发管理阶段 - 管理和协调开发流程
+      doc_path: ''
+      stage: agent_developer_manager
+      status: false
+      updated_date: null
+  description: AWS CloudWatch智能监控与AIOps系统，用于自动监控指标、分析日志并生成自愈脚本
+  last_updated: '2025-11-09T07:44:33.621725+00:00'
+  name: aws_monitoring_aiops
+  progress:
+  - completed: 3
+    total: 14
+  version: 1.0.0
+status: initialized

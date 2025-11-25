@@ -1,0 +1,7 @@
+nexus_graphrag:
+  neptune_endpoint: "graphrag-toolkit-cluster.cluster-c9m8ameewg4p.us-east-1.neptune.amazonaws.com"
+  vector_endpoint: "https://e7d817u9qpa3uf4pbtmk.us-east-1.aoss.amazonaws.com"
+  
+  models:
+    extraction_llm: "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
+    response_llm: "us.anthropic.claude-3-7-sonnet-20250219-v1:0"

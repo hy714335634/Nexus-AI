@@ -1,0 +1,331 @@
+{
+  "agent_code_development": {
+    "development_overview": {
+      "project_name": "aws_monitoring_aiops_agent",
+      "version": "1.0",
+      "date": "2025-11-09",
+      "development_scope": "开发AWS CloudWatch智能监控与AIOps Agent，实现自动监控AWS CloudWatch指标、分析日志、检测异常、根因分析和自愈脚本生成功能",
+      "design_principles": [
+        "模块化设计：将功能划分为清晰的模块，便于维护和扩展",
+        "配置驱动：通过配置文件控制Agent行为，无需修改代码",
+        "错误处理：实现健壮的错误处理和恢复机制",
+        "灵活性：支持一次性分析和持续监控两种运行模式",
+        "可扩展性：设计支持未来添加更多AWS服务和功能"
+      ],
+      "key_decisions": [
+        "使用AWSMonitoringAIOpsAgent类封装所有功能，提供清晰的API",
+        "基于api_integration_agent模板进行定制开发",
+        "实现两种运行模式：一次性分析和持续监控",
+        "使用JSON格式进行Agent与工具间的数据交换",
+        "提供命令行接口支持不同的使用场景"
+      ]
+    },
+    "agent_implementation": {
+      "agent_name": "aws_monitoring_aiops_agent",
+      "file_path": "agents/generated_agents/aws_monitoring_aiops_agent/aws_monitoring_aiops_agent.py",
+      "main_class": "AWSMonitoringAIOpsAgent",
+      "entry_point": "create_aws_monitoring_agent",
+      "dependencies": [
+        "nexus_utils.agent_factory",
+        "strands.telemetry",
+        "json",
+        "os",
+        "time",
+        "datetime",
+        "argparse"
+      ],
+      "imports": [
+        "os",
+        "json",
+        "argparse",
+        "time",
+        "datetime",
+        "typing",
+        "nexus_utils.agent_factory",
+        "strands.telemetry"
+      ]
+    },
+    "core_functions": [
+      {
+        "function_name": "__init__",
+        "purpose": "初始化AWS监控AIOps Agent实例",
+        "parameters": [
+          {
+            "name": "config_file",
+            "type": "Optional[str]",
+            "description": "配置文件路径，如果不提供则使用默认配置",
+            "required": false
+          }
+        ],
+        "return_type": "None",
+        "return_description": "无返回值",
+        "implementation_notes": [
+          "加载配置文件或使用默认配置",
+          "初始化Agent实例"
+        ]
+      },
+      {
+        "function_name": "_load_config",
+        "purpose": "加载配置文件",
+        "parameters": [
+          {
+            "name": "config_file",
+            "type": "Optional[str]",
+            "description": "配置文件路径",
+            "required": true
+          }
+        ],
+        "return_type": "Dict[str, Any]",
+        "return_description": "配置字典",
+        "implementation_notes": [
+          "定义默认配置",
+          "如果提供了配置文件，则加载并合并配置",
+          "处理配置文件加载失败的情况"
+        ]
+      },
+      {
+        "function_name": "_initialize_agent",
+        "purpose": "初始化Agent实例",
+        "parameters": [],
+        "return_type": "Agent",
+        "return_description": "创建的Agent实例",
+        "implementation_notes": [
+          "从配置中获取Agent参数",
+          "使用agent_factory创建agent实例"
+        ]
+      },
+      {
+        "function_name": "analyze_alarm",
+        "purpose": "一次性分析模式：分析特定告警",
+        "parameters": [
+          {
+            "name": "alarm_info",
+            "type": "Dict[str, Any]",
+            "description": "告警信息字典，包含告警ID、名称、时间等",
+            "required": true
+          },
+          {
+            "name": "region",
+            "type": "Optional[str]",
+            "description": "AWS区域，如果不提供则使用配置中的默认区域",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "分析结果和建议",
+        "implementation_notes": [
+          "构建分析请求",
+          "调用Agent进行分析",
+          "返回分析结果"
+        ]
+      },
+      {
+        "function_name": "analyze_issue",
+        "purpose": "一次性分析模式：分析特定问题",
+        "parameters": [
+          {
+            "name": "issue_description",
+            "type": "str",
+            "description": "问题描述",
+            "required": true
+          },
+          {
+            "name": "resources",
+            "type": "List[str]",
+            "description": "相关资源列表",
+            "required": true
+          },
+          {
+            "name": "region",
+            "type": "Optional[str]",
+            "description": "AWS区域，如果不提供则使用配置中的默认区域",
+            "required": false
+          },
+          {
+            "name": "time_window_hours",
+            "type": "int",
+            "description": "分析时间窗口（小时）",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "分析结果和建议",
+        "implementation_notes": [
+          "计算时间窗口",
+          "构建分析请求",
+          "调用Agent进行分析",
+          "返回分析结果"
+        ]
+      },
+      {
+        "function_name": "start_continuous_monitoring",
+        "purpose": "启动持续监控模式",
+        "parameters": [
+          {
+            "name": "regions",
+            "type": "List[str]",
+            "description": "要监控的AWS区域列表",
+            "required": true
+          },
+          {
+            "name": "resources",
+            "type": "Dict[str, List[str]]",
+            "description": "要监控的资源字典，键为资源类型，值为资源ID列表",
+            "required": true
+          },
+          {
+            "name": "duration_minutes",
+            "type": "Optional[int]",
+            "description": "监控持续时间（分钟），如果不提供则持续运行直到中断",
+            "required": false
+          }
+        ],
+        "return_type": "None",
+        "return_description": "无返回值",
+        "implementation_notes": [
+          "设置监控参数",
+          "循环执行监控",
+          "处理监控结果",
+          "支持手动中断"
+        ]
+      },
+      {
+        "function_name": "_get_time_window_for_alarm",
+        "purpose": "根据告警信息计算合适的时间窗口",
+        "parameters": [
+          {
+            "name": "alarm_info",
+            "type": "Dict[str, Any]",
+            "description": "告警信息字典",
+            "required": true
+          }
+        ],
+        "return_type": "Dict[str, str]",
+        "return_description": "包含开始时间和结束时间的字典",
+        "implementation_notes": [
+          "从告警信息中获取时间",
+          "设置合适的时间窗口",
+          "返回格式化的时间窗口"
+        ]
+      },
+      {
+        "function_name": "create_aws_monitoring_agent",
+        "purpose": "创建AWS监控AIOps Agent实例的便捷函数",
+        "parameters": [
+          {
+            "name": "config_file",
+            "type": "Optional[str]",
+            "description": "配置文件路径，如果不提供则使用默认配置",
+            "required": false
+          }
+        ],
+        "return_type": "AWSMonitoringAIOpsAgent",
+        "return_description": "AWSMonitoringAIOpsAgent实例",
+        "implementation_notes": [
+          "创建并返回AWSMonitoringAIOpsAgent实例"
+        ]
+      }
+    ],
+    "tool_integration": {
+      "custom_tools": [
+        "boto3_cloudwatch_client",
+        "boto3_logs_client",
+        "cloudwatch_logs_insights_query",
+        "llm_log_analyzer",
+        "script_generator",
+        "report_formatter",
+        "task_manager",
+        "cache_manager"
+      ],
+      "system_tools": [
+        "current_time",
+        "calculator",
+        "file_read"
+      ],
+      "strands_tools": [
+        "StrandsTelemetry"
+      ],
+      "integration_notes": [
+        "通过提示词模板中的工具依赖列表集成所有工具",
+        "工具由Agent内部调用，不需要在代码中显式引用",
+        "使用JSON格式进行工具间的数据交换",
+        "所有工具错误由Agent内部处理"
+      ]
+    },
+    "configuration": {
+      "environment_variables": [
+        "BYPASS_TOOL_CONSENT",
+        "OTEL_EXPORTER_OTLP_ENDPOINT"
+      ],
+      "model_configuration": {
+        "model_name": "Claude 3 Opus",
+        "max_tokens": 60000,
+        "temperature": 0.3,
+        "top_p": 0.8
+      },
+      "streaming_config": {
+        "enabled": true,
+        "chunk_size": 1024
+      }
+    },
+    "error_handling": {
+      "exception_types": [
+        "JSON解析错误",
+        "文件读写错误",
+        "API调用错误",
+        "配置错误",
+        "网络连接错误"
+      ],
+      "error_responses": [
+        "配置文件加载失败时使用默认配置",
+        "监控迭代失败时记录错误并继续",
+        "资源文件加载失败时退出程序"
+      ],
+      "recovery_strategies": [
+        "自动重试API调用",
+        "指数退避重试策略",
+        "优雅处理中断信号"
+      ]
+    },
+    "testing": {
+      "test_cases": [
+        "分析特定告警",
+        "分析自定义问题",
+        "启动持续监控",
+        "加载自定义配置"
+      ],
+      "test_scenarios": [
+        "EC2实例CPU使用率过高",
+        "RDS数据库连接数激增",
+        "Lambda函数错误率增加",
+        "ELB健康检查失败"
+      ],
+      "validation_criteria": [
+        "正确识别问题类型",
+        "准确定位根本原因",
+        "生成有效的修复脚本",
+        "提供清晰的分析报告"
+      ]
+    },
+    "deployment": {
+      "deployment_requirements": [
+        "Python 3.13+",
+        "AWS凭证配置",
+        "适当的IAM权限",
+        "网络连接到AWS服务"
+      ],
+      "runtime_dependencies": [
+        "nexus_utils",
+        "strands",
+        "boto3"
+      ],
+      "performance_considerations": [
+        "大规模环境中的资源优先级管理",
+        "长时间运行的监控任务内存管理",
+        "API调用频率限制",
+        "日志查询数据量限制"
+      ]
+    },
+    "development_notes": "在开发AWS监控AIOps Agent时，我采用了模块化设计原则，将功能封装在AWSMonitoringAIOpsAgent类中，提供清晰的API接口。代码实现了两种运行模式：一次性分析和持续监控，以满足不同场景的需求。为了提高可配置性，实现了配置文件加载机制，允许用户自定义Agent行为。命令行接口设计支持不同的使用场景，包括告警分析、问题分析和持续监控。在错误处理方面，实现了健壮的异常捕获和恢复机制，确保Agent在各种情况下都能稳定运行。工具集成方面，通过提示词模板中的工具依赖列表集成了所有自定义工具和系统工具，使Agent能够执行复杂的监控和分析任务。整体代码结构清晰，注释完善，遵循Python最佳实践，便于维护和扩展。"
+  }
+}
