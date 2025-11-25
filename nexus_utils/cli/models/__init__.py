@@ -6,6 +6,7 @@ from .template import Template
 from .prompt import Prompt
 from .tool import Tool
 from .common import Dependency, DirectoryTree, ValidationResult
+from .backup import Backup, BackupManifest
 
 __all__ = [
     'Project',
@@ -19,4 +20,6 @@ __all__ = [
     'Dependency',
     'DirectoryTree',
     'ValidationResult',
+    'Backup',
+    'BackupManifest',
 ]

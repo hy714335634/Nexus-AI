@@ -35,15 +35,34 @@ def run_specific_test(test_name):
     
     return 0 if result.wasSuccessful() else 1
 
+def run_backup_tests():
+    """运行备份和恢复测试"""
+    loader = unittest.TestLoader()
+    suite = loader.loadTestsFromName('tests.test_backup_restore')
+    
+    runner = unittest.TextTestRunner(verbosity=2)
+    result = runner.run(suite)
+    
+    return 0 if result.wasSuccessful() else 1
+
 if __name__ == '__main__':
     if len(sys.argv) > 1:
-        # 运行特定测试
-        test_name = sys.argv[1]
-        print(f"运行测试: {test_name}")
-        exit_code = run_specific_test(test_name)
+        test_arg = sys.argv[1]
+        
+        if test_arg == 'backup':
+            # 运行备份测试
+            print("运行备份和恢复测试...")
+            print("=" * 70)
+            exit_code = run_backup_tests()
+        else:
+            # 运行特定测试
+            print(f"运行测试: {test_arg}")
+            exit_code = run_specific_test(test_arg)
     else:
         # 运行所有测试
         print("运行所有CLI测试...")
+        print("=" * 70)
+        print("提示: 使用 'python run_tests.py backup' 只运行备份测试")
         print("=" * 70)
         exit_code = run_all_tests()
     

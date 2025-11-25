@@ -60,3 +60,4 @@ api/.env
 #
 venv
 venv/*
+nexus_utils/cli/docs

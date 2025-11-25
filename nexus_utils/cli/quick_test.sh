@@ -81,6 +81,18 @@ run_test "项目命令帮助" "$CLI_CMD project --help"
 # 测试 11: agents help
 run_test "Agent命令帮助" "$CLI_CMD agents --help"
 
+# 测试 12: backup list
+run_test "备份列表" "$CLI_CMD backup list"
+
+# 测试 13: backup list --output json
+run_test "备份列表(JSON)" "$CLI_CMD backup list --output json"
+
+# 测试 14: backup help
+run_test "备份命令帮助" "$CLI_CMD backup --help"
+
+# 测试 15: 路径映射逻辑测试
+run_test "路径映射逻辑" "python3 $NEXUS_ROOT/nexus_utils/cli/test_restore_logic.py"
+
 echo ""
 echo "================================"
 echo "📊 测试结果汇总"
