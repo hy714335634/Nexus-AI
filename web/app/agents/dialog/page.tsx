@@ -71,12 +71,21 @@ export default function AgentDialogPage() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamError, setStreamError] = useState<string | null>(null);
   const [autoSessionRequested, setAutoSessionRequested] = useState(false);
+  const [agentLimit, setAgentLimit] = useState(50);
+  const [hasMoreAgents, setHasMoreAgents] = useState(false);
 
   // Load agents list
   const agentsQuery = useQuery({
-    queryKey: ['dialog-agents'],
-    queryFn: () => fetchAgentsList(200),
+    queryKey: ['dialog-agents', agentLimit],
+    queryFn: () => fetchAgentsList(agentLimit),
   });
+
+  // Check if there are more agents to load
+  useEffect(() => {
+    if (agentsQuery.data) {
+      setHasMoreAgents(agentsQuery.data.length >= agentLimit);
+    }
+  }, [agentsQuery.data, agentLimit]);
 
   // Load sessions for active agent
   const sessionsQuery = useQuery({
@@ -206,6 +215,10 @@ export default function AgentDialogPage() {
     setStreamError(null);
     setInputValue('');
     setContext(null);
+  };
+
+  const handleLoadMoreAgents = () => {
+    setAgentLimit((prev) => prev + 50);
   };
 
   const handleSend = async () => {
@@ -410,7 +423,17 @@ export default function AgentDialogPage() {
     <div className={styles.page}>
       <aside className={styles.sidebar}>
         <section className={styles.agentSection}>
-          <div className={styles.sidebarTitle}>Agent 列表</div>
+          <div className={styles.sidebarHeader}>
+            <div className={styles.sidebarTitle}>Agent 列表</div>
+            {agentsQuery.isLoading ? (
+              <div className={styles.loadingText}>加载中...</div>
+            ) : (
+              <div className={styles.agentCount}>
+                共 {agentItems.length} 个
+                {hasMoreAgents ? '+' : ''}
+              </div>
+            )}
+          </div>
           <div className={styles.agentList}>
             {agentItems.map((agent) => (
               <button
@@ -425,12 +448,26 @@ export default function AgentDialogPage() {
                 </div>
               </button>
             ))}
-            {!agentItems.length ? <div className={styles.emptyState}>暂无可用 Agent。</div> : null}
+            {!agentItems.length && !agentsQuery.isLoading ? (
+              <div className={styles.emptyState}>暂无可用 Agent。</div>
+            ) : null}
           </div>
+          {hasMoreAgents && !agentsQuery.isFetching ? (
+            <button
+              type="button"
+              className={styles.loadMoreButton}
+              onClick={handleLoadMoreAgents}
+            >
+              加载更多
+            </button>
+          ) : null}
+          {agentsQuery.isFetching && agentItems.length > 0 ? (
+            <div className={styles.loadingText}>加载中...</div>
+          ) : null}
         </section>
 
         <section className={styles.sessionSection}>
-          <div className={styles.sidebarHeader}>
+          <div className={styles.sessionHeader}>
             <div className={styles.sidebarTitle}>会话列表</div>
             <div className={styles.sessionActions}>
               <button
@@ -491,12 +528,7 @@ export default function AgentDialogPage() {
                   value={activeAgentId ?? ''}
                   onChange={(event) => handleAgentSwitch(event.target.value)}
                   disabled={!agentItems.length}
-                  style={{
-                    padding: '8px 12px',
-                    borderRadius: 12,
-                    border: '1px solid rgba(99, 102, 241, 0.25)',
-                    background: 'rgba(248, 250, 255, 0.85)',
-                  }}
+                  className={styles.agentSelect}
                 >
                   <option value="" disabled>
                     {agentItems.length ? '请选择一个 Agent 开始对话' : '暂无可用 Agent'}

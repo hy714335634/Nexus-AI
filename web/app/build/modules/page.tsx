@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import styles from './modules.module.css';
@@ -323,6 +323,8 @@ export default function BuildModulesPage() {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterKey>('all');
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const allTasksRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     if (!projectSummaries?.length || !projectId) {
@@ -340,6 +342,22 @@ export default function BuildModulesPage() {
     },
     [router],
   );
+
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      await refetchDashboard();
+      toast.success('刷新成功');
+    } catch (error) {
+      toast.error('刷新失败，请重试');
+    } finally {
+      setTimeout(() => setIsRefreshing(false), 500);
+    }
+  }, [refetchDashboard]);
+
+  const scrollToAllTasks = useCallback(() => {
+    allTasksRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, []);
 
   const filteredProjects = useMemo(() => {
     if (!projectSummaries) {
@@ -441,9 +459,34 @@ export default function BuildModulesPage() {
     dashboard?.stages.find((stage) => stage.status === 'running') ??
     dashboard?.stages.find((stage) => stage.status === 'pending');
 
+  const getCurrentStageName = () => {
+    if (!dashboard?.stages?.length) return '等待启动';
+
+    const runningStage = dashboard.stages.find((stage) => stage.status === 'running');
+    if (runningStage) {
+      const definition = STAGE_DEFINITIONS.find((def) => def.id === runningStage.name);
+      return definition ? definition.title.split('·')[1]?.trim() || definition.title : runningStage.name;
+    }
+
+    const completedCount = dashboard.stages.filter((stage) => stage.status === 'completed').length;
+    const totalCount = dashboard.stages.length;
+
+    if (completedCount === totalCount) {
+      return '全部完成';
+    } else if (completedCount > 0) {
+      const nextStage = dashboard.stages.find((stage) => stage.status === 'pending');
+      if (nextStage) {
+        const definition = STAGE_DEFINITIONS.find((def) => def.id === nextStage.name);
+        return `准备中: ${definition ? definition.title.split('·')[1]?.trim() || definition.title : nextStage.name}`;
+      }
+    }
+
+    return '等待启动';
+  };
+
   const moduleMeta = [
     { label: '构建编号', value: dashboard?.projectId ?? selectedProject?.projectId ?? '—' },
-    { label: '当前阶段', value: activeStage?.displayName ?? activeStage?.name ?? '等待启动' },
+    { label: '当前阶段', value: getCurrentStageName() },
     { label: '最近更新', value: dashboard?.updatedAt ? formatDateTime(dashboard.updatedAt) : '—' },
   ];
 
@@ -529,7 +572,7 @@ export default function BuildModulesPage() {
             <button
               type="button"
               className={`${styles.button} ${styles.buttonSecondary}`}
-              onClick={() => toast('正在打开构建历史…')}
+              onClick={scrollToAllTasks}
             >
               📋 构建历史
             </button>
@@ -557,7 +600,7 @@ export default function BuildModulesPage() {
 
       <section className={styles.workflowCard}>
         <div className={styles.workflowHeader}>
-          <div className={styles.workflowTitle}>🚀 Agent Build Workflow</div>
+          <div className={styles.workflowTitle}>🚀 当前构建概览</div>
           <div className={styles.workflowVersion}>
             最近更新：{dashboard.updatedAt ? formatDateTime(dashboard.updatedAt) : '—'}
           </div>
@@ -570,15 +613,71 @@ export default function BuildModulesPage() {
             </div>
           ))}
         </div>
-        <div className={styles.workflowFeatures}>
-          <div className={styles.featuresTitle}>🔧 工作流特性</div>
-          <div className={styles.featuresGrid}>
-            {workflowFeatures.map((feature) => (
-              <div key={feature} className={styles.featureItem}>
-                {feature}
-              </div>
-            ))}
+      </section>
+
+      <section className={styles.stageSection}>
+        <div className={styles.sectionHeader}>
+          <div>
+            <div className={styles.sectionTitle}>🎯 构建阶段详情</div>
+            <div className={styles.sectionSubtitle}>
+              当前项目：{projectDisplayName} · 共 {stageCards.length} 个阶段
+            </div>
           </div>
+          <div className={styles.sectionActions}>
+            <button
+              type="button"
+              className={`${styles.button} ${styles.buttonSecondary}`}
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              style={{ opacity: isRefreshing ? 0.6 : 1 }}
+            >
+              {isRefreshing ? '⏳ 刷新中...' : '🔄 刷新'}
+            </button>
+          </div>
+        </div>
+        <div className={styles.stageList}>
+          {stageCards.length > 0 ? (
+            stageCards.map((card) => (
+              <div key={card.id} className={styles.stageCard}>
+                <div className={styles.stageIcon}>{card.icon}</div>
+                <div className={styles.stageBody}>
+                  <div className={styles.stageHeaderRow}>
+                    <div>
+                      <div className={styles.stageTitle}>{card.title}</div>
+                      {card.description && <div className={styles.stageDescription}>{card.description}</div>}
+                    </div>
+                    <div
+                      className={`${styles.stageStatus} ${
+                        styles[`stageStatus${card.statusClass}` as const] ?? ''
+                      }`}
+                    >
+                      {card.statusLabel}
+                    </div>
+                  </div>
+                  {card.metrics.length > 0 && (
+                    <div className={styles.stageMetaRow}>
+                      {card.metrics.map((metric, index) => (
+                        <div key={index} className={styles.stageMetric}>
+                          {metric}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {card.metadata.length > 0 && (
+                    <div className={styles.stageMetaList}>
+                      {card.metadata.map((meta, index) => (
+                        <div key={index} className={styles.stageMeta}>
+                          {meta}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className={styles.emptyList}>暂无构建阶段数据，请等待构建启动。</div>
+          )}
         </div>
       </section>
 
@@ -606,19 +705,21 @@ export default function BuildModulesPage() {
         </div>
       </section>
 
-      <section className={styles.buildProgressCard}>
+      <section ref={allTasksRef} className={styles.buildProgressCard}>
         <div className={styles.progressHeader}>
           <div>
-            <div className={styles.progressTitle}>📊 构建进度监控</div>
+            <div className={styles.progressTitle}>📋 所有构建任务</div>
             <div className={styles.progressSubtitle}>当前共 {filteredProjects.length} 个任务符合筛选条件</div>
           </div>
           <div className={styles.progressActions}>
             <button
               type="button"
               className={`${styles.button} ${styles.buttonSecondary}`}
-              onClick={() => refetchDashboard()}
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              style={{ opacity: isRefreshing ? 0.6 : 1 }}
             >
-              🔄 刷新
+              {isRefreshing ? '⏳ 刷新中...' : '🔄 刷新'}
             </button>
             <button
               type="button"

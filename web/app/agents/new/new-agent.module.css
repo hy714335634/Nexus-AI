@@ -1,28 +1,30 @@
 .page {
   --page-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  --card-surface: rgba(255, 255, 255, 0.94);
-  --card-subtle: rgba(255, 255, 255, 0.88);
+  --card-surface: rgba(255, 255, 255, 0.96);
+  --card-subtle: rgba(255, 255, 255, 0.92);
   --accent: #667eea;
   --accent-dark: #4c51bf;
   --muted: rgba(17, 24, 39, 0.65);
   --border: rgba(99, 102, 241, 0.18);
-  --shadow-lg: 0 24px 60px rgba(30, 41, 59, 0.18);
-  --shadow-md: 0 18px 40px rgba(30, 41, 59, 0.16);
-  --shadow-sm: 0 10px 26px rgba(30, 41, 59, 0.12);
+  --shadow-lg: 0 20px 50px rgba(30, 41, 59, 0.15);
+  --shadow-md: 0 12px 30px rgba(30, 41, 59, 0.12);
+  --shadow-sm: 0 6px 20px rgba(30, 41, 59, 0.08);
   min-height: 100%;
-  padding: 32px 36px 48px;
+  padding: 24px 28px 40px;
   background: var(--page-gradient);
   display: flex;
   flex-direction: column;
-  gap: 32px;
+  gap: 28px;
   color: #1e293b;
 }
 
 .hero {
   text-align: center;
   color: #fff;
-  display: grid;
-  gap: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px 0;
 }
 
 .heroLabel {
@@ -30,62 +32,79 @@
   align-items: center;
   gap: 10px;
   margin: 0 auto;
-  padding: 8px 16px;
+  padding: 8px 18px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.15);
-  font-size: 0.9rem;
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(10px);
+  font-size: 0.88rem;
   font-weight: 600;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
 }
 
 .heroTitle {
-  font-size: 2.6rem;
+  font-size: 2.4rem;
   font-weight: 700;
-  text-shadow: 0 8px 22px rgba(30, 41, 59, 0.3);
+  text-shadow: 0 6px 20px rgba(30, 41, 59, 0.25);
+  margin: 8px 0;
 }
 
 .heroSubtitle {
-  font-size: 1.1rem;
-  opacity: 0.9;
-  max-width: 700px;
+  font-size: 1.05rem;
+  opacity: 0.92;
+  max-width: 680px;
   margin: 0 auto;
-  line-height: 1.6;
+  line-height: 1.65;
 }
 
 .statsGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 18px;
-  margin-top: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+  max-width: 900px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .statCard {
-  background: rgba(255, 255, 255, 0.18);
-  border-radius: 18px;
-  padding: 18px 20px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 16px 18px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.25);
   color: #fff;
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 6px;
-  text-align: left;
+  text-align: center;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.statCard:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
 }
 
 .statLabel {
-  font-size: 0.85rem;
-  opacity: 0.85;
-  letter-spacing: 0.03em;
+  font-size: 0.82rem;
+  opacity: 0.88;
+  letter-spacing: 0.02em;
+  font-weight: 500;
 }
 
 .statValue {
-  font-size: 1.8rem;
+  font-size: 1.7rem;
   font-weight: 700;
 }
 
 .quickStart {
   background: var(--card-surface);
-  border-radius: 26px;
-  padding: 28px 32px;
+  border-radius: 22px;
+  padding: 26px 30px;
   box-shadow: var(--shadow-lg);
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 20px;
 }
 
@@ -111,25 +130,27 @@
 
 .quickStartGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 18px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
 }
 
 .quickStartCard {
-  border-radius: 20px;
+  border-radius: 16px;
   background: var(--card-subtle);
-  border: 1px solid rgba(99, 102, 241, 0.12);
-  padding: 18px 20px;
-  display: grid;
+  border: 1.5px solid rgba(99, 102, 241, 0.15);
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
   gap: 12px;
   box-shadow: var(--shadow-sm);
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
   cursor: pointer;
 }
 
 .quickStartCard:hover {
-  transform: translateY(-4px);
+  transform: translateY(-3px);
   box-shadow: var(--shadow-md);
+  border-color: rgba(99, 102, 241, 0.3);
 }
 
 .quickStartTitle {
@@ -146,11 +167,12 @@
 
 .formSection {
   background: var(--card-surface);
-  border-radius: 26px;
+  border-radius: 22px;
   box-shadow: var(--shadow-lg);
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 24px;
-  padding: 32px 36px;
+  padding: 28px 32px;
 }
 
 .formHeader {
@@ -178,14 +200,16 @@
 }
 
 .formCard {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 24px;
 }
 
 .formBody {
   display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 28px;
+  grid-template-columns: 1.8fr 1fr;
+  gap: 24px;
+  align-items: start;
 }
 
 .requirementColumn {
@@ -196,42 +220,48 @@
 .metadataColumn {
   background: var(--card-subtle);
   border: 1px solid var(--border);
-  border-radius: 18px;
+  border-radius: 16px;
   padding: 20px 22px;
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 16px;
+  height: fit-content;
 }
 
 .label {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 8px;
-  font-size: 0.95rem;
+  font-size: 0.92rem;
+  font-weight: 500;
   color: var(--muted);
 }
 
 .input,
 .textArea {
   width: 100%;
-  border-radius: 16px;
-  border: 1px solid rgba(148, 163, 184, 0.25);
-  background: rgba(248, 250, 255, 0.75);
-  padding: 14px 16px;
-  font-size: 0.95rem;
+  border-radius: 12px;
+  border: 1.5px solid rgba(148, 163, 184, 0.3);
+  background: rgba(255, 255, 255, 0.9);
+  padding: 12px 14px;
+  font-size: 0.94rem;
   color: #1f2937;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
 .input:focus,
 .textArea:focus {
   outline: none;
-  border-color: rgba(99, 102, 241, 0.45);
-  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.16);
+  border-color: rgba(99, 102, 241, 0.5);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
 }
 
 .textArea {
-  min-height: 220px;
+  min-height: 240px;
   resize: vertical;
-  line-height: 1.6;
+  line-height: 1.65;
+  font-family: inherit;
 }
 
 .helperText {
@@ -246,19 +276,20 @@
 }
 
 .tagChip {
-  padding: 8px 14px;
+  padding: 7px 13px;
   border-radius: 999px;
-  border: 1px solid rgba(99, 102, 241, 0.25);
-  background: rgba(255, 255, 255, 0.85);
-  font-size: 0.9rem;
+  border: 1.5px solid rgba(99, 102, 241, 0.3);
+  background: rgba(255, 255, 255, 0.9);
+  font-size: 0.88rem;
   font-weight: 500;
   color: var(--accent);
   cursor: pointer;
-  transition: background 0.2s ease, transform 0.2s ease;
+  transition: background 0.2s ease, transform 0.15s ease, border-color 0.2s ease;
 }
 
 .tagChip:hover {
-  background: rgba(99, 102, 241, 0.1);
+  background: rgba(99, 102, 241, 0.12);
+  border-color: rgba(99, 102, 241, 0.4);
   transform: translateY(-1px);
 }
 
@@ -288,62 +319,80 @@
 }
 
 .actionButton {
-  padding: 13px 22px;
-  border-radius: 16px;
+  padding: 12px 24px;
+  border-radius: 12px;
   font-weight: 600;
+  font-size: 0.95rem;
   border: none;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+  white-space: nowrap;
 }
 
 .primary {
-  background: linear-gradient(135deg, #22d3ee, #6366f1);
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
   color: #fff;
-  box-shadow: 0 16px 32px rgba(99, 102, 241, 0.35);
+  box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
 }
 
 .primary:disabled {
-  opacity: 0.6;
+  opacity: 0.65;
   cursor: not-allowed;
-  box-shadow: none;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+}
+
+.primary:not(:disabled):hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(99, 102, 241, 0.4);
 }
 
 .secondary {
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.95);
   color: var(--accent);
-  border: 1px solid rgba(99, 102, 241, 0.3);
+  border: 1.5px solid rgba(99, 102, 241, 0.35);
 }
 
-.actionButton:not(:disabled):hover {
-  transform: translateY(-2px);
+.secondary:hover {
+  background: rgba(255, 255, 255, 1);
+  border-color: rgba(99, 102, 241, 0.5);
+  transform: translateY(-1px);
 }
 
 .pipeline {
   background: var(--card-surface);
-  border-radius: 26px;
+  border-radius: 22px;
   box-shadow: var(--shadow-lg);
-  padding: 32px;
-  display: grid;
+  padding: 28px 32px;
+  display: flex;
+  flex-direction: column;
   gap: 20px;
 }
 
 .pipelineGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 18px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
 }
 
 .pipelineCard {
-  border-radius: 20px;
+  border-radius: 16px;
   padding: 18px 20px;
   background: var(--card-subtle);
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  display: grid;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  display: flex;
+  flex-direction: column;
   gap: 10px;
   box-shadow: var(--shadow-sm);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.pipelineCard:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
 .pipelineTitle {
@@ -358,59 +407,115 @@
 }
 
 .successCard {
-  background: rgba(34, 197, 94, 0.12);
-  border: 1px solid rgba(22, 163, 74, 0.35);
+  background: rgba(34, 197, 94, 0.1);
+  border: 1.5px solid rgba(22, 163, 74, 0.3);
   color: #065f46;
-  padding: 18px 20px;
-  border-radius: 18px;
-  display: grid;
-  gap: 6px;
+  padding: 18px 22px;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.08);
 }
 
 .errorCard {
-  background: rgba(248, 113, 113, 0.15);
-  border: 1px solid rgba(248, 113, 113, 0.45);
+  background: rgba(248, 113, 113, 0.12);
+  border: 1.5px solid rgba(248, 113, 113, 0.35);
   color: #b91c1c;
-  padding: 18px 20px;
-  border-radius: 18px;
-  display: grid;
-  gap: 6px;
+  padding: 18px 22px;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(248, 113, 113, 0.08);
 }
 
 .loadingBanner {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 14px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.85);
+  padding: 8px 16px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.9);
   color: var(--accent);
+  font-size: 0.9rem;
+  font-weight: 500;
 }
 
 @media (max-width: 1080px) {
   .formBody {
     grid-template-columns: 1fr;
   }
+
+  .statsGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 @media (max-width: 768px) {
   .page {
-    padding: 24px 20px 32px;
+    padding: 20px 16px 32px;
+    gap: 24px;
+  }
+
+  .hero {
+    padding: 16px 0;
+    gap: 12px;
   }
 
   .heroTitle {
-    font-size: 2.1rem;
+    font-size: 2rem;
+    margin: 6px 0;
+  }
+
+  .heroSubtitle {
+    font-size: 1rem;
+  }
+
+  .statsGrid {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .statCard {
+    padding: 14px 16px;
+  }
+
+  .statValue {
+    font-size: 1.5rem;
   }
 
   .formSection {
-    padding: 24px;
+    padding: 22px 20px;
   }
 
   .quickStart {
-    padding: 24px;
+    padding: 22px 20px;
   }
 
   .pipeline {
-    padding: 24px;
+    padding: 22px 20px;
+  }
+
+  .quickStartGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .pipelineGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .submitBar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .actions {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .actionButton {
+    width: 100%;
   }
 }

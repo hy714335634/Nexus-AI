@@ -71,16 +71,6 @@
   color: var(--accent);
 }
 
-.navItemActive::before {
-  content: '';
-  position: absolute;
-  right: 16px;
-  width: 8px;
-  height: 8px;
-  background: var(--accent);
-  border-radius: 50%;
-}
-
 .navIcon {
   margin-right: 12px;
   font-size: 1.1rem;
