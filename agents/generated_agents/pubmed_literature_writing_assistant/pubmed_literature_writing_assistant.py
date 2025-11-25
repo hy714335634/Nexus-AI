@@ -26,6 +26,31 @@ from datetime import datetime
 from nexus_utils.agent_factory import create_agent_from_prompt_template
 from strands.telemetry import StrandsTelemetry
 
+# ==================== 配置参数 ====================
+# 文献处理配置
+MAX_PAPER_TO_INIT = 50  # 初始版本使用的最大文献数量
+MAX_PAPER_TO_ITERATE = 15  # 最大迭代次数（处理文献的次数），None表示无限制
+MAX_OPTIMIZATION_TO_ITERATE = 4  # 最大优化次数，None表示无限制
+
+# Agent调用配置
+RETRY_MAX_ATTEMPTS = 5  # Agent重试最大次数
+RETRY_DELAY = 150  # 重试延迟（秒）
+
+# 优化配置
+OPTIMIZATION_CHAR_THRESHOLD = 72000  # 触发优化的字符数阈值
+
+# 循环配置
+LOOP_SLEEP_DELAY = 60  # 主循环间隔（秒）
+
+# 文件路径配置
+CACHE_DIR = ".cache/pmc_literature"  # 缓存目录
+STATUS_FILE_NAME = "step4.status"  # 状态文件名
+
+# 智能体配置路径
+AGENT_CONFIG_PATH = "generated_agents_prompts/pubmed_literature_writing_assistant/pubmed_literature_writing_assistant"
+OPTIMIZATION_AGENT_CONFIG_PATH = "generated_agents_prompts/pubmed_literature_writing_assistant/pubmed_literature_optimization_assistant"
+# ==================================================
+
 # 配置日志
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -61,8 +86,8 @@ class PubmedLiteratureWritingAssistant:
         }
         
         # 智能体配置路径
-        self.agent_config_path = "generated_agents_prompts/pubmed_literature_writing_assistant/pubmed_literature_writing_assistant"
-        self.optimization_agent_config_path = "generated_agents_prompts/pubmed_literature_writing_assistant/pubmed_literature_optimization_assistant"
+        self.agent_config_path = AGENT_CONFIG_PATH
+        self.optimization_agent_config_path = OPTIMIZATION_AGENT_CONFIG_PATH
     
     def _create_agent(self):
         """创建新的智能体实例"""
@@ -81,9 +106,9 @@ class PubmedLiteratureWritingAssistant:
     def _get_processing_status(self, research_id: str) -> Dict:
         """获取处理状态"""
         try:
-            cache_dir = Path(".cache/pmc_literature")
+            cache_dir = Path(CACHE_DIR)
             research_dir = cache_dir / research_id
-            status_file = research_dir / "step4.status"
+            status_file = research_dir / STATUS_FILE_NAME
             
             if not status_file.exists():
                 total_literature = 0
@@ -121,7 +146,12 @@ class PubmedLiteratureWritingAssistant:
                     "current_version": None,
                     "version_file_path": None,
                     "total_literature": total_literature,
-                    "completed": False
+                    "completed": False,
+                    "optimization_count": 0,  # 优化次数
+                    "initial_version_papers": {  # 初始版本使用的文献信息
+                        "count": 0,
+                        "pmcids": []
+                    }
                 }
                 
                 with open(status_file, 'w', encoding='utf-8') as f:
@@ -132,6 +162,25 @@ class PubmedLiteratureWritingAssistant:
             with open(status_file, 'r', encoding='utf-8') as f:
                 status = json.load(f)
             
+            # 向后兼容：如果status文件中没有optimization_count字段，则添加
+            if "optimization_count" not in status:
+                status["optimization_count"] = 0
+                needs_save = True
+            else:
+                needs_save = False
+            
+            # 向后兼容：如果status文件中没有initial_version_papers字段，则添加
+            if "initial_version_papers" not in status:
+                status["initial_version_papers"] = {
+                    "count": 0,
+                    "pmcids": []
+                }
+                needs_save = True
+            
+            if needs_save:
+                with open(status_file, 'w', encoding='utf-8') as f:
+                    json.dump(status, f, ensure_ascii=False, indent=2)
+            
             return status
             
         except Exception as e:
@@ -141,7 +190,7 @@ class PubmedLiteratureWritingAssistant:
     def _load_marked_literature_ids(self, research_id: str) -> List[str]:
         """从manifest.json加载被标记的文献ID列表"""
         try:
-            manifest_path = Path(".cache/pmc_literature") / research_id / "manifest.json"
+            manifest_path = Path(CACHE_DIR) / research_id / "manifest.json"
             
             if not manifest_path.exists():
                 logger.error(f"manifest.json不存在: {manifest_path}")
@@ -182,7 +231,7 @@ class PubmedLiteratureWritingAssistant:
     def _load_analysis_results(self, research_id: str, pmc_ids: List[str] = None) -> List[Dict]:
         """从analysis_results加载完整的文献分析结果"""
         try:
-            analysis_dir = Path(".cache/pmc_literature") / research_id / "analysis_results"
+            analysis_dir = Path(CACHE_DIR) / research_id / "analysis_results"
             
             if not analysis_dir.exists():
                 logger.warning(f"analysis_results目录不存在: {analysis_dir}")
@@ -220,7 +269,7 @@ class PubmedLiteratureWritingAssistant:
     def _load_literature_metadata(self, research_id: str) -> List[Dict]:
         """加载文献元数据（保持向后兼容）"""
         try:
-            manifest_path = Path(".cache/pmc_literature") / research_id / "manifest.json"
+            manifest_path = Path(CACHE_DIR) / research_id / "manifest.json"
             
             if not manifest_path.exists():
                 logger.error(f"manifest.json不存在: {manifest_path}")
@@ -337,7 +386,7 @@ class PubmedLiteratureWritingAssistant:
                     return content
             
             # 方法2：解析文件名中的版本号，按版本排序
-            reviews_dir = Path(".cache/pmc_literature") / research_id / "reviews"
+            reviews_dir = Path(CACHE_DIR) / research_id / "reviews"
             
             if not reviews_dir.exists():
                 return None
@@ -388,7 +437,7 @@ class PubmedLiteratureWritingAssistant:
     def _save_review_version(self, research_id: str, content: str, version: Union[str, int]) -> Dict:
         """保存文献综述版本"""
         try:
-            reviews_dir = Path(".cache/pmc_literature") / research_id / "reviews"
+            reviews_dir = Path(CACHE_DIR) / research_id / "reviews"
             os.makedirs(reviews_dir, exist_ok=True)
             
             version_str = str(version).lower()
@@ -421,12 +470,20 @@ class PubmedLiteratureWritingAssistant:
     
     def _update_processing_status(self, research_id: str, 
                                  processed_literature_id: str, version: Union[str, int],
-                                 version_file_path: str = None) -> Dict:
-        """更新处理状态"""
+                                 version_file_path: str = None, optimization_count: int = None) -> Dict:
+        """更新处理状态
+        
+        Args:
+            research_id: 研究ID
+            processed_literature_id: 已处理的文献ID
+            version: 版本号
+            version_file_path: 版本文件路径
+            optimization_count: 优化次数（如果提供则更新，否则保持原值）
+        """
         try:
-            cache_dir = Path(".cache/pmc_literature")
+            cache_dir = Path(CACHE_DIR)
             research_dir = cache_dir / research_id
-            status_file = research_dir / "step4.status"
+            status_file = research_dir / STATUS_FILE_NAME
             
             if status_file.exists():
                 with open(status_file, 'r', encoding='utf-8') as f:
@@ -444,6 +501,21 @@ class PubmedLiteratureWritingAssistant:
             if version_file_path:
                 status["version_file_path"] = version_file_path
             
+            # 更新优化次数（如果提供）
+            if optimization_count is not None:
+                status["optimization_count"] = optimization_count
+            
+            # 确保optimization_count字段存在（向后兼容）
+            if "optimization_count" not in status:
+                status["optimization_count"] = 0
+            
+            # 确保initial_version_papers字段存在（向后兼容）
+            if "initial_version_papers" not in status:
+                status["initial_version_papers"] = {
+                    "count": 0,
+                    "pmcids": []
+                }
+            
             total = status.get("total_literature", 0)
             processed = len(status["processed_literature"])
             
@@ -457,7 +529,8 @@ class PubmedLiteratureWritingAssistant:
                 "status": "success",
                 "processed": processed,
                 "total": total,
-                "completed": status["completed"]
+                "completed": status["completed"],
+                "optimization_count": status.get("optimization_count", 0)
             }
             
         except Exception as e:
@@ -467,6 +540,39 @@ class PubmedLiteratureWritingAssistant:
                 "message": str(e)
             }
     
+    def _update_initial_version_papers(self, research_id: str, pmc_ids: List[str]) -> None:
+        """更新初始版本使用的文献信息
+        
+        Args:
+            research_id: 研究ID
+            pmc_ids: 初始版本使用的文献PMCID列表
+        """
+        try:
+            cache_dir = Path(CACHE_DIR)
+            research_dir = cache_dir / research_id
+            status_file = research_dir / STATUS_FILE_NAME
+            
+            if status_file.exists():
+                with open(status_file, 'r', encoding='utf-8') as f:
+                    status = json.load(f)
+            else:
+                status = self._get_processing_status(research_id)
+            
+            # 更新初始版本文献信息
+            status["initial_version_papers"] = {
+                "count": len(pmc_ids),
+                "pmcids": pmc_ids
+            }
+            status["updated_at"] = datetime.now().isoformat()
+            
+            with open(status_file, 'w', encoding='utf-8') as f:
+                json.dump(status, f, ensure_ascii=False, indent=2)
+            
+            logger.info(f"已更新初始版本文献信息: 数量={len(pmc_ids)}, PMCIDs={pmc_ids[:5]}{'...' if len(pmc_ids) > 5 else ''}")
+            
+        except Exception as e:
+            logger.error(f"更新初始版本文献信息失败: {str(e)}")
+    
     def _mark_all_metadata_processed(self, research_id: str) -> Dict:
         """标记所有文献元数据已处理"""
         return self._update_processing_status(research_id, "initial_marker", "initial")
@@ -474,9 +580,9 @@ class PubmedLiteratureWritingAssistant:
     def _mark_selected_papers_processed(self, research_id: str, pmc_ids: List[str]) -> None:
         """标记选中的文献为已处理"""
         try:
-            cache_dir = Path(".cache/pmc_literature")
+            cache_dir = Path(CACHE_DIR)
             research_dir = cache_dir / research_id
-            status_file = research_dir / "step4.status"
+            status_file = research_dir / STATUS_FILE_NAME
             
             if status_file.exists():
                 with open(status_file, 'r', encoding='utf-8') as f:
@@ -542,19 +648,23 @@ class PubmedLiteratureWritingAssistant:
                 logger.error(f"直接计算字符数也失败: {str(e2)}")
             return None
     
-    def _retry_agent_call(self, agent_input: str, max_retries: int = 5, retry_delay: int = 150, agent=None):
+    def _retry_agent_call(self, agent_input: str, max_retries: int = None, retry_delay: int = None, agent=None):
         """
         带重试机制的 Agent 调用
         
         Args:
             agent_input: 输入给 Agent 的内容
-            max_retries: 最大重试次数，默认5次
-            retry_delay: 重试间隔（秒），默认150秒
+            max_retries: 最大重试次数，None则使用配置的RETRY_MAX_ATTEMPTS
+            retry_delay: 重试间隔（秒），None则使用配置的RETRY_DELAY
             agent: 可选的Agent实例，如果提供则使用该实例，否则创建新的
             
         Returns:
             AgentResult 对象
         """
+        if max_retries is None:
+            max_retries = RETRY_MAX_ATTEMPTS
+        if retry_delay is None:
+            retry_delay = RETRY_DELAY
         for attempt in range(1, max_retries + 1):
             agent_response = None
             try:
@@ -655,35 +765,19 @@ class PubmedLiteratureWritingAssistant:
 - **合并相似内容**：将相似或重复的观点、发现进行合并，避免内容重复
 - **优化表述**：改进语言表达，使其更加准确、清晰、简洁
 - **去除无关内容**：删除与主题关联度低或不相关的内容
+- **禁止采用创新性论文的写作逻辑**：不要模仿"新发现"、"创新突破"的叙事模式
+- **专注于已有研究的系统归纳**：将重点放在对现有文献的系统梳理、比较分析和批判性评价
+- **以领域整体脉络为主线**：先宏观梳理，再微观解析，最后聚焦展望
+- **围绕客户需求**：直接根据客户需求生成/更新文献综述，不添加无关内容，不进行交互式询问
+
 
 ### 2. 结构优化
 - **逻辑清晰**：确保各章节之间的逻辑关系清晰，层次分明
 - **段落重组**：优化段落结构，确保每段内容聚焦，主题明确，避免列表方式罗列文献内容。
 - **章节平衡**：平衡各章节的内容长度，避免某些部分过于冗长或简短
 - **过渡自然**：改善章节、段落之间的过渡，使整体流畅连贯
-- **总结与展望**：请按照如下最佳实践进行优化：
-```
-    第一步：核心定位——从“重复”到“升华”
-        在动笔之前，明确总结的目标：不是复述，而是 synthesis（综合）和 interpretation（阐释）。重新阅读您的引言，确保您的结论能与之完美闭环。
-    第二步：结构化写作——一个稳健的四段式框架
-        您可以采用以下结构来组织您的总结部分，这被认为是最佳实践之一：
-    第1段：重述核心发现与研究问题
-        开头句：直接、有力地重申研究的目的和核心研究问题。
-        主体句：用一两句话高度概括您最重要的发现。避免使用“数据显示...”这样的短语，而是直接陈述结论。将这些发现与您的研究问题直接联系起来。
-            差：“第三章的数据表明，变量A和变量B呈正相关。”
-            佳：“本研究证实了[A]是[B]的关键驱动因素，从而回答了我们的核心研究问题。”
-    第2段：阐释研究贡献与意义
-        理论贡献：您的研究如何挑战、支持或扩展了现有的理论？它提供了什么新的视角或理解？
-        实践/应用价值：您的研究成果对政策制定、行业实践、临床治疗或技术进步有何潜在影响？
-        方法论贡献（如果适用）：您是否开发或验证了一种新的方法，对未来研究有裨益？
-    第3段：坦诚说明局限性与边界条件
-        选择性：指出1-3个最相关、最重要的局限性，而非全部。这体现了学术诚信。
-        具体性：避免模糊地说“本研究存在一些局限”，应具体说明，如“本实验的样本均来自单一区域，可能限制了结论的普适性。”
-        辩护性：解释这些局限性如何影响结果的解释，但也要说明为什么这并不颠覆您的主要结论。
-    第4段：提出未来研究方向
-        具体可行：建议应基于您的研究发现和局限性提出。例如，“鉴于本研究的样本局限性，未来研究可以在不同文化背景中进行跨区域抽样，以验证本模型的普适性。”
-        具有启发性：可以提出由您发现所引出的新问题。例如，“我们发现[A]与[B]的关系在特定条件下会反转，这提出了关于其背后机制的新问题，值得未来深入探究。”
-```
+- **总结与展望**：300-400字，控制在1-3段内,不要提出全新的理论或未被验证的假设,所有预测必须基于综述中分析的发展趋势和知识缺口,不再引用具体文献，而是基于前文分析进行原创性综合
+
 
 ### 3. 描述语句优化
 - **用词精准**：使用更准确、专业的学术术语
@@ -776,8 +870,11 @@ class PubmedLiteratureWritingAssistant:
                     status["current_version"] = next_version
                     status["version_file_path"] = file_path
                     status["updated_at"] = datetime.now().isoformat()
+                    # 确保optimization_count字段存在（向后兼容，实际增加由调用者负责）
+                    if "optimization_count" not in status:
+                        status["optimization_count"] = 0
                     
-                    status_file = Path(".cache/pmc_literature") / research_id / "step4.status"
+                    status_file = Path(CACHE_DIR) / research_id / STATUS_FILE_NAME
                     with open(status_file, 'w', encoding='utf-8') as f:
                         json.dump(status, f, ensure_ascii=False, indent=2)
                 
@@ -946,21 +1043,53 @@ class PubmedLiteratureWritingAssistant:
         return None
     
     def generate_literature_review(self, research_id: str, requirement: str = None, 
-                                  language: str = "english", max_paper_to_init: int = 50) -> str:
+                                  language: str = "english", max_paper_to_init: int = None) -> str:
         """生成文献综述（主控制循环）"""
         try:
+            # 使用配置参数或传入参数
+            if max_paper_to_init is None:
+                max_paper_to_init = MAX_PAPER_TO_INIT
+            
             all_results = []
+            iteration_count = 0  # 迭代次数（处理文献的次数）
             
             while True:
                 status = self._get_processing_status(research_id)
                 if not status:
                     return "获取处理状态失败"
                 
+                # 从status文件读取optimization_count
+                optimization_count = status.get("optimization_count", 0)
+                
                 processed_count = len(status.get("processed_literature", []))
                 total_count = status.get("total_literature", 0)
                 pending_count = total_count - processed_count
                 
-                logger.info(f"当前进度: {processed_count}/{total_count}, 待处理: {pending_count}")
+                logger.info(f"当前进度: {processed_count}/{total_count}, 待处理: {pending_count}, 迭代次数: {iteration_count}, 优化次数: {optimization_count}")
+                
+                # 检查工作流结束条件
+                should_exit = False
+                exit_reason = ""
+                
+                # 条件1：完成所有文章的迭代
+                if pending_count == 0:
+                    should_exit = True
+                    exit_reason = "所有文章已处理完成"
+                
+                # 条件2：迭代次数达到MAX_PAPER_TO_ITERATE
+                if MAX_PAPER_TO_ITERATE is not None and iteration_count >= MAX_PAPER_TO_ITERATE:
+                    should_exit = True
+                    exit_reason = f"迭代次数已达到限制 ({iteration_count}/{MAX_PAPER_TO_ITERATE})"
+                
+                # 条件3：优化次数达到MAX_OPTIMIZATION_TO_ITERATE（从status文件读取）
+                if MAX_OPTIMIZATION_TO_ITERATE is not None and optimization_count >= MAX_OPTIMIZATION_TO_ITERATE:
+                    should_exit = True
+                    exit_reason = f"优化次数已达到限制 ({optimization_count}/{MAX_OPTIMIZATION_TO_ITERATE})"
+                
+                if should_exit:
+                    logger.info(f"工作流结束: {exit_reason}")
+                    all_results.append(f"✅ 工作流结束: {exit_reason}\n{json.dumps(status, ensure_ascii=False, indent=2)}\n")
+                    break
                 
                 if processed_count == 0 and not status.get("current_version"):
                     # 情况A：生成初始版本
@@ -1073,6 +1202,7 @@ class PubmedLiteratureWritingAssistant:
     "message": "成功生成初始版本"
 }}
 ```
+生成初始版本时无需调用extract_literature_content工具
 ============================================================
 """
                     
@@ -1093,11 +1223,17 @@ class PubmedLiteratureWritingAssistant:
                             self._update_processing_status(research_id, 
                                                           "initial_marker", "initial", 
                                                           file_path)
+                            
+                            # 更新初始版本使用的文献信息
+                            self._update_initial_version_papers(research_id, selected_pmc_ids)
                         else:
                             all_results.append(f"⚠️ 初始版本生成成功，但未获取到文件路径")
                             self._update_processing_status(research_id, 
                                                           "initial_marker", "initial", 
                                                           None)
+                            
+                            # 更新初始版本使用的文献信息
+                            self._update_initial_version_papers(research_id, selected_pmc_ids)
                     else:
                         all_results.append(f"❌ Agent生成初始版本失败")
                         break
@@ -1120,12 +1256,16 @@ class PubmedLiteratureWritingAssistant:
                             logger.info(f"当前版本字符数: {char_count}")
                             print(f"当前版本{current_version}字符数为: {char_count}")
                             
-                            # 如果字符数 >= 60000，需要进行优化
-                            if char_count >= 70000:
+                            # 如果字符数 >= 阈值，需要进行优化
+                            if char_count >= OPTIMIZATION_CHAR_THRESHOLD:
                                 # 检查当前版本是否已经是优化版本
                                 if not (isinstance(current_version, str) and current_version.endswith("_opt")):
-                                    needs_optimization = True
-                                    logger.info(f"当前版本字符数 {char_count} >= 70000，需要进行优化")
+                                    # 检查是否达到优化次数限制
+                                    if MAX_OPTIMIZATION_TO_ITERATE is not None and optimization_count >= MAX_OPTIMIZATION_TO_ITERATE:
+                                        logger.info(f"已达到最大优化次数限制 ({optimization_count}/{MAX_OPTIMIZATION_TO_ITERATE})，跳过优化")
+                                    else:
+                                        needs_optimization = True
+                                        logger.info(f"当前版本字符数 {char_count} >= {OPTIMIZATION_CHAR_THRESHOLD}，需要进行优化")
                         else:
                             logger.warning("无法统计字符数，跳过优化检查")
                     
@@ -1137,20 +1277,38 @@ class PubmedLiteratureWritingAssistant:
                         if optimization_result and optimization_result.get("status") == "success":
                             opt_version = optimization_result.get("version")
                             opt_file_path = optimization_result.get("file_path")
-                            all_results.append(f"✅ 文献优化完成\n优化版本: {opt_version}\n文件路径: {opt_file_path}\n")
-                            logger.info(f"优化完成，优化版本: {opt_version}")
+                            
+                            # 更新优化次数到status文件
+                            new_optimization_count = optimization_count + 1
+                            self._update_processing_status(
+                                research_id, 
+                                "initial_marker",  # 优化不处理新文献，使用标记
+                                opt_version,
+                                opt_file_path,
+                                optimization_count=new_optimization_count
+                            )
+                            
+                            all_results.append(f"✅ 文献优化完成\n优化版本: {opt_version}\n文件路径: {opt_file_path}\n优化次数: {new_optimization_count}\n")
+                            logger.info(f"优化完成，优化版本: {opt_version}，优化次数: {new_optimization_count}")
                             
                             # 优化完成后，重新获取状态（优化后版本已更新）
                             status = self._get_processing_status(research_id)
                             if not status:
                                 return "获取处理状态失败"
                             
-                            # 更新当前版本信息
+                            # 更新当前版本信息和优化次数
                             current_version = status.get("current_version", current_version)
                             current_file_path = status.get("version_file_path", current_file_path)
+                            optimization_count = status.get("optimization_count", 0)  # 从status文件重新读取
                         else:
                             logger.warning(f"优化失败，但继续处理后续文献")
                             all_results.append(f"⚠️ 文献优化失败，但继续处理后续文献\n")
+                    
+                    # 检查迭代次数限制（在处理文献前检查）
+                    if MAX_PAPER_TO_ITERATE is not None and iteration_count >= MAX_PAPER_TO_ITERATE:
+                        logger.info(f"已达到最大迭代次数限制 ({iteration_count}/{MAX_PAPER_TO_ITERATE})，停止处理新文献")
+                        all_results.append(f"✅ 已达到最大迭代次数限制 ({iteration_count}/{MAX_PAPER_TO_ITERATE})，停止处理新文献\n")
+                        break
                     
                     # 获取待处理文献
                     pending_literature = self._get_pending_literature(research_id)
@@ -1191,7 +1349,7 @@ class PubmedLiteratureWritingAssistant:
 研究ID: {research_id}
 现有版本文献地址: {status.get('version_file_path', 'N/A')}
 新文献ID: {lit_id}
-新文献分析结果路径: .cache/pmc_literature/{research_id}/analysis_results/{lit_id}.json
+新文献分析结果路径: {CACHE_DIR}/{research_id}/analysis_results/{lit_id}.json
 输出语言: {language}
 ====================现有文献综述内容====================
 {latest_review}
@@ -1254,9 +1412,14 @@ class PubmedLiteratureWritingAssistant:
                         file_path = result.get("file_path", "")
                         processed_id = result.get("processed_literature_id", lit_id)
                         
+                        # 只有当文献真正被处理时才增加迭代计数（排除"文献全文没有引用价值"的情况）
+                        message = result.get("message", "")
+                        if "没有引用价值" not in message:
+                            iteration_count += 1  # 增加迭代计数
+                        
                         if file_path:
                             logger.info(f"版本 {next_version} 保存成功: {file_path}")
-                            all_results.append(f"✅ 处理文献 {lit_id} 成功\n版本: {next_version}\n文件路径: {file_path}\n")
+                            all_results.append(f"✅ 处理文献 {lit_id} 成功\n版本: {next_version}\n文件路径: {file_path}\n迭代次数: {iteration_count}\n")
                             
                             self._update_processing_status(research_id, 
                                                           processed_id, next_version,
@@ -1278,7 +1441,7 @@ class PubmedLiteratureWritingAssistant:
                     status["completed"] = True
                     
                     # 获取最新的文件路径
-                    reviews_dir = Path(".cache/pmc_literature") / research_id / "reviews"
+                    reviews_dir = Path(CACHE_DIR) / research_id / "reviews"
                     if reviews_dir.exists():
                         review_files = sorted(reviews_dir.glob("review_*.md"), key=lambda x: x.stat().st_mtime, reverse=True)
                         if review_files:
@@ -1287,7 +1450,7 @@ class PubmedLiteratureWritingAssistant:
                             status["version_file_path"] = file_path
                             all_results.append(f"✅ 所有文献处理完成最终版本: {file_path}")
                     
-                    status_file = Path(".cache/pmc_literature") / research_id / "step4.status"
+                    status_file = Path(CACHE_DIR) / research_id / STATUS_FILE_NAME
                     
                     with open(status_file, 'w', encoding='utf-8') as f:
                         json.dump(status, f, ensure_ascii=False, indent=2)
@@ -1297,7 +1460,7 @@ class PubmedLiteratureWritingAssistant:
                 else:
                     logger.warning("未知状态，停止处理")
                     break
-                sleep(60)
+                sleep(LOOP_SLEEP_DELAY)
             
             
             return "\n" + "="*80 + "\n" + "\n".join(all_results)

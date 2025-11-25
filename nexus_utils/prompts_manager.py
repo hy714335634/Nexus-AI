@@ -49,7 +49,8 @@ class Metadata:
     performance_metrics: Optional[PerformanceMetrics] = None
     dependencies: Optional[List[str]] = None
     compatibility: Optional[Compatibility] = None
-
+    additional_request_fields: Optional[Dict[str, Any]] = None
+    
 @dataclass
 class Example:
     """示例对话类"""
@@ -184,7 +185,8 @@ class PromptManager:
             tools_dependencies=metadata_data.get('tools_dependencies'),
             performance_metrics=performance_metrics,
             dependencies=metadata_data.get('dependencies'),
-            compatibility=compatibility
+            compatibility=compatibility,
+            additional_request_fields=metadata_data.get('additional_request_fields')
         )
 
     def _parse_examples(self, examples_data: List[Dict[str, str]]) -> List[Example]:
@@ -350,6 +352,13 @@ class PromptManager:
             return agent_version.metadata.supported_models
         return None
     
+    def get_agent_additional_request_fields(self, agent_name: str, version: str = "latest") -> Optional[Dict[str, Any]]:
+        """获取指定agent的额外请求字段列表"""
+        agent_version = self.get_agent_version(agent_name, version)
+        if agent_version and agent_version.metadata:
+            return agent_version.metadata.additional_request_fields
+        return None
+
     def get_agent_lib_dependencies(self, agent_name: str, version: str = "latest") -> Optional[List[str]]:
         """获取指定agent的库依赖列表"""
         agent_version = self.get_agent_version(agent_name, version)
@@ -436,6 +445,8 @@ if __name__ == "__main__":
                     print(f"标签: {latest_version.metadata.tags}")
                     if latest_version.metadata.supported_models:
                         print(f"支持的模型: {latest_version.metadata.supported_models}")
+                    if latest_version.metadata.additional_request_fields:
+                        print(f"额外请求字段: {latest_version.metadata.additional_request_fields}")
                     if latest_version.metadata.lib_dependencies:
                         print(f"库依赖: {latest_version.metadata.lib_dependencies}")
                     if latest_version.metadata.tools_dependencies:

@@ -558,16 +558,18 @@ def create_agent_from_prompt_template(
             if hasattr(latest_version.metadata, 'supported_models') and latest_version.metadata.supported_models:
                 # 从 supported_models 中选择第一个模型
                 supported_model = latest_version.metadata.supported_models[0]
-                print(f"Using supported model: {supported_model}")
+                additional_request_fields = latest_version.metadata.additional_request_fields if hasattr(latest_version.metadata, 'additional_request_fields') else None
+                print(f"Using supported model: {supported_model}, additional request fields: {additional_request_fields}")
                 # 创建模型时使用支持的模型ID
                 model = BedrockModel(
                     model_id=supported_model,
                     max_tokens=agent_template.get_environment_config(env).max_tokens,
                     temperature=agent_template.get_environment_config(env).temperature,
-                    # top_p=agent_template.get_environment_config(env).top_p,
+                    top_p=agent_template.get_environment_config(env).top_p,
                     streaming=agent_template.get_environment_config(env).streaming,
                     boto_session=session,
-                    boto_client_config=boto_config
+                    boto_client_config=boto_config,
+                    additional_request_fields=additional_request_fields
                 )
             else:
                 # 如果 supported_models 为空，使用配置文件中的默认模型
@@ -577,7 +579,7 @@ def create_agent_from_prompt_template(
                     model_id=default_model_id,
                     max_tokens=agent_template.get_environment_config(env).max_tokens,
                     temperature=agent_template.get_environment_config(env).temperature,
-                    # top_p=agent_template.get_environment_config(env).top_p,
+                    top_p=agent_template.get_environment_config(env).top_p,
                     streaming=agent_template.get_environment_config(env).streaming,
                     boto_session=session,
                     boto_client_config=boto_config
@@ -589,7 +591,7 @@ def create_agent_from_prompt_template(
                 model_id=config.get_bedrock_config().get(model_config_key),
                 max_tokens=agent_template.get_environment_config(env).max_tokens,
                 temperature=agent_template.get_environment_config(env).temperature,
-                # top_p=agent_template.get_environment_config(env).top_p,
+                top_p=agent_template.get_environment_config(env).top_p,
                 streaming=agent_template.get_environment_config(env).streaming,
                 boto_session=session,
                 boto_client_config=boto_config
