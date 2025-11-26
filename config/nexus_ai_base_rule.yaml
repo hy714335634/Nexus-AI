@@ -80,6 +80,8 @@ workflows:
           =====Build Workflow生成规则=====
           - 生成的Agent名称在所有阶段都应固定
           - 生成的Agent脚本初始化Agent时的参数默认为agent_params = {"env": "production","version": "latest",  "model_id": "default","enable_logging": True}
+          - 当存在多个Agent时，必须在提示词开发阶段，创建多个yaml配置对应每个Agent
+          - 当创建多个Agent时，优先在agent脚本中创建多个Agent对象，并按照逻辑进行编排和判断，也可使用swarm或graph进行编排。
         cache_rules: |
           =====Build Workflow缓存规则=====
           当用户要求构建的Agent进行内容缓存，请按照如下规则：

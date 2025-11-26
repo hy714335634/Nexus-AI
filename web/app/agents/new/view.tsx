@@ -2,6 +2,7 @@
 
 import { FormEvent, KeyboardEvent, useMemo, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import styles from './new-agent.module.css';
 import { createAgent } from '@/lib/agents';
@@ -105,6 +106,7 @@ export function NewAgentView() {
   const [tagInput, setTagInput] = useState('');
   const [submittedTask, setSubmittedTask] = useState<{ id: string; name?: string } | null>(null);
 
+  const router = useRouter();
   const { data: projectSummaries, isLoading: statsLoading, isError: statsError } = useProjectSummaries();
   const queryClient = useQueryClient();
 
@@ -136,6 +138,11 @@ export function NewAgentView() {
       queryClient.invalidateQueries({ queryKey: ['projects', 'summaries'] });
       setForm((prev) => ({ ...INITIAL_FORM, userId: prev.userId, userName: prev.userName }));
       setTagInput('');
+
+      // 跳转到构建详情页
+      setTimeout(() => {
+        router.push(`/build?projectId=${encodeURIComponent(data.project_id)}`);
+      }, 1000);
     },
     onError: (error: unknown) => {
       const message = error instanceof Error ? error.message : '提交失败，请稍后重试';

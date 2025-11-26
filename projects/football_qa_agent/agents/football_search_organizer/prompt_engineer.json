@@ -1,0 +1,224 @@
+{
+  "prompt_engineering": {
+    "overview": {
+      "project_name": "football_qa_agent",
+      "agent_name": "football_search_organizer",
+      "version": "1.0",
+      "date": "2025-11-23",
+      "prompt_objective": "设计一个足球问答搜索整理专家的提示词模板，支持网络搜索、信息整理、结构化输出和ReAct模式"
+    },
+    "prompt_design_process": {
+      "research_phase": {
+        "template_research": "基于深度研究专家(deep_research_agent)模板进行定制，该模板提供了完整的网络搜索、信息分析和报告生成能力，完美匹配足球问答的需求",
+        "domain_research": "研究足球领域的专业术语、赛事类型、数据统计方式，确保提示词能准确反映足球专业知识",
+        "user_needs_analysis": "分析用户可能提出的足球问题类型：球员信息、球队信息、比赛结果、战术分析、历史记录等"
+      },
+      "design_decisions": [
+        {
+          "decision": "采用ReAct模式",
+          "rationale": "ReAct模式支持思考-行动-观察的问题解决循环，适合处理需要多步推理的足球问题",
+          "alternatives": ["纯Function Calling模式", "Chain of Thought模式"],
+          "implications": "增强推理能力，提高问题解决的准确性，支持复杂查询处理"
+        },
+        {
+          "decision": "明确定义足球专业领域知识范围",
+          "rationale": "足球领域知识体系庞大，需要明确界定Agent的专业范围",
+          "alternatives": ["通用知识描述", "仅列举核心领域"],
+          "implications": "提高Agent回答的专业性和准确性，明确能力边界"
+        },
+        {
+          "decision": "详细指导工具使用",
+          "rationale": "每个工具在足球问答场景中有特定用途，需要明确指导",
+          "alternatives": ["简要说明工具功能", "不提供工具使用指南"],
+          "implications": "确保Agent能够正确选择和使用工具，提高效率"
+        },
+        {
+          "decision": "设计结构化输出格式",
+          "rationale": "不同类型的足球问题需要不同的输出结构",
+          "alternatives": ["统一输出格式", "自由格式输出"],
+          "implications": "提高答案的可读性和实用性，使信息组织更加合理"
+        },
+        {
+          "decision": "添加详细的错误处理策略",
+          "rationale": "网络搜索可能面临多种错误情况，需要明确处理策略",
+          "alternatives": ["简化错误处理", "仅处理常见错误"],
+          "implications": "提高Agent的稳定性和用户体验，降低失败率"
+        }
+      ],
+      "template_customization": {
+        "base_template": "deep_research_agent",
+        "customization_points": [
+          "将通用研究领域替换为足球专业领域",
+          "添加足球特定的知识范围和分类",
+          "调整工具使用指南以适应足球数据搜索",
+          "修改输出格式以适应不同类型的足球问题",
+          "优化错误处理策略以应对足球信息搜索的特定挑战"
+        ]
+      }
+    },
+    "prompt_components": {
+      "system_prompt": {
+        "role_definition": "定义Agent为足球问答搜索整理专家，强调专业权威、条理清晰、客观中立、服务热情、耐心细致的特质",
+        "core_responsibilities": [
+          "问题理解与解析 - 准确理解用户足球问题，识别问题核心和关键实体",
+          "网络搜索执行 - 构建有效搜索查询，从多个可靠来源获取信息",
+          "信息提取与过滤 - 从搜索结果中提取相关信息，过滤无关内容",
+          "信息整理与归纳 - 将分散信息整理成结构化答案，融合多源信息",
+          "答案输出与引用 - 生成清晰、结构化的答案，提供信息来源引用"
+        ],
+        "knowledge_domain": "详细定义了足球赛事、球队信息、球员资料、战术分析、历史数据、足球规则、足球新闻等专业领域",
+        "workflow": "采用ReAct（思考-行动-观察）模式处理用户问题，明确每个步骤的执行内容",
+        "tool_usage_guide": "详细指导了web_search_enhanced、information_collector、data_analyzer、report_generator、http_request等工具的使用方法、时机和参数设置",
+        "output_format": "定义了包含答案摘要、详细内容、数据展示、信息来源的结构化输出格式，并针对不同类型的足球问题提供了特定的结构",
+        "error_handling": "提供了搜索失败、问题理解失败、无结果或结果不足、信息不一致、处理超时等情况的处理策略",
+        "interaction_style": "专业且平易近人的语气，适当使用足球术语但确保普通用户也能理解",
+        "constraints": "明确了响应时间限制、不提供实时比赛直播、不访问付费内容等约束条件"
+      },
+      "user_prompt_template": {
+        "design_rationale": "简洁明了的用户提示模板，保留足够的灵活性以适应各种足球问题",
+        "parameters": [
+          "{user_input} - 用户的足球相关问题"
+        ],
+        "structure": "包含用户问题和明确的回答要求，强调使用网络搜索、结构化回答、数据展示和信息引用"
+      },
+      "metadata": {
+        "tags": ["football", "sports", "qa", "search", "research_analysis", "information_retrieval"],
+        "supported_models": [
+          "us.anthropic.claude-3-7-sonnet-20250219-v1:0",
+          "us.anthropic.claude-3-haiku-20240307-v1:0"
+        ],
+        "tools_dependencies": [
+          "strands_tools/http_request",
+          "strands_tools/current_time",
+          "generated_tools/football_qa_agent/football_search_tools/web_search_enhanced",
+          "generated_tools/football_qa_agent/football_search_tools/information_collector",
+          "generated_tools/football_qa_agent/football_search_tools/data_analyzer",
+          "generated_tools/football_qa_agent/football_search_tools/report_generator",
+          "generated_tools/football_qa_agent/football_search_tools/http_request"
+        ]
+      }
+    },
+    "prompt_testing": {
+      "test_scenarios": [
+        {
+          "scenario": "球员信息查询",
+          "example_query": "梅西的职业生涯成就有哪些？",
+          "expected_behavior": "搜索梅西相关信息，提供结构化的职业生涯成就列表，包含各项赛事获奖、进球数据等"
+        },
+        {
+          "scenario": "球队战术分析",
+          "example_query": "分析曼城在瓜迪奥拉执教下的战术体系",
+          "expected_behavior": "搜索曼城和瓜迪奥拉相关战术分析，提供阵型、技战术特点、数据支撑等内容"
+        },
+        {
+          "scenario": "历史比赛查询",
+          "example_query": "2022世界杯决赛阿根廷对法国的比赛详情",
+          "expected_behavior": "搜索该比赛信息，提供比分、进球、关键事件、数据对比、战术分析等"
+        },
+        {
+          "scenario": "足球规则解释",
+          "example_query": "越位规则的具体判定标准是什么？",
+          "expected_behavior": "搜索越位规则信息，提供规则解释、判定标准、争议案例分析等"
+        },
+        {
+          "scenario": "转会新闻查询",
+          "example_query": "最近有哪些重要的足球转会消息？",
+          "expected_behavior": "搜索最新转会信息，提供主要转会事件、转会费、影响分析等"
+        }
+      ],
+      "edge_cases": [
+        {
+          "case": "模糊问题",
+          "example": "告诉我关于足球的事",
+          "expected_handling": "请求用户提供更具体的问题，或提供几个可能的解释方向供用户选择"
+        },
+        {
+          "case": "非足球问题",
+          "example": "如何做披萨？",
+          "expected_handling": "礼貌说明专注于足球领域，无法提供披萨制作方法"
+        },
+        {
+          "case": "实时比赛查询",
+          "example": "现在正在进行的曼联比赛比分是多少？",
+          "expected_handling": "解释无法提供实时比分，建议用户查看体育直播网站或应用"
+        },
+        {
+          "case": "信息不一致",
+          "example": "C罗职业生涯总进球数是多少？",
+          "expected_handling": "展示不同来源的数据，分析差异原因，给出可能最准确的答案"
+        }
+      ],
+      "performance_metrics": [
+        {
+          "metric": "响应时间",
+          "target": "30秒内完成搜索和回答",
+          "measurement": "从接收问题到提供完整答案的时间"
+        },
+        {
+          "metric": "搜索相关性",
+          "target": "85%以上的搜索结果与问题直接相关",
+          "measurement": "相关搜索结果数量/总搜索结果数量"
+        },
+        {
+          "metric": "信息准确性",
+          "target": "90%以上的信息与可靠来源一致",
+          "measurement": "正确信息点数量/总信息点数量"
+        },
+        {
+          "metric": "结构完整性",
+          "target": "95%以上的回答包含所有必要的结构元素",
+          "measurement": "包含的结构元素/预期结构元素"
+        }
+      ]
+    },
+    "prompt_optimization": {
+      "challenges_identified": [
+        {
+          "challenge": "足球数据更新频率高",
+          "solution": "强调使用网络搜索获取最新信息，避免依赖静态知识"
+        },
+        {
+          "challenge": "足球术语专业性强",
+          "solution": "在提示词中明确使用足球术语但确保普通用户也能理解"
+        },
+        {
+          "challenge": "不同问题类型需要不同输出结构",
+          "solution": "针对球员、球队、比赛、战术、历史等不同类型设计特定的输出结构"
+        },
+        {
+          "challenge": "搜索结果可能不一致",
+          "solution": "添加处理信息不一致的策略，呈现不同来源观点并分析"
+        }
+      ],
+      "improvements_made": [
+        {
+          "improvement": "细化ReAct工作流程",
+          "impact": "提高问题解决的系统性和效率"
+        },
+        {
+          "improvement": "详细指导工具使用",
+          "impact": "确保Agent能正确选择和使用工具"
+        },
+        {
+          "improvement": "强化错误处理策略",
+          "impact": "提高系统稳定性和用户体验"
+        },
+        {
+          "improvement": "优化输出结构",
+          "impact": "提高信息的可读性和实用性"
+        }
+      ]
+    },
+    "prompt_artifacts": {
+      "final_prompt_template": "生成了完整的YAML格式提示词模板，包含系统提示词、用户提示词模板和元数据",
+      "template_location": "prompts/generated_agents_prompts/football_qa_agent/football_search_organizer.yaml",
+      "template_format": "YAML",
+      "version_control": {
+        "version": "1.0",
+        "created_date": "2025-11-23",
+        "author": "agent build workflow",
+        "change_log": "初始版本，基于deep_research_agent模板定制"
+      }
+    }
+  }
+}

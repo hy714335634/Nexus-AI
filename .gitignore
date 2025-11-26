@@ -7,6 +7,7 @@ wheels/
 case
 
 # Virtual environments
+venv
 .venv
 .sessions
 .kiro
@@ -21,11 +22,7 @@ tests/
 backup/
 nohup.out
 
-# Non useful 文档
-
 TROUBLESHOOTING.md
-#MODULE_LOADING_FIX.md
-PYTHON_PATH_FIX.md
 
 # 隐藏文件和目录
 .DS_Store
@@ -50,14 +47,12 @@ logs/
 
 .env*
 
-.next/
+web/.next/
 nohup.out
 api/.env
 
 /Users/ychchen/warren_ws/Nexus-AI/venv
 /Users/ychchen/warren_ws/Nexus-AI/web/.next
 
-#
 venv
-venv/*
 nexus_utils/cli/docs

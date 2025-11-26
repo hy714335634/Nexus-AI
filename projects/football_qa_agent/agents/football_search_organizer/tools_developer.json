@@ -1,0 +1,406 @@
+{
+  "tool_development": {
+    "development_overview": {
+      "project_name": "football_qa_agent",
+      "agent_name": "football_search_organizer",
+      "version": "1.0",
+      "date": "2025-11-23",
+      "development_scope": "为football_search_organizer Agent开发专业的足球问答搜索整理工具集，包含网络搜索、信息收集、数据分析、报告生成和HTTP请求等核心功能",
+      "design_principles": [
+        "专注足球领域：所有工具针对足球数据和问答场景优化",
+        "结构化输出：统一使用JSON格式返回结构化数据",
+        "健壮性设计：完善的错误处理和异常捕获机制",
+        "可扩展性：模块化设计，易于扩展和维护",
+        "性能优化：支持批量处理和请求频率控制",
+        "用户友好：清晰的参数说明和返回值文档"
+      ],
+      "key_decisions": [
+        "使用DuckDuckGo作为搜索引擎，避免API密钥依赖",
+        "使用BeautifulSoup进行网页解析，支持多种HTML结构",
+        "使用requests库处理HTTP请求，提供完整的请求控制",
+        "支持多种输出格式（JSON、Markdown、HTML、Text）",
+        "集成current_time内置工具，避免重复开发",
+        "实现自动重试和频率控制机制"
+      ]
+    },
+    "tools": [
+      {
+        "tool_name": "web_search_enhanced",
+        "description": "增强的网络搜索工具，支持多源足球信息搜索，提供结构化搜索结果",
+        "function_signature": "web_search_enhanced(query: str, search_scope: str = 'general', max_results: int = 5, language: str = 'zh-cn') -> str",
+        "parameters": [
+          {
+            "name": "query",
+            "type": "str",
+            "description": "搜索关键词（支持足球队名、球员名、比赛信息等）",
+            "required": true
+          },
+          {
+            "name": "search_scope",
+            "type": "str",
+            "description": "搜索范围：general（通用）、news（新闻）、statistics（统计）、matches（比赛）、transfers（转会）、historical（历史）",
+            "required": false
+          },
+          {
+            "name": "max_results",
+            "type": "int",
+            "description": "最大结果数量（默认5，范围1-20）",
+            "required": false
+          },
+          {
+            "name": "language",
+            "type": "str",
+            "description": "搜索语言（默认zh-cn）",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的搜索结果，包含query、search_scope、total_results、results（含title、url、snippet、source、published_date、relevance_score）、search_metadata、suggestions",
+        "dependencies": [
+          "ddgs",
+          "json",
+          "datetime",
+          "urllib.parse"
+        ],
+        "implementation_notes": [
+          "使用DuckDuckGo搜索引擎，支持通用和新闻搜索",
+          "根据搜索范围自动优化查询关键词",
+          "计算相关度评分并排序结果",
+          "处理搜索频率限制，自动等待重试",
+          "提供搜索建议帮助用户优化查询"
+        ],
+        "error_handling": [
+          "捕获RatelimitException并等待重试",
+          "捕获DDGSException并记录错误信息",
+          "处理通用异常并返回错误响应",
+          "验证参数范围并自动调整"
+        ],
+        "usage_examples": [
+          "web_search_enhanced('梅西', 'statistics', 10)",
+          "web_search_enhanced('巴萨vs皇马', 'matches', 5)",
+          "web_search_enhanced('C罗转会', 'news', 3)"
+        ]
+      },
+      {
+        "tool_name": "information_collector",
+        "description": "信息收集工具，从网页URL获取完整内容并进行结构化解析",
+        "function_signature": "information_collector(urls: List[str], extract_options: Dict[str, bool] = None, timeout: int = 30) -> str",
+        "parameters": [
+          {
+            "name": "urls",
+            "type": "List[str]",
+            "description": "URL列表（支持批量处理，最多10个）",
+            "required": true
+          },
+          {
+            "name": "extract_options",
+            "type": "Dict[str, bool]",
+            "description": "内容提取选项：extract_text、extract_tables、extract_lists、extract_images、extract_metadata",
+            "required": false
+          },
+          {
+            "name": "timeout",
+            "type": "int",
+            "description": "单个请求超时时间（秒，默认30）",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的收集结果，包含total_urls、successful_count、failed_count、success_rate、collected_data（含url、title、content、tables、lists、images、metadata、word_count、collection_time、status）、collection_summary",
+        "dependencies": [
+          "requests",
+          "beautifulsoup4",
+          "json",
+          "re",
+          "urllib.parse"
+        ],
+        "implementation_notes": [
+          "使用requests获取网页内容，模拟浏览器请求",
+          "使用BeautifulSoup解析HTML结构",
+          "自动检测编码并转换",
+          "支持提取文本、表格、列表、图片、元数据",
+          "批量处理时控制请求频率（0.5秒间隔）",
+          "限制内容长度避免内存溢出"
+        ],
+        "error_handling": [
+          "捕获Timeout异常并记录",
+          "捕获RequestException并返回失败状态",
+          "处理解析错误并继续处理其他URL",
+          "验证URL列表并限制数量",
+          "记录每个URL的处理状态"
+        ],
+        "usage_examples": [
+          "information_collector(['https://example.com/player-stats'])",
+          "information_collector(['url1', 'url2'], {'extract_tables': True, 'extract_images': False})",
+          "information_collector(['https://football-news.com'], timeout=60)"
+        ]
+      },
+      {
+        "tool_name": "data_analyzer",
+        "description": "数据分析工具，分析足球统计数据并提取关键信息",
+        "function_signature": "data_analyzer(raw_data: str, analysis_dimension: str = 'comprehensive', data_type: str = 'auto') -> str",
+        "parameters": [
+          {
+            "name": "raw_data",
+            "type": "str",
+            "description": "原始数据或文本（支持JSON、文本、表格等格式）",
+            "required": true
+          },
+          {
+            "name": "analysis_dimension",
+            "type": "str",
+            "description": "分析维度：player（球员）、team（球队）、match（比赛）、comprehensive（综合）、statistics（统计）、trend（趋势）",
+            "required": false
+          },
+          {
+            "name": "data_type",
+            "type": "str",
+            "description": "数据类型：auto（自动检测）、json、text、table、mixed",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的分析结果，包含analysis_metadata、data_summary、key_metrics、statistical_analysis、insights、recommendations",
+        "dependencies": [
+          "json",
+          "re",
+          "datetime"
+        ],
+        "implementation_notes": [
+          "自动检测数据类型（JSON、文本、表格）",
+          "根据分析维度执行专门的分析逻辑",
+          "支持球员、球队、比赛、统计、趋势等多种分析",
+          "提取关键指标和洞察",
+          "生成分析建议"
+        ],
+        "error_handling": [
+          "捕获JSON解析错误并降级处理",
+          "处理空数据或无效数据",
+          "记录分析异常并返回错误信息",
+          "验证分析维度参数"
+        ],
+        "usage_examples": [
+          "data_analyzer(json_data, 'player')",
+          "data_analyzer(text_data, 'team', 'text')",
+          "data_analyzer(stats_data, 'statistics')"
+        ]
+      },
+      {
+        "tool_name": "report_generator",
+        "description": "报告生成工具，生成结构化的足球问答报告",
+        "function_signature": "report_generator(analysis_data: str, report_type: str = 'qa_answer', output_format: str = 'json', include_sources: bool = True) -> str",
+        "parameters": [
+          {
+            "name": "analysis_data",
+            "type": "str",
+            "description": "分析数据（JSON格式，来自data_analyzer或其他工具）",
+            "required": true
+          },
+          {
+            "name": "report_type",
+            "type": "str",
+            "description": "报告类型：qa_answer（问答答案）、summary（摘要）、detailed（详细）、comparison（对比）、ranking（排名）",
+            "required": false
+          },
+          {
+            "name": "output_format",
+            "type": "str",
+            "description": "输出格式：json、markdown、html、text",
+            "required": false
+          },
+          {
+            "name": "include_sources",
+            "type": "bool",
+            "description": "是否包含信息来源（默认True）",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "格式化的报告内容，根据output_format返回相应格式",
+        "dependencies": [
+          "json",
+          "datetime"
+        ],
+        "implementation_notes": [
+          "支持多种报告类型（问答、摘要、详细、对比、排名）",
+          "支持多种输出格式（JSON、Markdown、HTML、Text）",
+          "自动包含生成时间和元数据",
+          "支持信息来源追溯",
+          "Markdown格式便于阅读和分享"
+        ],
+        "error_handling": [
+          "捕获JSON解析错误并降级处理",
+          "处理无效的报告类型或输出格式",
+          "记录生成异常并返回错误信息",
+          "验证输入数据完整性"
+        ],
+        "usage_examples": [
+          "report_generator(analysis_data, 'qa_answer', 'markdown')",
+          "report_generator(analysis_data, 'detailed', 'json', True)",
+          "report_generator(analysis_data, 'summary', 'html')"
+        ]
+      },
+      {
+        "tool_name": "http_request",
+        "description": "HTTP请求工具，执行HTTP请求获取数据",
+        "function_signature": "http_request(url: str, method: str = 'GET', headers: Dict[str, str] = None, params: Dict[str, Any] = None, data: Union[Dict[str, Any], str] = None, json_data: Dict[str, Any] = None, timeout: int = 30, allow_redirects: bool = True, verify_ssl: bool = True) -> str",
+        "parameters": [
+          {
+            "name": "url",
+            "type": "str",
+            "description": "请求URL",
+            "required": true
+          },
+          {
+            "name": "method",
+            "type": "str",
+            "description": "请求方法（GET、POST、PUT、DELETE、PATCH、HEAD、OPTIONS）",
+            "required": false
+          },
+          {
+            "name": "headers",
+            "type": "Dict[str, str]",
+            "description": "请求头",
+            "required": false
+          },
+          {
+            "name": "params",
+            "type": "Dict[str, Any]",
+            "description": "URL查询参数",
+            "required": false
+          },
+          {
+            "name": "data",
+            "type": "Union[Dict[str, Any], str]",
+            "description": "请求体数据（表单数据）",
+            "required": false
+          },
+          {
+            "name": "json_data",
+            "type": "Dict[str, Any]",
+            "description": "JSON请求体数据",
+            "required": false
+          },
+          {
+            "name": "timeout",
+            "type": "int",
+            "description": "超时时间（秒，默认30）",
+            "required": false
+          },
+          {
+            "name": "allow_redirects",
+            "type": "bool",
+            "description": "是否允许重定向（默认True）",
+            "required": false
+          },
+          {
+            "name": "verify_ssl",
+            "type": "bool",
+            "description": "是否验证SSL证书（默认True）",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的响应结果，包含status_code、status_text、success、headers、content、content_type、encoding、url、elapsed_time、request_metadata",
+        "dependencies": [
+          "requests",
+          "json",
+          "time",
+          "datetime"
+        ],
+        "implementation_notes": [
+          "支持所有标准HTTP方法",
+          "自动设置User-Agent模拟浏览器",
+          "自动检测响应编码",
+          "支持JSON和文本响应解析",
+          "记录请求耗时",
+          "支持重定向和SSL验证控制"
+        ],
+        "error_handling": [
+          "捕获Timeout异常并返回超时信息",
+          "捕获SSLError并提供解决建议",
+          "捕获ConnectionError并记录连接失败",
+          "捕获RequestException并返回详细错误",
+          "处理通用异常并返回未知错误信息",
+          "所有错误都返回结构化JSON响应"
+        ],
+        "usage_examples": [
+          "http_request('https://api.football.com/stats')",
+          "http_request('https://api.example.com/data', 'POST', json_data={'key': 'value'})",
+          "http_request('https://example.com', timeout=60, verify_ssl=False)"
+        ]
+      }
+    ],
+    "code_quality": {
+      "code_standards": [
+        "遵循PEP 8 Python代码规范",
+        "使用完整的类型注解（Type Hints）",
+        "提供详细的文档字符串（Docstrings）",
+        "代码模块化，单一职责原则",
+        "统一的错误处理模式",
+        "一致的命名规范"
+      ],
+      "testing_strategy": [
+        "每个工具函数独立可测试",
+        "提供使用示例作为测试用例",
+        "支持边界条件测试",
+        "错误场景覆盖完整",
+        "性能测试支持（超时、批量处理）"
+      ],
+      "performance_considerations": [
+        "批量处理时控制请求频率",
+        "限制返回数据大小避免内存问题",
+        "支持超时控制",
+        "使用缓存机制（可扩展）",
+        "异步处理支持（可扩展）"
+      ],
+      "security_measures": [
+        "输入参数验证",
+        "URL安全检查",
+        "SSL证书验证",
+        "避免注入攻击",
+        "敏感信息保护",
+        "请求频率限制"
+      ]
+    },
+    "integration_details": {
+      "aws_services": [],
+      "external_libraries": [
+        "ddgs: DuckDuckGo搜索引擎Python库",
+        "requests: HTTP请求库",
+        "beautifulsoup4: HTML解析库",
+        "strands: Strands框架核心库"
+      ],
+      "api_endpoints": [
+        "DuckDuckGo搜索API（通过ddgs库）",
+        "任意HTTP/HTTPS端点（通过http_request工具）"
+      ],
+      "data_formats": [
+        "JSON: 主要输入输出格式",
+        "HTML: 网页内容解析",
+        "Markdown: 报告输出格式",
+        "Text: 纯文本格式",
+        "表格数据: 结构化数据提取"
+      ]
+    },
+    "builtin_tools_usage": {
+      "current_time": {
+        "description": "使用Strands框架内置的current_time工具获取当前时间",
+        "package": "strands-agents-tools",
+        "usage": "无需开发，直接在Agent中使用内置工具",
+        "features": [
+          "获取当前日期和时间",
+          "支持时区设置",
+          "ISO 8601格式输出",
+          "时间比较和格式转换"
+        ]
+      },
+      "http_request_builtin": {
+        "description": "Strands框架也提供了内置的http_request工具",
+        "note": "本项目开发了自定义的http_request工具以提供更详细的控制和足球场景优化",
+        "difference": "自定义版本提供了更详细的错误处理、自动编码检测、性能监控等功能"
+      }
+    },
+    "development_notes": "工具开发过程中的关键发现和决策：\n\n1. **搜索引擎选择**：选择DuckDuckGo而非Google是因为不需要API密钥，降低使用门槛，且支持中文搜索。\n\n2. **网页解析策略**：使用BeautifulSoup而非正则表达式，因为更健壮、易维护，能处理各种HTML结构。\n\n3. **数据格式统一**：所有工具统一返回JSON格式，便于Agent解析和处理，同时提供其他格式转换选项。\n\n4. **错误处理设计**：采用统一的错误处理模式，所有异常都转换为结构化的JSON响应，包含错误类型、详细信息和建议。\n\n5. **性能优化**：\n   - 批量处理时自动控制请求频率（0.5-2秒间隔）\n   - 限制返回数据大小（文本10000字符，表格5个，列表10个）\n   - 支持超时控制避免长时间等待\n\n6. **足球领域优化**：\n   - 搜索范围专门针对足球场景（statistics、matches、transfers等）\n   - 数据分析维度覆盖球员、球队、比赛等\n   - 报告类型适配问答场景\n\n7. **可扩展性设计**：\n   - 模块化的辅助函数便于扩展\n   - 统一的接口设计便于添加新功能\n   - 支持自定义选项和配置\n\n8. **内置工具集成**：current_time工具直接使用Strands框架内置版本，避免重复开发，确保一致性。\n\n9. **依赖管理**：\n   - ddgs: 需要安装（pip install duckduckgo-search）\n   - requests: 标准库，通常已安装\n   - beautifulsoup4: 需要安装（pip install beautifulsoup4）\n   - strands: 框架核心，已安装\n\n10. **测试建议**：\n   - 测试不同搜索范围的搜索结果\n   - 测试批量URL收集的稳定性\n   - 测试各种数据格式的分析能力\n   - 测试不同输出格式的报告生成\n   - 测试异常场景的错误处理"
+  }
+}

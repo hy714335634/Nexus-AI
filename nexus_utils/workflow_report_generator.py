@@ -93,7 +93,11 @@ class WorkflowReportGenerator:
             "requirements_analyzer", 
             "system_architect",
             "agent_designer",
-            "agent_developer_manager"
+            "tool_developer",
+            "prompt_engineer",
+            "agent_code_developer",
+            "agent_developer_manager",
+            "agent_deployer"
         ]
     
     def _load_project_config(self, project_dir: str) -> tuple[Optional[Dict[str, Any]], int]:
@@ -976,6 +980,239 @@ def generate_workflow_summary_report(graph_result: Any,
         return ""
 
 
+def parse_agent_result_metrics(agent_result: Any, stage_name: str) -> StageMetrics:
+    """
+    从AgentResult对象中解析metrics信息
+    
+    Args:
+        agent_result: AgentResult对象
+        stage_name: 阶段名称
+    
+    Returns:
+        StageMetrics对象
+    """
+    stage_metrics = StageMetrics(stage_name=stage_name)
+    
+    try:
+        # 检查是否有metrics属性
+        if not hasattr(agent_result, 'metrics'):
+            stage_metrics.success = False
+            stage_metrics.error_message = "AgentResult没有metrics属性"
+            return stage_metrics
+        
+        metrics = agent_result.metrics
+        
+        # 提取accumulated_usage中的token信息
+        if hasattr(metrics, 'accumulated_usage'):
+            usage = metrics.accumulated_usage
+            if isinstance(usage, dict):
+                stage_metrics.input_tokens = usage.get('inputTokens', 0)
+                stage_metrics.output_tokens = usage.get('outputTokens', 0)
+            elif hasattr(usage, 'inputTokens') and hasattr(usage, 'outputTokens'):
+                stage_metrics.input_tokens = usage.inputTokens
+                stage_metrics.output_tokens = usage.outputTokens
+        
+        # 提取执行时间（从cycle_durations计算）
+        if hasattr(metrics, 'cycle_durations') and metrics.cycle_durations:
+            stage_metrics.duration = sum(metrics.cycle_durations)
+        
+        # 提取tool_metrics
+        if hasattr(metrics, 'tool_metrics'):
+            tool_metrics = metrics.tool_metrics
+            
+            # 计算工具调用次数
+            total_tool_calls = 0
+            for tool_name, tool_metric in tool_metrics.items():
+                call_count = getattr(tool_metric, 'call_count', 0)
+                total_tool_calls += call_count
+                
+                # 解析每个工具的详细信息
+                tool_detail = {
+                    'tool_name': tool_name,
+                    'call_count': call_count,
+                    'success_count': getattr(tool_metric, 'success_count', 0),
+                    'error_count': getattr(tool_metric, 'error_count', 0),
+                    'total_time': getattr(tool_metric, 'total_time', 0.0)
+                }
+                stage_metrics.tool_call_details.append(tool_detail)
+            
+            stage_metrics.tool_calls = total_tool_calls
+        
+        # 如果没有找到token信息，尝试从cycle_count估算
+        if stage_metrics.input_tokens == 0 and hasattr(metrics, 'cycle_count'):
+            cycle_count = metrics.cycle_count
+            stage_metrics.input_tokens = cycle_count * 150
+            stage_metrics.output_tokens = cycle_count * 75
+        
+        # 如果没有找到执行时间，使用默认值
+        if stage_metrics.duration is None or stage_metrics.duration == 0:
+            stage_metrics.duration = 2.0  # 默认2秒
+        
+        stage_metrics.success = True
+        
+    except Exception as e:
+        stage_metrics.success = False
+        stage_metrics.error_message = f"解析metrics失败: {str(e)}"
+    
+    return stage_metrics
+
+
+def extract_project_name_from_agent_results(execution_results: Dict[str, Any]) -> str:
+    """
+    从agent执行结果中提取项目名称
+    
+    Args:
+        execution_results: 包含所有agent执行结果的字典
+    
+    Returns:
+        项目名称
+    """
+    try:
+        # 尝试从orchestrator的工具调用中提取项目名称
+        if "orchestrator" in execution_results:
+            orchestrator_result = execution_results["orchestrator"]
+            if hasattr(orchestrator_result, 'metrics') and hasattr(orchestrator_result.metrics, 'tool_metrics'):
+                tool_metrics = orchestrator_result.metrics.tool_metrics
+                if 'project_init' in tool_metrics:
+                    project_init_tool = tool_metrics['project_init']
+                    if hasattr(project_init_tool, 'tool') and project_init_tool.tool:
+                        tool_info = project_init_tool.tool
+                        if isinstance(tool_info, dict) and 'input' in tool_info:
+                            project_name = tool_info['input'].get('project_name')
+                            if project_name:
+                                return project_name
+                        elif hasattr(tool_info, 'input'):
+                            input_data = tool_info.input
+                            if isinstance(input_data, dict):
+                                project_name = input_data.get('project_name')
+                                if project_name:
+                                    return project_name
+        
+        # 如果无法从工具调用中提取，尝试从内容中搜索
+        import re
+        for stage_name, agent_result in execution_results.items():
+            content = str(agent_result.content) if hasattr(agent_result, 'content') else str(agent_result)
+            # 查找项目名称模式
+            patterns = [
+                r"'([^']+_agent)'",
+                r'"([^"]+_agent)"',
+                r'project_name["\']?\s*[:=]\s*["\']?([^"\']+)',
+            ]
+            for pattern in patterns:
+                matches = re.findall(pattern, content)
+                for match in matches:
+                    if len(match) > 3 and not match.startswith('_') and not match.startswith('unknown'):
+                        return match
+        
+        return "unknown_project"
+        
+    except Exception as e:
+        print(f"⚠️ 提取项目名称失败: {e}")
+        return "unknown_project"
+
+
+def generate_sequential_workflow_report(
+    execution_results: Dict[str, Any],
+    execution_order: List[str],
+    execution_time: float,
+    intent_analysis: Any,
+    default_project_root_path: str = './projects'
+) -> str:
+    """
+    为顺序调用的工作流生成报告
+    
+    Args:
+        execution_results: 包含所有agent执行结果的字典，key为stage_name，value为AgentResult对象
+        execution_order: 执行顺序列表
+        execution_time: 总执行时间（秒）
+        intent_analysis: 意图分析结果
+        default_project_root_path: 项目根路径
+    
+    Returns:
+        生成的报告文件路径
+    """
+    try:
+        generator = WorkflowReportGenerator()
+        
+        # 解析各个阶段的metrics
+        stages = []
+        for stage_name in execution_order:
+            if stage_name in execution_results:
+                agent_result = execution_results[stage_name]
+                stage_metrics = parse_agent_result_metrics(agent_result, stage_name)
+                stages.append(stage_metrics)
+            else:
+                # 如果某个阶段没有结果，创建失败记录
+                stages.append(StageMetrics(
+                    stage_name=stage_name,
+                    success=False,
+                    error_message="阶段未执行"
+                ))
+        
+        # 提取项目名称
+        project_name = extract_project_name_from_agent_results(execution_results)
+        
+        # 计算总token使用量
+        total_input_tokens = sum(stage.input_tokens for stage in stages)
+        total_output_tokens = sum(stage.output_tokens for stage in stages)
+        
+        # 计算其他指标
+        total_tool_calls = sum(stage.tool_calls for stage in stages)
+        successful_stages = sum(1 for stage in stages if stage.success)
+        failed_stages = len(stages) - successful_stages
+        
+        # 生成工具使用总结
+        tool_usage_summary = generator._generate_tool_usage_summary(stages)
+        
+        # 成本估算
+        cost_estimation = generator._estimate_costs(total_input_tokens, total_output_tokens)
+        
+        # 确定输出路径
+        if default_project_root_path.startswith('/projects/'):
+            project_root = os.path.join(os.getcwd(), default_project_root_path.lstrip('/'))
+        else:
+            project_root = default_project_root_path
+        
+        # 在projects/<project_name>下生成报告
+        project_dir = os.path.join(project_root, project_name)
+        output_path = os.path.join(project_dir, "workflow_summary_report.md")
+        
+        # 加载项目配置信息
+        project_config_summary, total_tools = generator._load_project_config(project_dir) if os.path.exists(project_dir) else (None, 0)
+        
+        # 创建WorkflowSummary对象
+        workflow_start_time = datetime.now().isoformat()
+        workflow_end_time = datetime.now().isoformat()
+        
+        summary = WorkflowSummary(
+            project_name=project_name,
+            workflow_start_time=workflow_start_time,
+            workflow_end_time=workflow_end_time,
+            total_duration=execution_time,
+            total_input_tokens=total_input_tokens,
+            total_output_tokens=total_output_tokens,
+            total_tool_calls=total_tool_calls,
+            successful_stages=successful_stages,
+            failed_stages=failed_stages,
+            stages=stages,
+            tool_usage_summary=tool_usage_summary,
+            cost_estimation=cost_estimation,
+            project_config_summary=project_config_summary,
+            total_tools=total_tools
+        )
+        
+        # 生成报告
+        report_path = generator.generate_markdown_report(summary, output_path)
+        
+        return report_path
+        
+    except Exception as e:
+        print(f"❌ 生成顺序工作流报告失败: {e}")
+        import traceback
+        traceback.print_exc()
+        return ""
+
+
 if __name__ == "__main__":
     # 测试代码
     print("工作流报告生成器测试")
@@ -983,3 +1220,6 @@ if __name__ == "__main__":
     print("示例用法:")
     print("  from nexus_utils.workflow_report_generator import generate_workflow_summary_report")
     print("  report_path = generate_workflow_summary_report(graph_result, './projects')")
+    print("\n或者使用顺序工作流报告生成:")
+    print("  from nexus_utils.workflow_report_generator import generate_sequential_workflow_report")
+    print("  report_path = generate_sequential_workflow_report(execution_results, execution_order, execution_time, intent_analysis, './projects')")

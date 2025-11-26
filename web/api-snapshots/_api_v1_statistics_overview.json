@@ -1,0 +1,19 @@
+{
+  "endpoint": "/api/v1/statistics/overview",
+  "timestamp": "2025-11-23T11:25:08.435276",
+  "response": {
+    "success": true,
+    "timestamp": "2025-11-23T03:25:08.433184Z",
+    "request_id": "7f1d6493-3dd3-4150-9107-df0a998fc862",
+    "data": {
+      "total_agents": 0,
+      "running_agents": 0,
+      "building_agents": 0,
+      "offline_agents": 0,
+      "total_builds": 2,
+      "success_rate": 0.0,
+      "avg_build_time_minutes": 0.0,
+      "today_calls": 0
+    }
+  }
+}

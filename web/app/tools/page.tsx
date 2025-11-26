@@ -135,7 +135,7 @@ export default function ToolsOverviewPage() {
         <div className={styles.quickGrid}>
           <div className={styles.quickCard}>
             <div>生成工具构建流水线</div>
-            <Link href="/tools/build" className={styles.quickLink}>
+            <Link href={'/tools/build' as any} className={styles.quickLink}>
               查看构建进度 →
             </Link>
           </div>

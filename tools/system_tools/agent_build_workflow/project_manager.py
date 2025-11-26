@@ -2212,9 +2212,17 @@ def generate_python_requirements(project_name: str, content: str) -> str:
             line = raw_line.strip()
             if not line:
                 continue
+            # Skip comments and empty lines
+            if line.startswith("#"):
+                entries.append(line)
+                continue
+
             lower = line.lower()
             # Skip references to non-existent "strands" package; we ship strands-agents instead.
             if lower.startswith("strands") and not lower.startswith("strands-agents"):
+                continue
+            # Skip non-existent "nexus-ai" package
+            if lower.startswith("nexus-ai"):
                 continue
             entries.append(line)
 
@@ -2246,7 +2254,7 @@ def generate_content(type: Literal["agent", "prompt", "tool"], content: str, pro
         str: 操作结果信息
         
     Note:
-        为确保目录名和文件名一致，代理文件将命名为 {project_name}.py，
+        为确保目录名和文件名一致，agent脚本文件将命名为 {project_name}.py，
         提示词文件将命名为 {project_name}.yaml，工具文件保持使用artifact_name
     """
     stage = "prompt_engineer" if type == "prompt" else "tools_developer" if type == "tool" else "agent_code_developer"
@@ -2307,10 +2315,21 @@ def generate_content(type: Literal["agent", "prompt", "tool"], content: str, pro
         try:
             validation_data = json.loads(validation_result)
             if not validation_data.get("valid", False):
+                # 详细记录验证失败信息到日志
+                logger.error(f"========== FILE VALIDATION FAILED ==========")
+                logger.error(f"File type: {type}")
+                logger.error(f"File path: {file_path}")
+                logger.error(f"Project: {project_name}")
+                logger.error(f"Artifact: {artifact_name}")
+                logger.error(f"Validation result: {json.dumps(validation_data, indent=2, ensure_ascii=False)}")
+                logger.error(f"File content (first 500 chars):\n{content[:500]}")
+                logger.error(f"===========================================")
+
                 # 如果验证失败，删除文件并返回错误信息
                 if os.path.exists(file_path):
+                    logger.error(f"Deleting invalid file: {file_path}")
                     os.remove(file_path)
-                
+
                 # 获取详细的错误信息
                 error_message = "未知错误"
                 if "error_details" in validation_data and validation_data["error_details"]:
@@ -2319,10 +2338,13 @@ def generate_content(type: Literal["agent", "prompt", "tool"], content: str, pro
                     error_message = validation_data["error"]
                 elif "error_category" in validation_data:
                     error_message = f"错误分类: {validation_data['error_category']}"
-                
+
+                logger.error(f"Final error message: {error_message}")
                 return f"错误：生成的文件验证失败。{error_message}"
-        except json.JSONDecodeError:
+        except json.JSONDecodeError as e:
             # 如果验证结果不是JSON格式，记录警告但继续
+            logger.warning(f"Validation result is not JSON: {validation_result}")
+            logger.warning(f"JSON decode error: {str(e)}")
             pass
 
         normalized_path = _normalize_artifact_path(file_path)

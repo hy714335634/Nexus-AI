@@ -65,8 +65,7 @@ class PubMedLiteratureEditorAssistant:
         self.agent_params = {
             "env": self.env,
             "version": self.version,
-            "model_id": self.model_id,
-            "enable_logging": True
+            "model_id": self.model_id
         }
         
         # 智能体配置路径

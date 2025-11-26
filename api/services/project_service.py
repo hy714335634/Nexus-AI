@@ -166,12 +166,19 @@ class ProjectService:
                     last_key=last_key
                 )
             else:
+                # Build filters dict for DynamoDB client
+                filters = {}
+                if status:
+                    filters['status'] = status
+                if user_id:
+                    filters['user_id'] = user_id
+                if tags:
+                    filters['tags'] = tags
+
                 result = self.db_client.list_projects(
                     limit=limit,
                     last_key=last_key,
-                    status=status,
-                    user_id=user_id,
-                    tags=tags
+                    filters=filters if filters else None
                 )
 
             return result

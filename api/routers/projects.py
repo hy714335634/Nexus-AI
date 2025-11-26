@@ -122,10 +122,24 @@ async def create_project(
             agent_name_map=converted_agent_map
         )
 
+        # 触发异步构建任务
+        from api.tasks.agent_build_tasks import build_agent
+        session_id = f"session_{uuid.uuid4().hex[:12]}"
+
+        build_agent.delay(
+            project_id=project_id,
+            requirement=requirement,
+            session_id=session_id,
+            user_id=user_id,
+            agent_name=project_name
+        )
+
+        logger.info(f"Triggered build task for project {project_id} with session {session_id}")
+
         return {
             "success": True,
             "data": project,
-            "message": f"Project {project_id} created successfully",
+            "message": f"Project {project_id} created successfully and build started",
             "timestamp": datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
         }
 

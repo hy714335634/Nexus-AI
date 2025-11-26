@@ -1,0 +1,60 @@
+agents: {}
+created_at: '2025-11-23T06:24:39.768906+00:00'
+last_updated: '2025-11-23T06:24:39.768916+00:00'
+project: football_qa_agent
+project_info:
+- agents:
+  - created_date: '2025-11-23T06:25:42.218754+00:00'
+    description: 智能体：football_search_organizer
+    last_updated: '2025-11-23T07:55:11.177230+00:00'
+    name: football_search_organizer
+    pipeline:
+    - description: 需求分析阶段 - 分析用户需求，定义功能规格
+      doc_path: projects/football_qa_agent/agents/football_search_organizer/requirements_analyzer.json
+      stage: requirements_analyzer
+      status: true
+      updated_date: '2025-11-23T06:25:42.218766+00:00'
+    - description: 系统架构设计阶段 - 设计系统架构和技术方案
+      doc_path: projects/football_qa_agent/agents/football_search_organizer/system_architect.json
+      stage: system_architect
+      status: true
+      updated_date: '2025-11-23T06:28:05.294555+00:00'
+    - description: Agent设计阶段 - 设计智能体结构和交互模式
+      doc_path: projects/football_qa_agent/agents/football_search_organizer/agent_designer.json
+      stage: agent_designer
+      status: true
+      updated_date: '2025-11-23T06:30:42.553491+00:00'
+    - agent_artifact_path:
+      - prompts/generated_agents_prompts/football_qa_agent/football_search_organizer.yaml
+      description: 提示词工程阶段 - 设计和优化提示词模板
+      doc_path: projects/football_qa_agent/agents/football_search_organizer/prompt_engineer.json
+      stage: prompt_engineer
+      status: true
+      updated_date: '2025-11-23T06:38:31.232669+00:00'
+    - agent_artifact_path:
+      - tools/generated_tools/football_qa_agent/football_search_tools.py
+      description: 工具开发阶段 - 开发必要的工具和函数
+      doc_path: projects/football_qa_agent/agents/football_search_organizer/tools_developer.json
+      stage: tools_developer
+      status: true
+      updated_date: '2025-11-23T06:34:43.561079+00:00'
+    - agent_artifact_path:
+      - agents/generated_agents/football_qa_agent/football_search_organizer.py
+      description: Agent代码开发阶段 - 实现智能体代码
+      doc_path: projects/football_qa_agent/agents/football_search_organizer/agent_code_developer.json
+      stage: agent_code_developer
+      status: true
+      updated_date: '2025-11-23T07:54:31.874870+00:00'
+    - description: Agent开发管理阶段 - 管理和协调开发流程
+      doc_path: projects/football_qa_agent/agents/football_search_organizer/agent_developer_manager.json
+      stage: agent_developer_manager
+      status: true
+      updated_date: '2025-11-23T07:55:11.177233+00:00'
+  description: AI智能体项目：football_qa_agent
+  last_updated: '2025-11-23T07:55:11.177221+00:00'
+  name: football_qa_agent
+  progress:
+  - completed: 7
+    total: 7
+  version: 1.0.0
+status: initialized
