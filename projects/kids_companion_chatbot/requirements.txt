@@ -1,0 +1,14 @@
+./nexus_utils
+strands-agents
+strands-agents-tools
+PyYAML
+strands-agents>=1.18.0
+anthropic>=0.75.0
+boto3>=1.41.4
+botocore>=1.44.4
+pydantic>=2.0.0
+pydantic-core>=2.0.0
+typing-extensions>=4.0.0
+python-dateutil>=2.8.2
+requests>=2.31.0
+urllib3>=2.0.0

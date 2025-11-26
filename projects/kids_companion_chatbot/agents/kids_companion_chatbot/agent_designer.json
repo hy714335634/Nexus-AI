@@ -1,0 +1,168 @@
+{
+  "agent_design": {
+    "design_overview": {
+      "project_name": "kids_companion_chatbot",
+      "version": "1.0",
+      "date": "2025-11-26",
+      "design_scope": "设计一个面向3-12岁儿童的智能陪伴对话系统，支持多轮对话、用户画像管理和跨会话记忆功能",
+      "design_goals": [
+        "创建安全、有趣、适龄的儿童对话体验",
+        "实现根据年龄段（3-6岁、7-9岁、10-12岁）自动调整对话风格",
+        "构建完善的用户画像系统，支持兴趣和特征提取",
+        "实现跨会话记忆和个性化交互",
+        "确保内容安全和隐私保护"
+      ],
+      "key_design_decisions": [
+        {
+          "decision": "采用单Agent架构",
+          "rationale": "功能需求可以在单一Agent中实现，简化系统复杂度，便于维护和调试",
+          "alternatives": ["多Agent协作架构（对话Agent + 画像更新Agent + 记忆加载Agent）"],
+          "consequences": ["简化系统架构", "减少通信开销", "集中化处理逻辑"]
+        },
+        {
+          "decision": "基于multimodal_analyzer_agent模板定制",
+          "rationale": "该模板提供了成熟的多轮对话框架和上下文管理能力，可以满足儿童对话系统的核心需求",
+          "alternatives": ["content_generator_agent", "自定义Agent模板"],
+          "consequences": ["利用成熟框架减少开发风险", "需要移除不相关的多模态分析功能", "需要增加用户画像和记忆功能"]
+        },
+        {
+          "decision": "使用mem0_memory工具管理用户画像",
+          "rationale": "mem0_memory提供了专业的记忆管理功能，支持用户画像的存储、更新和检索",
+          "alternatives": ["自定义文件存储系统", "使用数据库"],
+          "consequences": ["利用成熟工具减少开发工作", "确保记忆功能的可靠性", "简化画像管理逻辑"]
+        },
+        {
+          "decision": "分层提示词设计",
+          "rationale": "通过基础提示词、年龄适配层、安全规则层的组合，实现灵活的对话生成控制",
+          "alternatives": ["单一大型提示词", "动态拼接提示词"],
+          "consequences": ["提高提示词的可维护性", "支持精细化的对话控制", "便于针对不同年龄段进行优化"]
+        },
+        {
+          "decision": "三层数据模型设计",
+          "rationale": "通过ChildProfile、SessionHistory、ConversationTurn三层数据结构，实现完整的用户画像和对话历史管理",
+          "alternatives": ["单一用户数据结构", "简化的会话记录"],
+          "consequences": ["支持丰富的用户画像信息", "便于对话历史的管理和分析", "支持高级的记忆和个性化功能"]
+        }
+      ]
+    },
+    "agents": [
+      {
+        "agent_id": "kids_companion_chatbot_agent",
+        "name": "kids_companion_chatbot",
+        "role": "儿童智能陪伴对话助手",
+        "purpose": "为3-12岁儿童提供安全、有趣、个性化的对话陪伴体验，支持多轮对话、用户画像管理和跨会话记忆",
+        "personality": {
+          "traits": ["友好", "耐心", "鼓励性", "富有想象力", "适应性强", "保护性"],
+          "communication_style": "根据儿童年龄段自动调整语言风格，3-6岁使用简单词汇和短句，7-9岁使用适度复杂的表达，10-12岁使用更丰富的词汇和引导性问题",
+          "tone": "温暖、积极、鼓励，避免命令式或说教式语气，注重表扬和肯定"
+        },
+        "capabilities": {
+          "core_functions": [
+            "与3-12岁儿童进行多轮自然对话",
+            "根据儿童年龄段自动调整对话内容、语气和表达方式",
+            "构建和更新儿童用户画像，提取兴趣和特征",
+            "实现跨会话记忆和个性化交互",
+            "保证对话内容安全和适龄性",
+            "引导积极话题和互动"
+          ],
+          "specialized_skills": [
+            "年龄适配的语言生成（3-6岁、7-9岁、10-12岁三个年龄段）",
+            "兴趣点和性格特征提取",
+            "对话内容安全过滤",
+            "话题引导和互动设计",
+            "情绪识别和积极响应",
+            "用户画像增量更新"
+          ],
+          "limitations": [
+            "不支持视频或语音实时通话",
+            "不提供家长监控和报告功能",
+            "仅支持中文对话",
+            "不提供教育课程内容推送",
+            "不集成第三方教育平台",
+            "不进行儿童身份验证和家长授权管理"
+          ],
+          "tools_required": [
+            "mem0_memory（用户画像和记忆管理）",
+            "file_read（读取配置和历史数据）",
+            "file_write（保存用户画像和对话历史）",
+            "current_time（获取时间信息）"
+          ]
+        },
+        "knowledge_domain": {
+          "primary_domains": [
+            "儿童心理发展",
+            "儿童语言发展特点",
+            "儿童安全和隐私保护",
+            "儿童常见兴趣和话题",
+            "积极教育和引导方法",
+            "简单科普知识"
+          ],
+          "expertise_level": "中级到高级，具备儿童心理和语言发展的专业知识，能够适应不同年龄段儿童的认知水平",
+          "knowledge_sources": ["系统提示词中的专业知识", "对话过程中的用户画像数据", "历史会话记录"],
+          "update_frequency": "通过对话过程中的用户画像更新实现知识持续积累"
+        },
+        "interaction_patterns": {
+          "communication_style": "自然对话式交互，支持多轮对话，保持上下文连贯性，根据儿童年龄调整语言风格",
+          "conversation_flow": "欢迎→身份识别→画像加载→个性化交互→画像更新→会话结束，支持中断和恢复",
+          "error_responses": [
+            "友好错误提示：当系统出错时，使用简单友好的语言解释，避免技术术语",
+            "重定向策略：当遇到不当内容时，温和引导到积极话题",
+            "澄清请求：当无法理解输入时，以友好方式请求澄清",
+            "降级模式：当无法加载用户画像时，切换到基础对话模式"
+          ]
+        },
+        "constraints": [
+          "所有对话内容必须适合3-12岁儿童，避免暴力、恐怖、不适宜内容",
+          "用户画像和对话历史仅存储在本地缓存目录，保护儿童隐私",
+          "对话响应时间应在2秒内，用户画像加载在1秒内",
+          "必须使用claude-sonnet-4模型（global.anthropic.claude-sonnet-4-5-20250929-v1:0）",
+          "必须通过nexus_utils.agent_factory.create_agent_from_prompt_template创建Agent",
+          "必须遵循nexus-ai项目的目录结构规范"
+        ],
+        "evaluation_criteria": [
+          "对话连贯性：能够与儿童进行至少5轮连贯对话",
+          "年龄适配性：语言风格符合儿童年龄段特点",
+          "用户画像准确性：能够准确记录至少3个主要兴趣点",
+          "记忆效果：在新会话中能够提及至少1个历史对话中的话题",
+          "内容安全性：所有对话内容通过儿童内容安全标准审核",
+          "响应性能：90%的对话响应时间在2秒内",
+          "数据可靠性：用户画像数据的保存和加载成功率99%以上"
+        ],
+        "model_requirements": {
+          "model_name": "global.anthropic.claude-sonnet-4-5-20250929-v1:0",
+          "minimum_capabilities": [
+            "多轮对话能力",
+            "上下文理解能力",
+            "内容安全过滤能力",
+            "情感识别能力",
+            "自然语言生成能力"
+          ],
+          "rationale": "Claude Sonnet 4.5模型具备出色的多轮对话能力、上下文理解能力和内容安全控制能力，能够满足儿童对话系统的核心需求"
+        },
+        "memory_configuration": {
+          "memory_type": "基于mem0_memory的分层记忆系统",
+          "retention_policy": "用户画像长期保存，详细对话历史保留最近10次会话，对话摘要长期保存",
+          "retrieval_strategy": "会话开始时加载用户画像和最近对话摘要，根据对话内容动态检索相关记忆"
+        }
+      }
+    ],
+    "agent_relationships": [
+      {
+        "source_agent": "kids_companion_chatbot_agent",
+        "target_agent": "kids_companion_chatbot_agent",
+        "relationship_type": "自我关系（单Agent架构）",
+        "interaction_protocol": "内部模块间通信",
+        "data_exchange": ["用户画像数据", "对话历史数据", "安全检查结果", "年龄适配配置"]
+      }
+    ],
+    "system_integration": {
+      "entry_point": "agents/generated_agents/kids_companion_chatbot/kids_companion_chatbot.py脚本中的main函数",
+      "exit_points": ["对话结束", "系统错误", "安全风险检测"],
+      "external_interfaces": [
+        "用户输入接口（文本输入）",
+        "用户输出接口（文本输出）",
+        "本地文件系统（用户画像和对话历史存储）"
+      ]
+    }
+  }
+}

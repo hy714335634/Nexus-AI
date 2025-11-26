@@ -1,0 +1,295 @@
+{
+  "system_design": {
+    "design_overview": {
+      "project_name": "kids_companion_chatbot",
+      "version": "1.0",
+      "date": "2025-11-26",
+      "design_scope": "设计一个面向3-12岁儿童的智能陪伴对话系统，支持多轮对话、用户画像管理和跨会话记忆功能",
+      "design_principles": [
+        "儿童安全优先：所有对话内容必须安全、积极、适合儿童",
+        "年龄适配性：根据3-6岁、7-9岁、10-12岁三个年龄段调整语言风格",
+        "记忆连贯性：通过用户画像和对话历史实现跨会话记忆",
+        "交互友好性：使用简单、有趣、鼓励性的对话方式",
+        "隐私保护：用户数据仅本地存储，不上传外部服务器",
+        "可扩展性：支持未来功能扩展和用户规模增长"
+      ],
+      "key_decisions": [
+        "采用单Agent架构：功能集中在一个Agent中，简化系统复杂度",
+        "基于multimodal_analyzer_agent模板：利用成熟的多轮对话框架",
+        "集成Mem0 Memory：实现专业的用户画像和记忆管理",
+        "使用claude-sonnet-4模型：确保高质量的对话生成能力",
+        "本地缓存存储：保护儿童隐私，提高响应速度",
+        "分层提示词设计：系统层、年龄适配层、安全过滤层"
+      ],
+      "workflow_type": "single_agent",
+      "recommended_templates": [
+        "multimodal_analyzer_agent",
+        "content_generator_agent"
+      ]
+    },
+    "architecture": {
+      "system_context": "儿童智能陪伴对话系统运行在本地环境，通过AWS Bedrock Claude模型提供AI能力，使用Mem0 Memory管理用户画像和对话历史，数据存储在本地缓存目录，确保儿童隐私安全。系统支持多个儿童用户，每个用户有独立的画像和对话历史。",
+      "agent_topology": "单Agent架构 - kids_companion_chatbot Agent集成所有核心功能：对话管理、年龄适配、用户画像更新、记忆加载、内容安全过滤。Agent内部采用模块化设计，包含对话处理模块、画像管理模块、记忆系统模块、安全过滤模块。",
+      "interaction_model": "用户与Agent直接交互模式：用户输入 -> Agent处理（年龄识别、上下文加载、内容生成、安全过滤）-> 响应输出 -> 画像更新 -> 记忆存储。支持会话管理，每次对话开始时加载用户画像，对话结束时更新并保存。",
+      "technology_stack": {
+        "sdk": "Strands SDK",
+        "runtime": "Local Python 3.13+",
+        "integrations": [
+          "AWS Bedrock Claude Sonnet 4.5",
+          "Mem0 Memory System",
+          "本地文件系统缓存",
+          "nexus_utils.agent_factory"
+        ]
+      }
+    },
+    "agents": [
+      {
+        "name": "kids_companion_chatbot",
+        "purpose": "为3-12岁儿童提供安全、有趣、个性化的对话陪伴体验",
+        "responsibilities": [
+          "与儿童进行多轮自然对话交互",
+          "根据儿童年龄调整对话内容、语气和表达方式",
+          "实时分析对话内容，提取儿童兴趣和特征信息",
+          "更新和维护儿童用户画像数据",
+          "加载历史用户画像，实现跨会话记忆",
+          "过滤不适宜内容，确保对话安全性",
+          "引导积极话题，提供教育性和娱乐性内容",
+          "管理对话会话和历史记录存储"
+        ],
+        "interfaces": {
+          "inputs": [
+            "用户文本输入（儿童的对话内容）",
+            "用户ID（child_id，用于识别不同儿童）",
+            "会话控制指令（开始新会话、结束会话）",
+            "年龄信息（首次对话时获取）"
+          ],
+          "outputs": [
+            "适龄的对话响应内容",
+            "话题引导和互动问题",
+            "安全提示和正面引导信息",
+            "会话状态反馈"
+          ]
+        },
+        "dependencies": [
+          "Mem0 Memory工具（用户画像和记忆管理）",
+          "AWS Bedrock Claude模型（对话生成）",
+          "本地缓存系统（数据持久化）",
+          "nexus_utils.agent_factory（Agent创建）"
+        ],
+        "implementation_notes": [
+          "基于multimodal_analyzer_agent模板进行定制开发",
+          "集成mem0_memory工具实现用户画像管理",
+          "使用分层提示词设计：基础提示词+年龄适配提示词+安全规则",
+          "实现三个年龄段的语言风格切换逻辑",
+          "对话历史采用摘要+详细记录的混合存储策略",
+          "用户画像包含：基本信息、兴趣标签、性格特征、对话偏好、学习进度"
+        ],
+        "recommended_template": "multimodal_analyzer_agent"
+      }
+    ],
+    "data_models": [
+      {
+        "name": "ChildProfile",
+        "schema": "{\n  \"child_id\": \"string (唯一标识符)\",\n  \"basic_info\": {\n    \"name\": \"string (昵称)\",\n    \"age\": \"integer (年龄)\",\n    \"age_group\": \"string (3-6|7-9|10-12)\",\n    \"created_at\": \"timestamp\",\n    \"last_updated\": \"timestamp\"\n  },\n  \"interests\": {\n    \"topics\": [\"array of strings (兴趣话题标签)\"],\n    \"preferences\": {\n      \"topic_name\": \"float (兴趣权重0-1)\"\n    },\n    \"favorite_activities\": [\"array of strings\"]\n  },\n  \"personality\": {\n    \"traits\": [\"array of strings (性格特征)\"],\n    \"communication_style\": \"string (活泼|安静|好奇|内向等)\",\n    \"learning_pace\": \"string (快|中|慢)\"\n  },\n  \"conversation_history\": {\n    \"total_sessions\": \"integer\",\n    \"recent_topics\": [\"array of strings (最近话题)\"],\n    \"conversation_summary\": \"string (对话总结)\",\n    \"last_session_date\": \"timestamp\"\n  }\n}",
+        "validation_rules": [
+          "child_id必须唯一且非空",
+          "age必须在3-12范围内",
+          "age_group必须与age匹配",
+          "兴趣权重必须在0-1范围内",
+          "时间戳必须为有效的ISO格式"
+        ],
+        "relationships": [
+          "与SessionHistory一对多关系",
+          "与ConversationLog一对多关系"
+        ]
+      },
+      {
+        "name": "SessionHistory",
+        "schema": "{\n  \"session_id\": \"string (会话唯一标识)\",\n  \"child_id\": \"string (关联的儿童ID)\",\n  \"start_time\": \"timestamp\",\n  \"end_time\": \"timestamp\",\n  \"conversation_turns\": \"integer (对话轮次数)\",\n  \"topics_discussed\": [\"array of strings\"],\n  \"mood_detected\": \"string (检测到的情绪)\",\n  \"learning_points\": [\"array of strings (学习要点)\"],\n  \"session_summary\": \"string (会话摘要)\",\n  \"profile_updates\": \"object (画像更新内容)\"\n}",
+        "validation_rules": [
+          "session_id必须唯一",
+          "child_id必须存在于ChildProfile中",
+          "end_time必须大于start_time",
+          "conversation_turns必须为正整数"
+        ],
+        "relationships": [
+          "属于特定的ChildProfile",
+          "包含多个ConversationTurn"
+        ]
+      },
+      {
+        "name": "ConversationTurn",
+        "schema": "{\n  \"turn_id\": \"string\",\n  \"session_id\": \"string\",\n  \"timestamp\": \"timestamp\",\n  \"user_input\": \"string (儿童输入)\",\n  \"agent_response\": \"string (Agent响应)\",\n  \"detected_intent\": \"string (检测到的意图)\",\n  \"extracted_interests\": [\"array of strings\"],\n  \"safety_check\": \"boolean (安全检查结果)\",\n  \"age_adaptation\": \"string (使用的年龄适配策略)\"\n}",
+        "validation_rules": [
+          "turn_id必须唯一",
+          "session_id必须存在",
+          "user_input和agent_response不能为空",
+          "safety_check必须为布尔值"
+        ],
+        "relationships": [
+          "属于特定的SessionHistory",
+          "按时间顺序排列"
+        ]
+      }
+    ],
+    "interaction_flows": [
+      {
+        "name": "新用户首次对话流程",
+        "description": "儿童首次使用系统时的完整交互流程",
+        "steps": [
+          {
+            "step": "1. 欢迎和信息收集",
+            "agent": "kids_companion_chatbot",
+            "action": "发送友好欢迎消息，引导儿童提供基本信息（昵称、年龄）",
+            "data": "收集child_id, name, age"
+          },
+          {
+            "step": "2. 年龄适配初始化",
+            "agent": "kids_companion_chatbot",
+            "action": "根据年龄确定age_group，加载对应的语言风格配置",
+            "data": "age_group, language_style_config"
+          },
+          {
+            "step": "3. 创建用户画像",
+            "agent": "kids_companion_chatbot",
+            "action": "使用mem0_memory创建新的ChildProfile记录",
+            "data": "ChildProfile初始数据"
+          },
+          {
+            "step": "4. 兴趣探索对话",
+            "agent": "kids_companion_chatbot",
+            "action": "通过开放式问题了解儿童兴趣爱好",
+            "data": "interests, preferences初始数据"
+          },
+          {
+            "step": "5. 首次对话体验",
+            "agent": "kids_companion_chatbot",
+            "action": "进行适龄的友好对话，建立信任关系",
+            "data": "conversation_turns, session_data"
+          },
+          {
+            "step": "6. 画像更新和存储",
+            "agent": "kids_companion_chatbot",
+            "action": "分析对话内容，更新用户画像并保存",
+            "data": "updated_ChildProfile, SessionHistory"
+          }
+        ]
+      },
+      {
+        "name": "老用户回访对话流程",
+        "description": "已有画像的儿童用户重新开始对话的流程",
+        "steps": [
+          {
+            "step": "1. 用户识别",
+            "agent": "kids_companion_chatbot",
+            "action": "通过child_id识别用户身份",
+            "data": "child_id"
+          },
+          {
+            "step": "2. 画像加载",
+            "agent": "kids_companion_chatbot",
+            "action": "使用mem0_memory加载用户历史画像和对话摘要",
+            "data": "ChildProfile, recent_conversation_summary"
+          },
+          {
+            "step": "3. 个性化欢迎",
+            "agent": "kids_companion_chatbot",
+            "action": "基于历史信息生成个性化欢迎消息，提及之前的话题",
+            "data": "personalized_greeting, previous_topics"
+          },
+          {
+            "step": "4. 上下文恢复",
+            "agent": "kids_companion_chatbot",
+            "action": "恢复对话上下文，准备个性化交互",
+            "data": "conversation_context, user_preferences"
+          },
+          {
+            "step": "5. 持续对话",
+            "agent": "kids_companion_chatbot",
+            "action": "基于用户画像进行个性化对话交互",
+            "data": "conversation_turns"
+          },
+          {
+            "step": "6. 画像增量更新",
+            "agent": "kids_companion_chatbot",
+            "action": "根据新对话内容增量更新用户画像",
+            "data": "profile_updates, new_interests"
+          }
+        ]
+      },
+      {
+        "name": "对话安全处理流程",
+        "description": "检测和处理不当内容的安全流程",
+        "steps": [
+          {
+            "step": "1. 内容安全检测",
+            "agent": "kids_companion_chatbot",
+            "action": "对用户输入进行安全性分析，检测不当内容",
+            "data": "safety_check_result, risk_level"
+          },
+          {
+            "step": "2. 风险评估",
+            "agent": "kids_companion_chatbot",
+            "action": "评估内容风险级别（低/中/高）",
+            "data": "risk_assessment"
+          },
+          {
+            "step": "3. 响应策略选择",
+            "agent": "kids_companion_chatbot",
+            "action": "根据风险级别选择处理策略（忽略/引导/拒绝）",
+            "data": "response_strategy"
+          },
+          {
+            "step": "4. 安全响应生成",
+            "agent": "kids_companion_chatbot",
+            "action": "生成适当的安全响应，温和引导到积极话题",
+            "data": "safe_response, topic_redirect"
+          },
+          {
+            "step": "5. 安全记录",
+            "agent": "kids_companion_chatbot",
+            "action": "记录安全事件，用于后续分析和改进",
+            "data": "safety_log, incident_record"
+          }
+        ]
+      }
+    ],
+    "security_considerations": [
+      "儿童内容安全：所有生成内容必须通过儿童适宜性检查，避免暴力、恐怖、不当内容",
+      "隐私保护：用户画像和对话历史仅存储在本地，不上传到外部服务器",
+      "数据加密：敏感的儿童信息使用加密存储，防止未授权访问",
+      "输入验证：对所有用户输入进行验证和清理，防止注入攻击",
+      "会话安全：实现会话超时机制，防止长时间无人监管的对话",
+      "家长控制：预留家长监控接口，支持查看对话记录和设置使用限制",
+      "内容审核：建立内容审核机制，定期检查和优化安全规则"
+    ],
+    "error_handling": [
+      "网络异常：当LLM服务不可用时，提供离线模式或友好的错误提示",
+      "数据损坏：实现用户画像数据的备份和恢复机制",
+      "内存不足：当缓存数据过多时，自动清理旧的对话历史",
+      "输入异常：处理空输入、过长输入、特殊字符等异常情况",
+      "年龄识别错误：当年龄信息不准确时，提供重新设置的机制",
+      "对话死循环：检测和打破可能的对话循环，引入新话题",
+      "安全检测失败：当安全检测系统故障时，采用保守策略拒绝可疑内容"
+    ],
+    "performance_considerations": [
+      "响应时间优化：对话响应时间控制在2秒内，用户画像加载在1秒内",
+      "缓存策略：使用多层缓存策略，热点数据内存缓存，历史数据磁盘缓存",
+      "数据压缩：对话历史使用压缩存储，减少磁盘空间占用",
+      "并发支持：支持多个儿童用户同时使用，每个用户独立会话",
+      "资源管理：合理管理内存使用，避免因大量用户数据导致的内存泄漏",
+      "批量处理：用户画像更新采用批量处理，减少频繁的磁盘I/O",
+      "负载均衡：在高并发场景下，考虑Agent实例的负载分配"
+    ],
+    "monitoring_strategy": [
+      "对话质量监控：跟踪对话轮次、用户满意度、话题覆盖度等指标",
+      "安全事件监控：监控安全检测触发频率、风险内容类型等",
+      "性能监控：监控响应时间、内存使用、缓存命中率等性能指标",
+      "用户行为分析：分析用户使用模式、兴趣变化趋势、年龄分布等",
+      "错误监控：跟踪系统错误、异常情况、恢复成功率等",
+      "数据完整性检查：定期检查用户画像数据的完整性和一致性",
+      "使用统计：统计活跃用户数、会话时长、功能使用频率等运营指标"
+    ]
+  },
+  "design_rationale": "本系统设计基于以下核心考虑：1) 儿童安全是最高优先级，所有设计决策都围绕保护儿童身心健康；2) 采用单Agent架构简化系统复杂度，便于维护和调试，同时满足功能需求；3) 基于成熟的multimodal_analyzer_agent模板，减少开发风险和时间成本；4) 集成专业的Mem0 Memory系统，确保用户画像和记忆功能的可靠性；5) 分层的年龄适配设计，确保不同年龄段儿童都能获得合适的体验；6) 本地数据存储策略，最大程度保护儿童隐私；7) 模块化的内部架构，支持未来功能扩展和优化；8) 完善的安全和错误处理机制，确保系统稳定可靠。设计充分考虑了儿童用户的特殊性，在技术实现和用户体验之间找到了最佳平衡点。"
+}

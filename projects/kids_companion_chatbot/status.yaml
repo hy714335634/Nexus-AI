@@ -1,0 +1,65 @@
+agents: {}
+created_at: '2025-11-26T15:45:57.160724+00:00'
+last_updated: '2025-11-26T15:45:57.160736+00:00'
+project: kids_companion_chatbot
+project_info:
+- agents:
+  - created_date: '2025-11-26T15:47:37.765315+00:00'
+    description: 智能体：kids_companion_chatbot
+    last_updated: '2025-11-26T16:10:34.011487+00:00'
+    name: kids_companion_chatbot
+    pipeline:
+    - description: 需求分析阶段 - 分析用户需求，定义功能规格
+      doc_path: projects/kids_companion_chatbot/agents/kids_companion_chatbot/requirements_analyzer.json
+      stage: requirements_analyzer
+      status: true
+      updated_date: '2025-11-26T15:47:37.765897+00:00'
+    - description: 系统架构设计阶段 - 设计系统架构和技术方案
+      doc_path: projects/kids_companion_chatbot/agents/kids_companion_chatbot/system_architect.json
+      stage: system_architect
+      status: true
+      updated_date: '2025-11-26T15:50:38.813297+00:00'
+    - description: Agent设计阶段 - 设计智能体结构和交互模式
+      doc_path: projects/kids_companion_chatbot/agents/kids_companion_chatbot/agent_designer.json
+      stage: agent_designer
+      status: true
+      updated_date: '2025-11-26T15:52:26.886850+00:00'
+    - agent_artifact_path:
+      - prompts/generated_agents_prompts/kids_companion_chatbot/kids_companion_chatbot.yaml
+      description: 提示词工程阶段 - 设计和优化提示词模板
+      doc_path: projects/kids_companion_chatbot/agents/kids_companion_chatbot/prompt_engineer.json
+      stage: prompt_engineer
+      status: true
+      updated_date: '2025-11-26T16:06:06.722458+00:00'
+    - agent_artifact_path:
+      - tools/generated_tools/kids_companion_chatbot/profile_manager.py
+      - tools/generated_tools/kids_companion_chatbot/session_manager.py
+      - tools/generated_tools/kids_companion_chatbot/content_safety.py
+      - tools/generated_tools/kids_companion_chatbot/info_extractor.py
+      description: 工具开发阶段 - 开发必要的工具和函数
+      doc_path: projects/kids_companion_chatbot/agents/kids_companion_chatbot/tools_developer.json
+      stage: tools_developer
+      status: true
+      updated_date: '2025-11-26T16:00:54.055868+00:00'
+    - agent_artifact_path:
+      - agents/generated_agents/kids_companion_chatbot/kids_companion_chatbot.py
+      description: Agent代码开发阶段 - 实现智能体代码
+      doc_path: projects/kids_companion_chatbot/agents/kids_companion_chatbot/agent_code_developer.json
+      stage: agent_code_developer
+      status: true
+      updated_date: '2025-11-26T16:08:54.404208+00:00'
+    - description: Agent开发管理阶段 - 管理和协调开发流程
+      doc_path: projects/kids_companion_chatbot/agents/kids_companion_chatbot/agent_developer_manager.json
+      stage: agent_developer_manager
+      status: true
+      updated_date: '2025-11-26T16:10:34.011497+00:00'
+  description: 儿童智能陪伴对话系统 - 为3-12岁儿童提供安全、有趣、个性化的多轮对话体验。系统支持用户画像管理、跨会话记忆、年龄适配对话和内容安全过滤。核心功能包括：(1)
+    多轮自然对话交互；(2) 根据年龄段自动调整语言风格；(3) 用户画像构建与更新；(4) 跨会话记忆和个性化交互；(5) 对话内容安全检查。采用单Agent架构，基于multimodal_analyzer_agent模板，集成Mem0
+    Memory用户画像管理系统，使用Claude Sonnet 4.5模型提供高质量对话能力。项目已完成需求分析、系统架构设计、Agent设计、提示词工程、工具开发和代码开发等全部开发阶段。
+  last_updated: '2025-11-26T16:10:34.011477+00:00'
+  name: kids_companion_chatbot
+  progress:
+  - completed: 7
+    total: 7
+  version: 1.0.0
+status: initialized
