@@ -1,8 +1,12 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import styles from './home.module.css';
 import { toast } from 'sonner';
+import { useStatisticsOverview } from '@/hooks/use-statistics';
+import { useAgentsList } from '@/hooks/use-agents';
+import { useProjectSummaries } from '@/hooks/use-projects';
 
 interface TemplateItem {
   readonly id: string;
@@ -62,48 +66,11 @@ function Modal({ open, title, onClose, items, onSelect }: ModalProps) {
   );
 }
 
-const PLATFORM_STATS = [
-  { label: '已构建Agent', value: '125' },
-  { label: '活跃用户', value: '45' },
-  { label: '平均构建时间', value: '3.2小时' },
-  { label: '系统可用性', value: '98.5%' },
-];
-
 const QUICK_START = [
   { id: 'tutorial', icon: '🎓', label: '观看5分钟入门视频' },
   { id: 'templates', icon: '📚', label: '查看示例Agent模板' },
   { id: 'scenarios', icon: '🛠️', label: '使用预置业务场景' },
   { id: 'contact', icon: '📞', label: '联系解决方案架构师' },
-];
-
-const MY_AGENTS = [
-  {
-    id: 'complaint-bot',
-    name: '客户投诉处理机器人',
-    description: '运行中 • 今日处理 23 个案例',
-    status: 'running' as const,
-    actionIcon: '⚙️',
-  },
-  {
-    id: 'sales-lead',
-    name: '销售线索分析器',
-    description: '构建中 • 预计完成时间 15 分钟',
-    status: 'building' as const,
-    actionIcon: '⏸️',
-  },
-  {
-    id: 'risk-monitor',
-    name: '金融风险监控助手',
-    description: '告警 • 需查看最新异常事件',
-    status: 'warning' as const,
-    actionIcon: '⚠️',
-  },
-];
-
-const ACTIVITIES = [
-  { time: '15分钟前', description: '李工程师 更新了 "客服机器人" 的配置' },
-  { time: '1小时前', description: '王分析师 完成了 "销售数据分析" 任务' },
-  { time: '2小时前', description: '系统自动备份完成，共备份 <span class="highlight">125个Agent</span>' },
 ];
 
 const TEMPLATE_ITEMS: TemplateItem[] = [
@@ -168,19 +135,83 @@ function getAgentStatusClass(status: 'running' | 'building' | 'warning') {
 }
 
 export default function HomePage() {
+  const router = useRouter();
   const [requirement, setRequirement] = useState('');
   const [templateModalOpen, setTemplateModalOpen] = useState(false);
   const [scenarioModalOpen, setScenarioModalOpen] = useState(false);
+
+  // Fetch real data
+  const { data: statistics, isLoading: statsLoading } = useStatisticsOverview();
+  const { data: agents, isLoading: agentsLoading } = useAgentsList(10);
+  const { data: projects } = useProjectSummaries();
+
+  // Calculate platform statistics
+  const platformStats = useMemo(() => {
+    if (!statistics) {
+      return [
+        { label: '已构建Agent', value: '—' },
+        { label: '运行中', value: '—' },
+        { label: '平均构建时间', value: '—' },
+        { label: '成功率', value: '—' },
+      ];
+    }
+
+    const avgBuildTimeHours = statistics.avg_build_time_minutes > 0
+      ? (statistics.avg_build_time_minutes / 60).toFixed(1)
+      : '0';
+
+    return [
+      { label: '已构建Agent', value: statistics.total_agents.toString() },
+      { label: '运行中', value: statistics.running_agents.toString() },
+      { label: '平均构建时间', value: `${avgBuildTimeHours}小时` },
+      { label: '成功率', value: `${statistics.success_rate.toFixed(1)}%` },
+    ];
+  }, [statistics]);
+
+  // Transform agents to display format
+  const myAgents = useMemo(() => {
+    if (!agents || agents.length === 0) {
+      return [];
+    }
+
+    return agents.slice(0, 5).map((agent) => {
+      let status: 'running' | 'building' | 'warning';
+      let description: string;
+      let actionIcon: string;
+
+      if (agent.status === 'running') {
+        status = 'running';
+        const calls = agent.call_count ?? 0;
+        description = `运行中 • 调用 ${calls} 次`;
+        actionIcon = '⚙️';
+      } else if (agent.status === 'error') {
+        status = 'warning';
+        description = '告警 • 需要检查状态';
+        actionIcon = '⚠️';
+      } else {
+        status = 'building';
+        description = '离线';
+        actionIcon = '💤';
+      }
+
+      return {
+        id: agent.agent_id,
+        name: agent.agent_name,
+        description,
+        status,
+        actionIcon,
+      };
+    });
+  }, [agents]);
+
+  const totalAgentCount = agents?.length ?? 0;
 
   const handleStartBuild = () => {
     if (!requirement.trim()) {
       toast.error('请先描述你的需求');
       return;
     }
-    toast.success('构建流程已启动', {
-      description: '我们将根据你的需求启动自动化 Agent 构建流水线。',
-    });
-    setRequirement('');
+    router.push(`/agents/new?requirement=${encodeURIComponent(requirement)}`);
   };
 
   const handleTemplateSelect = (item: TemplateItem) => {
@@ -193,22 +224,41 @@ export default function HomePage() {
     setScenarioModalOpen(false);
   };
 
-  const activityNodes = useMemo(() => {
-    return ACTIVITIES.map((activity, index) => (
-      <div key={`${activity.time}-${index}`} className={styles.activityItem}>
-        <div className={styles.activityTime}>{activity.time}</div>
-        <div
-          className={styles.activityDesc}
-          dangerouslySetInnerHTML={{
-            __html: activity.description.replace(
-              '<span class="highlight">',
-              `<span class="${styles.activityHighlight}">`,
-            ),
-          }}
-        />
-      </div>
-    ));
-  }, []);
+  // Generate recent activities from projects
+  const recentActivities = useMemo(() => {
+    if (!projects || projects.length === 0) {
+      return [
+        { time: '—', description: '暂无活动记录' },
+      ];
+    }
+
+    return projects.slice(0, 3).map((project) => {
+      const timeStr = project.updatedAt
+        ? new Date(project.updatedAt).toLocaleString('zh-CN', {
+            month: 'numeric',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+          })
+        : '未知时间';
+
+      let statusText = '';
+      if (project.status === 'completed') {
+        statusText = '已完成';
+      } else if (project.status === 'building') {
+        statusText = `构建中 (${Math.round(project.progressPercentage)}%)`;
+      } else if (project.status === 'failed') {
+        statusText = '构建失败';
+      } else {
+        statusText = '等待中';
+      }
+
+      return {
+        time: timeStr,
+        description: `项目 "${project.projectName}" ${statusText}`,
+      };
+    });
+  }, [projects]);
 
   return (
     <div className={styles.container}>
@@ -239,12 +289,18 @@ export default function HomePage() {
         <div className={styles.card}>
           <h3 className={styles.cardTitle}>📊 平台统计</h3>
           <div className={styles.statsGrid}>
-            {PLATFORM_STATS.map((stat) => (
-              <div key={stat.label} className={styles.statItem}>
-                <div className={styles.statNumber}>{stat.value}</div>
-                <div className={styles.statLabel}>{stat.label}</div>
+            {statsLoading ? (
+              <div className={styles.statItem}>
+                <div className={styles.statNumber}>加载中...</div>
               </div>
-            ))}
+            ) : (
+              platformStats.map((stat) => (
+                <div key={stat.label} className={styles.statItem}>
+                  <div className={styles.statNumber}>{stat.value}</div>
+                  <div className={styles.statLabel}>{stat.label}</div>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
@@ -277,32 +333,54 @@ export default function HomePage() {
         </div>
 
         <div className={styles.card}>
-          <h3 className={styles.cardTitle}>🏆 我的 Agent (5)</h3>
+          <h3 className={styles.cardTitle}>🏆 我的 Agent ({totalAgentCount})</h3>
           <div className={styles.agentList}>
-            {MY_AGENTS.map((agent) => (
-              <div key={agent.id} className={styles.agentItem}>
-                <span className={`${styles.agentStatus} ${getAgentStatusClass(agent.status)}`} />
+            {agentsLoading ? (
+              <div className={styles.agentItem}>
                 <div className={styles.agentInfo}>
-                  <div className={styles.agentName}>{agent.name}</div>
-                  <div className={styles.agentDesc}>{agent.description}</div>
+                  <div className={styles.agentName}>加载中...</div>
                 </div>
-                <button
-                  type="button"
-                  className={styles.agentAction}
-                  onClick={() => toast('即将开放更多管理动作')}
-                  aria-label="管理 Agent"
-                >
-                  {agent.actionIcon}
-                </button>
               </div>
-            ))}
+            ) : myAgents.length === 0 ? (
+              <div className={styles.agentItem}>
+                <div className={styles.agentInfo}>
+                  <div className={styles.agentName}>暂无Agent</div>
+                  <div className={styles.agentDesc}>开始构建你的第一个Agent吧</div>
+                </div>
+              </div>
+            ) : (
+              myAgents.map((agent) => (
+                <div key={agent.id} className={styles.agentItem}>
+                  <span className={`${styles.agentStatus} ${getAgentStatusClass(agent.status)}`} />
+                  <div className={styles.agentInfo}>
+                    <div className={styles.agentName}>{agent.name}</div>
+                    <div className={styles.agentDesc}>{agent.description}</div>
+                  </div>
+                  <button
+                    type="button"
+                    className={styles.agentAction}
+                    onClick={() => router.push(`/agents/${agent.id}`)}
+                    aria-label="管理 Agent"
+                  >
+                    {agent.actionIcon}
+                  </button>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </section>
 
       <section className={styles.activityCard}>
         <h3 className={styles.cardTitle}>📝 最新动态</h3>
-        <div className={styles.activityList}>{activityNodes}</div>
+        <div className={styles.activityList}>
+          {recentActivities.map((activity, index) => (
+            <div key={`${activity.time}-${index}`} className={styles.activityItem}>
+              <div className={styles.activityTime}>{activity.time}</div>
+              <div className={styles.activityDesc}>{activity.description}</div>
+            </div>
+          ))}
+        </div>
       </section>
 
       <Modal

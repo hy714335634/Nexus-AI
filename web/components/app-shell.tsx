@@ -29,7 +29,7 @@ function getNavSections(buildingCount?: number, hasBuilding?: boolean): NavSecti
       title: '核心模块',
       items: [
         { label: '首页概览', href: '/', icon: '🏠' },
-        { label: '与Agent聊天', href: '/agents/dialog', icon: '💬' },
+        { label: '新建构建', href: '/agents/new', icon: '➕' },
         {
           label: '构建模块',
           href: '/build/modules',
@@ -37,37 +37,37 @@ function getNavSections(buildingCount?: number, hasBuilding?: boolean): NavSecti
           badge: buildingCount && buildingCount > 0 ? String(buildingCount) : undefined,
           status: hasBuilding ? 'building' : undefined,
         },
-        { label: '新建构建', href: '/agents/new', icon: '➕' },
-        { label: '管理模块', href: '/management', icon: '⚙️' },
-        { label: '迭代模块', href: '/iteration', icon: '🔄' },
-        { label: '问题排查', href: '/troubleshoot', icon: '🐛' },
-        { label: '日志分析', href: '/troubleshoot/analysis', icon: '📄' },
-        { label: '复现流程', href: '/troubleshoot/reproduction', icon: '🔁' },
-        { label: '代码诊断', href: '/troubleshoot/code-review', icon: '🧮' },
-        { label: '运维管理', href: '/operations', icon: '🔧' },
-        { label: '监控中心', href: '/monitoring', icon: '📊' },
-        { label: '工具&MCP', href: '/tools', icon: '🛠️' },
+        { label: '与Agent聊天', href: '/agents/dialog', icon: '💬' },
+        // { label: '管理模块', href: '/management', icon: '⚙️' },
+        // { label: '迭代模块', href: '/iteration', icon: '🔄' },
+        // { label: '问题排查', href: '/troubleshoot', icon: '🐛' },
+        // { label: '日志分析', href: '/troubleshoot/analysis', icon: '📄' },
+        // { label: '复现流程', href: '/troubleshoot/reproduction', icon: '🔁' },
+        // { label: '代码诊断', href: '/troubleshoot/code-review', icon: '🧮' },
+        // { label: '运维管理', href: '/operations', icon: '🔧' },
+        // { label: '监控中心', href: '/monitoring', icon: '📊' },
+        // { label: '工具&MCP', href: '/tools', icon: '🛠️' },
       ],
     },
-    {
-      title: '系统功能',
-      items: [
-        { label: 'Agent库', href: '/agent-library', icon: '🤖' },
-        { label: '构建配置', href: '/agents/config', icon: '📝' },
-        { label: '多Agent编排', href: '/multi-agent', icon: '🔗' },
-        { label: '自举式进化', href: '/evolution', icon: '🔄', badge: 'Beta' },
-        { label: '系统分析', href: '/analytics', icon: '📈' },
-      ],
-    },
-    {
-      title: '用户管理',
-      items: [
-        { label: '个人中心', href: '/profile', icon: '👤' },
-        { label: '团队管理', href: '/team', icon: '👥' },
-        { label: '帮助文档', href: '/help', icon: '📚' },
-        { label: '系统设置', href: '/settings', icon: '⚙️' },
-      ],
-    },
+    // {
+    //   title: '系统功能',
+    //   items: [
+    //     { label: 'Agent库', href: '/agent-library', icon: '🤖' },
+    //     { label: '构建配置', href: '/agents/config', icon: '📝' },
+    //     { label: '多Agent编排', href: '/multi-agent', icon: '🔗' },
+    //     { label: '自举式进化', href: '/evolution', icon: '🔄', badge: 'Beta' },
+    //     { label: '系统分析', href: '/analytics', icon: '📈' },
+    //   ],
+    // },
+    // {
+    //   title: '用户管理',
+    //   items: [
+    //     { label: '个人中心', href: '/profile', icon: '👤' },
+    //     { label: '团队管理', href: '/team', icon: '👥' },
+    //     { label: '帮助文档', href: '/help', icon: '📚' },
+    //     { label: '系统设置', href: '/settings', icon: '⚙️' },
+    //   ],
+    // },
   ];
 }
 
