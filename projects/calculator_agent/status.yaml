@@ -1,0 +1,54 @@
+agents: {}
+created_at: '2025-11-26T14:32:41.474527+00:00'
+last_updated: '2025-11-26T14:32:41.474548+00:00'
+project: calculator_agent
+project_info:
+- agents:
+  - created_date: '2025-11-26T14:34:31.209315+00:00'
+    description: 智能体：calculator_agent
+    last_updated: '2025-11-26T14:34:31.209385+00:00'
+    name: calculator_agent
+    pipeline:
+    - description: 需求分析阶段 - 分析用户需求，定义功能规格
+      doc_path: projects/calculator_agent/agents/calculator_agent/requirements_analyzer.json
+      stage: requirements_analyzer
+      status: true
+      updated_date: '2025-11-26T14:34:31.209398+00:00'
+    - description: 系统架构设计阶段 - 设计系统架构和技术方案
+      doc_path: ''
+      stage: system_architect
+      status: false
+      updated_date: null
+    - description: Agent设计阶段 - 设计智能体结构和交互模式
+      doc_path: ''
+      stage: agent_designer
+      status: false
+      updated_date: null
+    - description: 提示词工程阶段 - 设计和优化提示词模板
+      doc_path: ''
+      stage: prompt_engineer
+      status: false
+      updated_date: null
+    - description: 工具开发阶段 - 开发必要的工具和函数
+      doc_path: ''
+      stage: tools_developer
+      status: false
+      updated_date: null
+    - description: Agent代码开发阶段 - 实现智能体代码
+      doc_path: ''
+      stage: agent_code_developer
+      status: false
+      updated_date: null
+    - description: Agent开发管理阶段 - 管理和协调开发流程
+      doc_path: ''
+      stage: agent_developer_manager
+      status: false
+      updated_date: null
+  description: 一个具备自然语言处理能力的计算器agent，支持基础四则运算和高级数学函数。
+  last_updated: '2025-11-26T14:34:31.208798+00:00'
+  name: calculator_agent
+  progress:
+  - completed: 1
+    total: 7
+  version: 1.0.0
+status: initialized

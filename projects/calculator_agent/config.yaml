@@ -1,0 +1,6 @@
+project:
+  created_date: '2025-11-26T14:32:41.465857+00:00'
+  description: 一个具备自然语言处理能力的计算器agent，支持基础四则运算和高级数学函数。
+  name: calculator_agent
+  updated_date: '2025-11-26T14:32:44.664470+00:00'
+  version: 1.0.0

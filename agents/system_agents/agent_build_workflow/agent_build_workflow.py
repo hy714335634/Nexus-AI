@@ -413,11 +413,11 @@ def run_workflow(user_input: str, session_id: Optional[str] = None):
         print(f"🔄 [9/9] 跳过 agent_deployer...")
         # print(f"🔄 [6/6] 执行 agent_deployer...")
         print(f"{'='*60}")
-        # deployer_result = _call_agent_with_stage_tracking(
-        #     agents["agent_deployer"], "agent_deployer", current_context
-        # )
-        # execution_results["agent_deployer"] = deployer_result
-        # execution_order.append("agent_deployer")
+        deployer_result = _call_agent_with_stage_tracking(
+            agents["agent_deployer"], "agent_deployer", current_context
+        )
+        execution_results["agent_deployer"] = deployer_result
+        execution_order.append("agent_deployer")
 
         end_time = time.time()
         execution_duration = end_time - start_time
