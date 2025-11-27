@@ -92,17 +92,30 @@ variable "availability_zones" {
   default     = []
 }
 
+# ALB Configuration
+variable "alb_internal" {
+  description = "Whether the ALB should be internal (true) or internet-facing (false). Internal ALB is accessible only from within the VPC."
+  type        = bool
+  default     = true # Default to internal for security
+}
+
+variable "alb_allowed_cidr_blocks" {
+  description = "CIDR blocks allowed to access the ALB (frontend). Defaults to VPC CIDR for internal access. Set to ['0.0.0.0/0'] for public access."
+  type        = list(string)
+  default     = null # Will default to VPC CIDR if not specified
+}
+
 # ECS Configuration
 variable "api_cpu" {
   description = "CPU units for API service (1024 = 1 vCPU)"
   type        = number
-  default     = 1024
+  default     = 2048
 }
 
 variable "api_memory" {
   description = "Memory for API service in MB"
   type        = number
-  default     = 2048
+  default     = 4096
 }
 
 variable "api_desired_count" {
@@ -112,15 +125,15 @@ variable "api_desired_count" {
 }
 
 variable "frontend_cpu" {
-  description = "CPU units for Frontend service (1024 = 1 vCPU)"
+  description = "CPU units for Frontend service (1024 = 1 vCPU). For Fargate: 1024 CPU allows 2048-3072 MB, 2048 CPU requires 4096-16384 MB"
   type        = number
-  default     = 512
+  default     = 1024
 }
 
 variable "frontend_memory" {
-  description = "Memory for Frontend service in MB"
+  description = "Memory for Frontend service in MB. For Fargate, must be valid combination with CPU (e.g., 1024 CPU: 2048-3072 MB, 2048 CPU: 4096-16384 MB)"
   type        = number
-  default     = 1024
+  default     = 2048
 }
 
 variable "frontend_desired_count" {
@@ -150,13 +163,13 @@ variable "celery_worker_desired_count" {
 variable "redis_cpu" {
   description = "CPU units for Redis service (1024 = 1 vCPU)"
   type        = number
-  default     = 512
+  default     = 2048
 }
 
 variable "redis_memory" {
   description = "Memory for Redis service in MB"
   type        = number
-  default     = 1024
+  default     = 4096
 }
 
 # Docker Build Configuration
@@ -164,4 +177,24 @@ variable "skip_docker_build" {
   description = "Skip automatic Docker image build and push during terraform apply"
   type        = bool
   default     = false
+}
+
+# ============================================
+# Bastion Host Configuration
+# ============================================
+variable "enable_bastion" {
+  description = "Enable creation of Bastion Host (EC2 instance for accessing applications)"
+  type        = bool
+  default     = true
+}
+
+variable "bastion_key_name" {
+  description = "Name of the AWS Key Pair to use for Bastion Host SSH access. Must already exist in AWS."
+  type        = string
+  default     = "Og_Normal"
+
+  validation {
+    condition     = var.enable_bastion ? var.bastion_key_name != "" : true
+    error_message = "bastion_key_name must be provided when enable_bastion is true."
+  }
 }

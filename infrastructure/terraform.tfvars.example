@@ -14,3 +14,26 @@ enable_dynamodb       = true
 # DynamoDB Configuration
 dynamodb_read_capacity  = 10
 dynamodb_write_capacity = 10
+
+# ALB Configuration
+# Whether the ALB should be internal (accessible only from VPC) or internet-facing (accessible from internet)
+# Default: true (internal, more secure)
+# Set to false for internet-facing ALB (publicly accessible)
+# alb_internal = true  # true = internal, false = internet-facing
+
+# ALB Security Group Configuration
+# Allowed CIDR blocks for ALB (frontend) access
+# Default: VPC CIDR (internal access only)
+# For public access, set to: ["0.0.0.0/0"]
+# For specific IPs, set to: ["1.2.3.4/32", "5.6.7.8/32"]
+# alb_allowed_cidr_blocks = ["0.0.0.0/0"]  # Uncomment for public access
+
+# ============================================
+# Bastion Host Configuration
+# ============================================
+# Enable Bastion Host (EC2 instance for accessing applications)
+# enable_bastion = true
+
+# AWS Key Pair name (must already exist in your AWS account)
+# You can list existing key pairs with: aws ec2 describe-key-pairs
+# bastion_key_name = "your-existing-key-pair-name"

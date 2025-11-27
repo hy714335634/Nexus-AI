@@ -69,3 +69,21 @@ output "public_subnets" {
   description = "Public subnet IDs"
   value       = var.create_vpc ? local.public_subnets : []
 }
+
+# ============================================
+# Bastion Host Outputs
+# ============================================
+output "bastion_public_ip" {
+  description = "Public IP address of the Bastion Host"
+  value       = var.create_vpc && var.enable_bastion ? aws_eip.bastion[0].public_ip : null
+}
+
+output "bastion_instance_id" {
+  description = "Instance ID of the Bastion Host"
+  value       = var.create_vpc && var.enable_bastion ? aws_instance.bastion[0].id : null
+}
+
+output "bastion_ssh_command" {
+  description = "SSH command to connect to the Bastion Host"
+  value       = var.create_vpc && var.enable_bastion && var.bastion_key_name != "" ? "ssh -i ~/.ssh/${var.bastion_key_name}.pem ec2-user@${aws_eip.bastion[0].public_ip}" : null
+}

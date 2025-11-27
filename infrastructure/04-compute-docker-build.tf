@@ -20,11 +20,14 @@ resource "null_resource" "docker_build_and_push" {
     frontend_repo     = aws_ecr_repository.frontend.repository_url
     celery_repo       = aws_ecr_repository.celery_worker.repository_url
     
-    # Rebuild when source code changes (optional - uncomment if needed)
-    # api_dockerfile_hash    = filemd5("${path.module}/../api/Dockerfile")
-    # frontend_dockerfile_hash = filemd5("${path.module}/../web/Dockerfile")
-    # api_requirements_hash   = filemd5("${path.module}/../api/requirements.txt")
-    # frontend_package_hash   = filemd5("${path.module}/../web/package.json")
+    # Rebuild when Dockerfiles or dependencies change
+    api_dockerfile_hash    = filemd5("${path.module}/../api/Dockerfile")
+    frontend_dockerfile_hash = filemd5("${path.module}/../web/Dockerfile")
+    api_requirements_hash   = filemd5("${path.module}/../api/requirements.txt")
+    frontend_package_hash   = filemd5("${path.module}/../web/package.json")
+    
+    # Force rebuild trigger (increment this to force rebuild)
+    rebuild_trigger = "2025-01-28-v1"
   }
 
   provisioner "local-exec" {
@@ -32,10 +35,14 @@ resource "null_resource" "docker_build_and_push" {
       set -e
       echo "🚀 Building and pushing Docker images to ECR..."
       
-      PROJECT_ROOT="${path.module}/.."
-      INFRA_DIR="${path.module}"
+      # Resolve absolute paths
+      INFRA_DIR="$(cd "${path.module}" && pwd)"
+      PROJECT_ROOT="$(cd "${path.module}/.." && pwd)"
       AWS_REGION="${var.aws_region}"
       AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+      
+      echo "📁 Project root: $PROJECT_ROOT"
+      echo "📁 Infrastructure dir: $INFRA_DIR"
       
       # Login to ECR
       echo "🔐 Logging in to ECR..."
@@ -44,13 +51,15 @@ resource "null_resource" "docker_build_and_push" {
       
       # Build and push API image
       echo "📦 Building API image..."
-      cd $PROJECT_ROOT/api
-      if [ ! -f "Dockerfile" ]; then
+      cd "$PROJECT_ROOT"
+      if [ ! -f "api/Dockerfile" ]; then
         echo "❌ Error: Dockerfile not found in $PROJECT_ROOT/api"
         exit 1
       fi
       # Build for linux/amd64 platform (required for AWS ECS Fargate)
-      docker build --platform linux/amd64 -t ${aws_ecr_repository.api.repository_url}:latest .
+      # Build from project root with project root as context (not api/)
+      # This allows Dockerfile to access parent directories (nexus_utils, agents, tools, etc.)
+      docker build --platform linux/amd64 -f api/Dockerfile -t ${aws_ecr_repository.api.repository_url}:latest .
       TIMESTAMP=$(date +%Y%m%d-%H%M%S)
       docker tag ${aws_ecr_repository.api.repository_url}:latest ${aws_ecr_repository.api.repository_url}:$TIMESTAMP
       echo "📤 Pushing API image..."
@@ -59,13 +68,18 @@ resource "null_resource" "docker_build_and_push" {
       
       # Build and push Frontend image
       echo "📦 Building Frontend image..."
-      cd $PROJECT_ROOT/web
-      if [ ! -f "Dockerfile" ]; then
+      cd "$PROJECT_ROOT"
+      if [ ! -d "web" ]; then
+        echo "❌ Error: web directory not found in $PROJECT_ROOT"
+        exit 1
+      fi
+      if [ ! -f "web/Dockerfile" ]; then
         echo "❌ Error: Dockerfile not found in $PROJECT_ROOT/web"
         exit 1
       fi
       # Build for linux/amd64 platform (required for AWS ECS Fargate)
-      docker build --platform linux/amd64 -t ${aws_ecr_repository.frontend.repository_url}:latest .
+      # Build from project root with web/ as context
+      docker build --platform linux/amd64 -f web/Dockerfile -t ${aws_ecr_repository.frontend.repository_url}:latest web/
       docker tag ${aws_ecr_repository.frontend.repository_url}:latest ${aws_ecr_repository.frontend.repository_url}:$TIMESTAMP
       echo "📤 Pushing Frontend image..."
       docker push ${aws_ecr_repository.frontend.repository_url}:latest
@@ -73,9 +87,10 @@ resource "null_resource" "docker_build_and_push" {
       
       # Build and push Celery Worker image (reuse API image)
       echo "📦 Building Celery Worker image..."
-      cd $PROJECT_ROOT/api
+      cd $PROJECT_ROOT
       # Build for linux/amd64 platform (required for AWS ECS Fargate)
-      docker build --platform linux/amd64 -t ${aws_ecr_repository.celery_worker.repository_url}:latest .
+      # Build from project root with project root as context (same as API image)
+      docker build --platform linux/amd64 -f api/Dockerfile -t ${aws_ecr_repository.celery_worker.repository_url}:latest .
       docker tag ${aws_ecr_repository.celery_worker.repository_url}:latest ${aws_ecr_repository.celery_worker.repository_url}:$TIMESTAMP
       echo "📤 Pushing Celery Worker image..."
       docker push ${aws_ecr_repository.celery_worker.repository_url}:latest

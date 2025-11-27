@@ -224,11 +224,12 @@ resource "aws_ecs_task_definition" "frontend" {
       }
 
       healthCheck = {
-        command     = ["CMD-SHELL", "curl -f http://localhost:3000 || exit 1"]
+        # Use Node.js to check health (Alpine image doesn't have curl by default)
+        command     = ["CMD-SHELL", "node -e \"require('http').get('http://localhost:3000', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)}).on('error', () => process.exit(1))\" || exit 1"]
         interval    = 30
-        timeout     = 5
+        timeout     = 10
         retries     = 3
-        startPeriod = 60
+        startPeriod = 90
       }
     }
   ])
@@ -491,16 +492,18 @@ resource "aws_ecs_task_definition" "redis" {
       command = [
         "redis-server",
         "--appendonly", "yes",
-        "--maxmemory-policy", "allkeys-lru"
+        "--maxmemory-policy", "allkeys-lru",
+        "--dir", "/tmp"  # Use /tmp instead of EFS for AOF files to avoid permission issues
       ]
 
-      mountPoints = [
-        {
-          sourceVolume  = "efs-storage"
-          containerPath = "/data"
-          readOnly      = false
-        }
-      ]
+      # Remove EFS mount for Redis - use local storage instead
+      # mountPoints = [
+      #   {
+      #     sourceVolume  = "efs-storage"
+      #     containerPath = "/data"
+      #     readOnly      = false
+      #   }
+      # ]
 
       logConfiguration = {
         logDriver = "awslogs"
