@@ -53,24 +53,36 @@ def _load_build_rules() -> str:
 def _call_agent_with_stage_tracking(agent, stage_name: str, *args, **kwargs):
     """调用Agent并跟踪阶段状态，返回AgentResult对象"""
     project_id = _get_project_id()
-    
+
+    # 标记阶段开始（失败不影响执行）
     if project_id:
-        print(f"\n🔄 [{stage_name}] 标记阶段为运行中...")
-        mark_stage_running(project_id, stage_name)
-    
+        try:
+            print(f"\n🔄 [{stage_name}] 标记阶段为运行中...")
+            mark_stage_running(project_id, stage_name)
+        except Exception as e:
+            print(f"⚠️  [{stage_name}] 状态更新失败（不影响执行）: {str(e)}")
+
     try:
         # 调用Agent，返回AgentResult对象
         agent_result = agent(*args, **kwargs)
-        
+
+        # 标记阶段完成（失败不影响执行）
         if project_id:
-            print(f"✅ [{stage_name}] 标记阶段为已完成")
-            mark_stage_completed(project_id, stage_name)
-        
+            try:
+                print(f"✅ [{stage_name}] 标记阶段为已完成")
+                mark_stage_completed(project_id, stage_name)
+            except Exception as e:
+                print(f"⚠️  [{stage_name}] 状态更新失败（不影响执行）: {str(e)}")
+
         return agent_result
     except Exception as e:
+        # 标记阶段失败（失败不影响执行）
         if project_id:
-            print(f"❌ [{stage_name}] 标记阶段为失败: {str(e)}")
-            mark_stage_failed(project_id, stage_name, str(e))
+            try:
+                print(f"❌ [{stage_name}] 标记阶段为失败: {str(e)}")
+                mark_stage_failed(project_id, stage_name, str(e))
+            except Exception as status_err:
+                print(f"⚠️  [{stage_name}] 状态更新失败（不影响执行）: {str(status_err)}")
         raise
 
 
