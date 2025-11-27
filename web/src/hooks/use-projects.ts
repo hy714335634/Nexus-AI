@@ -79,16 +79,17 @@ export function useProjectDetail(projectId: string, options?: Omit<UseQueryOptio
 
 export function useBuildDashboard(
   projectId: string,
-  options?: Omit<UseQueryOptions<BuildDashboard | undefined, Error>, 'queryKey' | 'queryFn'>,
+  options?: Omit<UseQueryOptions<BuildDashboard | null, Error>, 'queryKey' | 'queryFn'>,
 ) {
-  return useQuery<BuildDashboard | undefined>({
+  return useQuery<BuildDashboard | null>({
     queryKey: ['projects', 'build-dashboard', projectId],
     queryFn: () => fetchBuildDashboard(projectId),
     enabled: Boolean(projectId),
     staleTime: 5_000,
     refetchOnReconnect: true,
     refetchOnWindowFocus: false,
-    retry: 5,
+    // 不重试，因为 fetchBuildDashboard 返回 null 而不是抛出错误
+    retry: false,
     refetchInterval: (query) => {
       const data = query.state.data;
       if (!data) {

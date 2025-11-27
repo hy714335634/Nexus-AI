@@ -24,11 +24,8 @@ from api.models.schemas import (
     ProjectStatus,
 )
 from api.core.exceptions import ValidationError, ResourceNotFoundError
-from celery.result import AsyncResult
-
-from api.core.celery_app import celery_app
 from api.database.dynamodb_client import DynamoDBClient
-from api.tasks.agent_build_tasks import build_agent
+from api.tasks.async_agent_build_tasks import build_agent, get_task_status
 from api.models.schemas import TaskStatusResponse, TaskStatusData
 from api.services import BuildDashboardService
 from tools.system_tools.agent_build_workflow.stage_tracker import initialize_project_record
@@ -59,7 +56,7 @@ async def create_agent(request: CreateAgentRequest):
             tags=request.tags,
         )
 
-        task = build_agent.delay(
+        task = build_agent(
             project_id=project_id,
             requirement=request.requirement,
             session_id=session_id,
@@ -71,12 +68,12 @@ async def create_agent(request: CreateAgentRequest):
         return CreateAgentResponse(
             success=True,
             data={
-                "task_id": task.id,
+                "task_id": task.task_id,
                 "session_id": session_id,
                 "project_id": project_id,
                 "agent_name": derived_agent_name,
                 "status": "queued",
-                "message": "代理构建任务已提交，正在排队执行",
+                "message": "代理构建任务已提交，正在后台执行",
             },
             timestamp=datetime.now(timezone.utc),
             request_id=str(uuid.uuid4()),
@@ -130,21 +127,20 @@ def _derive_agent_name(provided: Optional[str], requirement: str, project_id: st
 
 
 @router.get("/agents/{task_id}/status", response_model=TaskStatusResponse)
-async def get_agent_status(task_id: str = Path(..., description="Celery任务ID")):
+async def get_agent_status(task_id: str = Path(..., description="任务ID")):
     """查询异步构建任务状态。"""
     try:
-        async_result = AsyncResult(task_id, app=celery_app)
-        status = async_result.state.lower()
+        task_status = get_task_status(task_id)
+        status = task_status.get("status", "UNKNOWN").lower()
 
         result_payload: Optional[Dict[str, Any]] = None
-        error_message = None
+        error_message = task_status.get("error")
 
-        if async_result.successful():
-            task_result = async_result.result or {}
-            if isinstance(task_result, dict):
-                result_payload = task_result
-        elif async_result.failed():
-            error_message = str(async_result.result)
+        if status == "success":
+            result_payload = task_status.get("result") or {}
+        elif status == "failure":
+            if not error_message:
+                error_message = "任务执行失败"
 
         project_id = None
         if isinstance(result_payload, dict):
@@ -182,7 +178,7 @@ async def get_agent_status(task_id: str = Path(..., description="Celery任务ID"
             status=status,
             result=result_payload,
             error=error_message,
-            date_done=async_result.date_done,
+            date_done=None,  # async task system doesn't track completion date yet
         )
 
         return TaskStatusResponse(
@@ -1092,7 +1088,7 @@ async def restart_build(
         # Import dependencies
         from api.database.dynamodb_client import DynamoDBClient
         from api.models.schemas import ProjectStatus, StageStatus, BuildStage, get_all_stages
-        from api.tasks.agent_build_tasks import build_agent
+        from api.tasks.async_agent_build_tasks import build_agent
         
         # Initialize database client
         db_client = DynamoDBClient()
@@ -1143,18 +1139,18 @@ async def restart_build(
             )
         
         # Start new build task
-        task = build_agent.delay(
+        session_id = f"job_{uuid.uuid4().hex}"
+        task = build_agent(
             project_id=project_id,
             requirement=project_data.get('original_requirement', ''),
+            session_id=session_id,
             user_id=project_data.get('user_id', ''),
             user_name=project_data.get('user_name'),
-            priority=project_data.get('priority', 3),
-            tags=project_data.get('tags', [])
         )
-        
+
         # Log the restart action
         restart_reason = request.reason if request else "用户手动重启"
-        logger.info(f"Project {project_id} restarted. Reason: {restart_reason}. New task ID: {task.id}")
+        logger.info(f"Project {project_id} restarted. Reason: {restart_reason}. New task ID: {task.task_id}")
         
         return APIResponse(
             success=True,

@@ -1029,7 +1029,43 @@ def create_tech_doc_swarm_system(
     )
 
 
-# 主程序入口
+# ==================== AgentCore 入口点（必须包含）====================
+def handler(event: Dict[str, Any], context: Any = None) -> Dict[str, Any]:
+    """
+    AgentCore 标准入口点
+    """
+    prompt = event.get("prompt") or event.get("message") or event.get("input", "")
+    if not prompt:
+        return {"success": False, "error": "Missing 'prompt' in request"}
+
+    try:
+        system = TechDocSwarmSystem()
+        style_config = event.get("style_config", {"theme": "default", "language": "zh-CN"})
+        pass_threshold = event.get("pass_threshold", 75.0)
+
+        result = system.process_user_requirement(
+            user_requirement=prompt,
+            style_config=style_config,
+            pass_threshold=pass_threshold
+        )
+
+        if result["status"] == "success":
+            return {
+                "success": True,
+                "response": result.get("html_output", ""),
+                "workflow_summary": result.get("workflow_summary", {}),
+                "document_content": result.get("document_content", {})
+            }
+        else:
+            return {"success": False, "error": result.get("error_message", "Unknown error")}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+invoke = handler
+main = handler
+
+
+# ==================== 本地运行入口 ====================
 if __name__ == "__main__":
     import argparse
     

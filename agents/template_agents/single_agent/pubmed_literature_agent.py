@@ -272,9 +272,43 @@ def create_pubmed_literature_agent(env: str = "production", version: str = "late
         **agent_params
     )
 
+# ==================== AgentCore 入口点（必须包含）====================
+def handler(event: Dict[str, Any], context: Any = None) -> Dict[str, Any]:
+    """
+    AgentCore 标准入口点
+    """
+    prompt = event.get("prompt") or event.get("message") or event.get("query", "")
+    mode = event.get("mode", "search")
+
+    if not prompt:
+        return {"success": False, "error": "Missing 'prompt' in request"}
+
+    try:
+        agent_instance = PubMedLiteratureAgent()
+
+        if mode == "review":
+            result = agent_instance.generate_literature_review(
+                topic=prompt,
+                time_range=event.get("time_range", "past 10 years"),
+                journal_filter=event.get("journal_filter"),
+                impact_factor_min=event.get("impact_factor_min")
+            )
+        else:
+            result = agent_instance.search_literature(prompt)
+
+        response_text = result.content if hasattr(result, 'content') else str(result)
+        return {"success": True, "response": response_text}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+invoke = handler
+main = handler
+
+
+# ==================== 本地运行入口 ====================
 if __name__ == "__main__":
     import argparse
-    
+
     # 解析命令行参数
     parser = argparse.ArgumentParser(description='PubMed文献检索和汇总智能体')
     parser.add_argument('-q', '--query', type=str, 

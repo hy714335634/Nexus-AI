@@ -6,17 +6,14 @@ agent:
     development:
       max_tokens: 8000
       temperature: 0.2
-      top_p: 0.85
       streaming: true
     production:
       max_tokens: 35000
       temperature: 0.15
-      top_p: 
       streaming: true
     testing:
       max_tokens: 4096
       temperature: 0.2
-      top_p: 0.85
       streaming: true
   versions:
     - version: "latest"

@@ -60,7 +60,8 @@ export async function fetchProjectSummaries(): Promise<ProjectSummary[]> {
     return [];
   }
 
-  const projects = response.data.items.map((project) => {
+  const items = (response.data as any).projects ?? (response.data as any).items ?? [];
+  const projects = items.map((project: any) => {
     const updatedAt = project.updated_at ?? project.created_at ?? undefined;
     return {
       projectId: project.project_id,
@@ -386,13 +387,17 @@ function mapBuildDashboard(data: BuildDashboardResponse['data']): BuildDashboard
   };
 }
 
-export async function fetchBuildDashboard(projectId: string): Promise<BuildDashboard | undefined> {
-  const response = await apiFetch<BuildDashboardResponse>(`/api/v1/projects/${projectId}/build`).catch(() => undefined);
-  if (!response?.success) {
-    return undefined;
+export async function fetchBuildDashboard(projectId: string): Promise<BuildDashboard | null> {
+  try {
+    const response = await apiFetch<BuildDashboardResponse>(`/api/v1/projects/${projectId}/build`);
+    if (!response?.success) {
+      return null;
+    }
+    return mapBuildDashboard(response.data);
+  } catch {
+    // 404 或其他错误时返回 null，不抛出异常
+    return null;
   }
-
-  return mapBuildDashboard(response.data);
 }
 
 /**

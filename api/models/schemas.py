@@ -56,12 +56,15 @@ class BuildStage(str, Enum):
     
     @classmethod
     def get_stage_by_number(cls, stage_number: int) -> 'BuildStage':
-        """Get stage enum from stage number (1-8)"""
+        """Get stage enum from stage number (1-9)"""
         stage_order = [
             cls.ORCHESTRATOR,
             cls.REQUIREMENTS_ANALYSIS,
             cls.SYSTEM_ARCHITECTURE,
             cls.AGENT_DESIGN,
+            cls.PROMPT_ENGINEER,
+            cls.TOOLS_DEVELOPER,
+            cls.AGENT_CODE_DEVELOPER,
             cls.AGENT_DEVELOPER_MANAGER,
             cls.AGENT_DEPLOYER,
         ]
@@ -77,6 +80,9 @@ class BuildStage(str, Enum):
             cls.REQUIREMENTS_ANALYSIS: "需求分析",
             cls.SYSTEM_ARCHITECTURE: "系统架构设计",
             cls.AGENT_DESIGN: "Agent设计",
+            cls.PROMPT_ENGINEER: "提示词工程",
+            cls.TOOLS_DEVELOPER: "工具开发",
+            cls.AGENT_CODE_DEVELOPER: "代码开发",
             cls.AGENT_DEVELOPER_MANAGER: "开发管理",
             cls.AGENT_DEPLOYER: "Agent部署",
         }
@@ -158,7 +164,7 @@ class ProjectStatusResponse(APIResponse):
 
 class StageData(BaseModel):
     stage: BuildStage
-    stage_number: int = Field(..., ge=1, le=8)
+    stage_number: int = Field(..., ge=1, le=9)
     stage_name: str
     stage_name_cn: str
     status: StageStatus

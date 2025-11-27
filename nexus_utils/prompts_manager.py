@@ -15,7 +15,6 @@ class EnvironmentConfig:
     """环境配置类"""
     temperature: float
     max_tokens: int
-    top_p: float
     streaming: bool
     debug_mode: Optional[bool] = None
 
@@ -140,7 +139,6 @@ class PromptManager:
         return EnvironmentConfig(
             temperature=env_data.get('temperature', 0.7),
             max_tokens=env_data.get('max_tokens', 4096),
-            top_p=env_data.get('top_p', 0.8),
             streaming=env_data.get('streaming', True),
             debug_mode=env_data.get('debug_mode', None)
         )

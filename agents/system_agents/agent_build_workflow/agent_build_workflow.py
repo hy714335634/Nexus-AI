@@ -50,30 +50,6 @@ def _load_build_rules() -> str:
     return base_rules + "\n" + build_rules + "\n=====规则声明结束，请遵守以上规则=====\n"
 
 
-def _call_agent_with_stage_tracking(agent, stage_name: str, *args, **kwargs):
-    """调用Agent并跟踪阶段状态，返回AgentResult对象"""
-    project_id = _get_project_id()
-    
-    if project_id:
-        print(f"\n🔄 [{stage_name}] 标记阶段为运行中...")
-        mark_stage_running(project_id, stage_name)
-    
-    try:
-        # 调用Agent，返回AgentResult对象
-        agent_result = agent(*args, **kwargs)
-        
-        if project_id:
-            print(f"✅ [{stage_name}] 标记阶段为已完成")
-            mark_stage_completed(project_id, stage_name)
-        
-        return agent_result
-    except Exception as e:
-        if project_id:
-            print(f"❌ [{stage_name}] 标记阶段为失败: {str(e)}")
-            mark_stage_failed(project_id, stage_name, str(e))
-        raise
-
-
 def analyze_user_intent(user_input: str):
     """分析用户意图 - 通过JSON输出方式"""
     print(f"\n{'='*80}")
@@ -276,7 +252,7 @@ def run_workflow(user_input: str, session_id: Optional[str] = None):
         print("  6️⃣ prompt_engineer - 提示词开发", flush=True)
         print("  7️⃣ agent_code_developer - Agent脚本开发", flush=True)
         print("  8️⃣ agent_developer_manager - 开发管理", flush=True)
-        print("  9️⃣ agent_deployer - Agent部署（已跳过）", flush=True)
+        print("  9️⃣ agent_deployer - Agent部署", flush=True)
         print(f"{'='*60}", flush=True)
 
         # 执行工作流并监控进度
@@ -299,90 +275,118 @@ def run_workflow(user_input: str, session_id: Optional[str] = None):
         current_context = workflow_input
         execution_results = {}  # 存储AgentResult对象
         execution_order = []
-        
+        project_id = _get_project_id()
         # 1. Orchestrator
         print(f"\n{'='*60}")
         print(f"🔄 [1/9] 执行 orchestrator...")
         print(f"{'='*60}")
-        orchestrator_result = _call_agent_with_stage_tracking(
-            agents["orchestrator"], "orchestrator", current_context
-        )
-        execution_results["orchestrator"] = orchestrator_result
-        execution_order.append("orchestrator")
-        orchestrator_content = str(orchestrator_result.content) if hasattr(orchestrator_result, 'content') else str(orchestrator_result)
-        current_context = base_context + "\n===\nOrchestrator Agent: " + orchestrator_content + "\n===\n"
-        
+        try:
+            mark_stage_running(project_id, 'orchestrator')
+            orchestrator_result = agents["orchestrator"](current_context)
+            execution_results["orchestrator"] = orchestrator_result
+            execution_order.append("orchestrator")
+            orchestrator_content = str(orchestrator_result.content) if hasattr(orchestrator_result, 'content') else str(orchestrator_result)
+            current_context = base_context + "\n===\nOrchestrator Agent: " + orchestrator_content + "\n===\n"
+            mark_stage_completed(project_id, 'orchestrator')
+        except Exception as e:
+            mark_stage_failed(project_id, 'orchestrator', str(e))
+            raise
+
         # 2. Requirements Analyzer
         print(f"\n{'='*60}")
         print(f"🔄 [2/9] 执行 requirements_analyzer...")
         print(f"{'='*60}")
-        requirements_result = _call_agent_with_stage_tracking(
-            agents["requirements_analyzer"], "requirements_analyzer", current_context
-        )
-        execution_results["requirements_analyzer"] = requirements_result
-        execution_order.append("requirements_analyzer")
-        requirements_content = str(requirements_result.content) if hasattr(requirements_result, 'content') else str(requirements_result)
-        current_context = base_context + "\n===\nRequirements Analyzer Agent: " + requirements_content + "\n===\n"
+        try:
+            mark_stage_running(project_id, 'requirements_analysis')
+            requirements_result = agents["requirements_analyzer"](current_context)
+            execution_results["requirements_analyzer"] = requirements_result
+            execution_order.append("requirements_analyzer")
+            requirements_content = str(requirements_result.content) if hasattr(requirements_result, 'content') else str(requirements_result)
+            current_context = base_context + "\n===\nRequirements Analyzer Agent: " + requirements_content + "\n===\n"
+            mark_stage_completed(project_id, 'requirements_analysis')
+        except Exception as e:
+            mark_stage_failed(project_id, 'requirements_analysis', str(e))
+            raise
         
         # 3. System Architect
         print(f"\n{'='*60}")
         print(f"🔄 [3/9] 执行 system_architect...")
         print(f"{'='*60}")
-        architect_result = _call_agent_with_stage_tracking(
-            agents["system_architect"], "system_architect", current_context
-        )
-        execution_results["system_architect"] = architect_result
-        execution_order.append("system_architect")
-        architect_content = str(architect_result.content) if hasattr(architect_result, 'content') else str(architect_result)
-        current_context = base_context + "\n===\nSystem Architect Agent: " + architect_content + "\n===\n"
+        try:
+            mark_stage_running(project_id, 'system_architecture')
+            architect_result = agents["system_architect"](current_context)
+            execution_results["system_architect"] = architect_result
+            execution_order.append("system_architect")
+            architect_content = str(architect_result.content) if hasattr(architect_result, 'content') else str(architect_result)
+            current_context = base_context + "\n===\nSystem Architect Agent: " + architect_content + "\n===\n"
+            mark_stage_completed(project_id, 'system_architecture')
+        except Exception as e:
+            mark_stage_failed(project_id, 'system_architecture', str(e))
+            raise
         
         # 4. Agent Designer
         print(f"\n{'='*60}")
         print(f"🔄 [4/9] 执行 agent_designer...")
         print(f"{'='*60}")
-        designer_result = _call_agent_with_stage_tracking(
-            agents["agent_designer"], "agent_designer", current_context
-        )
-        execution_results["agent_designer"] = designer_result
-        execution_order.append("agent_designer")
-        designer_content = str(designer_result.content) if hasattr(designer_result, 'content') else str(designer_result)
-        current_context = base_context + "\n===\nAgent Designer Agent: " + designer_content + "\n===\n"
+        try:
+            mark_stage_running(project_id, 'agent_design')
+            designer_result = agents["agent_designer"](current_context)
+            execution_results["agent_designer"] = designer_result
+            execution_order.append("agent_designer")
+            designer_content = str(designer_result.content) if hasattr(designer_result, 'content') else str(designer_result)
+            current_context = base_context + "\n===\nAgent Designer Agent: " + designer_content + "\n===\n"
+            mark_stage_completed(project_id, 'agent_design')
+        except Exception as e:
+            mark_stage_failed(project_id, 'agent_design', str(e))
+            raise
         
         # 5. Tool Developer
         print(f"\n{'='*60}")
         print(f"🔄 [5/9] 执行 tool_developer...")
         print(f"{'='*60}")
-        tool_developer_result = _call_agent_with_stage_tracking(
-            agents["tool_developer"], "tool_developer", current_context
-        )
-        execution_results["tool_developer"] = tool_developer_result
-        execution_order.append("tool_developer")
-        tool_developer_content = str(tool_developer_result.content) if hasattr(tool_developer_result, 'content') else str(tool_developer_result)
-        current_context = current_context + "\n===\nTool Developer Agent: " + tool_developer_content + "\n===\n"
+        try:
+            mark_stage_running(project_id, 'tools_developer')
+            tool_developer_result = agents["tool_developer"](current_context)
+            execution_results["tool_developer"] = tool_developer_result
+            execution_order.append("tool_developer")
+            tool_developer_content = str(tool_developer_result.content) if hasattr(tool_developer_result, 'content') else str(tool_developer_result)
+            current_context = current_context + "\n===\nTool Developer Agent: " + tool_developer_content + "\n===\n"
+            mark_stage_completed(project_id, 'tools_developer')
+        except Exception as e:
+            mark_stage_failed(project_id, 'tools_developer', str(e))
+            raise
         
         # 6. Prompt Engineer
         print(f"\n{'='*60}")
         print(f"🔄 [6/9] 执行 prompt_engineer...")
         print(f"{'='*60}")
-        prompt_engineer_result = _call_agent_with_stage_tracking(
-            agents["prompt_engineer"], "prompt_engineer", current_context
-        )
-        execution_results["prompt_engineer"] = prompt_engineer_result
-        execution_order.append("prompt_engineer")
-        prompt_engineer_content = str(prompt_engineer_result.content) if hasattr(prompt_engineer_result, 'content') else str(prompt_engineer_result)
-        current_context = current_context + "\n===\nPrompt Engineer Agent: " + prompt_engineer_content + "\n===\n"
+        try:
+            mark_stage_running(project_id, 'prompt_engineer')
+            prompt_engineer_result = agents["prompt_engineer"](current_context)
+            execution_results["prompt_engineer"] = prompt_engineer_result
+            execution_order.append("prompt_engineer")
+            prompt_engineer_content = str(prompt_engineer_result.content) if hasattr(prompt_engineer_result, 'content') else str(prompt_engineer_result)
+            current_context = current_context + "\n===\nPrompt Engineer Agent: " + prompt_engineer_content + "\n===\n"
+            mark_stage_completed(project_id, 'prompt_engineer')
+        except Exception as e:
+            mark_stage_failed(project_id, 'prompt_engineer', str(e))
+            raise
         
         # 7. Agent Code Developer
         print(f"\n{'='*60}")
         print(f"🔄 [7/9] 执行 agent_code_developer...")
         print(f"{'='*60}")
-        agent_code_developer_result = _call_agent_with_stage_tracking(
-            agents["agent_code_developer"], "agent_code_developer", current_context
-        )
-        execution_results["agent_code_developer"] = agent_code_developer_result
-        execution_order.append("agent_code_developer")
-        agent_code_developer_content = str(agent_code_developer_result.content) if hasattr(agent_code_developer_result, 'content') else str(agent_code_developer_result)
-        current_context = current_context + "\n===\nAgent Code Developer Agent: " + agent_code_developer_content + "\n===\n"
+        try:
+            mark_stage_running(project_id, 'agent_code_developer')
+            agent_code_developer_result = agents["agent_code_developer"](current_context)
+            execution_results["agent_code_developer"] = agent_code_developer_result
+            execution_order.append("agent_code_developer")
+            agent_code_developer_content = str(agent_code_developer_result.content) if hasattr(agent_code_developer_result, 'content') else str(agent_code_developer_result)
+            current_context = current_context + "\n===\nAgent Code Developer Agent: " + agent_code_developer_content + "\n===\n"
+            mark_stage_completed(project_id, 'agent_code_developer')
+        except Exception as e:
+            mark_stage_failed(project_id, 'agent_code_developer', str(e))
+            raise
 
         # # 8. Streamlit Web App Developer
         # print(f"\n{'='*60}")
@@ -396,28 +400,35 @@ def run_workflow(user_input: str, session_id: Optional[str] = None):
         # streamlit_webapp_developer_content = str(streamlit_webapp_developer_result.content) if hasattr(streamlit_webapp_developer_result, 'content') else str(streamlit_webapp_developer_result)
         # current_context = current_context + "\n===\nStreamlit Web App Developer Agent: " + streamlit_webapp_developer_content + "\n===\n"
         
-        # 9. Agent Developer Manager
+        # 8. Agent Developer Manager
         print(f"\n{'='*60}")
         print(f"🔄 [8/9] 执行 agent_developer_manager...")
         print(f"{'='*60}")
-        developer_manager_result = _call_agent_with_stage_tracking(
-            agents["agent_developer_manager"], "agent_developer_manager", current_context
-        )
-        execution_results["agent_developer_manager"] = developer_manager_result
-        execution_order.append("agent_developer_manager")
-        developer_manager_content = str(developer_manager_result.content) if hasattr(developer_manager_result, 'content') else str(developer_manager_result)
-        current_context = base_context + "\n===\nAgent Developer Manager Agent: " + developer_manager_content + "\n===\n"
+        try:
+            mark_stage_running(project_id, 'agent_developer_manager')
+            developer_manager_result = agents["agent_developer_manager"](current_context)
+            execution_results["agent_developer_manager"] = developer_manager_result
+            execution_order.append("agent_developer_manager")
+            developer_manager_content = str(developer_manager_result.content) if hasattr(developer_manager_result, 'content') else str(developer_manager_result)
+            current_context = base_context + "\n===\nAgent Developer Manager Agent: " + developer_manager_content + "\n===\n"
+            mark_stage_completed(project_id, 'agent_developer_manager')
+        except Exception as e:
+            mark_stage_failed(project_id, 'agent_developer_manager', str(e))
+            raise
         
-        # 6. Agent Deployer
+        # 9. Agent Deployer
         print(f"\n{'='*60}")
         print(f"🔄 [9/9] 跳过 agent_deployer...")
-        # print(f"🔄 [6/6] 执行 agent_deployer...")
         print(f"{'='*60}")
-        deployer_result = _call_agent_with_stage_tracking(
-            agents["agent_deployer"], "agent_deployer", current_context
-        )
-        execution_results["agent_deployer"] = deployer_result
-        execution_order.append("agent_deployer")
+        try:
+            mark_stage_running(project_id, 'agent_deployer')
+            deployer_result = agents["agent_deployer"](current_context)
+            execution_results["agent_deployer"] = deployer_result
+            execution_order.append("agent_deployer")
+            mark_stage_completed(project_id, 'agent_deployer')
+        except Exception as e:
+            mark_stage_failed(project_id, 'agent_deployer', str(e))
+            raise
 
         end_time = time.time()
         execution_duration = end_time - start_time

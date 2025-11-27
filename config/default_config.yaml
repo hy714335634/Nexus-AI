@@ -46,9 +46,9 @@ default-config:
     enable_xray: False                 # Enable AWS X-Ray tracing
   
   bedrock:
-    model_id: 'us.anthropic.claude-3-7-sonnet-20250219-v1:0'    # Default model
-    lite_model_id: 'us.anthropic.claude-3-5-haiku-20241022-v1:0' # Lightweight model
-    pro_model_id: 'us.anthropic.claude-opus-4-20250514-v1:0' # Advanced model
+    model_id: 'us.anthropic.claude-sonnet-4-5-20250929-v1:0'    # Default model
+    lite_model_id: 'us.anthropic.claude-haiku-4-5-20251001-v1:0' # Lightweight model
+    pro_model_id: 'us.anthropic.claude-opus-4-5-20251101-v1:0' # Advanced model
     connect_config:
       retries:
         max_attempts: 100

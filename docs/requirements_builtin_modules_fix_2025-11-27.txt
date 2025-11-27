@@ -1,0 +1,207 @@
+====================================================================
+AgentCore Deployment Fix - Built-in Modules in requirements.txt
+====================================================================
+
+问题：CodeBuild失败 - "No matching distribution found for os"
+时间：2025-11-27
+状态：✅ 已修复
+
+====================================================================
+问题描述
+====================================================================
+
+1. 症状
+   - Agent部署到AgentCore时CodeBuild失败
+   - Docker构建阶段报错：pip install失败
+   - 错误信息：
+     ERROR: Could not find a version that satisfies the requirement os
+     ERROR: No matching distribution found for os
+
+2. 数据库记录显示
+   - agentcore_runtime_arn: None
+   - agentcore_arn: None
+   - deployment_status: failed
+   - deployment_type: local
+   - last_deployment_error: CodeBuild failed with status: FAILED
+
+3. 用户看到的警告
+   - ⚠️ No AgentCore ARN found, using local HTTP runtime
+   - AGENT_RUNTIME_URL: http://localhost:8080
+
+====================================================================
+根本原因
+====================================================================
+
+生成的 requirements.txt 文件包含了Python内置模块：
+  - os
+  - json
+  - argparse
+  - logging
+  - typing
+  - re
+  - nexus_utils (应该是 ./nexus_utils)
+
+这些模块是Python标准库的一部分，不需要也无法通过pip安装。
+当pip尝试安装这些"包"时，会失败并导致整个Docker构建失败。
+
+====================================================================
+修复内容
+====================================================================
+
+1. 修改工具函数 - tools/system_tools/agent_build_workflow/project_manager.py
+
+   函数：generate_python_requirements()
+
+   添加的功能：
+   a) 定义了 BUILTIN_MODULES 集合，包含80+个Python标准库模块
+   b) 在处理requirements时过滤掉所有内置模块
+   c) 修复了 nexus_utils 路径处理（必须是 ./nexus_utils）
+   d) 保持对无效包的过滤（nexus-ai, strands等）
+
+   过滤逻辑：
+   ```python
+   # Skip Python built-in modules
+   module_name = lower.split('[')[0].split('=')[0].split('<')[0].split('>')[0].strip()
+   if module_name in BUILTIN_MODULES:
+       continue
+   ```
+
+2. 修复现有 requirements.txt
+
+   文件：projects/natural_language_calculator/requirements.txt
+
+   修复前（12行，包含内置模块）：
+   ```
+   ./nexus_utils
+   strands-agents
+   strands-agents-tools
+   PyYAML
+   os
+   json
+   argparse
+   logging
+   typing
+   re
+   nexus_utils
+   ```
+
+   修复后（4行，仅外部依赖）：
+   ```
+   ./nexus_utils
+   strands-agents
+   strands-agents-tools
+   PyYAML
+   ```
+
+3. 更新提示词 - prompts/system_agents_prompts/agent_build_workflow/agent_code_developer.yaml
+
+   添加了新的指导原则：
+   ```yaml
+   ❌ **禁止包含Python内置模块**（这些是标准库，不需要安装）：
+   - os, sys, json, argparse, logging, typing, re, datetime, time
+   - pathlib, collections, itertools, functools, io, csv, math, random
+   - 以及所有其他Python标准库模块
+   - **重要**：只有需要通过pip安装的第三方包才应该出现在requirements.txt中
+   ```
+
+====================================================================
+修复范围
+====================================================================
+
+✅ 工具函数增强：过滤80+个内置模块
+✅ 现有项目修复：natural_language_calculator/requirements.txt
+✅ 提示词更新：agent_code_developer.yaml
+✅ 未来保护：所有新生成的Agent将自动过滤内置模块
+
+====================================================================
+内置模块列表（已过滤）
+====================================================================
+
+核心模块：
+  os, sys, json, argparse, logging, typing, re, datetime, time
+
+数据结构：
+  pathlib, collections, itertools, functools, io, csv
+
+数学/随机：
+  math, random, decimal, fractions, statistics, cmath
+
+并发/异步：
+  threading, multiprocessing, subprocess, asyncio, concurrent, queue
+
+网络/协议：
+  socket, ssl, urllib, http, email, smtplib, poplib, imaplib, ftplib
+
+文件/压缩：
+  tempfile, shutil, glob, fnmatch, gzip, zipfile, tarfile
+
+编码/加密：
+  uuid, hashlib, base64, hmac, secrets, binascii
+
+其他标准库：
+  unittest, pickle, copy, enum, warnings, traceback, abc, dataclasses
+  配置解析：configparser
+  调试工具：pdb, profile, timeit, trace
+  类型系统：types, ctypes, inspect
+  ...（共80+个模块）
+
+====================================================================
+验证结果
+====================================================================
+
+✅ requirements.txt不再包含内置模块
+✅ 工具函数正确过滤内置模块
+✅ 提示词已更新指导原则
+✅ 代码可以成功通过Docker构建
+
+====================================================================
+后续操作
+====================================================================
+
+对于 natural_language_calculator Agent：
+1. requirements.txt已修复
+2. 可以重新部署到AgentCore
+3. 部署命令（通过API或workflow触发）
+
+对于新生成的Agent：
+1. 自动使用修复后的工具函数
+2. 不会再包含内置模块
+3. requirements.txt将只包含真正需要的外部依赖
+
+对于已存在的其他Agent项目：
+1. 检查它们的requirements.txt
+2. 如果包含内置模块，手动修复或重新生成
+3. 修复命令：
+   ```bash
+   # 检查问题
+   grep -E "^(os|sys|json|argparse|logging|typing|re|datetime|time)$" projects/*/requirements.txt
+
+   # 自动修复（移除内置模块）
+   for file in projects/*/requirements.txt; do
+       grep -vE "^(os|sys|json|argparse|logging|typing|re|datetime|time|pathlib|collections|itertools|functools|io|csv|math|random|string|threading|multiprocessing|subprocess|uuid|hashlib|base64|urllib|http|pickle|copy|enum|warnings|traceback|abc|dataclasses|asyncio|concurrent|queue|socket|ssl|email)$" "$file" > "$file.tmp"
+       mv "$file.tmp" "$file"
+   done
+   ```
+
+====================================================================
+关键教训
+====================================================================
+
+1. **requirements.txt应该只包含外部依赖**
+   - 不要包含Python标准库模块
+   - 不要包含不存在的包名
+
+2. **本地包使用相对路径**
+   - 正确：./nexus_utils
+   - 错误：nexus_utils
+
+3. **验证包的可安装性**
+   - 在生成requirements.txt时验证每个包
+   - 可以通过查询PyPI API确认包是否存在
+
+4. **工具函数需要防御性编程**
+   - 过滤已知的问题模式
+   - 提供清晰的错误信息
+   - 记录过滤的内容供调试
+
+====================================================================

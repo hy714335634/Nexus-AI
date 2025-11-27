@@ -138,27 +138,37 @@ export async function deleteAgent(agentId: string) {
  * @returns Agent details including runtime stats
  */
 export async function fetchAgentDetails(agentId: string) {
-  const response = await apiFetch<AgentDetailsResponse>(
-    `/api/v1/agents/${encodeURIComponent(agentId)}`
-  );
+  try {
+    const response = await apiFetch<AgentDetailsResponse>(
+      `/api/v1/agents/${encodeURIComponent(agentId)}`
+    );
 
-  if (!response.success) {
-    throw new Error('Failed to fetch agent details');
+    if (!response.success) {
+      return null; // 返回 null 而不是抛出错误
+    }
+
+    return response.data ?? null;
+  } catch {
+    // API 错误时返回 null，避免 React Query 报错
+    return null;
   }
-
-  return response.data;
 }
 
 export async function fetchAgentSessions(agentId: string) {
-  const response = await apiFetch<{
-    success: boolean;
-    data: AgentDialogSessionsResponse;
-  }>(`/api/v1/agents/${encodeURIComponent(agentId)}/sessions`);
+  try {
+    const response = await apiFetch<{
+      success: boolean;
+      data: AgentDialogSessionsResponse;
+    }>(`/api/v1/agents/${encodeURIComponent(agentId)}/sessions`);
 
-  if (!response.success) {
-    throw new Error('Failed to load sessions');
+    if (!response.success) {
+      return []; // 返回空数组而不是抛出错误
+    }
+    return response.data?.sessions ?? [];
+  } catch {
+    // API 错误时返回空数组，避免 React Query 报错
+    return [];
   }
-  return response.data.sessions;
 }
 
 export async function createAgentSession(agentId: string, displayName?: string) {
@@ -197,20 +207,26 @@ export async function fetchSessionMessages(sessionId: string) {
 export async function fetchAgentMessages(agentId: string, sessionId: string) {
   // For backwards compatibility, try the new endpoint first
   try {
-    return await fetchSessionMessagesFromSessions(sessionId);
-  } catch (error) {
+    const messages = await fetchSessionMessagesFromSessions(sessionId);
+    return messages ?? [];
+  } catch {
     // Fallback to old endpoint pattern
-    const response = await apiFetch<{
-      success: boolean;
-      data: AgentDialogMessagesResponse;
-    }>(
-      `/api/v1/agents/${encodeURIComponent(agentId)}/sessions/${encodeURIComponent(sessionId)}/messages`,
-    );
+    try {
+      const response = await apiFetch<{
+        success: boolean;
+        data: AgentDialogMessagesResponse;
+      }>(
+        `/api/v1/agents/${encodeURIComponent(agentId)}/sessions/${encodeURIComponent(sessionId)}/messages`,
+      );
 
-    if (!response.success) {
-      throw new Error('Failed to load messages');
+      if (!response.success) {
+        return []; // 返回空数组而不是抛出错误
+      }
+      return response.data?.messages ?? [];
+    } catch {
+      // 所有 API 都失败时返回空数组
+      return [];
     }
-    return response.data.messages;
   }
 }
 
@@ -242,17 +258,27 @@ export async function deleteSession(sessionId: string) {
 }
 
 export async function fetchAgentContext(agentId: string) {
-  const response = await apiFetch<AgentContextResponse>(`/api/v1/agents/${encodeURIComponent(agentId)}/context`);
-  if (!response.success) {
-    throw new Error('Failed to load agent context');
+  try {
+    const response = await apiFetch<AgentContextResponse>(`/api/v1/agents/${encodeURIComponent(agentId)}/context`);
+    if (!response.success) {
+      return null; // 返回 null 而不是抛出错误
+    }
+    return response.data ?? null;
+  } catch {
+    // API 错误时返回 null，避免 React Query 报错
+    return null;
   }
-  return response.data;
 }
 
 export async function fetchAgentsList(limit = 100) {
-  const response = await apiFetch<AgentListResponse>(`/api/v1/agents?limit=${limit}`);
-  if (!response.success) {
-    throw new Error('Failed to load agents');
+  try {
+    const response = await apiFetch<AgentListResponse>(`/api/v1/agents?limit=${limit}`);
+    if (!response.success) {
+      return []; // 返回空数组而不是抛出错误
+    }
+    return (response.data?.agents ?? []) as AgentSummary[];
+  } catch {
+    // API 错误时返回空数组，避免 React Query 报错
+    return [];
   }
-  return response.data.agents as AgentSummary[];
 }

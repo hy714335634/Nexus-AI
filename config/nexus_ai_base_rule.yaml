@@ -41,6 +41,58 @@ workflows:
         generation_rules: | # 生成规则
           =====通用生成规则=====
           创建的Agent执行脚本中，创建Agent对象必须通过nexus_utils.agent_factory.create_agent_from_prompt_template实现
+
+          =====AgentCore部署入口点规则（必须遵守）=====
+          所有生成的Agent脚本必须包含AgentCore标准入口点，以支持部署到Amazon Bedrock AgentCore：
+
+          1. **必须定义handler函数**：
+             ```python
+             from typing import Dict, Any
+
+             def handler(event: Dict[str, Any], context: Any = None) -> Dict[str, Any]:
+                 """
+                 AgentCore 标准入口点
+
+                 Args:
+                     event: AgentCore 传入的事件，包含:
+                         - prompt: 用户消息
+                         - user_id: 用户ID（可选）
+                         - session_id: 会话ID（可选）
+                         - 其他业务参数
+                     context: AgentCore 上下文
+
+                 Returns:
+                     Dict: 响应结果，必须包含 success 和 response 或 error
+                 """
+                 prompt = event.get("prompt") or event.get("message") or event.get("input", "")
+
+                 if not prompt:
+                     return {"success": False, "error": "Missing 'prompt' in request"}
+
+                 try:
+                     result = my_agent(prompt)
+                     response_text = result.content if hasattr(result, 'content') else str(result)
+                     return {"success": True, "response": response_text}
+                 except Exception as e:
+                     return {"success": False, "error": str(e)}
+             ```
+
+          2. **必须定义别名入口点**：
+             ```python
+             invoke = handler
+             main = handler
+             ```
+
+          3. **handler函数位置**：
+             - handler函数应定义在Agent实例创建之后、`if __name__ == "__main__"` 之前
+             - 使用注释 `# ==================== AgentCore 入口点（必须包含）====================` 标识
+
+          4. **返回格式要求**：
+             - 成功时返回：`{"success": True, "response": "响应内容"}`
+             - 失败时返回：`{"success": False, "error": "错误信息"}`
+
+          5. **错误处理**：
+             - handler函数必须包含try-catch处理，确保不会抛出未捕获的异常
         cache_rules: |      # 缓存规则
           =====通用缓存规则=====
           如用户要求构建的Agent进行内容缓存，请按照如下规则：
@@ -82,6 +134,7 @@ workflows:
           - 生成的Agent脚本初始化Agent时的参数默认为agent_params = {"env": "production","version": "latest",  "model_id": "default","enable_logging": True}
           - 当存在多个Agent时，必须在提示词开发阶段，创建多个yaml配置对应每个Agent
           - 当创建多个Agent时，优先在agent脚本中创建多个Agent对象，并按照逻辑进行编排和判断，也可使用swarm或graph进行编排。
+          - **重要**：必须遵守base规则中的"AgentCore部署入口点规则"，确保所有生成的Agent脚本都包含handler入口点函数
         cache_rules: |
           =====Build Workflow缓存规则=====
           当用户要求构建的Agent进行内容缓存，请按照如下规则：
