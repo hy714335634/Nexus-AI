@@ -1,7 +1,0 @@
-project:
-  created_date: '2025-11-27T13:34:23.460714+00:00'
-  description: A natural language calculator that understands mathematical expressions
-    in natural language and returns the correct result.
-  name: natural_language_calculator
-  updated_date: '2025-11-27T13:34:26.234168+00:00'
-  version: 1.0.0
