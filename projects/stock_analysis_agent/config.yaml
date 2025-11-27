@@ -1,8 +1,0 @@
-project:
-  created_date: '2025-11-07T09:51:26.131483+00:00'
-  description: Stock analysis assistant that provides investment advice based on real-time
-    financial data, DCF valuation, macroeconomic analysis, industry benchmarking,
-    and risk assessment.
-  name: stock_analysis_agent
-  updated_date: '2025-11-07T09:51:32.949153+00:00'
-  version: 1.0.0
