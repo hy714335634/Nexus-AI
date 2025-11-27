@@ -1,10 +1,12 @@
 # ============================================
-# EFS File System
+# EFS File System for Shared Storage
 # ============================================
-resource "aws_efs_file_system" "lambda_efs" {
-  count = var.enable_lambda ? 1 : 0
+resource "aws_efs_file_system" "nexus_ai" {
+  count = var.create_vpc ? 1 : 0
 
-  encrypted = true
+  encrypted        = true
+  performance_mode = "generalPurpose"
+  throughput_mode  = "bursting"
 
   tags = merge(local.common_tags, {
     Name = "${var.project_name}-efs-${var.environment}"
@@ -14,21 +16,21 @@ resource "aws_efs_file_system" "lambda_efs" {
 # ============================================
 # EFS Mount Targets
 # ============================================
-resource "aws_efs_mount_target" "lambda_efs_mt" {
-  count = var.enable_lambda ? length(local.subnet_ids) : 0
+resource "aws_efs_mount_target" "nexus_ai" {
+  count = var.create_vpc ? length(local.private_subnets) : 0
 
-  file_system_id  = aws_efs_file_system.lambda_efs[0].id
-  subnet_id       = local.subnet_ids[count.index]
-  security_groups = [aws_security_group.efs_sg[0].id]
+  file_system_id  = aws_efs_file_system.nexus_ai[0].id
+  subnet_id       = local.private_subnets[count.index]
+  security_groups = [aws_security_group.efs[0].id]
 }
 
 # ============================================
-# EFS Access Point
+# EFS Access Point for Application Data
 # ============================================
-resource "aws_efs_access_point" "lambda_ap" {
-  count = var.enable_lambda ? 1 : 0
+resource "aws_efs_access_point" "app_data" {
+  count = var.create_vpc ? 1 : 0
 
-  file_system_id = aws_efs_file_system.lambda_efs[0].id
+  file_system_id = aws_efs_file_system.nexus_ai[0].id
 
   posix_user {
     gid = 1000
@@ -36,7 +38,7 @@ resource "aws_efs_access_point" "lambda_ap" {
   }
 
   root_directory {
-    path = "/lambda"
+    path = "/app-data"
     creation_info {
       owner_gid   = 1000
       owner_uid   = 1000

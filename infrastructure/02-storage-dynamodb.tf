@@ -2,11 +2,12 @@
 resource "aws_dynamodb_table" "agent_projects" {
   count = var.enable_dynamodb ? 1 : 0
 
-  name           = "AgentProjects"
-  billing_mode   = "PROVISIONED"
-  read_capacity  = var.dynamodb_read_capacity
-  write_capacity = var.dynamodb_write_capacity
-  hash_key       = "project_id"
+  name                  = "AgentProjects"
+  billing_mode          = "PROVISIONED"
+  read_capacity         = var.dynamodb_read_capacity
+  write_capacity        = var.dynamodb_write_capacity
+  hash_key              = "project_id"
+  deletion_protection_enabled = false
 
   attribute {
     name = "project_id"
@@ -53,11 +54,12 @@ resource "aws_dynamodb_table" "agent_projects" {
 resource "aws_dynamodb_table" "agent_instances" {
   count = var.enable_dynamodb ? 1 : 0
 
-  name           = "AgentInstances"
-  billing_mode   = "PROVISIONED"
-  read_capacity  = var.dynamodb_read_capacity
-  write_capacity = var.dynamodb_write_capacity
-  hash_key       = "agent_id"
+  name                  = "AgentInstances"
+  billing_mode          = "PROVISIONED"
+  read_capacity         = var.dynamodb_read_capacity
+  write_capacity        = var.dynamodb_write_capacity
+  hash_key              = "agent_id"
+  deletion_protection_enabled = false
 
   attribute {
     name = "agent_id"
@@ -117,11 +119,12 @@ resource "aws_dynamodb_table" "agent_instances" {
 resource "aws_dynamodb_table" "agent_invocations" {
   count = var.enable_dynamodb ? 1 : 0
 
-  name           = "AgentInvocations"
-  billing_mode   = "PROVISIONED"
-  read_capacity  = var.dynamodb_read_capacity
-  write_capacity = var.dynamodb_write_capacity
-  hash_key       = "invocation_id"
+  name                  = "AgentInvocations"
+  billing_mode          = "PROVISIONED"
+  read_capacity         = var.dynamodb_read_capacity
+  write_capacity        = var.dynamodb_write_capacity
+  hash_key              = "invocation_id"
+  deletion_protection_enabled = false
 
   attribute {
     name = "invocation_id"
@@ -154,12 +157,13 @@ resource "aws_dynamodb_table" "agent_invocations" {
 resource "aws_dynamodb_table" "agent_sessions" {
   count = var.enable_dynamodb ? 1 : 0
 
-  name           = "AgentSessions"
-  billing_mode   = "PROVISIONED"
-  read_capacity  = var.dynamodb_read_capacity
-  write_capacity = var.dynamodb_write_capacity
-  hash_key       = "agent_id"
-  range_key      = "session_id"
+  name                  = "AgentSessions"
+  billing_mode          = "PROVISIONED"
+  read_capacity         = var.dynamodb_read_capacity
+  write_capacity        = var.dynamodb_write_capacity
+  hash_key              = "agent_id"
+  range_key             = "session_id"
+  deletion_protection_enabled = false
 
   attribute {
     name = "agent_id"
@@ -192,12 +196,13 @@ resource "aws_dynamodb_table" "agent_sessions" {
 resource "aws_dynamodb_table" "agent_session_messages" {
   count = var.enable_dynamodb ? 1 : 0
 
-  name           = "AgentSessionMessages"
-  billing_mode   = "PROVISIONED"
-  read_capacity  = var.dynamodb_read_capacity
-  write_capacity = var.dynamodb_write_capacity
-  hash_key       = "session_id"
-  range_key      = "created_at"
+  name                  = "AgentSessionMessages"
+  billing_mode          = "PROVISIONED"
+  read_capacity         = var.dynamodb_read_capacity
+  write_capacity        = var.dynamodb_write_capacity
+  hash_key              = "session_id"
+  range_key             = "created_at"
+  deletion_protection_enabled = false
 
   attribute {
     name = "session_id"

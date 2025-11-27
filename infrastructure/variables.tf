@@ -42,17 +42,6 @@ variable "enable_dynamodb" {
   default     = true
 }
 
-variable "enable_lambda" {
-  description = "Enable Lambda function creation"
-  type        = bool
-  default     = true
-}
-
-variable "enable_stepfunctions" {
-  description = "Enable Step Functions state machine creation"
-  type        = bool
-  default     = false
-}
 
 variable "dynamodb_read_capacity" {
   description = "DynamoDB read capacity units"
@@ -101,4 +90,78 @@ variable "availability_zones" {
   description = "Availability zones for subnets (defaults to first 2 AZs in region)"
   type        = list(string)
   default     = []
+}
+
+# ECS Configuration
+variable "api_cpu" {
+  description = "CPU units for API service (1024 = 1 vCPU)"
+  type        = number
+  default     = 1024
+}
+
+variable "api_memory" {
+  description = "Memory for API service in MB"
+  type        = number
+  default     = 2048
+}
+
+variable "api_desired_count" {
+  description = "Desired number of API service instances"
+  type        = number
+  default     = 2
+}
+
+variable "frontend_cpu" {
+  description = "CPU units for Frontend service (1024 = 1 vCPU)"
+  type        = number
+  default     = 512
+}
+
+variable "frontend_memory" {
+  description = "Memory for Frontend service in MB"
+  type        = number
+  default     = 1024
+}
+
+variable "frontend_desired_count" {
+  description = "Desired number of Frontend service instances"
+  type        = number
+  default     = 2
+}
+
+variable "celery_worker_cpu" {
+  description = "CPU units for Celery worker service (1024 = 1 vCPU)"
+  type        = number
+  default     = 2048
+}
+
+variable "celery_worker_memory" {
+  description = "Memory for Celery worker service in MB"
+  type        = number
+  default     = 4096
+}
+
+variable "celery_worker_desired_count" {
+  description = "Desired number of Celery worker instances per queue"
+  type        = number
+  default     = 2
+}
+
+variable "redis_cpu" {
+  description = "CPU units for Redis service (1024 = 1 vCPU)"
+  type        = number
+  default     = 512
+}
+
+variable "redis_memory" {
+  description = "Memory for Redis service in MB"
+  type        = number
+  default     = 1024
+}
+
+# Docker Build Configuration
+variable "skip_docker_build" {
+  description = "Skip automatic Docker image build and push during terraform apply"
+  type        = bool
+  default     = false
 }

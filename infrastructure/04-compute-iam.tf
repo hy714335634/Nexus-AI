@@ -1,7 +1,12 @@
-resource "aws_iam_role" "lambda_execution" {
-  count = var.enable_lambda ? 1 : 0
+# ============================================
+# IAM Roles for ECS Tasks
+# ============================================
 
-  name = "${var.project_name}-lambda-execution-${var.environment}"
+# ECS Task Execution Role (used by all services)
+resource "aws_iam_role" "ecs_task_execution" {
+  count = var.create_vpc ? 1 : 0
+
+  name = "${var.project_name}-ecs-task-execution-${var.environment}"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -10,7 +15,7 @@ resource "aws_iam_role" "lambda_execution" {
         Action = "sts:AssumeRole"
         Effect = "Allow"
         Principal = {
-          Service = "lambda.amazonaws.com"
+          Service = "ecs-tasks.amazonaws.com"
         }
       }
     ]
@@ -19,11 +24,42 @@ resource "aws_iam_role" "lambda_execution" {
   tags = local.common_tags
 }
 
-resource "aws_iam_role_policy" "lambda_dynamodb" {
-  count = var.enable_lambda ? 1 : 0
+# Attach AWS managed policy for ECS task execution
+resource "aws_iam_role_policy_attachment" "ecs_task_execution" {
+  count = var.create_vpc ? 1 : 0
 
-  name = "${var.project_name}-lambda-dynamodb-${var.environment}"
-  role = aws_iam_role.lambda_execution[0].id
+  role       = aws_iam_role.ecs_task_execution[0].name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+}
+
+# ECS Task Role (for application permissions)
+resource "aws_iam_role" "ecs_task" {
+  count = var.create_vpc ? 1 : 0
+
+  name = "${var.project_name}-ecs-task-${var.environment}"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ecs-tasks.amazonaws.com"
+        }
+      }
+    ]
+  })
+
+  tags = local.common_tags
+}
+
+# Policy for DynamoDB access
+resource "aws_iam_role_policy" "ecs_dynamodb" {
+  count = var.create_vpc && var.enable_dynamodb ? 1 : 0
+
+  name = "${var.project_name}-ecs-dynamodb-${var.environment}"
+  role = aws_iam_role.ecs_task[0].id
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -36,7 +72,9 @@ resource "aws_iam_role_policy" "lambda_dynamodb" {
           "dynamodb:UpdateItem",
           "dynamodb:DeleteItem",
           "dynamodb:Query",
-          "dynamodb:Scan"
+          "dynamodb:Scan",
+          "dynamodb:BatchGetItem",
+          "dynamodb:BatchWriteItem"
         ]
         Resource = [
           var.enable_dynamodb ? aws_dynamodb_table.agent_projects[0].arn : "*",
@@ -55,11 +93,12 @@ resource "aws_iam_role_policy" "lambda_dynamodb" {
   })
 }
 
-resource "aws_iam_role_policy" "lambda_sqs" {
-  count = var.enable_lambda && var.enable_sqs ? 1 : 0
+# Policy for SQS access
+resource "aws_iam_role_policy" "ecs_sqs" {
+  count = var.create_vpc && var.enable_sqs ? 1 : 0
 
-  name = "${var.project_name}-lambda-sqs-${var.environment}"
-  role = aws_iam_role.lambda_execution[0].id
+  name = "${var.project_name}-ecs-sqs-${var.environment}"
+  role = aws_iam_role.ecs_task[0].id
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -70,35 +109,21 @@ resource "aws_iam_role_policy" "lambda_sqs" {
           "sqs:SendMessage",
           "sqs:ReceiveMessage",
           "sqs:DeleteMessage",
-          "sqs:GetQueueAttributes"
+          "sqs:GetQueueAttributes",
+          "sqs:ChangeMessageVisibility"
         ]
-        Resource = [
-          aws_sqs_queue.nexus_notifications[0].arn
-        ]
+        Resource = var.enable_sqs ? aws_sqs_queue.nexus_notifications[0].arn : "*"
       }
     ]
   })
 }
 
-resource "aws_iam_role_policy_attachment" "lambda_basic" {
-  count = var.enable_lambda ? 1 : 0
+# Policy for Bedrock access
+resource "aws_iam_role_policy" "ecs_bedrock" {
+  count = var.create_vpc ? 1 : 0
 
-  role       = aws_iam_role.lambda_execution[0].name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-}
-
-resource "aws_iam_role_policy_attachment" "lambda_vpc" {
-  count = var.enable_lambda ? 1 : 0
-
-  role       = aws_iam_role.lambda_execution[0].name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
-}
-
-resource "aws_iam_role_policy" "lambda_bedrock" {
-  count = var.enable_lambda ? 1 : 0
-
-  name = "${var.project_name}-lambda-bedrock-${var.environment}"
-  role = aws_iam_role.lambda_execution[0].id
+  name = "${var.project_name}-ecs-bedrock-${var.environment}"
+  role = aws_iam_role.ecs_task[0].id
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -115,11 +140,12 @@ resource "aws_iam_role_policy" "lambda_bedrock" {
   })
 }
 
-resource "aws_iam_role_policy" "lambda_efs" {
-  count = var.enable_lambda ? 1 : 0
+# Policy for EFS access
+resource "aws_iam_role_policy" "ecs_efs" {
+  count = var.create_vpc ? 1 : 0
 
-  name = "${var.project_name}-lambda-efs-${var.environment}"
-  role = aws_iam_role.lambda_execution[0].id
+  name = "${var.project_name}-ecs-efs-${var.environment}"
+  role = aws_iam_role.ecs_task[0].id
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -129,10 +155,36 @@ resource "aws_iam_role_policy" "lambda_efs" {
         Action = [
           "elasticfilesystem:ClientMount",
           "elasticfilesystem:ClientWrite",
+          "elasticfilesystem:ClientRootAccess",
           "elasticfilesystem:DescribeMountTargets"
         ]
-        Resource = var.enable_lambda ? aws_efs_file_system.lambda_efs[0].arn : "*"
+        Resource = var.create_vpc ? aws_efs_file_system.nexus_ai[0].arn : "*"
       }
     ]
   })
 }
+
+# Policy for ECR access (for pulling images)
+resource "aws_iam_role_policy" "ecs_ecr" {
+  count = var.create_vpc ? 1 : 0
+
+  name = "${var.project_name}-ecs-ecr-${var.environment}"
+  role = aws_iam_role.ecs_task_execution[0].id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ecr:GetAuthorizationToken",
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:BatchGetImage"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+

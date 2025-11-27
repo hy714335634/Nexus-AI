@@ -10,18 +10,6 @@ environment  = "dev"
 # Feature Flags
 enable_sqs            = true
 enable_dynamodb       = true
-enable_lambda         = true
-enable_stepfunctions  = false
-
-# VPC Configuration
-# Option 1: Create new VPC (default)
-create_vpc = true
-vpc_cidr   = "10.0.0.0/16"
-
-# Option 2: Use existing VPC (set create_vpc = false)
-# create_vpc = false
-# vpc_id     = "vpc-xxxxx"
-# subnet_ids = ["subnet-xxxxx", "subnet-yyyyy"]
 
 # DynamoDB Configuration
 dynamodb_read_capacity  = 10

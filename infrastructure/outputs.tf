@@ -19,42 +19,53 @@ output "dynamodb_tables" {
   } : null
 }
 
-output "ecr_repository_url" {
-  description = "ECR repository URL"
-  value       = var.enable_lambda ? aws_ecr_repository.nexus_ai[0].repository_url : null
-}
-
-output "efs_file_system_id" {
-  description = "EFS file system ID"
-  value       = var.enable_lambda ? aws_efs_file_system.lambda_efs[0].id : null
-}
-
-output "lambda_function_name" {
-  description = "Lambda function name"
-  value       = var.enable_lambda ? aws_lambda_function.nexus_ai[0].function_name : null
-}
-
-output "lambda_function_arn" {
-  description = "Lambda function ARN"
-  value       = var.enable_lambda ? aws_lambda_function.nexus_ai[0].arn : null
-}
-
-output "lambda_function_url" {
-  description = "Lambda function URL"
-  value       = var.enable_lambda ? aws_lambda_function_url.nexus_ai[0].function_url : null
-}
-
-output "stepfunctions_state_machine_arn" {
-  description = "Step Functions state machine ARN"
-  value       = var.enable_stepfunctions ? aws_sfn_state_machine.agent_build_workflow[0].arn : null
-}
-
-output "vpc_id" {
-  description = "VPC ID"
-  value       = var.enable_lambda ? local.vpc_id : null
-}
 
 output "region" {
   description = "AWS region"
   value       = var.aws_region
+}
+
+# ECS Outputs
+output "ecs_cluster_name" {
+  description = "ECS Cluster name"
+  value       = var.create_vpc ? aws_ecs_cluster.nexus_ai[0].name : null
+}
+
+output "ecr_repositories" {
+  description = "ECR repository URLs"
+  value = var.create_vpc ? {
+    api          = aws_ecr_repository.api.repository_url
+    frontend     = aws_ecr_repository.frontend.repository_url
+    celery_worker = aws_ecr_repository.celery_worker.repository_url
+  } : null
+}
+
+output "alb_dns_name" {
+  description = "Application Load Balancer DNS name"
+  value       = var.create_vpc ? aws_lb.nexus_ai[0].dns_name : null
+}
+
+output "alb_zone_id" {
+  description = "Application Load Balancer zone ID"
+  value       = var.create_vpc ? aws_lb.nexus_ai[0].zone_id : null
+}
+
+output "efs_file_system_id" {
+  description = "EFS file system ID"
+  value       = var.create_vpc ? aws_efs_file_system.nexus_ai[0].id : null
+}
+
+output "vpc_id" {
+  description = "VPC ID"
+  value       = var.create_vpc ? local.vpc_id : null
+}
+
+output "private_subnets" {
+  description = "Private subnet IDs"
+  value       = var.create_vpc ? local.private_subnets : []
+}
+
+output "public_subnets" {
+  description = "Public subnet IDs"
+  value       = var.create_vpc ? local.public_subnets : []
 }
