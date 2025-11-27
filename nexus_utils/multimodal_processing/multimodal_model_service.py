@@ -486,7 +486,6 @@ class MultimodalModelService:
                     "max_tokens": self.max_tokens,
                     "messages": messages,
                     "temperature": 0.1,  # Low temperature for consistent analysis
-                    "top_p": 0.9
                 }
                 
                 # Make the API call

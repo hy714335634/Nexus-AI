@@ -71,7 +71,7 @@
 - **详情**: environments字段必须是包含环境配置的字典
 - **建议**:
   - environments应该包含development、production、testing等环境
-  - 每个环境应包含max_tokens、temperature、top_p、streaming等配置
+  - 每个环境应包含max_tokens、temperature、streaming等配置
 
 #### INVALID_VERSIONS_FORMAT
 - **原因**: versions字段格式错误

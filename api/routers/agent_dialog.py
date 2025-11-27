@@ -360,8 +360,8 @@ async def _invoke_agentcore_runtime(
                 region_name=runtime_region or settings.AWS_DEFAULT_REGION
             )
             
-            # 构建 payload
-            payload = {"query": message}
+            # 构建 payload（AgentCore 标准格式）
+            payload = {"prompt": message}
             
             # 如果有文件，添加到 media 字段
             if files and len(files) > 0:

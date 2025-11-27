@@ -772,7 +772,7 @@ def validate_prompt_file(file_path: str) -> str:
                 "error_details": ["environments字段必须是包含环境配置的字典"],
                 "suggestions": [
                     "environments应该包含development、production、testing等环境",
-                    "每个环境应包含max_tokens、temperature、top_p、streaming等配置"
+                    "每个环境应包含max_tokens、temperature、streaming等配置"
                 ]
             })
             return json.dumps(validation_results, ensure_ascii=False, indent=2)
