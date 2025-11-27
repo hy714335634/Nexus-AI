@@ -245,7 +245,8 @@ export default function BuildPage() {
     return <LoadingState message="加载构建进度…" />;
   }
 
-  if (dashboardError || !dashboard) {
+  // 区分"加载错误"和"没有数据"两种情况
+  if (dashboardError) {
     return (
       <section className={styles.page}>
         <ErrorState
@@ -253,6 +254,64 @@ export default function BuildPage() {
           description="请稍后重试，或检查后端服务状态。"
           onRetry={() => refetchDashboard()}
         />
+      </section>
+    );
+  }
+
+  // 项目不存在或暂无构建数据 - 显示友好的空状态
+  if (!dashboard) {
+    return (
+      <section className={styles.page}>
+        <header className={styles.hero}>
+          <h1 className={styles.heroTitle}>🛠️ Agent 构建进度</h1>
+          <p className={styles.heroSubtitle}>项目 ID: {projectId}</p>
+        </header>
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '60px 20px',
+          textAlign: 'center',
+          color: '#666',
+        }}>
+          <div style={{ fontSize: '48px', marginBottom: '16px' }}>📭</div>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '8px', color: '#333' }}>
+            暂无构建数据
+          </h2>
+          <p style={{ marginBottom: '24px', maxWidth: '400px' }}>
+            该项目尚未开始构建，或构建数据正在生成中。请稍后刷新页面查看。
+          </p>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <button
+              type="button"
+              onClick={() => refetchDashboard()}
+              style={{
+                padding: '10px 20px',
+                borderRadius: '8px',
+                border: '1px solid #ddd',
+                background: '#fff',
+                cursor: 'pointer',
+                fontWeight: 500,
+              }}
+            >
+              刷新页面
+            </button>
+            <Link
+              href="/"
+              style={{
+                padding: '10px 20px',
+                borderRadius: '8px',
+                background: 'linear-gradient(135deg, #2563eb, #4f46e5)',
+                color: '#fff',
+                fontWeight: 500,
+                textDecoration: 'none',
+              }}
+            >
+              返回首页
+            </Link>
+          </div>
+        </div>
       </section>
     );
   }

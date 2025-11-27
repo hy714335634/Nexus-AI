@@ -36,6 +36,29 @@ agent_config_path = "template_prompts/api_integration_agent"
 # 使用 agent_factory 创建 agent
 api_integration = create_api_integration_agent()
 
+
+# ==================== AgentCore 入口点（必须包含）====================
+from typing import Dict, Any
+
+def handler(event: Dict[str, Any], context: Any = None) -> Dict[str, Any]:
+    """
+    AgentCore 标准入口点
+    """
+    prompt = event.get("prompt") or event.get("message") or event.get("input", "")
+    if not prompt:
+        return {"success": False, "error": "Missing 'prompt' in request"}
+    try:
+        result = api_integration(prompt)
+        response_text = result.content if hasattr(result, 'content') else str(result)
+        return {"success": True, "response": response_text}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+invoke = handler
+main = handler
+
+
+# ==================== 本地运行入口 ====================
 if __name__ == "__main__":
     import argparse
     

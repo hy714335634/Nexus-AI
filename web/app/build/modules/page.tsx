@@ -769,7 +769,7 @@ export default function BuildModulesPage() {
                   <div className={styles.buildDetails}>
                     <div className={styles.detailItem}>
                       <span className={styles.detailLabel}>负责人</span>
-                      <span className={styles.detailValue}>{project.ownerName ?? '未分配'}</span>
+                      <span className={styles.detailValue}>{project.ownerName ?? (project as any).user_name ?? '未分配'}</span>
                     </div>
                     <div className={styles.detailItem}>
                       <span className={styles.detailLabel}>Agent 数</span>

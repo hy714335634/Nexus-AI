@@ -69,47 +69,49 @@ class AgentCLIBuildService:
         os.environ["NEXUS_STAGE_TRACKER_PROJECT_ID"] = project_identifier
 
         try:
-            # Reuse the CLI helpers to stay faithful to the original behaviour.
-            intent_result = cli_workflow.analyze_user_intent(requirement)
-            workflow = cli_workflow.create_build_workflow()
+            # Run the complete workflow (which includes intent analysis internally)
+            workflow_result = cli_workflow.run_workflow(requirement, session_id=session)
 
-            start_time = time.time()
-            workflow_result = self._execute_workflow_with_retry(workflow, intent_result)
-            execution_time = time.time() - start_time
+            # Extract data from workflow result
+            intent_result = workflow_result.get("intent_analysis")
+            execution_time = workflow_result.get("execution_time", 0)
+            report_path = workflow_result.get("report_path", "")
+            execution_order = workflow_result.get("execution_order", [])
+            status = workflow_result.get("status", "UNKNOWN")
 
-            report_path = generate_workflow_summary_report(workflow_result, "./projects")
         finally:
             if previous_tracker_id is None:
                 os.environ.pop("NEXUS_STAGE_TRACKER_PROJECT_ID", None)
             else:
                 os.environ["NEXUS_STAGE_TRACKER_PROJECT_ID"] = previous_tracker_id
 
-        intent_payload = {
-            "intent_type": self._json_safe(getattr(intent_result, "intent_type", None)),
-            "mentioned_project_name": self._json_safe(getattr(intent_result, "mentioned_project_name", None)),
-            "project_exists": self._json_safe(getattr(intent_result, "project_exists", None)),
-            "orchestrator_guidance": self._json_safe(getattr(intent_result, "orchestrator_guidance", None)),
-            "existing_project_info": self._json_safe(getattr(intent_result, "existing_project_info", None)),
-            "new_project_info": self._json_safe(getattr(intent_result, "new_project_info", None)),
-        }
+        # Build intent payload
+        intent_payload = {}
+        if intent_result:
+            intent_payload = {
+                "intent_type": self._json_safe(getattr(intent_result, "intent_type", None)),
+                "mentioned_project_name": self._json_safe(getattr(intent_result, "mentioned_project_name", None)),
+                "project_exists": self._json_safe(getattr(intent_result, "project_exists", None)),
+                "orchestrator_guidance": self._json_safe(getattr(intent_result, "orchestrator_guidance", None)),
+                "existing_project_info": self._json_safe(getattr(intent_result, "existing_project_info", None)),
+                "new_project_info": self._json_safe(getattr(intent_result, "new_project_info", None)),
+            }
 
-        new_project_info = getattr(intent_result, "new_project_info", None)
-        if new_project_info is not None:
-            suggested_name = getattr(new_project_info, "suggested_project_name", None)
-            if suggested_name:
-                intent_payload["suggested_project_name"] = self._json_safe(suggested_name)
+            new_project_info = getattr(intent_result, "new_project_info", None)
+            if new_project_info is not None:
+                suggested_name = getattr(new_project_info, "suggested_project_name", None)
+                if suggested_name:
+                    intent_payload["suggested_project_name"] = self._json_safe(suggested_name)
 
+        # Build workflow payload
         workflow_payload = {
-            "status": self._json_safe(getattr(workflow_result, "status", None)),
-            "total_nodes": self._json_safe(getattr(workflow_result, "total_nodes", None)),
-            "completed_nodes": self._json_safe(getattr(workflow_result, "completed_nodes", None)),
-            "failed_nodes": self._json_safe(getattr(workflow_result, "failed_nodes", None)),
-            "execution_time_ms": self._json_safe(getattr(workflow_result, "execution_time", None)),
-            "execution_order": [
-                self._json_safe(getattr(node, "node_id", node))
-                for node in getattr(workflow_result, "execution_order", [])
-            ],
-            "accumulated_usage": self._json_safe(getattr(workflow_result, "accumulated_usage", None)),
+            "status": status,
+            "total_nodes": len(execution_order),
+            "completed_nodes": len(execution_order) if status == "COMPLETED" else 0,
+            "failed_nodes": 0 if status == "COMPLETED" else 1,
+            "execution_time_ms": int(execution_time * 1000) if execution_time else 0,
+            "execution_order": [str(node) for node in execution_order],
+            "accumulated_usage": None,
         }
 
         return AgentWorkflowOutput(
@@ -119,51 +121,6 @@ class AgentCLIBuildService:
             intent=intent_payload,
             workflow=workflow_payload,
         )
-
-    def _execute_workflow_with_retry(self, workflow: Any, intent_result: Any) -> Any:
-        """Execute workflow with exponential backoff on max_tokens limit errors."""
-
-        delays = [0, 60, 120, 240, 480, 960]  # seconds
-        last_exception: Optional[Exception] = None
-        transient_markers = (
-            "max_tokens limit",
-            "throttlingException",
-            "Too many requests",
-            "TooManyRequests",
-            "Rate exceeded",
-            "Response ended prematurely",
-            "ProtocolError",
-        )
-
-        for attempt, delay in enumerate(delays, start=1):
-            if delay:
-                logger.info(
-                    "Workflow retry attempt %s after sleeping %ss due to transient Bedrock error",
-                    attempt,
-                    delay,
-                )
-                time.sleep(delay)
-
-            try:
-                return workflow(str(intent_result))
-            except Exception as exc:  # pragma: no cover - retry loop
-                message = str(exc)
-                if not any(marker in message for marker in transient_markers):
-                    raise
-                last_exception = exc
-                if attempt == len(delays):
-                    break
-                logger.warning(
-                    "Transient Bedrock error '%s' (attempt %s/%s), will retry with backoff",
-                    message,
-                    attempt,
-                    len(delays),
-                )
-
-        # All retries exhausted
-        if last_exception:
-            raise last_exception
-        raise RuntimeError("Workflow retry loop exited unexpectedly")
 
     def _json_safe(self, value: Any) -> Any:
         """Best-effort conversion of SDK objects to JSON-serialisable primitives."""

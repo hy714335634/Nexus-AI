@@ -355,6 +355,35 @@ class PDFExtractorAgent:
             return {"success": False, "message": f"获取状态错误: {str(e)}"}
 
 
+# ==================== AgentCore 入口点（必须包含）====================
+from typing import Dict, Any as TypingAny
+
+def handler(event: Dict[str, TypingAny], context: TypingAny = None) -> Dict[str, TypingAny]:
+    """
+    AgentCore 标准入口点
+    """
+    prompt = event.get("prompt") or event.get("message") or event.get("input", "")
+    pdf_path = event.get("pdf_path") or event.get("file_path")
+    output_path = event.get("output_path")
+
+    if not prompt and not pdf_path:
+        return {"success": False, "error": "Missing 'prompt' or 'pdf_path' in request"}
+
+    try:
+        extractor = PDFExtractorAgent()
+        if pdf_path:
+            result = extractor.process_pdf(pdf_path, output_file=output_path)
+            return result
+        else:
+            # 如果只有 prompt，尝试从 prompt 中提取文件路径
+            return {"success": False, "error": "Please provide pdf_path parameter"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+invoke = handler
+
+
+# ==================== 本地运行入口 ====================
 def main():
     """主函数，处理命令行参数并执行PDF提取"""
     parser = argparse.ArgumentParser(description='PDF内容提取工具')

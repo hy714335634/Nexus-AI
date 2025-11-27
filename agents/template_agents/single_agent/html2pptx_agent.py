@@ -49,6 +49,26 @@ def create_html2pptx_agent(env: str = "production", version: str = "latest", mod
 # 使用 agent_factory 创建默认 agent
 html2pptx_agent = create_html2pptx_agent()
 
+
+# ==================== AgentCore 入口点（必须包含）====================
+def handler(event: Dict[str, Any], context: Any = None) -> Dict[str, Any]:
+    """
+    AgentCore 标准入口点
+    """
+    prompt = event.get("prompt") or event.get("message") or event.get("input", "")
+    if not prompt:
+        return {"success": False, "error": "Missing 'prompt' in request"}
+    try:
+        result = html2pptx_agent(prompt)
+        response_text = result.content if hasattr(result, 'content') else str(result)
+        return {"success": True, "response": response_text}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+invoke = handler
+
+
+# ==================== 辅助函数 ====================
 def convert_html_to_pptx(
     html_path: str, 
     output_path: Optional[str] = None, 
