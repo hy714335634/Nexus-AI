@@ -1,6 +1,9 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+// Force dynamic rendering for pages using useSearchParams
+export const dynamic = 'force-dynamic';
+
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import styles from './modules.module.css';
@@ -290,7 +293,7 @@ function formatStatValue(value: number | undefined, options?: { readonly suffix?
   return options?.suffix ? `${formatted}${options.suffix}` : formatted;
 }
 
-export default function BuildModulesPage() {
+function BuildModulesPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const requestedProjectId = searchParams?.get('projectId') ?? undefined;
@@ -828,5 +831,13 @@ export default function BuildModulesPage() {
         </div>
       </section>
     </div>
+  );
+}
+
+export default function BuildModulesPage() {
+  return (
+    <Suspense fallback={<LoadingState message="加载页面…" />}>
+      <BuildModulesPageContent />
+    </Suspense>
   );
 }

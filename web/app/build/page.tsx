@@ -1,6 +1,9 @@
 'use client';
 
-import { useMemo } from 'react';
+// Force dynamic rendering for pages using useSearchParams
+export const dynamic = 'force-dynamic';
+
+import { Suspense, useMemo } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import styles from './build.module.css';
@@ -175,7 +178,7 @@ function formatTokens(value?: number): string {
   return value.toLocaleString();
 }
 
-export default function BuildPage() {
+function BuildPageContent() {
   const searchParams = useSearchParams();
   const requestedProjectId = searchParams?.get('projectId') ?? undefined;
 
@@ -567,5 +570,13 @@ export default function BuildPage() {
         </aside>
       </div>
     </div>
+  );
+}
+
+export default function BuildPage() {
+  return (
+    <Suspense fallback={<LoadingState message="加载页面…" />}>
+      <BuildPageContent />
+    </Suspense>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import styles from './chat.module.css';
+import styles from '../chat.module.css';
 
 interface ChatMessage {
   readonly id: string;
