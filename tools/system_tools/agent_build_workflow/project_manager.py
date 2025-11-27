@@ -2196,15 +2196,35 @@ def verify_file_content(type: Literal["agent", "prompt", "tool"], file_path: str
 def generate_python_requirements(project_name: str, content: str) -> str:
     """
     基于工具中使用的包，在项目文件夹中生成python requirements.txt 文件，内容为项目依赖的库
-    
+
     Args:
         project_name (str): 项目名称（必须）
         content (str): 要写入的文件内容（必须）
-        
+
     Returns:
         str: 操作结果信息
     """
     requirements_path = os.path.join("projects", project_name, "requirements.txt")
+
+    # Python built-in modules that should NOT be in requirements.txt
+    BUILTIN_MODULES = {
+        'os', 'sys', 'json', 'argparse', 'logging', 'typing', 're', 'datetime', 'time',
+        'pathlib', 'collections', 'itertools', 'functools', 'io', 'csv', 'math', 'random',
+        'string', 'threading', 'multiprocessing', 'subprocess', 'uuid', 'hashlib', 'base64',
+        'urllib', 'http', 'pickle', 'copy', 'enum', 'warnings', 'traceback', 'abc', 'dataclasses',
+        'asyncio', 'concurrent', 'queue', 'socket', 'ssl', 'email', 'mimetypes', 'tempfile',
+        'shutil', 'glob', 'fnmatch', 'gzip', 'zipfile', 'tarfile', 'configparser', 'argparse',
+        'getpass', 'platform', 'locale', 'codecs', 'struct', 'array', 'heapq', 'bisect',
+        'weakref', 'gc', 'inspect', 'dis', 'ast', 'tokenize', 'keyword', 'pydoc', 'doctest',
+        'unittest', 'test', 'pdb', 'profile', 'timeit', 'trace', 'contextvars', 'decimal',
+        'fractions', 'statistics', 'cmath', 'operator', 'atexit', 'builtins', 'imp', 'importlib',
+        'types', 'ctypes', 'mmap', 'select', 'errno', 'signal', 'pty', 'tty', 'termios',
+        'resource', 'sysconfig', 'distutils', 'venv', 'ensurepip', 'zlib', 'bz2', 'lzma',
+        'sqlite3', 'dbm', 'shelve', 'marshal', 'reprlib', 'pprint', 'textwrap', 'unicodedata',
+        'stringprep', 'readline', 'rlcompleter', 'html', 'xml', 'webbrowser', 'cgi', 'cgitb',
+        'wsgiref', 'smtplib', 'poplib', 'imaplib', 'telnetlib', 'ftplib', 'nntplib',
+        'socketserver', 'xmlrpc', 'ipaddress', 'secrets', 'hmac', 'binascii', 'quopri', 'uu',
+    }
 
     entries = []
     if content:
@@ -2218,12 +2238,22 @@ def generate_python_requirements(project_name: str, content: str) -> str:
                 continue
 
             lower = line.lower()
+
+            # Skip Python built-in modules
+            module_name = lower.split('[')[0].split('=')[0].split('<')[0].split('>')[0].strip()
+            if module_name in BUILTIN_MODULES:
+                continue
+
             # Skip references to non-existent "strands" package; we ship strands-agents instead.
             if lower.startswith("strands") and not lower.startswith("strands-agents"):
                 continue
             # Skip non-existent "nexus-ai" package
             if lower.startswith("nexus-ai"):
                 continue
+            # Skip local paths that are not relative imports
+            if lower.startswith("nexus_utils") and not lower.startswith("./nexus_utils"):
+                continue
+
             entries.append(line)
 
     baseline = ["./nexus_utils", "strands-agents", "strands-agents-tools", "PyYAML"]

@@ -1,0 +1,116 @@
+{
+  "project_name": "natural_language_calculator",
+  "validation_timestamp": "2025-11-27T13:49:37.512813+00:00",
+  "overall_status": "success",
+  "agent_scripts": [
+    {
+      "script_path": "agents/generated_agents/natural_language_calculator/natural_language_calculator.py",
+      "syntax_valid": true,
+      "dependencies": [
+        "os",
+        "json",
+        "argparse",
+        "logging",
+        "typing",
+        "nexus_utils.agent_factory",
+        "strands.telemetry"
+      ],
+      "execution_params": [],
+      "argparse_params": [
+        {
+          "name": "-i",
+          "type": "str",
+          "description": "自然语言数学表达式（如：\"一加一等于几\"、\"10乘以5\"）",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "-f",
+          "type": "str",
+          "description": "包含数学表达式的文件路径（每行一个表达式）",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "--batch",
+          "type": "str",
+          "description": "批量计算模式（从文件读取多个表达式）",
+          "required": false,
+          "default": null,
+          "action": "store_true"
+        },
+        {
+          "name": "--interactive",
+          "type": "str",
+          "description": "启用交互模式，允许连续输入多个表达式",
+          "required": false,
+          "default": null,
+          "action": "store_true"
+        },
+        {
+          "name": "--help-info",
+          "type": "str",
+          "description": "显示计算器帮助信息",
+          "required": false,
+          "default": null,
+          "action": "store_true"
+        }
+      ],
+      "error_message": ""
+    }
+  ],
+  "prompt_files": [
+    {
+      "prompt_path": "generated_agents_prompts/natural_language_calculator/natural_language_calculator.yaml",
+      "tool_count": 10,
+      "valid": true,
+      "error_message": "",
+      "metadata": {
+        "tags": [
+          "calculator",
+          "math",
+          "natural_language",
+          "chinese"
+        ],
+        "supported_models": [
+          "global.anthropic.claude-sonnet-4-5-20250929-v1:0"
+        ],
+        "tools_dependencies": [
+          "strands_tools/calculator",
+          "strands_tools/current_time",
+          "generated_tools/natural_language_calculator/nl_calculator_tool/batch_calculate",
+          "generated_tools/natural_language_calculator/nl_calculator_tool/calculate_math_expression",
+          "generated_tools/natural_language_calculator/nl_calculator_tool/convert_chinese_number",
+          "generated_tools/natural_language_calculator/nl_calculator_tool/get_calculator_help",
+          "generated_tools/natural_language_calculator/nl_calculator_tool/get_supported_operators",
+          "generated_tools/natural_language_calculator/nl_calculator_tool/natural_language_calculator",
+          "generated_tools/natural_language_calculator/nl_calculator_tool/parse_natural_language_math",
+          "generated_tools/natural_language_calculator/nl_calculator_tool/validate_math_expression"
+        ]
+      },
+      "agent_info": {
+        "name": "natural_language_calculator",
+        "description": "自然语言数学计算器，能够理解中文数学表达式并执行基本四则运算",
+        "category": "calculator"
+      }
+    }
+  ],
+  "generated_tools": [
+    {
+      "tool_path": "generated_tools/natural_language_calculator/nl_calculator_tool.py",
+      "syntax_valid": true,
+      "error_message": ""
+    }
+  ],
+  "total_tools": 10,
+  "summary": {
+    "agent_scripts_count": 1,
+    "prompt_files_count": 1,
+    "generated_tool_files_count": 1,
+    "all_scripts_valid": true,
+    "all_tools_valid": true,
+    "all_prompts_valid": true
+  }
+}

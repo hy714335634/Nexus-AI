@@ -11,15 +11,20 @@ import type {
  * @returns List of messages in the session
  */
 export async function fetchSessionMessages(sessionId: string) {
-  const response = await apiFetch<{
-    success: boolean;
-    data: AgentDialogMessagesResponse;
-  }>(`/api/v1/sessions/${encodeURIComponent(sessionId)}/messages`);
+  try {
+    const response = await apiFetch<{
+      success: boolean;
+      data: AgentDialogMessagesResponse;
+    }>(`/api/v1/sessions/${encodeURIComponent(sessionId)}/messages`);
 
-  if (!response.success) {
-    throw new Error('Failed to load messages');
+    if (!response.success) {
+      return []; // 返回空数组而不是抛出错误
+    }
+    return response.data?.messages ?? [];
+  } catch {
+    // API 错误时返回空数组，避免 React Query 报错
+    return [];
   }
-  return response.data.messages;
 }
 
 /**

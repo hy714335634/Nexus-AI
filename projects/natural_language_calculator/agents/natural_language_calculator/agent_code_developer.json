@@ -1,0 +1,307 @@
+{
+  "agent_code_development": {
+    "development_overview": {
+      "project_name": "natural_language_calculator",
+      "version": "1.0",
+      "date": "2025-11-27",
+      "development_scope": "开发自然语言计算器Agent，能够理解中文自然语言数学表达式并执行基本四则运算",
+      "design_principles": [
+        "简洁性原则 - 保持代码结构清晰简单",
+        "准确性原则 - 确保计算结果100%准确",
+        "用户友好原则 - 提供清晰的交互界面和错误提示",
+        "可扩展性原则 - 支持未来功能扩展",
+        "AgentCore兼容原则 - 遵循Amazon Bedrock AgentCore部署规范"
+      ],
+      "key_decisions": [
+        "基于aws_pricing_agent模板进行定制化开发",
+        "使用nexus_utils.agent_factory创建Agent实例",
+        "集成nl_calculator_tool工具集进行自然语言解析和计算",
+        "实现AgentCore标准handler入口点函数",
+        "提供命令行界面支持本地测试和交互",
+        "使用Claude Sonnet 4.5模型，温度0.3确保计算准确性"
+      ]
+    },
+    "agent_implementation": {
+      "agent_name": "natural_language_calculator",
+      "file_path": "agents/generated_agents/natural_language_calculator/natural_language_calculator.py",
+      "main_class": "CalculatorCLI",
+      "entry_point": "handler",
+      "dependencies": [
+        "nexus_utils.agent_factory",
+        "strands.telemetry",
+        "logging",
+        "json",
+        "argparse",
+        "typing"
+      ],
+      "imports": [
+        "os",
+        "json",
+        "argparse",
+        "logging",
+        "typing.Dict",
+        "typing.Any",
+        "typing.Optional",
+        "nexus_utils.agent_factory.create_agent_from_prompt_template",
+        "strands.telemetry.StrandsTelemetry"
+      ]
+    },
+    "core_functions": [
+      {
+        "function_name": "handler",
+        "purpose": "AgentCore标准入口点，处理AgentCore传入的计算请求",
+        "parameters": [
+          {
+            "name": "event",
+            "type": "Dict[str, Any]",
+            "description": "AgentCore传入的事件，包含prompt、user_id、session_id等参数",
+            "required": true
+          },
+          {
+            "name": "context",
+            "type": "Any",
+            "description": "AgentCore上下文对象",
+            "required": false
+          }
+        ],
+        "return_type": "Dict[str, Any]",
+        "return_description": "包含success状态和response或error的字典",
+        "implementation_notes": [
+          "从event中提取prompt参数",
+          "调用natural_language_calculator Agent处理请求",
+          "解析Agent响应，支持多种响应格式（content、text、str）",
+          "返回标准格式的响应字典",
+          "包含完整的错误处理和日志记录"
+        ]
+      },
+      {
+        "function_name": "CalculatorCLI.__init__",
+        "purpose": "初始化命令行接口",
+        "parameters": [
+          {
+            "name": "agent",
+            "type": "Agent",
+            "description": "已初始化的Natural Language Calculator Agent",
+            "required": true
+          }
+        ],
+        "return_type": "None",
+        "return_description": "无返回值",
+        "implementation_notes": [
+          "保存Agent实例",
+          "创建命令行参数解析器"
+        ]
+      },
+      {
+        "function_name": "CalculatorCLI._create_parser",
+        "purpose": "创建命令行参数解析器",
+        "parameters": [],
+        "return_type": "argparse.ArgumentParser",
+        "return_description": "配置好的参数解析器对象",
+        "implementation_notes": [
+          "支持-i/--input参数输入单个表达式",
+          "支持-f/--file参数从文件读取表达式",
+          "支持--batch参数批量计算模式",
+          "支持--interactive参数交互模式",
+          "支持--help-info参数显示帮助信息"
+        ]
+      },
+      {
+        "function_name": "CalculatorCLI.run",
+        "purpose": "运行命令行接口主逻辑",
+        "parameters": [],
+        "return_type": "None",
+        "return_description": "无返回值",
+        "implementation_notes": [
+          "解析命令行参数",
+          "根据参数选择运行模式（单次、批量、交互、帮助）",
+          "调用Agent处理计算请求",
+          "格式化输出计算结果",
+          "处理异常情况"
+        ]
+      },
+      {
+        "function_name": "CalculatorCLI._get_expression",
+        "purpose": "从命令行参数或文件获取数学表达式",
+        "parameters": [
+          {
+            "name": "args",
+            "type": "argparse.Namespace",
+            "description": "解析后的命令行参数",
+            "required": true
+          }
+        ],
+        "return_type": "Optional[str]",
+        "return_description": "数学表达式文本，未提供则返回None",
+        "implementation_notes": [
+          "优先使用--input参数",
+          "其次尝试从--file参数读取文件",
+          "包含文件读取错误处理"
+        ]
+      },
+      {
+        "function_name": "CalculatorCLI._run_interactive_mode",
+        "purpose": "运行交互模式，支持连续输入多个表达式",
+        "parameters": [],
+        "return_type": "None",
+        "return_description": "无返回值",
+        "implementation_notes": [
+          "循环接收用户输入",
+          "支持exit/quit/退出命令退出",
+          "每次输入调用Agent计算",
+          "格式化输出计算结果",
+          "处理KeyboardInterrupt中断",
+          "包含完整的异常处理"
+        ]
+      },
+      {
+        "function_name": "CalculatorCLI._run_batch_mode",
+        "purpose": "运行批量计算模式",
+        "parameters": [
+          {
+            "name": "file_path",
+            "type": "str",
+            "description": "包含多个表达式的文件路径",
+            "required": true
+          }
+        ],
+        "return_type": "None",
+        "return_description": "无返回值",
+        "implementation_notes": [
+          "从文件读取所有表达式（每行一个）",
+          "构建批量计算请求",
+          "调用Agent处理批量计算",
+          "格式化输出批量结果",
+          "包含文件读取和计算错误处理"
+        ]
+      },
+      {
+        "function_name": "CalculatorCLI._show_help",
+        "purpose": "显示计算器帮助信息",
+        "parameters": [],
+        "return_type": "None",
+        "return_description": "无返回值",
+        "implementation_notes": [
+          "调用Agent获取帮助信息",
+          "格式化输出帮助内容",
+          "包含错误处理"
+        ]
+      }
+    ],
+    "tool_integration": {
+      "custom_tools": [
+        "generated_tools/natural_language_calculator/nl_calculator_tool/natural_language_calculator",
+        "generated_tools/natural_language_calculator/nl_calculator_tool/parse_natural_language_math",
+        "generated_tools/natural_language_calculator/nl_calculator_tool/calculate_math_expression",
+        "generated_tools/natural_language_calculator/nl_calculator_tool/convert_chinese_number",
+        "generated_tools/natural_language_calculator/nl_calculator_tool/validate_math_expression",
+        "generated_tools/natural_language_calculator/nl_calculator_tool/get_supported_operators",
+        "generated_tools/natural_language_calculator/nl_calculator_tool/batch_calculate",
+        "generated_tools/natural_language_calculator/nl_calculator_tool/get_calculator_help"
+      ],
+      "system_tools": [
+        "strands_tools/calculator",
+        "strands_tools/current_time"
+      ],
+      "strands_tools": [
+        "calculator - 基础数学计算功能",
+        "current_time - 获取当前时间"
+      ],
+      "integration_notes": [
+        "工具通过prompt模板配置自动集成",
+        "Agent通过agent_factory加载工具",
+        "工具调用由Strands SDK自动处理",
+        "自定义工具提供自然语言解析和计算功能",
+        "系统工具提供基础计算和时间功能"
+      ]
+    },
+    "configuration": {
+      "environment_variables": [
+        "BYPASS_TOOL_CONSENT=true",
+        "OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318"
+      ],
+      "model_configuration": {
+        "model_name": "global.anthropic.claude-sonnet-4-5-20250929-v1:0",
+        "max_tokens": 60000,
+        "temperature": 0.3
+      },
+      "streaming_config": {
+        "enabled": false,
+        "chunk_size": 1024
+      }
+    },
+    "error_handling": {
+      "exception_types": [
+        "ValueError - 输入参数错误",
+        "FileNotFoundError - 文件不存在",
+        "json.JSONDecodeError - JSON解析错误",
+        "KeyboardInterrupt - 用户中断",
+        "Exception - 通用异常"
+      ],
+      "error_responses": [
+        "Missing 'prompt' in request - 缺少prompt参数",
+        "读取文件失败 - 文件读取错误",
+        "计算失败 - 计算过程异常",
+        "批量计算失败 - 批量处理异常",
+        "获取帮助信息失败 - 帮助信息获取异常"
+      ],
+      "recovery_strategies": [
+        "记录详细错误日志",
+        "返回用户友好的错误提示",
+        "在AgentCore模式下返回标准错误响应",
+        "在交互模式下继续等待下一次输入",
+        "在批量模式下跳过错误继续处理"
+      ]
+    },
+    "testing": {
+      "test_cases": [
+        "简单加法: '一加一等于几' -> 答案是：2",
+        "混合减法: '10减去5' -> 答案是：5",
+        "中文乘法: '三乘以四' -> 答案是：12",
+        "除法运算: '二十除以四' -> 答案是：5",
+        "错误输入: '三加' -> 友好错误提示",
+        "除零错误: '10除以0' -> 除数不能为0提示"
+      ],
+      "test_scenarios": [
+        "单次计算模式测试",
+        "交互模式测试",
+        "批量计算模式测试",
+        "帮助信息显示测试",
+        "文件读取测试",
+        "错误处理测试",
+        "AgentCore handler测试"
+      ],
+      "validation_criteria": [
+        "计算结果准确率100%",
+        "表达式解析准确率≥90%",
+        "错误处理覆盖率100%",
+        "响应时间≤3秒",
+        "AgentCore兼容性验证通过"
+      ]
+    },
+    "deployment": {
+      "deployment_requirements": [
+        "Python 3.13+运行环境",
+        "AWS Bedrock AgentCore环境",
+        "Strands SDK及依赖库",
+        "nexus_utils工具包",
+        "提示词模板文件",
+        "工具代码文件"
+      ],
+      "runtime_dependencies": [
+        "./nexus_utils",
+        "strands-agents",
+        "strands-agents-tools",
+        "PyYAML"
+      ],
+      "performance_considerations": [
+        "单次计算响应时间≤2秒",
+        "批量计算支持并发处理",
+        "内存使用优化",
+        "日志记录性能影响最小化",
+        "工具调用缓存策略"
+      ]
+    },
+    "development_notes": "智能体代码开发已完成，基于aws_pricing_agent模板进行定制化开发。核心实现包括：1）使用nexus_utils.agent_factory创建Agent实例，确保与平台集成；2）实现AgentCore标准handler入口点函数，支持部署到Amazon Bedrock AgentCore；3）提供完善的命令行接口，支持单次计算、批量计算、交互模式和帮助信息显示；4）集成nl_calculator_tool工具集，提供自然语言解析和计算功能；5）实现健壮的错误处理机制，包含日志记录和用户友好的错误提示；6）使用Claude Sonnet 4.5模型，温度0.3确保计算准确性。代码结构清晰，遵循Python最佳实践，包含完整的类型注解和文档字符串。已验证代码语法正确，Agent创建成功。"
+  }
+}
