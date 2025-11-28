@@ -396,10 +396,10 @@ async def _invoke_agentcore_runtime(
             logger.info(f"Payload: query={message[:100]}, media_count={len(files) if files else 0}")
             
             # 调用 invoke_agent_runtime
-            # payload 必须是 bytes 类型
-            payload_bytes = json.dumps(payload).encode('utf-8')
+            # payload 是 JSON 字符串（不是 bytes）
+            payload_str = json.dumps(payload)
             print(f"   Calling invoke_agent_runtime...")
-            print(f"   Payload size: {len(payload_bytes)} bytes")
+            print(f"   Payload: {payload_str[:200]}")
 
             # 添加 botocore 配置以增加超时（处理冷启动）
             from botocore.config import Config
@@ -416,22 +416,48 @@ async def _invoke_agentcore_runtime(
 
             response = client.invoke_agent_runtime(
                 agentRuntimeArn=runtime_arn,
-                payload=payload_bytes,
-                contentType='application/json'
+                qualifier="DEFAULT",
+                payload=payload_str
             )
             
             status_code = response['ResponseMetadata']['HTTPStatusCode']
             print(f"   ✅ Response status: {status_code}")
             logger.info(f"Response status: {status_code}")
-            
-            # 读取响应流 (AgentCore 返回 'response' 字段，不是 'payload')
+
+            # 检查 contentType 判断响应类型
+            content_type = response.get('contentType', '')
+            print(f"   Content-Type: {content_type}")
+
             completion = ""
-            if 'response' in response:
-                print(f"   Reading response stream...")
+
+            # 处理 text/event-stream 流式响应
+            if 'text/event-stream' in content_type:
+                print(f"   Reading event stream...")
+                content_parts = []
+                response_stream = response.get('response')
+                if response_stream and hasattr(response_stream, 'iter_lines'):
+                    for line in response_stream.iter_lines(chunk_size=1):
+                        if line:
+                            line_str = line.decode('utf-8') if isinstance(line, bytes) else line
+                            if line_str.startswith('data: '):
+                                data_content = line_str[6:]  # 去掉 "data: " 前缀
+                                print(f"   Stream data: {data_content[:100]}")
+                                content_parts.append(data_content)
+                    completion = "\n".join(content_parts)
+                elif response_stream and hasattr(response_stream, 'read'):
+                    # fallback: 一次性读取
+                    raw_content = response_stream.read()
+                    completion = raw_content.decode('utf-8') if isinstance(raw_content, bytes) else raw_content
+                print(f"   ✅ Got event stream response: {len(completion)} characters")
+
+            # 处理普通响应
+            elif 'response' in response:
+                print(f"   Reading response...")
                 response_stream = response['response']
                 # response 可能是 StreamingBody 或者已经是字符串/字节
                 if hasattr(response_stream, 'read'):
-                    completion = response_stream.read().decode('utf-8')
+                    raw = response_stream.read()
+                    completion = raw.decode('utf-8') if isinstance(raw, bytes) else raw
                 else:
                     completion = str(response_stream)
                 print(f"   ✅ Got response: {len(completion)} characters")
@@ -441,7 +467,8 @@ async def _invoke_agentcore_runtime(
                 print(f"   Reading payload stream...")
                 payload_stream = response['payload']
                 if hasattr(payload_stream, 'read'):
-                    completion = payload_stream.read().decode('utf-8')
+                    raw = payload_stream.read()
+                    completion = raw.decode('utf-8') if isinstance(raw, bytes) else raw
                 else:
                     completion = str(payload_stream)
                 print(f"   ✅ Got response: {len(completion)} characters")
@@ -451,7 +478,27 @@ async def _invoke_agentcore_runtime(
                 print(f"   Response keys: {list(response.keys())}\n")
             
             logger.info(f"AgentCore response: {completion[:100]}...")
-            
+
+            # 尝试解析响应内容
+            # 新格式：handler 直接返回字符串
+            # 旧格式：handler 返回 {"success": True, "response": "..."} 或 {"success": False, "error": "..."}
+            final_text = completion
+            try:
+                parsed = json.loads(completion)
+                if isinstance(parsed, dict):
+                    if parsed.get("success") and "response" in parsed:
+                        # 旧格式：提取 response 字段
+                        final_text = parsed["response"]
+                        print(f"   📋 Extracted response from JSON (legacy format)")
+                    elif not parsed.get("success") and "error" in parsed:
+                        # 旧格式：错误情况
+                        final_text = f"Error: {parsed['error']}"
+                        print(f"   ⚠️ Extracted error from JSON (legacy format)")
+                    # 如果是其他 JSON 格式，保持原样
+            except (json.JSONDecodeError, TypeError):
+                # 不是 JSON，直接使用原始字符串（新格式）
+                pass
+
             # 提取指标（如果有的话）
             metrics = {}
             if 'usage' in response:
@@ -460,8 +507,8 @@ async def _invoke_agentcore_runtime(
                     'input_tokens': usage.get('inputTokens', 0),
                     'output_tokens': usage.get('outputTokens', 0),
                 }
-            
-            return completion, metrics
+
+            return final_text, metrics
             
         except ClientError as e:
             error_code = e.response.get('Error', {}).get('Code', 'Unknown')

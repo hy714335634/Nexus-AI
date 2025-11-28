@@ -50,22 +50,56 @@ def create_html2pptx_agent(env: str = "production", version: str = "latest", mod
 html2pptx_agent = create_html2pptx_agent()
 
 
+# 创建 BedrockAgentCoreApp 实例
+from bedrock_agentcore.runtime import BedrockAgentCoreApp
+app = BedrockAgentCoreApp()
+
+
 # ==================== AgentCore 入口点（必须包含）====================
-def handler(event: Dict[str, Any], context: Any = None) -> Dict[str, Any]:
+@app.entrypoint
+def handler(payload: Dict[str, Any]) -> str:
     """
     AgentCore 标准入口点
+
+    Args:
+        payload: AgentCore 传入的请求体，包含:
+            - prompt: 用户消息
+
+    Returns:
+        str: 响应文本
     """
-    prompt = event.get("prompt") or event.get("message") or event.get("input", "")
+    print(f"📥 Received payload: {json.dumps(payload, ensure_ascii=False)}")
+
+    prompt = payload.get("prompt") or payload.get("message") or payload.get("input", "")
+
     if not prompt:
-        return {"success": False, "error": "Missing 'prompt' in request"}
+        return "Error: Missing 'prompt' in request"
+
+    print(f"🔄 Processing prompt: {prompt}")
+
     try:
         result = html2pptx_agent(prompt)
-        response_text = result.content if hasattr(result, 'content') else str(result)
-        return {"success": True, "response": response_text}
-    except Exception as e:
-        return {"success": False, "error": str(e)}
 
-invoke = handler
+        # 提取响应内容 - 适配 Strands Agent 返回格式
+        if hasattr(result, 'message') and result.message:
+            content = result.message.get('content', [])
+            if content and isinstance(content, list) and len(content) > 0:
+                response_text = content[0].get('text', str(result))
+            else:
+                response_text = str(result)
+        elif hasattr(result, 'content') and result.content:
+            response_text = result.content
+        elif isinstance(result, str):
+            response_text = result
+        else:
+            response_text = str(result)
+
+        print(f"✅ Response: {response_text[:200]}...")
+        return response_text
+
+    except Exception as e:
+        print(f"❌ Error: {str(e)}")
+        return f"Error: {str(e)}"
 
 
 # ==================== 辅助函数 ====================
@@ -367,4 +401,12 @@ def main():
         sys.exit(1)
 
 if __name__ == "__main__":
-    main()
+    # 检查是否在 Docker 容器中运行（AgentCore 部署）
+    is_docker = os.environ.get("DOCKER_CONTAINER") == "1"
+
+    if is_docker:
+        # AgentCore 部署模式：启动 HTTP 服务器
+        print("🚀 启动 AgentCore HTTP 服务器，端口: 8080")
+        app.run()
+    else:
+        main()

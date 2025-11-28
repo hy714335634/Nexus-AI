@@ -7,17 +7,19 @@ API集成Agent模板
 """
 
 import os
+import json
+from typing import Dict, Any
 from nexus_utils.agent_factory import create_agent_from_prompt_template
-from strands.telemetry import StrandsTelemetry
-
-os.environ["BYPASS_TOOL_CONSENT"] = "true"
-os.environ["OTEL_EXPORTER_OTLP_ENDPOINT"] = "http://localhost:4318"
-strands_telemetry = StrandsTelemetry()
-strands_telemetry.setup_otlp_exporter()
-
+from bedrock_agentcore.runtime import BedrockAgentCoreApp
 
 # 设置环境变量
 os.environ["BYPASS_TOOL_CONSENT"] = "true"
+
+# 创建 BedrockAgentCoreApp 实例
+app = BedrockAgentCoreApp()
+
+# Agent 配置路径
+agent_config_path = "template_prompts/api_integration_agent"
 
 # 创建 agent 的通用参数生成方法
 def create_api_integration_agent(env: str = "production", version: str = "latest", model_id: str = "default"):
@@ -32,64 +34,89 @@ def create_api_integration_agent(env: str = "production", version: str = "latest
         **agent_params
     )
 
-agent_config_path = "template_prompts/api_integration_agent"
 # 使用 agent_factory 创建 agent
 api_integration = create_api_integration_agent()
 
 
 # ==================== AgentCore 入口点（必须包含）====================
-from typing import Dict, Any
-
-def handler(event: Dict[str, Any], context: Any = None) -> Dict[str, Any]:
+@app.entrypoint
+def handler(payload: Dict[str, Any]) -> str:
     """
     AgentCore 标准入口点
+
+    Args:
+        payload: AgentCore 传入的请求体，包含:
+            - prompt: 用户消息
+
+    Returns:
+        str: 响应文本
     """
-    prompt = event.get("prompt") or event.get("message") or event.get("input", "")
+    print(f"📥 Received payload: {json.dumps(payload, ensure_ascii=False)}")
+
+    prompt = payload.get("prompt") or payload.get("message") or payload.get("input", "")
+
     if not prompt:
-        return {"success": False, "error": "Missing 'prompt' in request"}
+        return "Error: Missing 'prompt' in request"
+
+    print(f"🔄 Processing prompt: {prompt}")
+
     try:
         result = api_integration(prompt)
-        response_text = result.content if hasattr(result, 'content') else str(result)
-        return {"success": True, "response": response_text}
-    except Exception as e:
-        return {"success": False, "error": str(e)}
 
-invoke = handler
-main = handler
+        # 提取响应内容 - 适配 Strands Agent 返回格式
+        if hasattr(result, 'message') and result.message:
+            content = result.message.get('content', [])
+            if content and isinstance(content, list) and len(content) > 0:
+                response_text = content[0].get('text', str(result))
+            else:
+                response_text = str(result)
+        elif hasattr(result, 'content') and result.content:
+            response_text = result.content
+        elif isinstance(result, str):
+            response_text = result
+        else:
+            response_text = str(result)
+
+        print(f"✅ Response: {response_text[:200]}...")
+        return response_text
+
+    except Exception as e:
+        print(f"❌ Error: {str(e)}")
+        return f"Error: {str(e)}"
 
 
 # ==================== 本地运行入口 ====================
 if __name__ == "__main__":
     import argparse
-    
-    # 解析命令行参数
+
     parser = argparse.ArgumentParser(description='API集成Agent测试')
-    parser.add_argument('-i', '--input', type=str, 
-                       default="请调用指定的API并处理返回结果",
-                       help='测试输入内容')
-    parser.add_argument('-u', '--url', type=str, 
-                       help='API端点URL')
-    parser.add_argument('-e', '--env', type=str,
-                       default="production",
-                       help='指定Agent运行环境 (默认: production)')
-    parser.add_argument('-v', '--version', type=str,
-                       default="latest",
-                       help='指定Agent版本 (默认: latest)')
+    parser.add_argument('-i', '--input', type=str, default=None, help='测试输入内容')
+    parser.add_argument('-u', '--url', type=str, help='API端点URL')
+    parser.add_argument('-e', '--env', type=str, default="production", help='指定Agent运行环境')
+    parser.add_argument('-v', '--version', type=str, default="latest", help='指定Agent版本')
     args = parser.parse_args()
 
-    api_integration = create_api_integration_agent(env=args.env, version=args.version)
+    # 检查是否在 Docker 容器中运行（AgentCore 部署）
+    is_docker = os.environ.get("DOCKER_CONTAINER") == "1"
 
-    print(f"✅ API Integration Agent 创建成功: {api_integration.name}")
-    
-    # 测试 agent 功能
-    test_input = args.input
-    if args.url:
-        test_input += f"\nAPI URL: {args.url}"
-    
-    print(f"🎯 测试输入: {test_input}")
-    
-    try:
-        result = api_integration(test_input)
-        print(f"📋 Agent 响应:\n{result}")
-    except Exception as e:
-        print(f"❌ 测试失败: {e}")
+    if is_docker:
+        # AgentCore 部署模式：启动 HTTP 服务器
+        print("🚀 启动 AgentCore HTTP 服务器，端口: 8080")
+        app.run()
+    elif args.input:
+        # 本地测试模式
+        api_integration = create_api_integration_agent(env=args.env, version=args.version)
+        print(f"✅ API Integration Agent 创建成功: {api_integration.name}")
+        test_input = args.input
+        if args.url:
+            test_input += f"\nAPI URL: {args.url}"
+        print(f"📝 输入: {test_input}")
+        try:
+            result = api_integration(test_input)
+            print(f"📋 响应: {result}")
+        except Exception as e:
+            print(f"❌ 错误: {e}")
+    else:
+        # 默认启动服务器
+        print("🚀 启动 AgentCore HTTP 服务器，端口: 8080")
+        app.run()

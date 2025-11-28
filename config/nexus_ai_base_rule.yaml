@@ -43,56 +43,106 @@ workflows:
           创建的Agent执行脚本中，创建Agent对象必须通过nexus_utils.agent_factory.create_agent_from_prompt_template实现
 
           =====AgentCore部署入口点规则（必须遵守）=====
-          所有生成的Agent脚本必须包含AgentCore标准入口点，以支持部署到Amazon Bedrock AgentCore：
+          所有生成的Agent脚本必须使用 BedrockAgentCoreApp 模式，以支持部署到Amazon Bedrock AgentCore：
 
-          1. **必须定义handler函数**：
+          1. **必须导入和创建BedrockAgentCoreApp实例**：
              ```python
+             import os
+             import json
              from typing import Dict, Any
+             from bedrock_agentcore.runtime import BedrockAgentCoreApp
+             from nexus_utils.agent_factory import create_agent_from_prompt_template
 
-             def handler(event: Dict[str, Any], context: Any = None) -> Dict[str, Any]:
+             os.environ["BYPASS_TOOL_CONSENT"] = "true"
+
+             # 创建 BedrockAgentCoreApp 实例
+             app = BedrockAgentCoreApp()
+             ```
+
+          2. **必须使用@app.entrypoint装饰器定义handler函数**：
+             ```python
+             @app.entrypoint
+             def handler(payload: Dict[str, Any]) -> str:
                  """
                  AgentCore 标准入口点
 
                  Args:
-                     event: AgentCore 传入的事件，包含:
+                     payload: AgentCore 传入的请求体，包含:
                          - prompt: 用户消息
-                         - user_id: 用户ID（可选）
-                         - session_id: 会话ID（可选）
-                         - 其他业务参数
-                     context: AgentCore 上下文
 
                  Returns:
-                     Dict: 响应结果，必须包含 success 和 response 或 error
+                     str: 响应文本（不是Dict！）
                  """
-                 prompt = event.get("prompt") or event.get("message") or event.get("input", "")
+                 print(f"📥 Received payload: {json.dumps(payload, ensure_ascii=False)}")
+
+                 prompt = payload.get("prompt") or payload.get("message") or payload.get("input", "")
 
                  if not prompt:
-                     return {"success": False, "error": "Missing 'prompt' in request"}
+                     return "Error: Missing 'prompt' in request"
+
+                 print(f"🔄 Processing prompt: {prompt}")
 
                  try:
                      result = my_agent(prompt)
-                     response_text = result.content if hasattr(result, 'content') else str(result)
-                     return {"success": True, "response": response_text}
+
+                     # 提取响应内容 - 适配 Strands Agent 返回格式
+                     if hasattr(result, 'message') and result.message:
+                         content = result.message.get('content', [])
+                         if content and isinstance(content, list) and len(content) > 0:
+                             response_text = content[0].get('text', str(result))
+                         else:
+                             response_text = str(result)
+                     elif hasattr(result, 'content') and result.content:
+                         response_text = result.content
+                     elif isinstance(result, str):
+                         response_text = result
+                     else:
+                         response_text = str(result)
+
+                     print(f"✅ Response: {response_text[:200]}...")
+                     return response_text
+
                  except Exception as e:
-                     return {"success": False, "error": str(e)}
+                     print(f"❌ Error: {str(e)}")
+                     return f"Error: {str(e)}"
              ```
 
-          2. **必须定义别名入口点**：
+          3. **必须在__main__中启动HTTP服务器**：
              ```python
-             invoke = handler
-             main = handler
-             ```
+             if __name__ == "__main__":
+                 import argparse
 
-          3. **handler函数位置**：
-             - handler函数应定义在Agent实例创建之后、`if __name__ == "__main__"` 之前
-             - 使用注释 `# ==================== AgentCore 入口点（必须包含）====================` 标识
+                 parser = argparse.ArgumentParser(description='Agent')
+                 parser.add_argument('-i', '--input', type=str, default=None, help='测试输入')
+                 args = parser.parse_args()
+
+                 # 检查是否在 Docker 容器中运行（AgentCore 部署）
+                 is_docker = os.environ.get("DOCKER_CONTAINER") == "1"
+
+                 if is_docker:
+                     # AgentCore 部署模式：启动 HTTP 服务器
+                     print("🚀 启动 AgentCore HTTP 服务器，端口: 8080")
+                     app.run()
+                 elif args.input:
+                     # 本地测试模式
+                     print(f"📝 输入: {args.input}")
+                     result = my_agent(args.input)
+                     print(f"📋 响应: {result}")
+                 else:
+                     # 默认启动服务器
+                     print("🚀 启动 AgentCore HTTP 服务器，端口: 8080")
+                     app.run()
+             ```
 
           4. **返回格式要求**：
-             - 成功时返回：`{"success": True, "response": "响应内容"}`
-             - 失败时返回：`{"success": False, "error": "错误信息"}`
+             - handler函数必须返回字符串（str），不是Dict
+             - 成功时返回响应文本
+             - 失败时返回以"Error: "开头的错误信息
 
-          5. **错误处理**：
-             - handler函数必须包含try-catch处理，确保不会抛出未捕获的异常
+          5. **关键注意事项**：
+             - @app.entrypoint装饰的函数只接收一个参数：payload（Dict）
+             - 不要传递context参数
+             - app.run() 会启动 Starlette HTTP 服务器监听 /invocations 端点
         cache_rules: |      # 缓存规则
           =====通用缓存规则=====
           如用户要求构建的Agent进行内容缓存，请按照如下规则：
