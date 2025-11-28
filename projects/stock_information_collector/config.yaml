@@ -1,0 +1,6 @@
+project:
+  created_date: '2025-11-28T09:41:53.382953+00:00'
+  description: AI智能体项目：stock_information_collector，用于收集股票信息并提供评价
+  name: stock_information_collector
+  updated_date: '2025-11-28T09:41:56.506135+00:00'
+  version: 1.0.0
