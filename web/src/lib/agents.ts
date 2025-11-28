@@ -1,7 +1,5 @@
 import { apiFetch } from '@/lib/api-client';
 import {
-  fetchSessionMessages as fetchSessionMessagesFromSessions,
-  sendMessage as sendMessageToSession,
   fetchSessionDetails as fetchSessionDetailsFromSessions,
   deleteSession as deleteSessionFromSessions,
 } from '@/lib/sessions';
@@ -9,6 +7,7 @@ import type {
   AgentContextResponse,
   AgentDialogMessagesResponse,
   AgentDialogSessionsResponse,
+  AgentDialogSession,
   AgentListResponse,
   AgentSummary,
   AgentDetailsResponse,
@@ -18,7 +17,6 @@ import type {
   AgentInvocationResponse,
   UpdateAgentRequest,
   UpdateAgentStatusRequest,
-  SendMessageRequest,
   AgentStatus,
 } from '@/types/api';
 
@@ -201,59 +199,27 @@ export async function createAgentSession(agentId: string, displayName?: string) 
 
 /**
  * Fetch messages for a session
+ * 使用 /agents/{agent_id}/sessions/{session_id}/messages 端点
+ * @param agentId - Agent ID
  * @param sessionId - Session ID
  * @returns List of messages
  */
-export async function fetchSessionMessages(sessionId: string) {
-  return fetchSessionMessagesFromSessions(sessionId);
-}
-
-/**
- * Fetch messages for a session (legacy endpoint)
- * @deprecated Use fetchSessionMessages instead
- */
 export async function fetchAgentMessages(agentId: string, sessionId: string) {
-  // For backwards compatibility, try the new endpoint first
   try {
-    const messages = await fetchSessionMessagesFromSessions(sessionId);
-    return messages ?? [];
-  } catch {
-    // Fallback to old endpoint pattern
-    try {
-      const response = await apiFetch<{
-        success: boolean;
-        data: AgentDialogMessagesResponse | { items: AgentDialogMessagesResponse['messages']; count?: number };
-      }>(
-        `/api/v1/agents/${encodeURIComponent(agentId)}/sessions/${encodeURIComponent(sessionId)}/messages`,
-      );
+    const response = await apiFetch<{
+      success: boolean;
+      data: AgentDialogMessagesResponse;
+    }>(
+      `/api/v1/agents/${encodeURIComponent(agentId)}/sessions/${encodeURIComponent(sessionId)}/messages`,
+    );
 
-      if (!response.success) {
-        return []; // 返回空数组而不是抛出错误
-      }
-      // 兼容两种后端返回格式：messages 或 items
-      const data = response.data;
-      if ('messages' in data) {
-        return data.messages ?? [];
-      }
-      if ('items' in data) {
-        return data.items ?? [];
-      }
-      return [];
-    } catch {
-      // 所有 API 都失败时返回空数组
+    if (!response.success) {
       return [];
     }
+    return response.data?.messages ?? [];
+  } catch {
+    return [];
   }
-}
-
-/**
- * Send a message to a session
- * @param sessionId - Session ID
- * @param request - Message content and metadata
- * @returns Assistant's response message
- */
-export async function sendMessage(sessionId: string, request: SendMessageRequest) {
-  return sendMessageToSession(sessionId, request);
 }
 
 /**
