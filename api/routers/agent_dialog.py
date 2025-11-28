@@ -354,12 +354,6 @@ async def _invoke_agentcore_runtime(
             if files:
                 print(f"   Files: {len(files)} file(s)")
             
-            # 使用 bedrock-agentcore 服务（不是 bedrock-agent-runtime）
-            client = boto3.client(
-                "bedrock-agentcore",
-                region_name=runtime_region or settings.AWS_DEFAULT_REGION
-            )
-            
             # 构建 payload（AgentCore 标准格式）
             payload = {"prompt": message}
             
@@ -402,26 +396,58 @@ async def _invoke_agentcore_runtime(
             logger.info(f"Payload: query={message[:100]}, media_count={len(files) if files else 0}")
             
             # 调用 invoke_agent_runtime
+            # payload 必须是 bytes 类型
+            payload_bytes = json.dumps(payload).encode('utf-8')
             print(f"   Calling invoke_agent_runtime...")
+            print(f"   Payload size: {len(payload_bytes)} bytes")
+
+            # 添加 botocore 配置以增加超时（处理冷启动）
+            from botocore.config import Config
+            config = Config(
+                read_timeout=120,  # 2分钟读取超时
+                connect_timeout=30,  # 30秒连接超时
+                retries={'max_attempts': 0}  # 不重试，避免重复调用
+            )
+            client = boto3.client(
+                "bedrock-agentcore",
+                region_name=runtime_region or settings.AWS_DEFAULT_REGION,
+                config=config
+            )
+
             response = client.invoke_agent_runtime(
                 agentRuntimeArn=runtime_arn,
-                payload=json.dumps(payload)
+                payload=payload_bytes,
+                contentType='application/json'
             )
             
             status_code = response['ResponseMetadata']['HTTPStatusCode']
             print(f"   ✅ Response status: {status_code}")
             logger.info(f"Response status: {status_code}")
             
-            # 读取 payload 流
+            # 读取响应流 (AgentCore 返回 'response' 字段，不是 'payload')
             completion = ""
-            if 'payload' in response:
+            if 'response' in response:
+                print(f"   Reading response stream...")
+                response_stream = response['response']
+                # response 可能是 StreamingBody 或者已经是字符串/字节
+                if hasattr(response_stream, 'read'):
+                    completion = response_stream.read().decode('utf-8')
+                else:
+                    completion = str(response_stream)
+                print(f"   ✅ Got response: {len(completion)} characters")
+                print(f"   Preview: {completion[:200]}...\n")
+            elif 'payload' in response:
+                # 兼容旧版本
                 print(f"   Reading payload stream...")
                 payload_stream = response['payload']
-                completion = payload_stream.read().decode('utf-8')
+                if hasattr(payload_stream, 'read'):
+                    completion = payload_stream.read().decode('utf-8')
+                else:
+                    completion = str(payload_stream)
                 print(f"   ✅ Got response: {len(completion)} characters")
                 print(f"   Preview: {completion[:200]}...\n")
             else:
-                print(f"   ⚠️ No payload in response")
+                print(f"   ⚠️ No response/payload in response")
                 print(f"   Response keys: {list(response.keys())}\n")
             
             logger.info(f"AgentCore response: {completion[:100]}...")
