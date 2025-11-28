@@ -300,7 +300,9 @@ def _stage_name_to_enum(stage_name: str) -> Optional[BuildStage]:
         BuildStage enum or None if invalid
     """
     # Map stage names to BuildStage enum values
+    # Support both workflow agent names and BuildStage enum values for compatibility
     stage_mapping = {
+        # Workflow agent names (used in agent_build_workflow.py)
         "orchestrator": BuildStage.ORCHESTRATOR,
         "requirements_analyzer": BuildStage.REQUIREMENTS_ANALYSIS,
         "system_architect": BuildStage.SYSTEM_ARCHITECTURE,
@@ -310,6 +312,10 @@ def _stage_name_to_enum(stage_name: str) -> Optional[BuildStage]:
         "agent_code_developer": BuildStage.AGENT_CODE_DEVELOPER,
         "agent_developer_manager": BuildStage.AGENT_DEVELOPER_MANAGER,
         "agent_deployer": BuildStage.AGENT_DEPLOYER,
+        # BuildStage enum values (for compatibility)
+        "requirements_analysis": BuildStage.REQUIREMENTS_ANALYSIS,
+        "system_architecture": BuildStage.SYSTEM_ARCHITECTURE,
+        "agent_design": BuildStage.AGENT_DESIGN,
     }
     return stage_mapping.get(stage_name)
 

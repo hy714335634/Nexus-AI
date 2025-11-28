@@ -292,21 +292,17 @@ class StageService:
 
         Requirements: 3.2
         """
-        # 阶段权重
+        # 阶段权重 (9个阶段，总和100%)
         STAGE_WEIGHTS = {
-            "orchestrator": 5.0,
-            "requirements_analysis": 10.0,
-            "system_architecture": 15.0,
-            "agent_design": 15.0,
-            "agent_developer_manager": 45.0,
-            "agent_deployer": 10.0
-        }
-
-        # developer_manager子阶段权重
-        SUB_STAGE_WEIGHTS = {
-            "tool_developer": 0.40,
-            "prompt_engineer": 0.30,
-            "agent_code_developer": 0.30
+            "orchestrator": 5.0,              # 1. 编排器
+            "requirements_analysis": 10.0,    # 2. 需求分析
+            "system_architecture": 10.0,      # 3. 系统架构
+            "agent_design": 10.0,             # 4. Agent设计
+            "prompt_engineer": 15.0,          # 5. 提示词工程
+            "tools_developer": 15.0,          # 6. 工具开发
+            "agent_code_developer": 15.0,     # 7. 代码开发
+            "agent_developer_manager": 10.0,  # 8. 开发管理
+            "agent_deployer": 10.0            # 9. 部署
         }
 
         total_progress = 0.0
@@ -320,25 +316,8 @@ class StageService:
                 # 已完成阶段贡献100%权重
                 total_progress += weight
             elif status == "running":
-                # 正在运行的阶段
-                if stage_name == "agent_developer_manager":
-                    # 计算子阶段进度
-                    sub_stages = stage.get("sub_stages", {})
-                    sub_progress = 0.0
-
-                    for sub_name, sub_weight in SUB_STAGE_WEIGHTS.items():
-                        sub_stage = sub_stages.get(sub_name, {})
-                        sub_status = sub_stage.get("status", "pending")
-
-                        if sub_status == "completed":
-                            sub_progress += sub_weight
-                        elif sub_status == "running":
-                            sub_progress += sub_weight * 0.5
-
-                    total_progress += weight * sub_progress
-                else:
-                    # 其他阶段running状态计为50%
-                    total_progress += weight * 0.5
+                # 运行中的阶段计为50%
+                total_progress += weight * 0.5
 
         # 确保进度在0-100之间
         return max(0.0, min(100.0, total_progress))

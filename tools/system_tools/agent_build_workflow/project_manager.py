@@ -2256,7 +2256,7 @@ def generate_python_requirements(project_name: str, content: str) -> str:
 
             entries.append(line)
 
-    baseline = ["./nexus_utils", "strands-agents", "strands-agents-tools", "PyYAML"]
+    baseline = ["./nexus_utils", "strands-agents", "strands-agents-tools", "PyYAML", "bedrock-agentcore"]
     merged: dict[str, None] = {}
     for value in baseline + entries:
         key = value.strip()
