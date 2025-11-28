@@ -1,0 +1,136 @@
+{
+  "prompt_engineering": {
+    "development_overview": {
+      "project_name": "calculator_agent",
+      "version": "1.0",
+      "date": "2025-11-28",
+      "development_scope": "为智能计算器Agent开发高质量提示词模板，支持自然语言数学表达式解析、安全计算、错误处理和结果格式化",
+      "design_principles": [
+        "清晰的角色定义：明确智能体的专业身份和能力",
+        "详细的工作流程：提供明确的步骤化执行指南",
+        "完整的功能支持：覆盖所有需求的计算功能",
+        "安全性优先：强调安全计算和防注入机制",
+        "用户友好：支持多种自然语言表达方式",
+        "错误处理：提供详细的错误分类和友好提示"
+      ]
+    },
+    "prompt_template_design": {
+      "template_structure": {
+        "agent_name": "calculator_agent",
+        "description": "智能计算器专家，能够解析自然语言数学表达式，执行安全计算，处理各种数学运算，并提供格式化的计算结果",
+        "category": "calculation",
+        "environments": "开发环境、生产环境和测试环境配置",
+        "versions": "版本控制和状态管理",
+        "system_prompt": "详细的系统指令和角色定义",
+        "metadata": "标签、模型支持和工具依赖"
+      },
+      "system_prompt_sections": [
+        {
+          "section_name": "角色定义",
+          "purpose": "明确智能体的专业身份和特点",
+          "content_summary": "定义了智能计算器专家的角色，强调精准性、安全性、易用性、专业性和清晰性"
+        },
+        {
+          "section_name": "核心职责",
+          "purpose": "列出智能体的主要职责",
+          "content_summary": "包括表达式解析、安全验证、计算执行、错误处理和结果格式化等核心职责"
+        },
+        {
+          "section_name": "工作流程",
+          "purpose": "提供明确的执行步骤",
+          "content_summary": "详细描述了从接收用户输入到输出结果的完整工作流程，包括使用哪些工具执行特定任务"
+        },
+        {
+          "section_name": "支持的数学运算",
+          "purpose": "明确功能边界",
+          "content_summary": "列举了支持的基础运算和高级运算，包括各种符号和表达方式"
+        },
+        {
+          "section_name": "自然语言表达式解析能力",
+          "purpose": "说明语言理解能力",
+          "content_summary": "描述了系统能够理解的各种形式的自然语言数学表达式，包括中文、英文和混合表达"
+        },
+        {
+          "section_name": "错误处理",
+          "purpose": "提供错误处理指南",
+          "content_summary": "列举了常见错误类型及其处理方式，确保用户得到有用的错误提示"
+        },
+        {
+          "section_name": "结果格式化",
+          "purpose": "规范输出格式",
+          "content_summary": "说明了计算结果的呈现方式，包括原始输入、解析表达式、计算结果和格式化结果"
+        },
+        {
+          "section_name": "使用工具",
+          "purpose": "指导工具使用",
+          "content_summary": "详细列举了所有可用的计算工具及其用途，包括11个专用计算工具和系统工具"
+        },
+        {
+          "section_name": "约束条件",
+          "purpose": "设定操作边界",
+          "content_summary": "明确了智能体的功能限制和安全边界，确保安全可控的计算服务"
+        },
+        {
+          "section_name": "计算示例",
+          "purpose": "提供使用示例",
+          "content_summary": "展示了各种类型的计算示例，包括基础四则运算、复杂表达式、特殊函数、百分比计算和错误处理示例"
+        }
+      ],
+      "metadata_configuration": {
+        "tags": ["calculator", "math", "expression_parsing", "safe_computation", "error_handling", "result_formatting"],
+        "supported_models": ["global.anthropic.claude-sonnet-4-5-20250929-v1:0"],
+        "tools_dependencies": [
+          "generated_tools/calculator_agent/calculator_tools/safe_calculate",
+          "generated_tools/calculator_agent/calculator_tools/parse_natural_language_math",
+          "generated_tools/calculator_agent/calculator_tools/calculate_natural_language",
+          "generated_tools/calculator_agent/calculator_tools/validate_math_expression",
+          "generated_tools/calculator_agent/calculator_tools/calculate_with_steps",
+          "generated_tools/calculator_agent/calculator_tools/batch_calculate",
+          "generated_tools/calculator_agent/calculator_tools/calculate_percentage",
+          "generated_tools/calculator_agent/calculator_tools/calculate_power",
+          "generated_tools/calculator_agent/calculator_tools/calculate_square_root",
+          "generated_tools/calculator_agent/calculator_tools/format_calculation_result",
+          "generated_tools/calculator_agent/calculator_tools/get_calculator_help",
+          "strands_tools/current_time"
+        ]
+      }
+    },
+    "template_customization": {
+      "role_personalization": {
+        "professional_identity": "数学计算专家",
+        "expertise_areas": ["数学计算", "表达式解析", "结果格式化"],
+        "communication_style": "清晰、专业、友好",
+        "personality_traits": ["精准", "安全", "易用", "专业", "清晰"]
+      },
+      "task_specific_guidance": {
+        "expression_parsing": "详细指导了如何将自然语言表达式转换为标准数学表达式",
+        "calculation_safety": "强调了使用安全计算方法，避免代码注入风险",
+        "error_handling": "提供了详细的错误分类和友好提示机制",
+        "result_formatting": "指导了如何以清晰、结构化的方式呈现计算结果"
+      },
+      "tool_integration": {
+        "calculator_tools": "集成了11个专用计算工具，覆盖各种计算需求",
+        "system_tools": "集成了current_time系统工具，支持时间相关计算"
+      }
+    },
+    "quality_assurance": {
+      "verification_checklist": [
+        "完整性：覆盖了所有需求的计算功能",
+        "准确性：提示词内容与设计规格一致",
+        "清晰性：指令明确，无歧义",
+        "安全性：强调了安全计算和防注入机制",
+        "一致性：角色定义与功能支持一致",
+        "工具依赖：正确配置了所有必要的工具依赖"
+      ],
+      "template_validation": {
+        "validation_status": "通过",
+        "validation_results": "提示词文件验证通过，无错误或警告",
+        "recommendations": [
+          "建议定期检查工具依赖的有效性",
+          "建议使用版本控制管理提示词文件"
+        ]
+      }
+    },
+    "development_notes": "提示词模板开发过程中的关键考虑和决策：\n\n1. **角色定义**：将智能体定义为数学计算专家，强调了精准性、安全性、易用性、专业性和清晰性等关键特点，确保用户对智能体的期望与其实际能力一致。\n\n2. **工作流程设计**：提供了详细的7步工作流程，从接收用户输入到输出结果的完整过程。特别强调了在每个步骤中应使用的具体工具，确保智能体能够高效、准确地完成计算任务。\n\n3. **功能覆盖**：根据需求分析和系统架构，确保提示词模板覆盖了所有必要的计算功能，包括基础四则运算、高级函数、自然语言解析、错误处理和结果格式化等。\n\n4. **安全机制**：在提示词中特别强调了安全计算的重要性，明确指导智能体使用安全的计算方法（如safe_calculate工具）而非危险的eval()函数，并进行表达式验证，防止代码注入风险。\n\n5. **错误处理策略**：设计了详细的错误分类和处理机制，确保在遇到各种错误情况时能够提供友好、有用的错误提示和改进建议，提升用户体验。\n\n6. **工具集成**：整合了所有开发的计算工具，并明确指导智能体何时使用哪些工具，确保工具的有效利用。特别是将calculate_natural_language作为核心工具，支持直接处理自然语言表达式。\n\n7. **示例设计**：提供了多种类型的计算示例，帮助智能体理解如何处理不同的计算任务，包括基础四则运算、复杂表达式、特殊函数、百分比计算和错误处理示例。\n\n8. **约束设定**：明确了智能体的功能边界和安全约束，确保其在设计范围内安全、可控地运行，避免尝试执行超出能力范围的任务。\n\n9. **模型选择**：选择Claude Sonnet模型作为支持模型，因其强大的自然语言理解能力和结构化思维能力，特别适合处理数学表达式解析和计算任务。\n\n10. **环境配置**：为开发环境、生产环境和测试环境配置了不同的参数，确保在各种环境中都能获得最佳性能。\n\n11. **元数据设计**：精心设计了标签和工具依赖，确保提示词模板能够正确集成到Nexus-AI平台，并与其他组件良好协作。\n\n12. **验证测试**：通过验证工具确认提示词模板格式正确，无语法错误或缺失字段，确保模板可以被正确加载和使用。"
+  }
+}

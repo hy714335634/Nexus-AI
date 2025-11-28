@@ -158,13 +158,21 @@ export async function fetchAgentSessions(agentId: string) {
   try {
     const response = await apiFetch<{
       success: boolean;
-      data: AgentDialogSessionsResponse;
+      data: AgentDialogSessionsResponse | { items: AgentDialogSessionsResponse['sessions']; count?: number };
     }>(`/api/v1/agents/${encodeURIComponent(agentId)}/sessions`);
 
     if (!response.success) {
       return []; // 返回空数组而不是抛出错误
     }
-    return response.data?.sessions ?? [];
+    // 兼容两种后端返回格式：sessions 或 items
+    const data = response.data;
+    if ('sessions' in data) {
+      return data.sessions ?? [];
+    }
+    if ('items' in data) {
+      return data.items ?? [];
+    }
+    return [];
   } catch {
     // API 错误时返回空数组，避免 React Query 报错
     return [];
@@ -214,7 +222,7 @@ export async function fetchAgentMessages(agentId: string, sessionId: string) {
     try {
       const response = await apiFetch<{
         success: boolean;
-        data: AgentDialogMessagesResponse;
+        data: AgentDialogMessagesResponse | { items: AgentDialogMessagesResponse['messages']; count?: number };
       }>(
         `/api/v1/agents/${encodeURIComponent(agentId)}/sessions/${encodeURIComponent(sessionId)}/messages`,
       );
@@ -222,7 +230,15 @@ export async function fetchAgentMessages(agentId: string, sessionId: string) {
       if (!response.success) {
         return []; // 返回空数组而不是抛出错误
       }
-      return response.data?.messages ?? [];
+      // 兼容两种后端返回格式：messages 或 items
+      const data = response.data;
+      if ('messages' in data) {
+        return data.messages ?? [];
+      }
+      if ('items' in data) {
+        return data.items ?? [];
+      }
+      return [];
     } catch {
       // 所有 API 都失败时返回空数组
       return [];

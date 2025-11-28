@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import styles from './dialog.module.css';
 import {
@@ -71,6 +71,7 @@ export default function AgentDialogPage() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamError, setStreamError] = useState<string | null>(null);
   const [autoSessionRequested, setAutoSessionRequested] = useState(false);
+  const [skipNextRefresh, setSkipNextRefresh] = useState(false);
   const [agentLimit, setAgentLimit] = useState(50);
   const [hasMoreAgents, setHasMoreAgents] = useState(false);
 
@@ -150,14 +151,52 @@ export default function AgentDialogPage() {
     queryKey: ['dialog-messages', activeAgentId, activeSessionId],
     queryFn: () => fetchAgentMessages(activeAgentId as string, activeSessionId as string),
     enabled: Boolean(activeAgentId && activeSessionId),
+    staleTime: Infinity, // 禁用自动刷新，只在切换会话时手动获取
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
   });
 
-  // Handle messages data changes
+  // 用 ref 来追踪是否应该跳过消息刷新（避免 React 状态批量更新的时序问题）
+  const skipMessageRefreshRef = React.useRef(false);
+
+  // Handle messages data changes - 只在切换会话时加载历史消息
   useEffect(() => {
-    if (messagesQuery.data && !isStreaming) {
+    console.log('[useEffect messages] triggered:', {
+      isStreaming,
+      skipNextRefresh,
+      skipRefreshRef: skipMessageRefreshRef.current,
+      hasData: !!messagesQuery.data,
+      dataLength: messagesQuery.data?.length,
+    });
+
+    // 流式传输中不处理
+    if (isStreaming) {
+      console.log('[useEffect messages] skipped: isStreaming');
+      return;
+    }
+
+    // 使用 ref 来判断是否跳过（更可靠）
+    if (skipMessageRefreshRef.current) {
+      console.log('[useEffect messages] skipped: skipRefreshRef is true');
+      skipMessageRefreshRef.current = false;
+      setSkipNextRefresh(false);
+      return;
+    }
+
+    // 如果刚完成流式传输，跳过这次刷新以保留本地内容
+    if (skipNextRefresh) {
+      console.log('[useEffect messages] skipped: skipNextRefresh');
+      setSkipNextRefresh(false);
+      return;
+    }
+
+    // 只有当 messagesQuery 有数据且不是流式状态时才更新
+    if (messagesQuery.data) {
+      console.log('[useEffect messages] updating messages from query:', messagesQuery.data.length);
       setMessages(messagesQuery.data);
     }
-  }, [messagesQuery.data, isStreaming]);
+  }, [messagesQuery.data, isStreaming, skipNextRefresh]);
 
   const agentItems = useMemo(() => agentsQuery.data ?? [], [agentsQuery.data]);
 
@@ -196,11 +235,17 @@ export default function AgentDialogPage() {
   ]);
 
   const handleSessionSwitch = (sessionId: string) => {
+    if (sessionId === activeSessionId) {
+      return;
+    }
     setActiveSessionId(sessionId);
     setMessages([]);
     setMetrics({});
     setStreamError(null);
     setInputValue('');
+    setSkipNextRefresh(false); // 切换会话时允许加载历史消息
+    // 强制重新获取消息
+    queryClient.invalidateQueries({ queryKey: ['dialog-messages', activeAgentId, sessionId] });
   };
 
   const handleAgentSwitch = (agentId: string) => {
@@ -215,6 +260,7 @@ export default function AgentDialogPage() {
     setStreamError(null);
     setInputValue('');
     setContext(null);
+    setSkipNextRefresh(false); // 切换 Agent 时允许加载历史消息
   };
 
   const handleLoadMoreAgents = () => {
@@ -244,8 +290,10 @@ export default function AgentDialogPage() {
 
     try {
       await streamAgentResponse(activeAgentId, activeSessionId, userMessage.content, assistantDraft.message_id);
+      // 延迟刷新会话列表，不刷新消息（保留本地流式更新的内容）
       await queryClient.invalidateQueries({ queryKey: ['dialog-sessions', activeAgentId] });
-      await queryClient.invalidateQueries({ queryKey: ['dialog-messages', activeAgentId, activeSessionId] });
+      // 注意：不要立即刷新消息列表，否则会覆盖本地流式内容
+      // 消息已经通过流式更新在本地状态中了
     } catch (error) {
       const message = error instanceof Error ? error.message : '对话过程中出现问题';
       setStreamError(message);
@@ -258,6 +306,8 @@ export default function AgentDialogPage() {
         ),
       );
     } finally {
+      // 设置跳过下次刷新标志，防止服务器数据覆盖本地流式内容
+      setSkipNextRefresh(true);
       setIsStreaming(false);
     }
   };
@@ -366,13 +416,17 @@ export default function AgentDialogPage() {
       }
     }
 
-    setMessages((prev) =>
-      prev.map((item) =>
+    console.log('[STREAM END] Final content length:', assistantContent.length);
+    console.log('[STREAM END] Content preview:', assistantContent.slice(0, 100));
+    setMessages((prev) => {
+      const updated = prev.map((item) =>
         item.message_id === assistantMessageId
           ? { ...item, content: assistantContent || item.content, metadata: { ...(item.metadata ?? {}), streaming: false } }
           : item,
-      ),
-    );
+      );
+      console.log('[STREAM END] Updated messages count:', updated.length);
+      return updated;
+    });
   };
 
   const sessionMetrics = useMemo(() => ({

@@ -14,13 +14,21 @@ export async function fetchSessionMessages(sessionId: string) {
   try {
     const response = await apiFetch<{
       success: boolean;
-      data: AgentDialogMessagesResponse;
+      data: AgentDialogMessagesResponse | { items: AgentDialogMessagesResponse['messages']; count?: number };
     }>(`/api/v1/sessions/${encodeURIComponent(sessionId)}/messages`);
 
     if (!response.success) {
       return []; // 返回空数组而不是抛出错误
     }
-    return response.data?.messages ?? [];
+    // 兼容两种后端返回格式：messages 或 items
+    const data = response.data;
+    if ('messages' in data) {
+      return data.messages ?? [];
+    }
+    if ('items' in data) {
+      return data.items ?? [];
+    }
+    return [];
   } catch {
     // API 错误时返回空数组，避免 React Query 报错
     return [];

@@ -53,46 +53,8 @@ async def create_session(
         raise HTTPException(status_code=500, detail=f"Failed to create session: {str(e)}")
 
 
-@router.get("/agents/{agent_id}/sessions")
-async def list_agent_sessions(
-    agent_id: str = Path(..., description="Agent ID"),
-    limit: int = Query(20, ge=1, le=100, description="每页数量"),
-    last_key: Optional[str] = Query(None, description="分页游标")
-):
-    """
-    获取Agent的会话列表
-
-    按最后活跃时间降序返回会话列表
-
-    Requirements: 6.3
-    """
-    try:
-        # 处理last_key（简化处理）
-        last_evaluated_key = None
-        if last_key:
-            # 实际应该解析JSON格式的last_key
-            # 这里简化处理
-            pass
-
-        result = session_service.list_sessions(
-            agent_id=agent_id,
-            limit=limit,
-            last_key=last_evaluated_key
-        )
-
-        return {
-            "success": True,
-            "data": {
-                "items": result["items"],
-                "last_evaluated_key": result.get("last_evaluated_key"),
-                "count": len(result["items"])
-            },
-            "timestamp": datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
-        }
-
-    except Exception as e:
-        logger.error(f"Failed to list sessions for agent {agent_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to list sessions: {str(e)}")
+# 注意：/agents/{agent_id}/sessions 端点已移至 agent_dialog.py
+# 以避免路由冲突，保持统一的返回格式
 
 
 @router.get("/sessions/{session_id}")

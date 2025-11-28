@@ -480,12 +480,16 @@ async def _invoke_agentcore_runtime(
             logger.info(f"AgentCore response: {completion[:100]}...")
 
             # 尝试解析响应内容
-            # 新格式：handler 直接返回字符串
+            # 新格式：handler 直接返回字符串（可能被 JSON 编码为字符串）
             # 旧格式：handler 返回 {"success": True, "response": "..."} 或 {"success": False, "error": "..."}
             final_text = completion
             try:
                 parsed = json.loads(completion)
-                if isinstance(parsed, dict):
+                if isinstance(parsed, str):
+                    # 新格式：响应是 JSON 编码的字符串
+                    final_text = parsed
+                    print(f"   📋 Extracted string from JSON")
+                elif isinstance(parsed, dict):
                     if parsed.get("success") and "response" in parsed:
                         # 旧格式：提取 response 字段
                         final_text = parsed["response"]
@@ -496,7 +500,7 @@ async def _invoke_agentcore_runtime(
                         print(f"   ⚠️ Extracted error from JSON (legacy format)")
                     # 如果是其他 JSON 格式，保持原样
             except (json.JSONDecodeError, TypeError):
-                # 不是 JSON，直接使用原始字符串（新格式）
+                # 不是 JSON，直接使用原始字符串
                 pass
 
             # 提取指标（如果有的话）

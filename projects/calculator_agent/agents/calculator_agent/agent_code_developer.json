@@ -1,0 +1,252 @@
+{
+  "agent_code_development": {
+    "development_overview": {
+      "project_name": "calculator_agent",
+      "version": "1.0",
+      "date": "2025-11-28",
+      "development_scope": "开发智能计算器Agent代码，实现自然语言数学问题的理解和准确计算，支持基本四则运算、运算优先级、幂运算、开方、百分比等多种数学运算",
+      "design_principles": [
+        "安全第一：使用安全的计算工具，避免代码注入风险",
+        "简洁高效：遵循模板模式，保持代码简洁直接",
+        "用户友好：提供清晰的错误提示和结果展示",
+        "生产就绪：支持AgentCore部署和本地测试",
+        "健壮性：完善的错误处理和异常管理"
+      ],
+      "key_decisions": [
+        "使用BedrockAgentCoreApp模式支持AgentCore部署",
+        "通过agent_factory创建Agent，遵循平台标准",
+        "实现handler入口点函数，适配AgentCore调用",
+        "保持代码简洁，避免复杂的类封装",
+        "集成11个专用计算工具和系统工具",
+        "提供完善的命令行测试功能"
+      ]
+    },
+    "agent_implementation": {
+      "agent_name": "calculator_agent",
+      "file_path": "agents/generated_agents/calculator_agent/calculator_agent.py",
+      "main_class": "无（使用函数式编程）",
+      "entry_point": "handler函数（AgentCore入口点）",
+      "dependencies": [
+        "os",
+        "json",
+        "typing.Dict",
+        "typing.Any",
+        "nexus_utils.agent_factory",
+        "bedrock_agentcore.runtime.BedrockAgentCoreApp"
+      ],
+      "imports": [
+        "import os",
+        "import json",
+        "from typing import Dict, Any",
+        "from nexus_utils.agent_factory import create_agent_from_prompt_template",
+        "from bedrock_agentcore.runtime import BedrockAgentCoreApp"
+      ]
+    },
+    "core_functions": [
+      {
+        "function_name": "create_calculator_agent",
+        "purpose": "创建智能计算器Agent实例",
+        "parameters": [
+          {
+            "name": "env",
+            "type": "str",
+            "description": "运行环境（production/development/testing）",
+            "required": false
+          },
+          {
+            "name": "version",
+            "type": "str",
+            "description": "Agent版本",
+            "required": false
+          },
+          {
+            "name": "model_id",
+            "type": "str",
+            "description": "使用的模型ID",
+            "required": false
+          }
+        ],
+        "return_type": "Agent",
+        "return_description": "配置好的智能计算器Agent实例",
+        "implementation_notes": [
+          "使用agent_factory.create_agent_from_prompt_template创建Agent",
+          "配置agent_params包含环境、版本、模型和日志设置",
+          "agent_name指向提示词模板路径：generated_agents_prompts/calculator_agent/calculator_agent"
+        ]
+      },
+      {
+        "function_name": "handler",
+        "purpose": "AgentCore标准入口点，处理AgentCore传入的计算请求",
+        "parameters": [
+          {
+            "name": "payload",
+            "type": "Dict[str, Any]",
+            "description": "AgentCore传入的请求体，包含prompt、user_id、session_id等字段",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "格式化的计算结果文本或错误信息",
+        "implementation_notes": [
+          "使用@app.entrypoint装饰器标记为AgentCore入口点",
+          "从payload中提取prompt（支持多种字段名）",
+          "调用calculator_agent处理数学问题",
+          "适配Strands Agent的多种返回格式（message、content、str）",
+          "完整的错误处理和日志记录",
+          "返回字符串类型（不是Dict）"
+        ]
+      },
+      {
+        "function_name": "__main__",
+        "purpose": "本地运行入口，支持命令行测试和AgentCore服务器启动",
+        "parameters": [
+          {
+            "name": "input",
+            "type": "str",
+            "description": "数学问题输入",
+            "required": false
+          },
+          {
+            "name": "env",
+            "type": "str",
+            "description": "运行环境",
+            "required": false
+          },
+          {
+            "name": "version",
+            "type": "str",
+            "description": "Agent版本",
+            "required": false
+          },
+          {
+            "name": "model",
+            "type": "str",
+            "description": "模型ID",
+            "required": false
+          }
+        ],
+        "return_type": "void",
+        "return_description": "无返回值，直接输出到控制台",
+        "implementation_notes": [
+          "使用argparse解析命令行参数",
+          "检查DOCKER_CONTAINER环境变量判断运行模式",
+          "Docker模式：启动app.run()监听8080端口",
+          "本地测试模式：创建Agent并执行单次计算",
+          "提供丰富的使用示例和帮助信息"
+        ]
+      }
+    ],
+    "tool_integration": {
+      "custom_tools": [
+        "generated_tools/calculator_agent/calculator_tools/safe_calculate",
+        "generated_tools/calculator_agent/calculator_tools/parse_natural_language_math",
+        "generated_tools/calculator_agent/calculator_tools/calculate_natural_language",
+        "generated_tools/calculator_agent/calculator_tools/validate_math_expression",
+        "generated_tools/calculator_agent/calculator_tools/calculate_with_steps",
+        "generated_tools/calculator_agent/calculator_tools/batch_calculate",
+        "generated_tools/calculator_agent/calculator_tools/calculate_percentage",
+        "generated_tools/calculator_agent/calculator_tools/calculate_power",
+        "generated_tools/calculator_agent/calculator_tools/calculate_square_root",
+        "generated_tools/calculator_agent/calculator_tools/format_calculation_result",
+        "generated_tools/calculator_agent/calculator_tools/get_calculator_help"
+      ],
+      "system_tools": [
+        "strands_tools/current_time"
+      ],
+      "strands_tools": [
+        "strands_tools/current_time"
+      ],
+      "integration_notes": [
+        "工具通过提示词模板（calculator_agent.yaml）配置",
+        "Agent自动加载并使用配置的工具",
+        "calculate_natural_language是核心工具，支持直接处理自然语言",
+        "所有工具返回JSON格式结构化数据",
+        "工具集成由Strands框架自动管理"
+      ]
+    },
+    "configuration": {
+      "environment_variables": [
+        "BYPASS_TOOL_CONSENT=true（绕过工具使用确认）",
+        "DOCKER_CONTAINER=1（AgentCore部署标识）"
+      ],
+      "model_configuration": {
+        "model_name": "global.anthropic.claude-sonnet-4-5-20250929-v1:0",
+        "max_tokens": 4096,
+        "temperature": 0.3
+      },
+      "streaming_config": {
+        "enabled": false,
+        "chunk_size": 0
+      }
+    },
+    "error_handling": {
+      "exception_types": [
+        "ValueError（输入验证错误）",
+        "KeyError（payload缺少必需字段）",
+        "Exception（通用异常捕获）"
+      ],
+      "error_responses": [
+        "Missing 'prompt' in request（缺少输入）",
+        "Failed to calculate（计算失败）",
+        "Error: {exception_message}（通用错误）"
+      ],
+      "recovery_strategies": [
+        "返回友好的错误信息",
+        "记录详细的错误日志",
+        "不抛出异常，确保服务稳定性"
+      ]
+    },
+    "testing": {
+      "test_cases": [
+        "基本四则运算：python calculator_agent.py -i \"12乘以12等于多少\"",
+        "复杂表达式：python calculator_agent.py -i \"2加3乘以4\"",
+        "幂运算：python calculator_agent.py -i \"2的3次方\"",
+        "开方运算：python calculator_agent.py -i \"9的平方根\"",
+        "百分比计算：python calculator_agent.py -i \"20的50%\"",
+        "负数运算：python calculator_agent.py -i \"负5加10\"",
+        "小数运算：python calculator_agent.py -i \"3.5乘以2\"",
+        "错误处理：python calculator_agent.py -i \"10除以0\""
+      ],
+      "test_scenarios": [
+        "本地命令行测试：使用-i参数直接测试",
+        "AgentCore部署测试：启动HTTP服务器测试",
+        "环境切换测试：使用-e参数测试不同环境",
+        "模型切换测试：使用-m参数测试不同模型",
+        "错误输入测试：测试各种异常输入"
+      ],
+      "validation_criteria": [
+        "计算结果准确率100%",
+        "响应时间小于3秒",
+        "错误提示清晰友好",
+        "支持多种自然语言表达",
+        "AgentCore部署正常运行"
+      ]
+    },
+    "deployment": {
+      "deployment_requirements": [
+        "Python 3.13+运行环境",
+        "安装requirements.txt中的依赖包",
+        "配置AWS Bedrock访问权限",
+        "提示词模板文件存在于prompts/generated_agents_prompts/calculator_agent/",
+        "工具代码文件存在于tools/generated_tools/calculator_agent/"
+      ],
+      "runtime_dependencies": [
+        "./nexus_utils（本地工具包）",
+        "strands-agents（Strands Agent框架）",
+        "strands-agents-tools（Strands工具框架）",
+        "PyYAML（YAML配置解析）",
+        "boto3（AWS SDK）",
+        "botocore（boto3核心库）",
+        "bedrock-agentcore（AgentCore运行时）"
+      ],
+      "performance_considerations": [
+        "单次计算响应时间控制在3秒内",
+        "支持并发处理多个用户请求",
+        "无状态设计，易于水平扩展",
+        "内存占用优化，避免资源泄漏",
+        "工具调用缓存提高效率"
+      ]
+    },
+    "development_notes": "智能体代码开发过程中的关键发现和决策理由：\n\n1. **架构选择**：采用BedrockAgentCoreApp模式是为了确保Agent能够部署到Amazon Bedrock AgentCore。这是平台标准要求，必须包含@app.entrypoint装饰的handler函数。\n\n2. **代码简洁性**：参考requirements_analyzer模板，保持代码简洁直接，不创建复杂的类封装。使用agent_factory.create_agent_from_prompt_template创建Agent，这是平台推荐的标准方式。\n\n3. **入口点设计**：handler函数必须接收Dict[str, Any]类型的payload参数，并返回str类型的响应。这是AgentCore的标准接口要求。不要返回Dict，AgentCore期望的是字符串响应。\n\n4. **响应格式适配**：Strands Agent的返回格式可能是多种形式（message、content、str），需要实现健壮的响应提取逻辑，确保能够正确处理各种情况。\n\n5. **错误处理**：所有可能出现的异常都需要捕获并转换为友好的错误信息。不要让异常传播到AgentCore，确保服务的稳定性。\n\n6. **工具集成**：工具通过提示词模板（YAML文件）配置，不需要在代码中显式导入。Strands框架会自动加载和管理工具。这种方式实现了代码和配置的分离。\n\n7. **环境变量**：BYPASS_TOOL_CONSENT=true是必需的，用于绕过工具使用确认。DOCKER_CONTAINER环境变量用于判断是否在AgentCore部署环境中运行。\n\n8. **本地测试**：提供完善的命令行参数支持，包括-i（输入）、-e（环境）、-v（版本）、-m（模型）等，方便开发和调试。\n\n9. **日志记录**：使用print语句记录关键信息（payload、处理过程、结果），便于调试和监控。在生产环境中，这些日志会被AgentCore收集。\n\n10. **双模式支持**：代码支持两种运行模式：\n    - AgentCore部署模式：检测DOCKER_CONTAINER环境变量或无-i参数时，启动HTTP服务器\n    - 本地测试模式：提供-i参数时，执行单次计算并输出结果\n\n11. **依赖管理**：requirements.txt中只包含真实存在的PyPI包，不包含Python标准库模块。特别注意：\n    - 使用./nexus_utils而不是nexus-ai（后者不存在）\n    - 使用strands-agents而不是strands（后者已弃用）\n    - 包含bedrock-agentcore支持AgentCore部署\n\n12. **模型选择**：使用global.anthropic.claude-sonnet-4-5-20250929-v1:0作为默认模型，这是用户要求的模型，具有强大的自然语言理解能力。\n\n13. **安全性**：所有计算通过安全的工具执行，不使用eval()等危险函数。工具层面已经实现了AST解析和白名单验证。\n\n14. **用户体验**：提供清晰的帮助信息、使用示例和状态提示，确保用户能够快速上手。错误信息友好且具有指导性。"
+  }
+}

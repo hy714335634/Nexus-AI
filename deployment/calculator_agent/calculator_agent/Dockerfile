@@ -5,10 +5,10 @@ ENV PYTHONPATH="/app:/app/nexus_utils:$PYTHONPATH"
 
 
 
-COPY projects/natural_language_calculator/requirements.txt projects/natural_language_calculator/requirements.txt
+COPY projects/calculator_agent/requirements.txt projects/calculator_agent/requirements.txt
 COPY nexus_utils nexus_utils
 # Install from requirements file
-RUN pip install -r projects/natural_language_calculator/requirements.txt
+RUN pip install -r projects/calculator_agent/requirements.txt
 
 
 
@@ -37,4 +37,4 @@ COPY . .
 
 # Use the full module path
 
-CMD ["opentelemetry-instrument", "python", "-m", "agents.generated_agents.natural_language_calculator.natural_language_calculator"]
+CMD ["opentelemetry-instrument", "python", "-m", "agents.generated_agents.calculator_agent.calculator_agent"]
