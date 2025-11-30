@@ -401,10 +401,10 @@ async def _invoke_agentcore_runtime(
             print(f"   Calling invoke_agent_runtime...")
             print(f"   Payload: {payload_str[:200]}")
 
-            # 添加 botocore 配置以增加超时（处理冷启动）
+            # 添加 botocore 配置以增加超时（处理冷启动和长时间运行的 Agent）
             from botocore.config import Config
             config = Config(
-                read_timeout=120,  # 2分钟读取超时
+                read_timeout=300,  # 5分钟读取超时（Agent可能需要调用多个工具）
                 connect_timeout=30,  # 30秒连接超时
                 retries={'max_attempts': 0}  # 不重试，避免重复调用
             )
@@ -414,11 +414,25 @@ async def _invoke_agentcore_runtime(
                 config=config
             )
 
-            response = client.invoke_agent_runtime(
-                agentRuntimeArn=runtime_arn,
-                qualifier="DEFAULT",
-                payload=payload_str
-            )
+            try:
+                response = client.invoke_agent_runtime(
+                    agentRuntimeArn=runtime_arn,
+                    qualifier="DEFAULT",
+                    payload=payload_str
+                )
+            except Exception as e:
+                error_msg = str(e)
+                if "ReadTimeout" in error_msg or "read timeout" in error_msg.lower():
+                    logger.error(f"Agent runtime timeout after 5 minutes: {error_msg}")
+                    raise HTTPException(
+                        status_code=504,
+                        detail={
+                            "code": "AGENT_TIMEOUT",
+                            "message": "Agent 执行超时（超过5分钟）",
+                            "details": "请简化查询或优化 Agent 工具的性能"
+                        }
+                    )
+                raise
             
             status_code = response['ResponseMetadata']['HTTPStatusCode']
             print(f"   ✅ Response status: {status_code}")

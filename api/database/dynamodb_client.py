@@ -1235,16 +1235,14 @@ class DynamoDBClient:
         if not isinstance(snapshot, dict) or 'stages' not in snapshot:
             raise APIException(f"Project {project_id} has invalid stages_snapshot format. Expected format with 'stages' list.")
         
-        # 在stages列表中查找并更新
+        # 在stages列表中查找并更新（只支持新格式：stage_name）
         stages_list = snapshot.get('stages', [])
         stage_index = None
         existing = None
 
-        # 查找目标阶段 - 支持新格式(stage_name)和旧格式(name)
+        # 查找目标阶段 - 使用 stage_name 字段
         for i, s in enumerate(stages_list):
-            # 新格式使用 stage_name，旧格式使用 name
-            s_name = s.get('stage_name') or s.get('name')
-            if s_name == stage.value:
+            if s.get('stage_name') == stage.value:
                 stage_index = i
                 existing = s
                 break

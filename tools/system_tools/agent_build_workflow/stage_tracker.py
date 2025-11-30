@@ -53,7 +53,9 @@ def initialize_project_record(
     db_client = DynamoDBClient()
     now = _now()
 
-    snapshot = _default_snapshot()
+    # 使用新格式初始化阶段快照（通过 StageService）
+    from api.models.schemas import build_initial_stage_snapshot
+    snapshot = build_initial_stage_snapshot(include_agent_names=False)
 
     normalized_tags = [tag.strip() for tag in (tags or []) if isinstance(tag, str) and tag.strip()]
     resolved_project_name = _resolve_project_name(project_name, requirement, project_id)
@@ -73,7 +75,7 @@ def initialize_project_record(
     }
 
     db_client.projects_table.put_item(Item=_convert(item))
-    logger.info("Initialized project record %s with %d stages", project_id, len(STAGE_SEQUENCE))
+    logger.info("Initialized project record %s with %d stages (new format)", project_id, snapshot.get('total', 0))
 
 
 def mark_stage_running(project_id: str, stage_name: str) -> None:
