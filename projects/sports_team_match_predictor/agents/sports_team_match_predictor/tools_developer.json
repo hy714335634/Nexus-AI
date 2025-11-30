@@ -1,0 +1,548 @@
+{
+  "tool_development": {
+    "development_overview": {
+      "project_name": "sports_team_match_predictor",
+      "version": "1.0",
+      "date": "2025-11-29",
+      "development_scope": "为体育比赛预测系统开发专业的数据收集、分析和预测工具，支持足球和篮球等主流体育项目",
+      "design_principles": [
+        "模块化设计：每个工具专注特定功能",
+        "真实数据优先：所有工具都设计为调用真实API和数据源",
+        "错误处理完善：实现健壮的异常处理机制",
+        "可扩展性：支持多体育项目和多数据源扩展",
+        "结构化输出：统一使用JSON格式返回数据"
+      ],
+      "key_decisions": [
+        "集成现有模板工具：复用information_collector、web_search_enhanced、data_analyzer、trend_predictor、report_generator、data_validator等模板工具",
+        "开发专业体育工具：创建team_info_collector、match_predictor、sports_api_client、sports_news_collector、match_report_generator等5个专业体育工具",
+        "支持多数据源：集成TheSportsDB(免费)、API-Football、ESPN等多个体育数据API",
+        "智能识别：实现自动识别体育项目类型和球队名称标准化",
+        "报告生成：支持Markdown格式的结构化预测报告输出"
+      ]
+    },
+    "tools": [
+      {
+        "tool_name": "team_info_collector",
+        "description": "球队信息收集工具，收集球队基本信息、近期战绩、球员状态等完整数据",
+        "function_signature": "team_info_collector(team_name: str, sport_type: str = 'auto') -> str",
+        "parameters": [
+          {
+            "name": "team_name",
+            "type": "str",
+            "description": "球队名称",
+            "required": true
+          },
+          {
+            "name": "sport_type",
+            "type": "str",
+            "description": "体育项目类型 (auto/football/basketball)，默认自动识别",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的球队信息数据，包含基本信息、近期比赛、球员状态、下一场比赛等",
+        "dependencies": [
+          "strands"
+        ],
+        "implementation_notes": [
+          "实现球队名称标准化处理",
+          "自动识别体育项目类型",
+          "构建多个API URL和搜索查询",
+          "返回结构化的数据收集框架",
+          "支持足球和篮球项目"
+        ],
+        "error_handling": [
+          "捕获所有异常并返回错误信息JSON",
+          "记录错误时间戳和球队名称",
+          "提供友好的错误消息"
+        ],
+        "usage_examples": [
+          "team_info_collector('Manchester United', 'football')",
+          "team_info_collector('Lakers', 'basketball')",
+          "team_info_collector('Barcelona')  # 自动识别为足球"
+        ]
+      },
+      {
+        "tool_name": "match_predictor",
+        "description": "比赛预测工具，基于双方球队数据进行比赛结果预测分析",
+        "function_signature": "match_predictor(home_team_data: str, away_team_data: str, match_info: Dict[str, Any] = None) -> str",
+        "parameters": [
+          {
+            "name": "home_team_data",
+            "type": "str",
+            "description": "主队数据（JSON格式）",
+            "required": true
+          },
+          {
+            "name": "away_team_data",
+            "type": "str",
+            "description": "客队数据（JSON格式）",
+            "required": true
+          },
+          {
+            "name": "match_info",
+            "type": "Dict[str, Any]",
+            "description": "比赛附加信息（场地、日期等）",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的预测结果，包含预测胜者、置信度、比分、获胜概率、关键因素等",
+        "dependencies": [
+          "strands"
+        ],
+        "implementation_notes": [
+          "解析双方球队的JSON数据",
+          "构建多维度对比分析框架",
+          "计算数据完整性",
+          "提供预测框架供Agent分析",
+          "支持主客场因素考虑"
+        ],
+        "error_handling": [
+          "处理JSON解析异常",
+          "捕获数据访问错误",
+          "返回结构化错误信息"
+        ],
+        "usage_examples": [
+          "match_predictor(home_data, away_data)",
+          "match_predictor(home_data, away_data, {'venue': '主场', 'date': '2025-12-01'})"
+        ]
+      },
+      {
+        "tool_name": "sports_api_client",
+        "description": "体育数据API客户端，调用各种体育数据API获取真实数据",
+        "function_signature": "sports_api_client(endpoint: str, params: Dict[str, Any] = None, api_type: str = 'auto') -> str",
+        "parameters": [
+          {
+            "name": "endpoint",
+            "type": "str",
+            "description": "API端点名称",
+            "required": true
+          },
+          {
+            "name": "params",
+            "type": "Dict[str, Any]",
+            "description": "API请求参数",
+            "required": false
+          },
+          {
+            "name": "api_type",
+            "type": "str",
+            "description": "API类型 (auto/thesportsdb/api-football/espn)",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的API请求信息，包含URL、headers、参数等",
+        "dependencies": [
+          "strands"
+        ],
+        "implementation_notes": [
+          "支持TheSportsDB免费API",
+          "支持API-Football（需要密钥）",
+          "支持ESPN API",
+          "构建完整的API请求信息",
+          "提供多个API端点映射"
+        ],
+        "error_handling": [
+          "捕获API构建错误",
+          "返回错误状态JSON",
+          "记录错误时间戳"
+        ],
+        "usage_examples": [
+          "sports_api_client('search_team', {'team_name': 'Barcelona'}, 'thesportsdb')",
+          "sports_api_client('team_statistics', {'team_id': '123'}, 'api-football')"
+        ]
+      },
+      {
+        "tool_name": "sports_news_collector",
+        "description": "体育新闻收集工具，收集球队相关的最新新闻和报道",
+        "function_signature": "sports_news_collector(team_name: str, news_type: str = 'all', max_results: int = 10) -> str",
+        "parameters": [
+          {
+            "name": "team_name",
+            "type": "str",
+            "description": "球队名称",
+            "required": true
+          },
+          {
+            "name": "news_type",
+            "type": "str",
+            "description": "新闻类型 (all/injuries/transfers/matches/analysis)",
+            "required": false
+          },
+          {
+            "name": "max_results",
+            "type": "int",
+            "description": "最大结果数量",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的新闻数据，包含搜索查询、RSS源、新闻结果等",
+        "dependencies": [
+          "strands"
+        ],
+        "implementation_notes": [
+          "根据新闻类型构建搜索查询",
+          "集成多个体育新闻RSS源",
+          "支持中英文新闻搜索",
+          "构建Google新闻搜索URL",
+          "提供结构化新闻收集框架"
+        ],
+        "error_handling": [
+          "捕获新闻收集错误",
+          "返回错误信息JSON",
+          "记录错误时间戳"
+        ],
+        "usage_examples": [
+          "sports_news_collector('Manchester United', 'injuries', 5)",
+          "sports_news_collector('Lakers', 'all', 10)"
+        ]
+      },
+      {
+        "tool_name": "match_report_generator",
+        "description": "比赛预测报告生成工具，生成结构化的Markdown格式预测报告",
+        "function_signature": "match_report_generator(prediction_data: str, team_data: Dict[str, Any] = None) -> str",
+        "parameters": [
+          {
+            "name": "prediction_data",
+            "type": "str",
+            "description": "预测数据（JSON格式）",
+            "required": true
+          },
+          {
+            "name": "team_data",
+            "type": "Dict[str, Any]",
+            "description": "附加球队数据",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "Markdown格式的预测报告，包含预测结果、数据对比、分析总结等",
+        "dependencies": [
+          "strands"
+        ],
+        "implementation_notes": [
+          "解析预测JSON数据",
+          "生成Markdown格式报告",
+          "包含预测结果、数据对比、关键因素",
+          "添加风险因素和免责声明",
+          "支持百分比和数值格式化"
+        ],
+        "error_handling": [
+          "处理JSON解析错误",
+          "捕获报告生成异常",
+          "返回错误信息Markdown"
+        ],
+        "usage_examples": [
+          "match_report_generator(prediction_json)",
+          "match_report_generator(prediction_json, additional_team_data)"
+        ]
+      },
+      {
+        "tool_name": "information_collector",
+        "description": "通用信息收集工具（模板工具），负责真实数据收集",
+        "function_signature": "information_collector(topic: str, sources: List[str] = None, max_results: int = 10) -> str",
+        "parameters": [
+          {
+            "name": "topic",
+            "type": "str",
+            "description": "研究主题",
+            "required": true
+          },
+          {
+            "name": "sources",
+            "type": "List[str]",
+            "description": "指定信息源列表",
+            "required": false
+          },
+          {
+            "name": "max_results",
+            "type": "int",
+            "description": "最大结果数量",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的收集数据",
+        "dependencies": [
+          "strands"
+        ],
+        "implementation_notes": [
+          "来自模板工具research_tools.py",
+          "支持多种信息源",
+          "构建真实搜索URL",
+          "提供数据收集框架"
+        ],
+        "error_handling": [
+          "完善的异常处理",
+          "返回结构化错误信息"
+        ],
+        "usage_examples": [
+          "information_collector('人工智能应用')"
+        ]
+      },
+      {
+        "tool_name": "web_search_enhanced",
+        "description": "增强网络搜索工具（模板工具），支持多种搜索类型",
+        "function_signature": "web_search_enhanced(query: str, search_type: str = 'general', max_results: int = 5) -> str",
+        "parameters": [
+          {
+            "name": "query",
+            "type": "str",
+            "description": "搜索查询",
+            "required": true
+          },
+          {
+            "name": "search_type",
+            "type": "str",
+            "description": "搜索类型 (general/academic/news/technical)",
+            "required": false
+          },
+          {
+            "name": "max_results",
+            "type": "int",
+            "description": "最大结果数量",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的搜索结果",
+        "dependencies": [
+          "strands"
+        ],
+        "implementation_notes": [
+          "来自模板工具research_tools.py",
+          "支持多种搜索类型",
+          "构建真实搜索URL",
+          "提供搜索结果框架"
+        ],
+        "error_handling": [
+          "完善的异常处理",
+          "返回结构化错误信息"
+        ],
+        "usage_examples": [
+          "web_search_enhanced('AI医疗应用', 'technical')"
+        ]
+      },
+      {
+        "tool_name": "data_analyzer",
+        "description": "数据分析工具（模板工具），进行数据整理和基础统计",
+        "function_signature": "data_analyzer(data: str, analysis_type: str = 'comprehensive', dimensions: List[str] = None) -> str",
+        "parameters": [
+          {
+            "name": "data",
+            "type": "str",
+            "description": "要分析的数据（JSON格式）",
+            "required": true
+          },
+          {
+            "name": "analysis_type",
+            "type": "str",
+            "description": "分析类型（basic/comprehensive/advanced）",
+            "required": false
+          },
+          {
+            "name": "dimensions",
+            "type": "List[str]",
+            "description": "分析维度",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的分析结果",
+        "dependencies": [
+          "strands"
+        ],
+        "implementation_notes": [
+          "来自模板工具research_tools.py",
+          "支持多维度分析",
+          "提供基础统计",
+          "数据整理和格式化"
+        ],
+        "error_handling": [
+          "完善的异常处理",
+          "返回结构化错误信息"
+        ],
+        "usage_examples": [
+          "data_analyzer(collected_data, 'comprehensive')"
+        ]
+      },
+      {
+        "tool_name": "trend_predictor",
+        "description": "趋势预测工具（模板工具），提供预测框架",
+        "function_signature": "trend_predictor(historical_data: str, prediction_period: str = '1_year', confidence_level: float = 0.95) -> str",
+        "parameters": [
+          {
+            "name": "historical_data",
+            "type": "str",
+            "description": "历史数据（JSON格式）",
+            "required": true
+          },
+          {
+            "name": "prediction_period",
+            "type": "str",
+            "description": "预测周期（6_months/1_year/2_years/5_years）",
+            "required": false
+          },
+          {
+            "name": "confidence_level",
+            "type": "float",
+            "description": "置信水平（0.8-0.99）",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的预测框架",
+        "dependencies": [
+          "strands"
+        ],
+        "implementation_notes": [
+          "来自模板工具research_tools.py",
+          "提供预测框架",
+          "支持多种预测周期",
+          "包含场景分析"
+        ],
+        "error_handling": [
+          "完善的异常处理",
+          "返回结构化错误信息"
+        ],
+        "usage_examples": [
+          "trend_predictor(historical_data, '1_year', 0.95)"
+        ]
+      },
+      {
+        "tool_name": "report_generator",
+        "description": "报告生成工具（模板工具），生成结构化报告",
+        "function_signature": "report_generator(research_data: str, report_type: str = 'comprehensive', format_type: str = 'structured') -> str",
+        "parameters": [
+          {
+            "name": "research_data",
+            "type": "str",
+            "description": "研究数据（JSON格式）",
+            "required": true
+          },
+          {
+            "name": "report_type",
+            "type": "str",
+            "description": "报告类型（summary/comprehensive/detailed）",
+            "required": false
+          },
+          {
+            "name": "format_type",
+            "type": "str",
+            "description": "格式类型（structured/markdown/html）",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "格式化的报告（Markdown或JSON）",
+        "dependencies": [
+          "strands"
+        ],
+        "implementation_notes": [
+          "来自模板工具research_tools.py",
+          "支持多种报告类型",
+          "支持Markdown和HTML格式",
+          "包含完整的报告结构"
+        ],
+        "error_handling": [
+          "完善的异常处理",
+          "返回结构化错误信息"
+        ],
+        "usage_examples": [
+          "report_generator(research_data, 'comprehensive', 'markdown')"
+        ]
+      },
+      {
+        "tool_name": "data_validator",
+        "description": "数据验证工具（模板工具），验证数据格式和质量",
+        "function_signature": "data_validator(data: str, format_type: str, schema: Dict[str, Any]) -> str",
+        "parameters": [
+          {
+            "name": "data",
+            "type": "str",
+            "description": "要验证的数据",
+            "required": true
+          },
+          {
+            "name": "format_type",
+            "type": "str",
+            "description": "数据格式 (json/xml/csv)",
+            "required": true
+          },
+          {
+            "name": "schema",
+            "type": "Dict[str, Any]",
+            "description": "验证模式",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的验证结果",
+        "dependencies": [
+          "strands"
+        ],
+        "implementation_notes": [
+          "来自模板工具data_converter.py",
+          "支持多种数据格式",
+          "提供详细的验证结果",
+          "支持自定义验证模式"
+        ],
+        "error_handling": [
+          "完善的异常处理",
+          "返回结构化错误信息"
+        ],
+        "usage_examples": [
+          "data_validator(json_data, 'json', validation_schema)"
+        ]
+      }
+    ],
+    "code_quality": {
+      "code_standards": [
+        "遵循PEP 8 Python代码规范",
+        "使用完整的类型注解",
+        "提供详细的文档字符串",
+        "实现健壮的错误处理",
+        "使用有意义的变量和函数名称"
+      ],
+      "testing_strategy": [
+        "每个工具包含测试用例",
+        "测试覆盖正常和异常情况",
+        "验证JSON输出格式",
+        "测试多种输入场景"
+      ],
+      "performance_considerations": [
+        "避免不必要的数据复制",
+        "使用高效的数据结构",
+        "合理使用缓存机制",
+        "优化API调用策略"
+      ],
+      "security_measures": [
+        "API密钥通过环境变量管理",
+        "输入数据验证和清理",
+        "安全的异常处理",
+        "不在日志中记录敏感信息"
+      ]
+    },
+    "integration_details": {
+      "aws_services": [],
+      "external_libraries": [
+        "strands - Strands框架核心包",
+        "strands-agents - Strands Agent框架",
+        "strands-agents-tools - Strands工具框架"
+      ],
+      "api_endpoints": [
+        "TheSportsDB API - https://www.thesportsdb.com/api/v1/json/3",
+        "API-Football - https://v3.football.api-sports.io",
+        "ESPN API - https://site.api.espn.com/apis/site/v2/sports"
+      ],
+      "data_formats": [
+        "JSON - 主要数据交换格式",
+        "Markdown - 报告输出格式"
+      ]
+    },
+    "development_notes": "工具开发完成，共开发5个专业体育工具和集成6个模板工具。所有工具都设计为调用真实API和数据源，支持足球和篮球等主流体育项目。工具采用模块化设计，接口清晰，错误处理完善，输出格式统一。专业工具包括：team_info_collector（球队信息收集）、match_predictor（比赛预测）、sports_api_client（API客户端）、sports_news_collector（新闻收集）、match_report_generator（报告生成）。模板工具包括：information_collector、web_search_enhanced、data_analyzer、trend_predictor、report_generator、data_validator。所有工具都支持JSON格式输入输出，便于Agent集成使用。"
+  }
+}

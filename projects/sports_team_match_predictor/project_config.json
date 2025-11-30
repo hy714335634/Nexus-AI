@@ -1,0 +1,123 @@
+{
+  "project_name": "sports_team_match_predictor",
+  "validation_timestamp": "2025-11-30T11:26:10.976932+00:00",
+  "overall_status": "success",
+  "agent_scripts": [
+    {
+      "script_path": "agents/generated_agents/sports_team_match_predictor/sports_team_match_predictor.py",
+      "syntax_valid": true,
+      "dependencies": [
+        "os",
+        "json",
+        "logging",
+        "typing",
+        "nexus_utils.agent_factory",
+        "bedrock_agentcore.runtime",
+        "argparse"
+      ],
+      "execution_params": [],
+      "argparse_params": [
+        {
+          "name": "-i",
+          "type": "str",
+          "description": "球队名称（必填）",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "--sport",
+          "type": "str",
+          "description": "体育项目类型（auto/football/basketball）",
+          "required": false,
+          "default": "auto",
+          "action": null
+        },
+        {
+          "name": "--depth",
+          "type": "str",
+          "description": "分析深度（basic/standard/advanced）",
+          "required": false,
+          "default": "standard",
+          "action": null
+        },
+        {
+          "name": "-e",
+          "type": "str",
+          "description": "运行环境",
+          "required": false,
+          "default": "production",
+          "action": null
+        },
+        {
+          "name": "-v",
+          "type": "str",
+          "description": "Agent版本",
+          "required": false,
+          "default": "latest",
+          "action": null
+        },
+        {
+          "name": "--debug",
+          "type": "str",
+          "description": "启用调试日志",
+          "required": false,
+          "default": null,
+          "action": "store_true"
+        }
+      ],
+      "error_message": ""
+    }
+  ],
+  "prompt_files": [
+    {
+      "prompt_path": "generated_agents_prompts/sports_team_match_predictor/sports_team_match_predictor.yaml",
+      "tool_count": 9,
+      "valid": true,
+      "error_message": "",
+      "metadata": {
+        "tags": [
+          "sports_analytics",
+          "match_prediction",
+          "data_analysis",
+          "team_research"
+        ],
+        "supported_models": [
+          "anthropic.claude-sonnet-4-5-20250929-v1:0"
+        ],
+        "tools_dependencies": [
+          "strands_tools/current_time",
+          "strands_tools/file_read",
+          "strands_tools/calculator",
+          "strands_tools/python_repl",
+          "generated_tools/sports_team_match_predictor/sports_data_tools/team_info_collector",
+          "generated_tools/sports_team_match_predictor/sports_data_tools/sports_api_client",
+          "generated_tools/sports_team_match_predictor/sports_data_tools/sports_news_collector",
+          "generated_tools/sports_team_match_predictor/sports_data_tools/match_predictor",
+          "generated_tools/sports_team_match_predictor/sports_data_tools/match_report_generator"
+        ]
+      },
+      "agent_info": {
+        "name": "sports_team_match_predictor",
+        "description": "体育比赛预测分析专家，能够收集球队信息、分析比赛数据、预测比赛结果并生成详细分析报告",
+        "category": "research_analytics"
+      }
+    }
+  ],
+  "generated_tools": [
+    {
+      "tool_path": "generated_tools/sports_team_match_predictor/sports_data_tools.py",
+      "syntax_valid": true,
+      "error_message": ""
+    }
+  ],
+  "total_tools": 9,
+  "summary": {
+    "agent_scripts_count": 1,
+    "prompt_files_count": 1,
+    "generated_tool_files_count": 1,
+    "all_scripts_valid": true,
+    "all_tools_valid": true,
+    "all_prompts_valid": true
+  }
+}
