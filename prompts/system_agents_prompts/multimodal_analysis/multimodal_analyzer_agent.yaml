@@ -123,7 +123,7 @@ agent:
       metadata:
         tags: ["multimodal_analysis", "content_analysis", "file_processing", "conversation", "question_answering", "image_analysis", "document_analysis"]
         supported_models:
-          - "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
+          - "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
           - "us.anthropic.claude-opus-4-20250514-v1:0"
         tools_dependencies:
           - "system_tools/multimodal_content_parser/parse_multimodal_content_from_path"

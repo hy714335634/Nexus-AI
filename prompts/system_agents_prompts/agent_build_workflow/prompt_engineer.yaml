@@ -192,7 +192,7 @@ agent:
               metadata:
                 tags: ["<version_tags>"]
                 supported_models:
-                  - "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
+                  - "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
                 tools_dependencies:
                   - "strands_tools/use_aws"
                   - "strands_tools/current_time"
@@ -236,7 +236,7 @@ agent:
               metadata:
                 tags: ["<version_tags>"]
                 supported_models:
-                  - "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
+                  - "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
                 tools_dependencies:
                   - "strands_tools/use_aws"
                   - "strands_tools/current_time"
@@ -298,7 +298,7 @@ agent:
       metadata:
         tags: ["prompt_engineering", "template_generation", "agent_development"]
         supported_models:
-          - "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
+          - "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
           - "us.anthropic.claude-opus-4-20250514-v1:0"
         tools_dependencies:
           - "strands_tools/file_read"
@@ -446,7 +446,7 @@ agent:
               metadata:
                 tags: ["<version_tags>"]
                 supported_models:
-                  - "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
+                  - "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
                 tools_dependencies:
                   - "strands_tools/use_aws"
                   - "strands_tools/current_time"
@@ -505,7 +505,7 @@ agent:
         tags: ["prompt_engineering", "template_generation", "agent_development"]
         supported_models:
           - "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
-          - "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
+          - "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
           - "us.anthropic.claude-opus-4-20250514-v1:0"
         tools_dependencies:
           - "strands_tools/file_read"

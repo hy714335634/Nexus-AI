@@ -108,7 +108,7 @@ agent:
       metadata:
         tags: ["tool_build", "requirements", "analysis"]
         supported_models:
-          - "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
+          - "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
         tools_dependencies:
           - "system_tools/tool_build_workflow/tool_project_manager/get_tool_project_config"
           - "system_tools/tool_build_workflow/tool_project_manager/get_tool_project_status"
