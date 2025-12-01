@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef, useCallback } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import styles from './dialog.module.css';
 import {
@@ -73,6 +73,11 @@ export default function AgentDialogPage() {
   const [autoSessionRequested, setAutoSessionRequested] = useState(false);
   const [agentLimit, setAgentLimit] = useState(50);
   const [hasMoreAgents, setHasMoreAgents] = useState(false);
+
+  // 使用 ref 来跟踪流式状态和消息版本，避免 useEffect 依赖问题
+  const isStreamingRef = useRef(false);
+  const messagesVersionRef = useRef(0);
+  const lastLoadedSessionRef = useRef<string | null>(null);
 
   // Load agents list
   const agentsQuery = useQuery({
@@ -149,15 +154,25 @@ export default function AgentDialogPage() {
   const messagesQuery = useQuery({
     queryKey: ['dialog-messages', activeAgentId, activeSessionId],
     queryFn: () => fetchAgentMessages(activeAgentId as string, activeSessionId as string),
-    enabled: Boolean(activeAgentId && activeSessionId),
+    enabled: Boolean(activeAgentId && activeSessionId) && !isStreamingRef.current,
+    staleTime: Infinity, // 禁用自动刷新，只在切换会话时手动获取
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
   });
 
-  // Handle messages data changes
+  // Handle messages data changes - 只在切换会话时加载历史消息
   useEffect(() => {
-    if (messagesQuery.data && !isStreaming) {
-      setMessages(messagesQuery.data);
+    // 流式传输中不处理（使用 ref 检查，确保最新状态）
+    if (isStreamingRef.current) {
+      return;
     }
-  }, [messagesQuery.data, isStreaming]);
+    // 只有当切换了会话且有数据时才更新
+    if (messagesQuery.data && activeSessionId && lastLoadedSessionRef.current !== activeSessionId) {
+      setMessages(messagesQuery.data);
+      lastLoadedSessionRef.current = activeSessionId;
+    }
+  }, [messagesQuery.data, activeSessionId]);
 
   const agentItems = useMemo(() => agentsQuery.data ?? [], [agentsQuery.data]);
 
@@ -195,18 +210,27 @@ export default function AgentDialogPage() {
     autoSessionRequested,
   ]);
 
-  const handleSessionSwitch = (sessionId: string) => {
+  const handleSessionSwitch = useCallback((sessionId: string) => {
+    if (sessionId === activeSessionId || isStreamingRef.current) {
+      return;
+    }
+    // 重置 lastLoadedSessionRef 以允许加载新会话的消息
+    lastLoadedSessionRef.current = null;
     setActiveSessionId(sessionId);
     setMessages([]);
     setMetrics({});
     setStreamError(null);
     setInputValue('');
-  };
+    // 强制重新获取消息
+    queryClient.invalidateQueries({ queryKey: ['dialog-messages', activeAgentId, sessionId] });
+  }, [activeSessionId, activeAgentId, queryClient]);
 
-  const handleAgentSwitch = (agentId: string) => {
-    if (agentId === activeAgentId) {
+  const handleAgentSwitch = useCallback((agentId: string) => {
+    if (agentId === activeAgentId || isStreamingRef.current) {
       return;
     }
+    // 重置 lastLoadedSessionRef 以允许加载新会话的消息
+    lastLoadedSessionRef.current = null;
     setActiveAgentId(agentId);
     setActiveSessionId(null);
     setSessions([]);
@@ -215,54 +239,14 @@ export default function AgentDialogPage() {
     setStreamError(null);
     setInputValue('');
     setContext(null);
-  };
+  }, [activeAgentId]);
 
   const handleLoadMoreAgents = () => {
     setAgentLimit((prev) => prev + 50);
   };
 
-  const handleSend = async () => {
-    if (!inputValue.trim() || !activeAgentId || !activeSessionId || isStreaming) {
-      return;
-    }
-
-    const userMessage: AgentDialogMessage = {
-      message_id: `user-${Date.now()}`,
-      role: 'user',
-      content: inputValue.trim(),
-      created_at: new Date().toISOString(),
-      metadata: {},
-    };
-
-    setMessages((prev) => [...prev, userMessage]);
-    setInputValue('');
-    setStreamError(null);
-    setIsStreaming(true);
-
-    const assistantDraft = buildAssistantDraft();
-    setMessages((prev) => [...prev, assistantDraft]);
-
-    try {
-      await streamAgentResponse(activeAgentId, activeSessionId, userMessage.content, assistantDraft.message_id);
-      await queryClient.invalidateQueries({ queryKey: ['dialog-sessions', activeAgentId] });
-      await queryClient.invalidateQueries({ queryKey: ['dialog-messages', activeAgentId, activeSessionId] });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : '对话过程中出现问题';
-      setStreamError(message);
-      toast.error(message);
-      setMessages((prev) =>
-        prev.map((item) =>
-          item.message_id === assistantDraft.message_id
-            ? { ...item, metadata: { ...(item.metadata ?? {}), error: message }, content: item.content || '发生错误' }
-            : item,
-        ),
-      );
-    } finally {
-      setIsStreaming(false);
-    }
-  };
-
-  const streamAgentResponse = async (
+  // 流式响应处理函数 - 定义在 handleSend 之前以确保可用
+  const streamAgentResponse = useCallback(async (
     agentId: string,
     sessionId: string,
     message: string,
@@ -282,26 +266,25 @@ export default function AgentDialogPage() {
     );
 
     if (!response.ok) {
-      // 尝试解析错误信息
       const errorText = await response.text();
       let errorMessage = '请求对话失败';
-      
+
       try {
         const errorJson = JSON.parse(errorText);
         errorMessage = errorJson.error?.message || errorJson.detail || errorMessage;
       } catch {
         errorMessage = errorText || errorMessage;
       }
-      
+
       console.error('Stream request failed:', {
         status: response.status,
         statusText: response.statusText,
         error: errorMessage,
       });
-      
+
       throw new Error(`${errorMessage} (HTTP ${response.status})`);
     }
-    
+
     if (!response.body) {
       throw new Error('响应体为空，无法建立流式连接');
     }
@@ -362,6 +345,9 @@ export default function AgentDialogPage() {
             throw new Error(String(payload.error ?? 'Agent Runtime Error'));
           }
         } catch (error) {
+          if (error instanceof Error && error.message.includes('Agent Runtime Error')) {
+            throw error;
+          }
           console.warn('Failed to parse stream event', error);
         }
       }
@@ -374,7 +360,59 @@ export default function AgentDialogPage() {
           : item,
       ),
     );
-  };
+  }, []);
+
+  const handleSend = useCallback(async () => {
+    if (!inputValue.trim() || !activeAgentId || !activeSessionId || isStreaming) {
+      return;
+    }
+
+    const userMessage: AgentDialogMessage = {
+      message_id: `user-${Date.now()}`,
+      role: 'user',
+      content: inputValue.trim(),
+      created_at: new Date().toISOString(),
+      metadata: {},
+    };
+
+    // 增加消息版本号，防止旧数据覆盖
+    messagesVersionRef.current += 1;
+    const currentVersion = messagesVersionRef.current;
+
+    setMessages((prev) => [...prev, userMessage]);
+    setInputValue('');
+    setStreamError(null);
+    setIsStreaming(true);
+    isStreamingRef.current = true;
+
+    const assistantDraft = buildAssistantDraft();
+    setMessages((prev) => [...prev, assistantDraft]);
+
+    try {
+      await streamAgentResponse(activeAgentId, activeSessionId, userMessage.content, assistantDraft.message_id);
+      // 只有当版本号匹配时才刷新会话列表（确保没有被新的请求覆盖）
+      if (messagesVersionRef.current === currentVersion) {
+        // 延迟刷新会话列表，不刷新消息（保留本地流式更新的内容）
+        await queryClient.invalidateQueries({ queryKey: ['dialog-sessions', activeAgentId] });
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '对话过程中出现问题';
+      setStreamError(message);
+      toast.error(message);
+      setMessages((prev) =>
+        prev.map((item) =>
+          item.message_id === assistantDraft.message_id
+            ? { ...item, metadata: { ...(item.metadata ?? {}), error: message }, content: item.content || '发生错误' }
+            : item,
+        ),
+      );
+    } finally {
+      setIsStreaming(false);
+      isStreamingRef.current = false;
+      // 更新 lastLoadedSessionRef 以防止 useEffect 覆盖本地消息
+      lastLoadedSessionRef.current = activeSessionId;
+    }
+  }, [inputValue, activeAgentId, activeSessionId, isStreaming, queryClient, streamAgentResponse]);
 
   const sessionMetrics = useMemo(() => ({
     latency: formatLatency(metrics),
@@ -568,24 +606,41 @@ export default function AgentDialogPage() {
 
         <section className={styles.messageList}>
           {streamError ? <div className={styles.errorBanner}>{streamError}</div> : null}
-          {messages.map((message) => (
-            <div key={message.message_id} className={styles.messageRow}>
-              <div
-                className={`${styles.messageBubble} ${message.role === 'user' ? styles.bubbleUser : styles.bubbleAssistant}`}
-              >
-                <div dangerouslySetInnerHTML={{ __html: message.content.replace(/\n/g, '<br/>') }} />
-              </div>
-              <div className={styles.messageMeta}>
-                {message.role === 'user' ? '我' : 'Agent'} · {new Date(message.created_at).toLocaleTimeString()}
-              </div>
-              {message.metadata && typeof message.metadata.tool === 'string' ? (
-                <div className={styles.toolCard}>
-                  <div className={styles.toolTitle}>工具调用：{message.metadata.tool}</div>
-                  <div>{JSON.stringify(message.metadata.result)}</div>
+          {messages.map((message) => {
+            const isMessageStreaming = message.metadata?.streaming === true;
+            const hasContent = message.content && message.content.trim().length > 0;
+
+            return (
+              <div key={message.message_id} className={styles.messageRow}>
+                <div
+                  className={`${styles.messageBubble} ${message.role === 'user' ? styles.bubbleUser : styles.bubbleAssistant} ${isMessageStreaming && hasContent ? styles.bubbleStreaming : ''}`}
+                >
+                  {isMessageStreaming && !hasContent ? (
+                    <div className={styles.streamingIndicator}>
+                      <div className={styles.typingDots}>
+                        <span className={styles.typingDot} />
+                        <span className={styles.typingDot} />
+                        <span className={styles.typingDot} />
+                      </div>
+                      <span className={styles.streamingText}>Agent 正在思考...</span>
+                    </div>
+                  ) : (
+                    <div dangerouslySetInnerHTML={{ __html: message.content.replace(/\n/g, '<br/>') }} />
+                  )}
                 </div>
-              ) : null}
-            </div>
-          ))}
+                <div className={styles.messageMeta}>
+                  {message.role === 'user' ? '我' : 'Agent'} · {new Date(message.created_at).toLocaleTimeString()}
+                  {isMessageStreaming ? ' · 生成中' : ''}
+                </div>
+                {message.metadata && typeof message.metadata.tool === 'string' ? (
+                  <div className={styles.toolCard}>
+                    <div className={styles.toolTitle}>工具调用：{message.metadata.tool}</div>
+                    <div>{JSON.stringify(message.metadata.result)}</div>
+                  </div>
+                ) : null}
+              </div>
+            );
+          })}
           {!messages.length ? <div className={styles.emptyState}>{messageEmptyHint}</div> : null}
         </section>
 
@@ -609,16 +664,27 @@ export default function AgentDialogPage() {
               </button>
               <button
                 type="button"
-                className={`${styles.composerButton} ${styles.composerPrimary}`}
+                className={`${styles.composerButton} ${styles.composerPrimary} ${isStreaming ? styles.composerButtonLoading : ''}`}
                 onClick={handleSend}
                 disabled={!inputValue.trim() || isStreaming || isComposerLocked}
               >
-                {isStreaming ? '生成中…' : '发送'}
+                {isStreaming ? '生成中' : '发送'}
               </button>
             </div>
           </div>
           <div className={styles.statusBar}>
-            <span>{statusText}</span>
+            {isStreaming ? (
+              <span className={styles.statusBarStreaming}>
+                <span className={styles.progressDots}>
+                  <span className={styles.progressDot} />
+                  <span className={styles.progressDot} />
+                  <span className={styles.progressDot} />
+                </span>
+                <span>Agent 正在生成回复，请稍候...</span>
+              </span>
+            ) : (
+              <span>{statusText}</span>
+            )}
             <span>当前会话：{activeSessionId ? activeSessionId.slice(0, 8) : '未选择'}</span>
           </div>
         </footer>

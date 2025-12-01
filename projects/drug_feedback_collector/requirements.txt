@@ -1,0 +1,10 @@
+./nexus_utils
+strands-agents
+strands-agents-tools
+PyYAML
+bedrock-agentcore
+boto3
+botocore
+duckduckgo-search
+beautifulsoup4
+requests

@@ -1,0 +1,213 @@
+{
+  "prompt_engineering": {
+    "development_overview": {
+      "project_name": "drug_feedback_collector",
+      "version": "1.0",
+      "date": "2025-11-29",
+      "development_scope": "为药物反馈收集Agent设计专业的提示词模板，确保其能够接收药物名称输入，从互联网多个来源收集反馈信息，进行情感分析和主题分类，最终生成结构化的分析报告"
+    },
+    "prompt_design": {
+      "design_approach": "基于深度研究专家模板进行定制化开发，融合医疗领域专业知识和药物反馈分析的特定需求",
+      "design_principles": [
+        "角色清晰定位：明确定义为药物反馈收集与分析专家",
+        "职责明确：详细列出核心职责和专业能力",
+        "结构化工作流：提供清晰的步骤化工作流程",
+        "专业性：融入医疗领域专业知识和术语",
+        "客观中立：强调不做医疗建议或倾向性判断",
+        "输出规范：定义清晰的报告结构和内容要求"
+      ],
+      "key_components": [
+        {
+          "component": "角色定义",
+          "description": "定义为药物反馈收集与分析专家，具备医疗领域专业知识、数据分析能力和结构化思维",
+          "purpose": "建立专业身份，明确专业领域和能力范围",
+          "implementation": "在提示词开头明确定义角色身份和专业背景"
+        },
+        {
+          "component": "核心职责",
+          "description": "详细列出从药物名称处理到报告生成的8项核心职责",
+          "purpose": "明确Agent的任务范围和工作内容",
+          "implementation": "使用编号列表清晰展示每项职责，确保覆盖完整工作流程"
+        },
+        {
+          "component": "专业能力",
+          "description": "列出药物名称识别、情感分析、主题分类等5项专业能力",
+          "purpose": "强调Agent的专业优势和特殊能力",
+          "implementation": "使用要点列表突出展示专业能力，注重医疗领域特殊技能"
+        },
+        {
+          "component": "工作流程",
+          "description": "详细定义从输入验证到报告生成的10步工作流程",
+          "purpose": "提供清晰的执行指南，确保任务完成质量",
+          "implementation": "使用编号列表定义每一步骤，并与相应工具关联"
+        },
+        {
+          "component": "输出规范",
+          "description": "定义包含药物概述、数据概览等8个部分的报告结构",
+          "purpose": "确保输出内容的完整性、结构化和专业性",
+          "implementation": "使用编号列表明确定义每个报告部分的内容要求"
+        },
+        {
+          "component": "行为准则",
+          "description": "规定客观中立、专业严谨等6项行为准则",
+          "purpose": "确保Agent行为符合医疗信息处理的专业标准",
+          "implementation": "使用要点列表强调每项行为准则，注重医疗领域特殊要求"
+        },
+        {
+          "component": "约束条件",
+          "description": "明确不提供医疗建议、不推荐用药方法等7项约束",
+          "purpose": "设定明确边界，避免越界行为",
+          "implementation": "使用要点列表列出各项约束，强调医疗信息处理的限制"
+        },
+        {
+          "component": "工具使用指南",
+          "description": "详细介绍12个专用工具的使用方法和场景",
+          "purpose": "指导Agent正确使用工具完成任务",
+          "implementation": "使用编号列表对应每个工具，明确功能定位"
+        }
+      ]
+    },
+    "prompt_implementation": {
+      "system_prompt_structure": [
+        {
+          "section": "角色定义",
+          "content": "定义为药物反馈收集与分析专家，明确专业背景和能力",
+          "rationale": "建立专业身份，确立用户信任"
+        },
+        {
+          "section": "核心职责",
+          "content": "列出8项从药物名称处理到报告生成的职责",
+          "rationale": "明确任务范围，确保任务完整执行"
+        },
+        {
+          "section": "专业能力",
+          "content": "描述5项医疗领域特殊能力",
+          "rationale": "强调专业优势，突出医疗领域适配性"
+        },
+        {
+          "section": "工作流程",
+          "content": "定义10步结构化工作流程",
+          "rationale": "提供执行指南，确保任务有序完成"
+        },
+        {
+          "section": "输出规范",
+          "content": "规定8部分报告结构和内容要求",
+          "rationale": "确保输出质量，满足用户信息需求"
+        },
+        {
+          "section": "行为准则",
+          "content": "强调6项专业行为标准",
+          "rationale": "规范行为，确保医疗信息处理专业性"
+        },
+        {
+          "section": "约束条件",
+          "content": "明确7项行为边界和限制",
+          "rationale": "避免越界，确保责任范围明确"
+        },
+        {
+          "section": "工具使用指南",
+          "content": "介绍12个专用工具的使用方法",
+          "rationale": "指导工具使用，提高任务执行效率"
+        }
+      ],
+      "user_prompt_template": "未实现专门的用户提示词模板，使用默认交互方式，用户直接输入药物名称即可触发完整工作流程",
+      "metadata_configuration": {
+        "tags": ["research", "medical", "feedback_analysis", "sentiment_analysis", "topic_classification"],
+        "supported_models": ["global.anthropic.claude-sonnet-4-5-20250929-v1:0"],
+        "tools_dependencies": [
+          "strands_tools/current_time",
+          "strands_tools/calculator",
+          "strands_tools/http_request",
+          "strands_tools/python_repl",
+          "strands_tools/file_read",
+          "strands_tools/file_write",
+          "generated_tools/drug_feedback_collector/drug_feedback_tools/validate_drug_name",
+          "generated_tools/drug_feedback_collector/drug_feedback_tools/search_drug_feedback",
+          "generated_tools/drug_feedback_collector/drug_feedback_tools/extract_page_content",
+          "generated_tools/drug_feedback_collector/drug_feedback_tools/analyze_sentiment",
+          "generated_tools/drug_feedback_collector/drug_feedback_tools/classify_feedback_topic",
+          "generated_tools/drug_feedback_collector/drug_feedback_tools/deduplicate_feedback",
+          "generated_tools/drug_feedback_collector/drug_feedback_tools/filter_quality_feedback",
+          "generated_tools/drug_feedback_collector/drug_feedback_tools/aggregate_feedback_statistics",
+          "generated_tools/drug_feedback_collector/drug_feedback_tools/extract_representative_feedback",
+          "generated_tools/drug_feedback_collector/drug_feedback_tools/generate_feedback_summary",
+          "generated_tools/drug_feedback_collector/drug_feedback_tools/format_feedback_report",
+          "generated_tools/drug_feedback_collector/drug_feedback_tools/manage_feedback_cache"
+        ]
+      }
+    },
+    "prompt_evaluation": {
+      "evaluation_criteria": [
+        {
+          "criterion": "角色明确性",
+          "description": "提示词是否清晰定义了Agent的专业身份和领域",
+          "assessment": "优秀 - 明确定义为药物反馈收集与分析专家，并详细说明了专业背景和能力"
+        },
+        {
+          "criterion": "任务完整性",
+          "description": "提示词是否完整覆盖了所有必要任务和职责",
+          "assessment": "优秀 - 详细列出了8项核心职责，覆盖了从输入处理到报告生成的完整流程"
+        },
+        {
+          "criterion": "工作流清晰度",
+          "description": "提示词是否提供了清晰的工作流程指导",
+          "assessment": "优秀 - 定义了10步结构化工作流程，每步都与相应工具关联"
+        },
+        {
+          "criterion": "输出规范性",
+          "description": "提示词是否明确定义了输出格式和内容要求",
+          "assessment": "优秀 - 详细规定了8部分报告结构，内容要求清晰具体"
+        },
+        {
+          "criterion": "专业适配性",
+          "description": "提示词是否适配医疗领域的专业需求",
+          "assessment": "优秀 - 融入了医疗领域专业知识，强调了药物反馈分析的特殊要求"
+        },
+        {
+          "criterion": "工具集成度",
+          "description": "提示词是否有效集成了所有必要工具",
+          "assessment": "优秀 - 详细介绍了12个专用工具的使用方法和场景"
+        },
+        {
+          "criterion": "行为规范性",
+          "description": "提示词是否提供了明确的行为准则和约束",
+          "assessment": "优秀 - 规定了6项行为准则和7项约束条件，特别强调了医疗信息处理的专业标准"
+        },
+        {
+          "criterion": "用户友好性",
+          "description": "提示词设计是否便于用户交互和使用",
+          "assessment": "良好 - 支持直接输入药物名称触发完整流程，但未实现专门的用户提示词模板"
+        }
+      ],
+      "testing_results": "未进行实际测试，评估基于提示词设计和结构分析",
+      "improvement_suggestions": [
+        "考虑实现专门的用户提示词模板，支持更复杂的查询参数",
+        "增加对多语言药物名称的支持说明",
+        "添加更多示例和用例场景",
+        "强化错误处理和异常情况的指导"
+      ]
+    },
+    "deployment_notes": {
+      "prompt_file_path": "prompts/generated_agents_prompts/drug_feedback_collector/drug_feedback_collector.yaml",
+      "environment_settings": {
+        "development": {
+          "max_tokens": 4096,
+          "temperature": 0.3,
+          "streaming": false
+        },
+        "production": {
+          "max_tokens": 60000,
+          "temperature": 0.3,
+          "streaming": false
+        },
+        "testing": {
+          "max_tokens": 2048,
+          "temperature": 0.3,
+          "streaming": false
+        }
+      },
+      "deployment_instructions": "使用标准部署流程，确保所有依赖工具已正确配置",
+      "version_control": "初始版本1.0，后续迭代应关注用户反馈和测试结果"
+    }
+  }
+}

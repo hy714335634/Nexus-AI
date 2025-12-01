@@ -1,0 +1,594 @@
+{
+  "tool_development": {
+    "development_overview": {
+      "project_name": "calculator_agent",
+      "version": "1.0",
+      "date": "2025-11-28",
+      "development_scope": "为智能计算器Agent开发安全、高效的数学计算工具集，支持自然语言解析、表达式验证、安全计算等核心功能",
+      "design_principles": [
+        "安全第一：使用AST解析替代eval()，防止代码注入",
+        "准确性：确保100%计算准确率，支持精确浮点数运算",
+        "易用性：提供自然语言解析，支持中英文多种表达方式",
+        "健壮性：完善的错误处理和验证机制",
+        "可扩展性：模块化设计，便于添加新功能",
+        "高性能：优化计算效率，控制响应时间在3秒内"
+      ],
+      "key_decisions": [
+        "使用AST（抽象语法树）进行安全的表达式解析和求值",
+        "实现SafeMathEvaluator类作为核心计算引擎",
+        "实现ExpressionParser类处理自然语言到数学表达式的转换",
+        "提供多层次工具：底层计算工具、解析工具、组合工具、辅助工具",
+        "所有工具返回JSON格式结构化数据，便于Agent处理",
+        "支持批量计算和分步计算，提升用户体验",
+        "实现完整的错误分类和友好提示机制"
+      ]
+    },
+    "tools": [
+      {
+        "tool_name": "safe_calculate",
+        "description": "安全地计算数学表达式，使用AST解析器替代eval()函数，防止代码注入风险。支持基本四则运算、幂运算、开方等常用数学运算",
+        "function_signature": "safe_calculate(expression: str, precision: int = 4, use_decimal: bool = False) -> str",
+        "parameters": [
+          {
+            "name": "expression",
+            "type": "str",
+            "description": "标准数学表达式字符串（如：'2+3*4'、'pow(2,3)'、'sqrt(9)'）",
+            "required": true
+          },
+          {
+            "name": "precision",
+            "type": "int",
+            "description": "结果小数位数，默认4位",
+            "required": false
+          },
+          {
+            "name": "use_decimal",
+            "type": "bool",
+            "description": "是否使用Decimal进行高精度计算，默认False",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的计算结果，包含success、result、formatted_result、expression、error、execution_time等字段",
+        "dependencies": ["strands", "ast", "math", "operator", "json"],
+        "implementation_notes": [
+          "使用SafeMathEvaluator类进行安全求值",
+          "支持的运算符：+、-、*、/、//、%、**、负号、正号",
+          "支持的函数：sqrt、pow、abs、round",
+          "最大递归深度限制为100，防止过于复杂的表达式",
+          "表达式长度限制在1000字符以内",
+          "特殊处理除零错误，提供友好提示",
+          "支持整数和浮点数结果的智能格式化"
+        ],
+        "error_handling": [
+          "ZeroDivisionError：除数不能为零",
+          "ValueError：表达式语法错误或包含不允许的操作",
+          "OverflowError：计算结果溢出",
+          "Exception：其他计算失败情况"
+        ],
+        "usage_examples": [
+          "safe_calculate('2+3*4') -> {\"success\": true, \"result\": 14, ...}",
+          "safe_calculate('pow(2,3)') -> {\"success\": true, \"result\": 8, ...}",
+          "safe_calculate('sqrt(9)') -> {\"success\": true, \"result\": 3.0, ...}"
+        ]
+      },
+      {
+        "tool_name": "parse_natural_language_math",
+        "description": "解析自然语言数学表达式，将用户的口语化描述转换为标准数学表达式。支持中文和英文的多种表达方式",
+        "function_signature": "parse_natural_language_math(text: str, language: str = 'auto') -> str",
+        "parameters": [
+          {
+            "name": "text",
+            "type": "str",
+            "description": "自然语言数学表达式（如：'12乘以12等于多少'、'2 plus 3 times 4'）",
+            "required": true
+          },
+          {
+            "name": "language",
+            "type": "str",
+            "description": "语言类型，可选值：auto（自动检测）、zh（中文）、en（英文）",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的解析结果，包含success、original_text、parsed_expression、language、error等字段",
+        "dependencies": ["strands", "re", "json"],
+        "implementation_notes": [
+          "使用ExpressionParser类进行自然语言解析",
+          "支持中文运算符：加、加上、减、减去、乘、乘以、除、除以、次方、平方、立方、平方根、开方",
+          "支持英文运算符：plus、add、minus、subtract、times、multiply、divide、power、square、cube、square root",
+          "支持多种括号形式：()、（）、【】、「」、[]、{}",
+          "自动处理百分比表达式（如：'20的50%'）",
+          "智能清理无关字符（问号、等号、提示词等）",
+          "按运算符长度排序，优先匹配长运算符"
+        ],
+        "error_handling": [
+          "ValueError：输入为空或无法解析的表达式",
+          "Exception：其他解析失败情况"
+        ],
+        "usage_examples": [
+          "parse_natural_language_math('12乘以12等于多少') -> {\"success\": true, \"parsed_expression\": \"12*12\", ...}",
+          "parse_natural_language_math('2 plus 3 times 4') -> {\"success\": true, \"parsed_expression\": \"2+3*4\", ...}"
+        ]
+      },
+      {
+        "tool_name": "calculate_natural_language",
+        "description": "直接计算自然语言数学问题，结合了自然语言解析和安全计算功能。这是一个便捷工具，用户可以直接输入自然语言问题获得结果",
+        "function_signature": "calculate_natural_language(text: str, precision: int = 4, show_steps: bool = False) -> str",
+        "parameters": [
+          {
+            "name": "text",
+            "type": "str",
+            "description": "自然语言数学问题（如：'12乘以12等于多少'）",
+            "required": true
+          },
+          {
+            "name": "precision",
+            "type": "int",
+            "description": "结果小数位数，默认4位",
+            "required": false
+          },
+          {
+            "name": "show_steps",
+            "type": "bool",
+            "description": "是否显示计算步骤，默认False",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的计算结果，包含success、original_text、parsed_expression、result、formatted_result、answer、steps、error等字段",
+        "dependencies": ["strands", "json"],
+        "implementation_notes": [
+          "两阶段处理：先调用parse_natural_language_math解析，再调用safe_calculate计算",
+          "自动生成自然语言答案",
+          "支持显示计算步骤（show_steps=True）",
+          "完整的错误传递和处理机制"
+        ],
+        "error_handling": [
+          "解析错误：传递parse_natural_language_math的错误",
+          "计算错误：传递safe_calculate的错误",
+          "Exception：其他处理失败情况"
+        ],
+        "usage_examples": [
+          "calculate_natural_language('12乘以12等于多少') -> {\"success\": true, \"result\": 144, \"answer\": \"12乘以12等于多少 = 144\", ...}",
+          "calculate_natural_language('2加3乘以4', show_steps=True) -> {\"success\": true, \"result\": 14, \"steps\": [...], ...}"
+        ]
+      },
+      {
+        "tool_name": "validate_math_expression",
+        "description": "验证数学表达式的有效性和安全性，包括语法检查、安全检查、括号配对检查等",
+        "function_signature": "validate_math_expression(expression: str, check_safety: bool = True) -> str",
+        "parameters": [
+          {
+            "name": "expression",
+            "type": "str",
+            "description": "要验证的数学表达式",
+            "required": true
+          },
+          {
+            "name": "check_safety",
+            "type": "bool",
+            "description": "是否进行安全检查，默认True",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的验证结果，包含success、is_valid、is_safe、expression、issues、warnings、suggestions等字段",
+        "dependencies": ["strands", "ast", "re", "json"],
+        "implementation_notes": [
+          "多层次验证：基本验证、长度检查、括号配对、安全字符、AST语法检查",
+          "安全字符白名单：0-9、+-*/.()%、sqrt、pow、空格、逗号",
+          "除零风险检测：使用正则表达式检测'/0'模式",
+          "提供详细的问题列表、警告和改进建议"
+        ],
+        "error_handling": [
+          "ValueError：表达式为空",
+          "Exception：验证过程失败"
+        ],
+        "usage_examples": [
+          "validate_math_expression('2+3*4') -> {\"success\": true, \"is_valid\": true, \"is_safe\": true, ...}",
+          "validate_math_expression('2/0') -> {\"success\": true, \"is_valid\": true, \"issues\": [\"可能的除零错误\"], ...}"
+        ]
+      },
+      {
+        "tool_name": "calculate_with_steps",
+        "description": "计算数学表达式并显示详细步骤，帮助用户理解复杂表达式的计算过程",
+        "function_signature": "calculate_with_steps(expression: str, precision: int = 4) -> str",
+        "parameters": [
+          {
+            "name": "expression",
+            "type": "str",
+            "description": "数学表达式字符串",
+            "required": true
+          },
+          {
+            "name": "precision",
+            "type": "int",
+            "description": "结果小数位数，默认4位",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的计算结果，包含success、expression、result、formatted_result、steps、error等字段",
+        "dependencies": ["strands", "json"],
+        "implementation_notes": [
+          "先验证表达式有效性，再执行计算",
+          "分析表达式结构，生成步骤说明",
+          "识别运算优先级（乘除优先于加减）",
+          "识别特殊函数（sqrt、pow）",
+          "提供每个步骤的描述、操作和结果"
+        ],
+        "error_handling": [
+          "验证错误：表达式无效",
+          "计算错误：传递safe_calculate的错误",
+          "Exception：其他处理失败情况"
+        ],
+        "usage_examples": [
+          "calculate_with_steps('2+3*4') -> {\"success\": true, \"result\": 14, \"steps\": [...], ...}"
+        ]
+      },
+      {
+        "tool_name": "batch_calculate",
+        "description": "批量计算多个数学表达式，一次性处理多个计算任务，提高处理效率",
+        "function_signature": "batch_calculate(expressions: List[str], precision: int = 4, stop_on_error: bool = False) -> str",
+        "parameters": [
+          {
+            "name": "expressions",
+            "type": "List[str]",
+            "description": "数学表达式列表",
+            "required": true
+          },
+          {
+            "name": "precision",
+            "type": "int",
+            "description": "结果小数位数，默认4位",
+            "required": false
+          },
+          {
+            "name": "stop_on_error",
+            "type": "bool",
+            "description": "遇到错误是否停止，默认False（继续处理其他表达式）",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的批量计算结果，包含success、total_count、success_count、failed_count、results等字段",
+        "dependencies": ["strands", "json", "typing"],
+        "implementation_notes": [
+          "循环处理每个表达式",
+          "统计成功和失败数量",
+          "支持两种模式：遇错停止或继续处理",
+          "为每个表达式提供独立的结果记录"
+        ],
+        "error_handling": [
+          "ValueError：表达式列表为空",
+          "Exception：批量计算过程失败"
+        ],
+        "usage_examples": [
+          "batch_calculate(['2+3', '4*5', '10/2']) -> {\"success\": true, \"success_count\": 3, \"results\": [...], ...}"
+        ]
+      },
+      {
+        "tool_name": "calculate_percentage",
+        "description": "计算百分比，提供便捷的百分比计算功能，支持三种操作：计算百分比、增加百分比、减少百分比",
+        "function_signature": "calculate_percentage(value: float, percentage: float, operation: str = 'of') -> str",
+        "parameters": [
+          {
+            "name": "value",
+            "type": "float",
+            "description": "基础值",
+            "required": true
+          },
+          {
+            "name": "percentage",
+            "type": "float",
+            "description": "百分比值（如：50表示50%）",
+            "required": true
+          },
+          {
+            "name": "operation",
+            "type": "str",
+            "description": "操作类型：of（计算X的Y%）、increase（增加Y%）、decrease（减少Y%）",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的计算结果，包含success、value、percentage、operation、result、formatted_result、explanation、error等字段",
+        "dependencies": ["strands", "json"],
+        "implementation_notes": [
+          "支持三种操作：of（value * percentage/100）、increase（value * (1+percentage/100)）、decrease（value * (1-percentage/100)）",
+          "自动生成计算说明",
+          "智能格式化结果（整数或小数）"
+        ],
+        "error_handling": [
+          "TypeError：值或百分比不是数字",
+          "ValueError：不支持的操作类型",
+          "Exception：其他计算失败情况"
+        ],
+        "usage_examples": [
+          "calculate_percentage(100, 20, 'of') -> {\"success\": true, \"result\": 20.0, \"explanation\": \"100的20% = 20.0\", ...}",
+          "calculate_percentage(100, 20, 'increase') -> {\"success\": true, \"result\": 120.0, \"explanation\": \"100增加20% = 120.0\", ...}"
+        ]
+      },
+      {
+        "tool_name": "calculate_power",
+        "description": "计算幂运算，计算base的exponent次方",
+        "function_signature": "calculate_power(base: float, exponent: float) -> str",
+        "parameters": [
+          {
+            "name": "base",
+            "type": "float",
+            "description": "底数",
+            "required": true
+          },
+          {
+            "name": "exponent",
+            "type": "float",
+            "description": "指数",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的计算结果，包含success、base、exponent、result、formatted_result、explanation、error等字段",
+        "dependencies": ["strands", "json"],
+        "implementation_notes": [
+          "使用Python内置pow函数",
+          "特殊说明生成：平方根（指数0.5）、平方（指数2）、立方（指数3）",
+          "智能格式化结果"
+        ],
+        "error_handling": [
+          "TypeError：底数或指数不是数字",
+          "OverflowError：计算结果溢出",
+          "Exception：其他计算失败情况"
+        ],
+        "usage_examples": [
+          "calculate_power(2, 3) -> {\"success\": true, \"result\": 8, \"explanation\": \"2的3次方 = 8\", ...}",
+          "calculate_power(9, 0.5) -> {\"success\": true, \"result\": 3.0, \"explanation\": \"9的平方根 = 3.0\", ...}"
+        ]
+      },
+      {
+        "tool_name": "calculate_square_root",
+        "description": "计算平方根，计算给定值的平方根",
+        "function_signature": "calculate_square_root(value: float, precision: int = 4) -> str",
+        "parameters": [
+          {
+            "name": "value",
+            "type": "float",
+            "description": "要计算平方根的值（必须非负）",
+            "required": true
+          },
+          {
+            "name": "precision",
+            "type": "int",
+            "description": "结果小数位数，默认4位",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的计算结果，包含success、value、result、formatted_result、explanation、precision、error等字段",
+        "dependencies": ["strands", "math", "json"],
+        "implementation_notes": [
+          "使用math.sqrt函数",
+          "验证输入值必须非负",
+          "智能格式化结果",
+          "生成友好的计算说明"
+        ],
+        "error_handling": [
+          "TypeError：输入值不是数字",
+          "ValueError：输入值为负数",
+          "Exception：其他计算失败情况"
+        ],
+        "usage_examples": [
+          "calculate_square_root(9) -> {\"success\": true, \"result\": 3.0, \"explanation\": \"9的平方根 = 3.0\", ...}",
+          "calculate_square_root(2) -> {\"success\": true, \"result\": 1.4142, \"explanation\": \"2的平方根 = 1.4142\", ...}"
+        ]
+      },
+      {
+        "tool_name": "get_calculator_help",
+        "description": "获取计算器使用帮助，返回计算器支持的功能和使用示例",
+        "function_signature": "get_calculator_help() -> str",
+        "parameters": [],
+        "return_type": "str",
+        "return_description": "JSON格式的帮助信息，包含success、supported_operations、examples、tips、limitations等字段",
+        "dependencies": ["strands", "json"],
+        "implementation_notes": [
+          "提供完整的功能说明",
+          "包含四大类运算：基本四则运算、高级运算、运算优先级、特殊数值",
+          "提供丰富的自然语言使用示例",
+          "说明使用技巧和功能限制",
+          "包含错误处理说明"
+        ],
+        "error_handling": [],
+        "usage_examples": [
+          "get_calculator_help() -> {\"success\": true, \"supported_operations\": [...], ...}"
+        ]
+      },
+      {
+        "tool_name": "format_calculation_result",
+        "description": "格式化计算结果，将计算结果格式化为易读的形式，支持多种格式类型",
+        "function_signature": "format_calculation_result(result: Union[int, float], format_type: str = 'auto', precision: int = 4, use_separator: bool = False) -> str",
+        "parameters": [
+          {
+            "name": "result",
+            "type": "Union[int, float]",
+            "description": "计算结果",
+            "required": true
+          },
+          {
+            "name": "format_type",
+            "type": "str",
+            "description": "格式类型：auto（自动）、integer（整数）、decimal（小数）、scientific（科学计数法）、percentage（百分比）",
+            "required": false
+          },
+          {
+            "name": "precision",
+            "type": "int",
+            "description": "小数位数，默认4位",
+            "required": false
+          },
+          {
+            "name": "use_separator",
+            "type": "bool",
+            "description": "是否使用千分位分隔符，默认False",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的格式化结果，包含success、original_result、formatted_result、format_type、error等字段",
+        "dependencies": ["strands", "json", "typing"],
+        "implementation_notes": [
+          "支持五种格式类型",
+          "自动模式：整数、大数、小数的智能选择",
+          "科学计数法：处理极大或极小的数",
+          "百分比格式：自动乘以100并添加%符号",
+          "千分位分隔符：提高大数的可读性"
+        ],
+        "error_handling": [
+          "TypeError：结果不是数字",
+          "ValueError：不支持的格式类型",
+          "Exception：其他格式化失败情况"
+        ],
+        "usage_examples": [
+          "format_calculation_result(1234567.89) -> {\"success\": true, \"formatted_result\": \"1234567.89\", ...}",
+          "format_calculation_result(1234567.89, use_separator=True) -> {\"success\": true, \"formatted_result\": \"1,234,567.89\", ...}"
+        ]
+      }
+    ],
+    "code_quality": {
+      "code_standards": [
+        "遵循PEP 8 Python代码规范",
+        "使用Python 3.13+类型注解",
+        "完整的文档字符串（模块、类、函数级别）",
+        "清晰的变量和函数命名",
+        "合理的代码组织和模块化",
+        "避免代码重复，提取公共逻辑"
+      ],
+      "testing_strategy": [
+        "单元测试：测试每个工具函数的基本功能",
+        "边界测试：测试极端值和边界条件",
+        "错误测试：验证错误处理机制",
+        "安全测试：验证AST解析的安全性",
+        "性能测试：验证响应时间符合要求",
+        "集成测试：验证工具组合使用的正确性"
+      ],
+      "performance_considerations": [
+        "AST解析的性能优化",
+        "最大递归深度限制（100层）",
+        "表达式长度限制（1000字符）",
+        "计算超时控制（3秒）",
+        "避免不必要的重复解析",
+        "高效的正则表达式使用",
+        "智能的结果格式化"
+      ],
+      "security_measures": [
+        "使用AST替代eval()，防止代码注入",
+        "运算符和函数白名单机制",
+        "表达式长度和复杂度限制",
+        "除零错误的特殊处理",
+        "输入验证和清理",
+        "错误信息不泄露敏感信息",
+        "所有工具函数的输入类型验证"
+      ]
+    },
+    "integration_details": {
+      "aws_services": [],
+      "external_libraries": [
+        "strands - Agent工具框架，用于@tool装饰器",
+        "ast - Python抽象语法树，用于安全表达式解析",
+        "math - Python数学库，用于特殊运算（sqrt等）",
+        "operator - Python运算符库，用于安全运算符映射",
+        "re - Python正则表达式，用于模式匹配和替换",
+        "json - JSON序列化，用于结构化数据返回",
+        "decimal - 高精度计算支持",
+        "typing - 类型注解支持"
+      ],
+      "api_endpoints": [],
+      "data_formats": [
+        "所有工具返回JSON格式字符串",
+        "统一的响应结构：success、result、error、其他字段",
+        "错误响应包含：error、suggestion字段",
+        "成功响应包含：result、formatted_result字段",
+        "使用ensure_ascii=False支持中文输出"
+      ]
+    },
+    "tool_organization": {
+      "core_calculation_tools": [
+        "safe_calculate - 核心计算引擎",
+        "validate_math_expression - 表达式验证"
+      ],
+      "natural_language_tools": [
+        "parse_natural_language_math - 自然语言解析",
+        "calculate_natural_language - 自然语言直接计算"
+      ],
+      "advanced_tools": [
+        "calculate_with_steps - 分步计算",
+        "batch_calculate - 批量计算"
+      ],
+      "specialized_tools": [
+        "calculate_percentage - 百分比计算",
+        "calculate_power - 幂运算",
+        "calculate_square_root - 平方根计算"
+      ],
+      "utility_tools": [
+        "format_calculation_result - 结果格式化",
+        "get_calculator_help - 使用帮助"
+      ]
+    },
+    "core_classes": {
+      "SafeMathEvaluator": {
+        "purpose": "安全的数学表达式求值器",
+        "key_features": [
+          "基于AST的安全解析",
+          "运算符白名单机制",
+          "函数白名单机制",
+          "递归深度控制",
+          "完整的错误处理"
+        ],
+        "allowed_operators": [
+          "ast.Add (+)",
+          "ast.Sub (-)",
+          "ast.Mult (*)",
+          "ast.Div (/)",
+          "ast.FloorDiv (//)",
+          "ast.Mod (%)",
+          "ast.Pow (**)",
+          "ast.USub (负号)",
+          "ast.UAdd (正号)"
+        ],
+        "allowed_functions": [
+          "sqrt - 平方根",
+          "pow - 幂运算",
+          "abs - 绝对值",
+          "round - 四舍五入"
+        ]
+      },
+      "ExpressionParser": {
+        "purpose": "自然语言数学表达式解析器",
+        "key_features": [
+          "中英文运算符识别",
+          "多种括号形式支持",
+          "百分比表达式处理",
+          "特殊函数识别",
+          "智能字符清理"
+        ],
+        "supported_chinese_operators": [
+          "加、加上 -> +",
+          "减、减去 -> -",
+          "乘、乘以 -> *",
+          "除、除以 -> /",
+          "次方、平方、立方 -> **",
+          "平方根、开方 -> sqrt"
+        ],
+        "supported_english_operators": [
+          "plus, add -> +",
+          "minus, subtract -> -",
+          "times, multiply -> *",
+          "divide -> /",
+          "power, square, cube -> **",
+          "square root, sqrt -> sqrt"
+        ]
+      }
+    },
+    "development_notes": "工具开发过程中的关键发现和决策：\n\n1. **安全性实现**：选择AST解析而非eval()是最关键的安全决策。AST提供了完全可控的表达式求值环境，通过白名单机制严格限制允许的操作，有效防止代码注入攻击。\n\n2. **自然语言处理**：实现了完整的中英文自然语言解析能力，支持多种表达方式和括号形式。使用正则表达式进行模式匹配和替换，按运算符长度排序确保优先匹配长运算符（如"乘以"优先于"乘"）。\n\n3. **工具分层设计**：\n   - 底层：safe_calculate、validate_math_expression提供核心计算和验证能力\n   - 中层：parse_natural_language_math、calculate_natural_language提供自然语言处理\n   - 高层：calculate_with_steps、batch_calculate提供增强功能\n   - 专用：calculate_percentage、calculate_power、calculate_square_root提供专项计算\n   - 辅助：format_calculation_result、get_calculator_help提供辅助功能\n\n4. **错误处理策略**：所有工具都返回JSON格式的结构化数据，包含success标志和详细的错误信息。错误信息不仅说明问题，还提供具体的改进建议（suggestion字段），提升用户体验。\n\n5. **性能优化**：\n   - 递归深度限制防止栈溢出\n   - 表达式长度限制防止资源耗尽\n   - 智能结果格式化避免不必要的计算\n   - 正则表达式预编译提高匹配效率\n\n6. **类型安全**：使用Python 3.13+的完整类型注解，提高代码可维护性和IDE支持。所有参数和返回值都有明确的类型定义。\n\n7. **扩展性设计**：SafeMathEvaluator和ExpressionParser类采用字典映射机制，添加新的运算符或函数只需要扩展映射表，无需修改核心逻辑。\n\n8. **用户体验**：\n   - 提供多种便捷工具（如calculate_natural_language）简化使用\n   - 支持批量计算提高效率\n   - 提供分步计算帮助理解过程\n   - 智能结果格式化（整数不显示小数点，小数去除尾随零）\n   - 完整的帮助文档（get_calculator_help）\n\n9. **测试考虑**：工具设计时充分考虑可测试性，每个工具都是独立的纯函数，便于单元测试。错误路径和边界条件都有明确的处理逻辑。\n\n10. **依赖管理**：只使用Python标准库和strands框架，避免外部依赖带来的兼容性问题。所有依赖都是成熟稳定的库。"
+  }
+}

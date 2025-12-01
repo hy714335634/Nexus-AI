@@ -1,0 +1,277 @@
+{
+  "system_design": {
+    "design_overview": {
+      "project_name": "智能计算器Agent",
+      "version": "1.0",
+      "date": "2025-11-28",
+      "design_scope": "设计一个能够理解自然语言数学问题并进行准确计算的智能Agent系统，支持基本四则运算、运算优先级处理、特殊运算（幂运算、开方、百分比）以及负数小数处理",
+      "design_principles": [
+        "安全第一：使用安全的计算方法，避免eval()等危险函数",
+        "准确性：确保计算结果100%准确，支持精确的浮点数运算",
+        "易用性：支持自然语言输入，提供友好的错误提示",
+        "可扩展性：模块化设计，易于添加新的运算类型",
+        "可观测性：完善的日志记录和错误跟踪"
+      ],
+      "key_decisions": [
+        "选择单Agent架构：功能集中在数学计算单一领域，无需多Agent协作",
+        "基于requirements_analyzer模板定制：利用其成熟的自然语言理解和结构化输出能力",
+        "使用calculator工具执行实际计算：确保计算安全性和准确性",
+        "采用两阶段处理：自然语言理解→表达式解析→安全计算→结果格式化",
+        "支持中英文输入：提供更好的用户体验"
+      ],
+      "workflow_type": "single_agent",
+      "recommended_templates": ["requirements_analyzer", "data_analyzer_agent"]
+    },
+    "architecture": {
+      "system_context": "智能计算器Agent作为独立系统运行，接收用户的自然语言数学问题输入，通过LLM理解用户意图，解析出数学表达式，调用安全的计算工具执行运算，并返回格式化的结果。系统设计为无状态架构，每次请求独立处理。",
+      "agent_topology": "单Agent拓扑结构：用户 ← → Calculator Agent ← → Calculator Tool。Agent作为中央处理单元，负责自然语言理解、表达式解析、计算调度和结果格式化。",
+      "interaction_model": "请求-响应模式：用户输入自然语言问题 → Agent解析理解 → 生成安全表达式 → 调用Calculator工具 → 验证结果 → 返回格式化响应。支持同步处理，响应时间控制在3秒内。",
+      "technology_stack": {
+        "sdk": "Strands SDK",
+        "runtime": "Local Python 3.13+",
+        "integrations": ["AWS Bedrock (Claude Sonnet)", "Calculator Tool", "Python AST Parser"]
+      }
+    },
+    "agents": [
+      {
+        "name": "calculator_agent",
+        "purpose": "理解自然语言数学问题并执行准确计算",
+        "responsibilities": [
+          "解析自然语言数学表达式",
+          "验证和标准化数学表达式",
+          "调用计算工具执行安全运算",
+          "格式化输出计算结果",
+          "处理错误情况并提供友好提示",
+          "支持基本四则运算和特殊运算",
+          "处理运算优先级和括号",
+          "支持负数、小数和百分比计算"
+        ],
+        "interfaces": {
+          "inputs": [
+            "自然语言数学问题（如：12乘以12等于多少）",
+            "包含运算符的表达式（如：2加3乘以4）", 
+            "复杂混合运算（如：括号2加3括号乘以4减5）",
+            "特殊运算（如：2的3次方，9的平方根，20的50%）"
+          ],
+          "outputs": [
+            "格式化的计算结果（如：12 × 12 = 144）",
+            "错误提示信息（如：无法识别的表达式，请重新描述）",
+            "计算步骤说明（复杂表达式的计算过程）",
+            "数值类型转换提示（如：结果保留4位小数）"
+          ]
+        },
+        "dependencies": [
+          "Strands SDK框架",
+          "Calculator工具（基础计算）",
+          "AWS Bedrock Claude模型（自然语言理解）",
+          "Python AST模块（表达式解析）",
+          "Python Math库（特殊运算）"
+        ],
+        "implementation_notes": [
+          "使用两阶段处理：NLP理解 + 安全计算",
+          "实现表达式白名单验证机制",
+          "支持中英文多种表达方式",
+          "添加计算结果验证逻辑",
+          "实现详细的错误分类和提示",
+          "考虑浮点数精度处理",
+          "添加计算复杂度限制防止资源耗尽"
+        ],
+        "recommended_template": "requirements_analyzer"
+      }
+    ],
+    "data_models": [
+      {
+        "name": "MathExpression",
+        "schema": {
+          "original_text": "string - 用户原始输入",
+          "parsed_expression": "string - 解析后的数学表达式",
+          "expression_type": "enum - basic|complex|special",
+          "operators": "list - 包含的运算符列表",
+          "operands": "list - 包含的操作数列表",
+          "is_valid": "boolean - 表达式是否有效",
+          "error_message": "string - 错误信息（如果有）"
+        },
+        "validation_rules": [
+          "表达式长度不超过1000字符",
+          "只包含允许的数学运算符",
+          "操作数必须为有效数字",
+          "括号必须配对",
+          "除数不能为零"
+        ],
+        "relationships": ["与CalculationResult一对一关联"]
+      },
+      {
+        "name": "CalculationResult",
+        "schema": {
+          "expression": "MathExpression - 关联的表达式",
+          "result_value": "float - 计算结果数值",
+          "formatted_result": "string - 格式化的结果显示",
+          "calculation_steps": "list - 计算步骤（复杂表达式）",
+          "precision": "int - 小数位数",
+          "execution_time": "float - 计算耗时",
+          "success": "boolean - 计算是否成功"
+        },
+        "validation_rules": [
+          "结果值必须在Python float范围内",
+          "小数位数不超过10位",
+          "执行时间不超过3秒",
+          "格式化结果长度合理"
+        ],
+        "relationships": ["与MathExpression一对一关联"]
+      },
+      {
+        "name": "ErrorInfo",
+        "schema": {
+          "error_type": "enum - parsing|calculation|validation|timeout",
+          "error_code": "string - 错误代码",
+          "error_message": "string - 用户友好的错误信息",
+          "suggestion": "string - 修正建议",
+          "original_input": "string - 导致错误的原始输入"
+        },
+        "validation_rules": [
+          "错误类型必须在预定义范围内",
+          "错误信息必须用户友好",
+          "建议信息具有可操作性"
+        ],
+        "relationships": ["独立模型，用于错误处理"]
+      }
+    ],
+    "interaction_flows": [
+      {
+        "name": "基本计算流程",
+        "description": "处理简单四则运算的标准流程",
+        "steps": [
+          {
+            "step": "接收用户输入",
+            "agent": "calculator_agent",
+            "action": "validate_input",
+            "data": "自然语言数学问题"
+          },
+          {
+            "step": "自然语言理解",
+            "agent": "calculator_agent", 
+            "action": "parse_natural_language",
+            "data": "MathExpression对象"
+          },
+          {
+            "step": "表达式验证",
+            "agent": "calculator_agent",
+            "action": "validate_expression",
+            "data": "验证后的MathExpression"
+          },
+          {
+            "step": "执行计算",
+            "agent": "calculator_agent",
+            "action": "call_calculator_tool",
+            "data": "CalculationResult对象"
+          },
+          {
+            "step": "格式化输出",
+            "agent": "calculator_agent",
+            "action": "format_result",
+            "data": "格式化的结果字符串"
+          }
+        ]
+      },
+      {
+        "name": "复杂表达式处理流程",
+        "description": "处理包含优先级和括号的复杂表达式",
+        "steps": [
+          {
+            "step": "表达式预处理",
+            "agent": "calculator_agent",
+            "action": "preprocess_complex_expression",
+            "data": "标准化的表达式"
+          },
+          {
+            "step": "优先级分析",
+            "agent": "calculator_agent",
+            "action": "analyze_precedence",
+            "data": "优先级树结构"
+          },
+          {
+            "step": "分步计算",
+            "agent": "calculator_agent",
+            "action": "step_by_step_calculation",
+            "data": "计算步骤序列"
+          },
+          {
+            "step": "结果验证",
+            "agent": "calculator_agent",
+            "action": "verify_result",
+            "data": "验证后的CalculationResult"
+          }
+        ]
+      },
+      {
+        "name": "错误处理流程",
+        "description": "处理无法识别或计算错误的情况",
+        "steps": [
+          {
+            "step": "错误检测",
+            "agent": "calculator_agent",
+            "action": "detect_error",
+            "data": "ErrorInfo对象"
+          },
+          {
+            "step": "错误分类",
+            "agent": "calculator_agent", 
+            "action": "classify_error",
+            "data": "分类后的ErrorInfo"
+          },
+          {
+            "step": "生成建议",
+            "agent": "calculator_agent",
+            "action": "generate_suggestion",
+            "data": "包含建议的ErrorInfo"
+          },
+          {
+            "step": "友好提示",
+            "agent": "calculator_agent",
+            "action": "format_error_message",
+            "data": "用户友好的错误信息"
+          }
+        ]
+      }
+    ],
+    "security_considerations": [
+      "表达式安全验证：使用白名单机制，只允许安全的数学运算符和函数",
+      "输入长度限制：限制表达式长度在1000字符以内，防止资源耗尽攻击",
+      "计算超时控制：设置3秒计算超时，防止无限循环或复杂计算",
+      "代码注入防护：禁用eval()函数，使用AST安全解析表达式",
+      "数值范围验证：检查计算结果是否在合理范围内，防止溢出",
+      "工具调用安全：确保只调用预定义的安全计算工具",
+      "日志记录：记录所有计算请求和结果，便于安全审计"
+    ],
+    "error_handling": [
+      "输入验证错误：提示用户输入格式或内容有误，给出正确示例",
+      "表达式解析错误：提示无法理解的表达式，建议重新描述",
+      "计算错误：如除零错误，提供具体的错误原因和解决方案",
+      "超时错误：提示表达式过于复杂，建议简化或分步计算",
+      "数值溢出：提示结果超出计算范围，建议使用较小的数值",
+      "工具调用失败：提示系统暂时不可用，建议稍后重试",
+      "未知错误：记录详细错误信息，提供通用的重试建议",
+      "优雅降级：在部分功能不可用时，仍能提供基本计算服务"
+    ],
+    "performance_considerations": [
+      "响应时间优化：单次计算控制在3秒内，简单计算1秒内完成",
+      "内存使用控制：限制表达式复杂度，避免过度内存消耗",
+      "计算精度平衡：在精度和性能间找到平衡，默认保留4位小数",
+      "缓存常用表达式：缓存常见的数学表达式解析结果",
+      "并发处理能力：支持多用户同时计算请求，无状态设计",
+      "资源监控：监控CPU和内存使用情况，防止资源耗尽",
+      "计算复杂度限制：限制表达式中运算符数量，防止指数级复杂度"
+    ],
+    "monitoring_strategy": [
+      "请求监控：记录每次计算请求的输入、输出和耗时",
+      "错误率监控：统计各类错误的发生频率和趋势",
+      "性能监控：监控响应时间、成功率和系统资源使用",
+      "用户行为分析：分析用户常用的计算类型和表达方式",
+      "准确性验证：定期验证计算结果的准确性",
+      "安全事件监控：监控可疑的输入和潜在的安全威胁",
+      "服务可用性：监控Agent服务的可用性和稳定性",
+      "日志分析：定期分析日志，发现潜在的优化点和问题"
+    ]
+  },
+  "design_rationale": "本系统设计基于以下核心考虑：\n\n1. **架构选择理由**：选择单Agent架构是因为计算器功能相对集中，不需要多个专业角色的协作。所有功能（自然语言理解、表达式解析、计算执行、结果格式化）都可以在一个Agent中高效完成。\n\n2. **模板选择依据**：推荐使用requirements_analyzer模板作为基础，因为它具有成熟的自然语言理解能力和结构化输出框架，这些正是计算器Agent的核心需求。通过适度定制，可以快速实现目标功能。\n\n3. **安全设计原则**：考虑到数学表达式可能被恶意利用进行代码注入，设计采用了多层安全防护：表达式白名单、AST安全解析、计算超时、输入长度限制等，确保系统安全可靠。\n\n4. **性能优化策略**：通过两阶段处理（NLP理解 + 安全计算）平衡了功能和性能。预处理阶段进行表达式标准化和验证，计算阶段专注于高效执行，避免了重复解析的开销。\n\n5. **用户体验考虑**：支持中英文自然语言输入，提供友好的错误提示和建议，确保用户能够轻松使用。错误处理不仅告知问题，还提供具体的改进建议。\n\n6. **可扩展性设计**：模块化的架构使得未来添加新的运算类型（如三角函数、对数等）变得容易。数据模型的设计也考虑了功能扩展的需要。\n\n7. **可观测性保障**：完善的监控和日志记录确保系统运行状态的可见性，便于问题诊断和性能优化。这对于生产环境的稳定运行至关重要。\n\n8. **技术栈兼容性**：设计完全基于Nexus-AI平台的技术约束，使用Strands SDK、AWS Bedrock和标准Python库，确保与现有基础设施的良好集成。"
+}

@@ -1,0 +1,187 @@
+{
+  "agent_design": {
+    "design_overview": {
+      "project_name": "stock_information_collector",
+      "version": "1.0",
+      "date": "2025-11-28",
+      "design_scope": "设计一个智能股票信息收集与评价Agent，通过股票名称或代码自动收集基本信息、实时行情、财务数据、新闻资讯，并生成综合评价报告",
+      "design_goals": [
+        "提供一站式股票信息收集和分析服务",
+        "支持多市场（A股、港股、美股）的股票查询",
+        "整合多源数据并生成结构化的综合评价报告",
+        "提供投资建议和风险提示",
+        "确保数据可靠性和系统稳定性"
+      ],
+      "key_design_decisions": [
+        {
+          "decision": "采用单Agent架构",
+          "rationale": "股票信息收集和评价流程是线性的，一个Agent通过多个工具调用即可完成所有任务，无需复杂的多Agent协作",
+          "alternatives": ["多Agent协作架构", "微服务架构"],
+          "consequences": ["架构简化，维护成本降低", "减少通信开销", "确保一致的用户体验"]
+        },
+        {
+          "decision": "基于deep_research_agent模板",
+          "rationale": "该模板集成了完整的研究工具链，包括网络搜索、数据分析、报告生成等功能，与股票信息收集需求高度匹配",
+          "alternatives": ["data_analyzer_agent模板", "api_integration_agent模板", "自定义开发"],
+          "consequences": ["减少定制开发工作量", "利用现有的研究框架", "确保信息收集的全面性和准确性"]
+        },
+        {
+          "decision": "开发五个专用工具",
+          "rationale": "将功能分解为专用工具（股票查询、行情获取、财务分析、新闻收集、缓存管理），提高模块化程度和可维护性",
+          "alternatives": ["使用通用工具组合", "单一集成工具"],
+          "consequences": ["提高系统的模块化程度", "便于后续扩展新的数据源", "支持不同数据源的独立更新"]
+        },
+        {
+          "decision": "实现智能缓存策略",
+          "rationale": "根据数据更新频率设计差异化缓存时间，在保证数据时效性的同时减少API调用成本和响应时间",
+          "alternatives": ["不使用缓存", "统一缓存策略"],
+          "consequences": ["减少API调用次数", "提高响应速度", "降低外部依赖风险"]
+        },
+        {
+          "decision": "采用渐进式数据展示",
+          "rationale": "考虑到不同数据源的响应时间差异，设计了先返回基本信息，再逐步补充详细数据的策略",
+          "alternatives": ["等待所有数据收集完成后一次性返回", "按优先级分批次返回"],
+          "consequences": ["提升用户体验", "减少用户等待时间", "允许部分数据缺失时仍能提供服务"]
+        }
+      ]
+    },
+    "agents": [
+      {
+        "agent_id": "stock_information_collector",
+        "name": "stock_information_collector",
+        "role": "智能股票信息收集与评价Agent",
+        "purpose": "接收用户输入的股票名称或代码，自动收集相关的股票信息（包括基本面数据、市场表现、新闻资讯等），并基于收集到的信息给出综合评价和投资建议",
+        "personality": {
+          "traits": [
+            "专业且客观",
+            "详细且全面",
+            "谨慎且负责",
+            "条理清晰",
+            "持中立立场"
+          ],
+          "communication_style": "清晰、结构化的专业金融分析风格，使用精确的数据和事实，避免情绪化表达",
+          "tone": "专业、客观、分析性强，对投资风险保持谨慎态度"
+        },
+        "capabilities": {
+          "core_functions": [
+            "股票识别与查询（通过名称或代码）",
+            "基本信息收集（公司信息、行业、市值等）",
+            "实时行情数据获取（价格、涨跌幅、成交量等）",
+            "财务数据收集（营收、利润、PE、PB等关键指标）",
+            "相关新闻资讯收集（最近7天重要新闻）",
+            "综合评价生成（估值分析、成长性分析、风险评估）",
+            "投资建议提供（买入/持有/观望/回避）"
+          ],
+          "specialized_skills": [
+            "多市场支持（A股、港股、美股）",
+            "模糊股票名称匹配",
+            "多源数据整合",
+            "数据验证与清洗",
+            "渐进式数据展示",
+            "智能缓存管理"
+          ],
+          "limitations": [
+            "不提供实时交易功能",
+            "不进行投资组合管理",
+            "不提供历史数据深度分析和回测",
+            "不生成技术指标图表",
+            "不提供个性化推荐算法",
+            "不进行用户账户管理",
+            "不提供实时行情推送和告警"
+          ],
+          "tools_required": [
+            "stock_query_tool（股票查询工具）",
+            "market_data_tool（行情数据工具）",
+            "financial_data_tool（财务数据工具）",
+            "news_collection_tool（新闻收集工具）",
+            "cache_manager_tool（缓存管理工具）",
+            "web_search_enhanced（增强网络搜索）",
+            "data_analyzer（数据分析工具）",
+            "report_generator（报告生成工具）"
+          ]
+        },
+        "knowledge_domain": {
+          "primary_domains": [
+            "股票市场基础知识",
+            "财务分析方法",
+            "投资估值模型",
+            "行业分析框架",
+            "风险评估方法"
+          ],
+          "expertise_level": "专业级别，具备全面的金融市场和投资分析知识",
+          "knowledge_sources": [
+            "实时股票API数据",
+            "财经新闻媒体",
+            "公司财务报告",
+            "市场分析报告",
+            "行业研究数据",
+            "内置金融知识库"
+          ],
+          "update_frequency": "基本信息每24小时更新，行情数据每15分钟更新，新闻每小时更新，财务数据每季度更新"
+        },
+        "interaction_patterns": {
+          "communication_style": "结构化的金融分析报告风格，分段展示不同类型的信息，重点突出关键数据和评价结论",
+          "conversation_flow": "接收输入 → 快速返回基本信息 → 并行收集详细数据 → 分批次展示结果 → 最终提供综合评价",
+          "error_responses": [
+            "股票不存在：提供模糊匹配建议和相似股票列表",
+            "数据源不可用：说明数据缺失情况并提供可用的替代数据",
+            "API限制：解释限制原因并提供降级服务",
+            "网络问题：提示重试并使用缓存数据",
+            "输入不明确：请求用户澄清或提供更多信息"
+          ]
+        },
+        "constraints": [
+          "必须遵守各数据提供商的API使用条款和频率限制",
+          "必须添加投资建议免责声明",
+          "必须明确标注数据来源和更新时间",
+          "必须在部分数据缺失的情况下仍能提供有价值的服务",
+          "必须在10秒内完成单次查询响应",
+          "必须支持并发查询（至少5个并发请求）"
+        ],
+        "evaluation_criteria": [
+          "信息收集完整度：能够收集到至少90%的目标数据",
+          "响应速度：平均查询响应时间在8秒以内",
+          "数据准确性：与原始数据源保持一致，无错误转换",
+          "评价质量：评价报告结构完整、逻辑清晰、依据充分",
+          "容错能力：在部分数据源不可用时仍能提供降级服务",
+          "用户体验：输入处理灵活，输出格式清晰易读"
+        ],
+        "model_requirements": {
+          "model_name": "global.anthropic.claude-sonnet-4-5-20250929-v1:0",
+          "minimum_capabilities": [
+            "强大的文本理解和生成能力",
+            "结构化数据处理能力",
+            "金融领域知识",
+            "多步骤推理能力"
+          ],
+          "rationale": "Claude Sonnet 4.5模型具有强大的上下文理解能力和推理能力，能够处理复杂的金融数据和生成专业的分析报告，同时具有较高的准确性和可靠性"
+        },
+        "memory_configuration": {
+          "memory_type": "分层缓存记忆系统",
+          "retention_policy": "基本信息缓存24小时，行情数据缓存15分钟，新闻缓存1小时，财务数据缓存7天",
+          "retrieval_strategy": "先检查缓存，缓存失效或不存在时再调用API获取最新数据"
+        }
+      }
+    ],
+    "agent_relationships": [
+      {
+        "source_agent": "stock_information_collector",
+        "target_agent": "stock_information_collector",
+        "relationship_type": "自调用",
+        "interaction_protocol": "内部函数调用",
+        "data_exchange": ["股票查询结果", "行情数据", "财务数据", "新闻数据", "评价报告"]
+      }
+    ],
+    "system_integration": {
+      "entry_point": "handler函数，接收用户输入的股票名称或代码",
+      "exit_points": ["返回格式化的股票信息和评价报告"],
+      "external_interfaces": [
+        "股票数据API（Yahoo Finance/Alpha Vantage）",
+        "财务数据API（财报数据源）",
+        "新闻API（News API/Google News）",
+        "网络搜索服务",
+        "AWS Bedrock（LLM推理）"
+      ]
+    }
+  }
+}

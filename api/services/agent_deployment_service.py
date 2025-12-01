@@ -652,12 +652,18 @@ class AgentDeploymentService:
         agent_code: Dict[str, Any],
         tools_data: List[Dict[str, Any]],
     ) -> Optional[Path]:
-        deps = set(agent_code.get("dependencies") or [])
+        # Baseline dependencies required for all agents
+        baseline_deps = {
+            "bedrock-agentcore",
+            "strands-agents",
+            "strands-agents-tools",
+            "PyYAML",
+        }
+
+        deps = set(baseline_deps)
+        deps.update(agent_code.get("dependencies") or [])
         for tool in tools_data:
             deps.update(tool.get("dependencies") or [])
-
-        if not deps:
-            return None
 
         req_path = project_dir / "requirements.txt"
         req_path.parent.mkdir(parents=True, exist_ok=True)

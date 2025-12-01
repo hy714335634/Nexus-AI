@@ -1,0 +1,207 @@
+{
+  "agent_code_development": {
+    "development_overview": {
+      "project_name": "stock_information_collector",
+      "version": "1.0",
+      "date": "2025-11-28",
+      "development_scope": "开发股票信息收集与评价Agent的完整代码实现，包括Agent初始化、工具集成、数据处理、评价生成、错误处理等核心功能",
+      "design_principles": [
+        "基于deep_research_agent模板进行定制开发",
+        "使用agent_factory创建Agent实例",
+        "集成五个专用工具实现数据收集",
+        "实现BedrockAgentCoreApp标准入口点",
+        "完善的日志记录和错误处理",
+        "支持本地测试和AgentCore部署"
+      ],
+      "key_decisions": [
+        "使用create_agent_from_prompt_template创建Agent",
+        "实现@app.entrypoint装饰的handler函数",
+        "使用Claude Sonnet 4.5模型进行分析",
+        "集成五个专用工具（股票查询、行情数据、财务数据、新闻收集、缓存管理）",
+        "提供详细的命令行参数支持本地测试"
+      ]
+    },
+    "agent_implementation": {
+      "agent_name": "stock_information_collector",
+      "file_path": "agents/generated_agents/stock_information_collector/stock_information_collector.py",
+      "main_class": "无（使用函数式编程）",
+      "entry_point": "handler函数（AgentCore标准入口点）",
+      "dependencies": [
+        "nexus_utils.agent_factory",
+        "bedrock_agentcore.runtime",
+        "logging",
+        "json",
+        "os"
+      ],
+      "imports": [
+        "from nexus_utils.agent_factory import create_agent_from_prompt_template",
+        "from bedrock_agentcore.runtime import BedrockAgentCoreApp",
+        "import logging",
+        "import json",
+        "import os"
+      ]
+    },
+    "core_functions": [
+      {
+        "function_name": "create_stock_collector_agent",
+        "purpose": "创建股票信息收集Agent实例的工厂函数",
+        "parameters": [
+          {
+            "name": "env",
+            "type": "str",
+            "description": "运行环境（production/development/testing）",
+            "required": false
+          },
+          {
+            "name": "version",
+            "type": "str",
+            "description": "Agent版本",
+            "required": false
+          },
+          {
+            "name": "model_id",
+            "type": "str",
+            "description": "使用的模型ID",
+            "required": false
+          }
+        ],
+        "return_type": "Any",
+        "return_description": "创建的Agent实例",
+        "implementation_notes": [
+          "使用agent_factory.create_agent_from_prompt_template创建Agent",
+          "传递环境、版本、模型等配置参数",
+          "启用日志记录功能",
+          "捕获并记录创建过程中的异常"
+        ]
+      },
+      {
+        "function_name": "handler",
+        "purpose": "AgentCore标准入口点，处理来自AgentCore的请求",
+        "parameters": [
+          {
+            "name": "payload",
+            "type": "Dict[str, Any]",
+            "description": "AgentCore传入的请求体，包含prompt、user_id、session_id等",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "响应文本（股票信息和评价报告）",
+        "implementation_notes": [
+          "使用@app.entrypoint装饰器标记为入口点",
+          "从payload中提取prompt参数",
+          "调用stock_collector进行股票分析",
+          "适配Strands Agent的多种返回格式",
+          "完整的错误处理和日志记录",
+          "返回字符串格式的响应"
+        ]
+      }
+    ],
+    "tool_integration": {
+      "custom_tools": [
+        "stock_query_tool - 股票查询和基本信息获取",
+        "market_data_tool - 实时行情数据获取",
+        "financial_data_tool - 财务数据和关键指标获取",
+        "news_collection_tool - 股票相关新闻收集",
+        "cache_manager_tool - 数据缓存管理"
+      ],
+      "system_tools": [
+        "strands_tools/current_time - 获取当前时间",
+        "strands_tools/calculator - 计算器工具"
+      ],
+      "strands_tools": [],
+      "integration_notes": [
+        "所有工具通过提示词模板的tools_dependencies配置",
+        "工具由Agent自动加载和调用",
+        "工具返回JSON格式的结构化数据",
+        "实现智能缓存减少API调用次数"
+      ]
+    },
+    "configuration": {
+      "environment_variables": [
+        "BYPASS_TOOL_CONSENT=true - 绕过工具同意确认",
+        "DOCKER_CONTAINER=1 - 标识Docker容器环境（可选）"
+      ],
+      "model_configuration": {
+        "model_name": "global.anthropic.claude-sonnet-4-5-20250929-v1:0",
+        "max_tokens": 60000,
+        "temperature": 0.3
+      },
+      "streaming_config": {
+        "enabled": false,
+        "chunk_size": null
+      }
+    },
+    "error_handling": {
+      "exception_types": [
+        "Agent创建失败",
+        "参数缺失（prompt）",
+        "工具调用异常",
+        "数据解析错误",
+        "网络请求超时"
+      ],
+      "error_responses": [
+        "Error: Missing 'prompt' in request",
+        "Error: 股票信息收集过程中发生错误",
+        "Agent创建失败异常"
+      ],
+      "recovery_strategies": [
+        "捕获所有异常并记录日志",
+        "返回友好的错误消息",
+        "使用缓存数据作为降级方案",
+        "提供详细的错误信息帮助调试"
+      ]
+    },
+    "testing": {
+      "test_cases": [
+        "查询美股：python stock_information_collector.py -i AAPL",
+        "查询A股：python stock_information_collector.py -i 000001",
+        "查询港股：python stock_information_collector.py -i 00700",
+        "使用公司名称：python stock_information_collector.py -i 苹果",
+        "不存在的股票：python stock_information_collector.py -i XYZABC"
+      ],
+      "test_scenarios": [
+        "正常查询流程",
+        "数据缺失处理",
+        "API调用失败",
+        "缓存命中测试",
+        "多市场支持测试"
+      ],
+      "validation_criteria": [
+        "Agent创建成功",
+        "能够识别股票代码和名称",
+        "成功收集基本信息、行情、财务、新闻数据",
+        "生成结构化的评价报告",
+        "错误处理正确",
+        "日志记录完整"
+      ]
+    },
+    "deployment": {
+      "deployment_requirements": [
+        "Python 3.13+运行环境",
+        "安装nexus_utils包",
+        "安装strands-agents包",
+        "安装bedrock-agentcore包",
+        "安装yfinance包",
+        "安装duckduckgo-search包",
+        "配置AWS Bedrock访问权限"
+      ],
+      "runtime_dependencies": [
+        "./nexus_utils",
+        "strands-agents",
+        "bedrock-agentcore",
+        "yfinance",
+        "duckduckgo-search"
+      ],
+      "performance_considerations": [
+        "首次查询需要下载数据，可能需要较长时间",
+        "数据会被缓存以加快后续查询速度",
+        "行情数据缓存15分钟",
+        "基本信息缓存24小时",
+        "新闻数据缓存1小时",
+        "财务数据缓存7天"
+      ]
+    },
+    "development_notes": "Agent代码开发完成，基于deep_research_agent模板进行了专业化定制。实现了以下关键功能：\n\n1. **Agent创建**：使用agent_factory.create_agent_from_prompt_template创建Agent实例，支持环境、版本、模型配置。\n\n2. **AgentCore入口点**：实现了@app.entrypoint装饰的handler函数，符合AgentCore部署规范。handler函数接收payload参数，提取prompt，调用Agent，返回字符串响应。\n\n3. **响应格式处理**：实现了健壮的响应解析逻辑，适配Strands Agent的多种返回格式（message.content、content、str等）。\n\n4. **工具集成**：通过提示词模板集成了五个专用工具，Agent自动加载和调用这些工具进行数据收集和分析。\n\n5. **日志记录**：使用logging模块记录详细的运行日志，包括请求接收、处理过程、响应生成、错误信息等。\n\n6. **错误处理**：实现了完整的异常捕获和错误处理机制，确保所有错误都被记录并返回友好的错误消息。\n\n7. **本地测试支持**：提供了详细的命令行参数，支持本地测试模式，包括环境选择、版本指定、模型配置、调试模式等。\n\n8. **部署兼容性**：支持本地运行和AgentCore部署两种模式，通过DOCKER_CONTAINER环境变量自动切换。\n\n代码质量特性：\n- 完整的类型注解\n- 详细的函数文档字符串\n- 清晰的代码注释\n- 结构化的日志记录\n- 健壮的错误处理\n- 用户友好的命令行界面\n\n下一步建议：\n1. 进行完整的功能测试，验证所有功能正常工作\n2. 测试不同市场的股票查询\n3. 验证缓存机制的有效性\n4. 测试错误处理和降级策略\n5. 准备部署到AgentCore"
+  }
+}

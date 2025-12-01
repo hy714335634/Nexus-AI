@@ -1,0 +1,27 @@
+./nexus_utils
+strands-agents
+strands-agents-tools
+PyYAML
+bedrock-agentcore
+# Sports Team Match Predictor - Python Dependencies
+# 生成日期: 2025-11-30
+# 项目: 体育比赛预测分析系统
+# ==================== 核心框架 ====================
+# Strands Agent框架和工具
+strands-agents>=1.0.0
+strands-agents-tools>=1.0.0
+# 本地工具包（Agent工厂和配置管理）
+# AWS Bedrock AgentCore运行时
+bedrock_agentcore>=1.0.0
+# ==================== AWS服务 ====================
+# AWS SDK（用于Bedrock模型调用和服务集成）
+boto3>=1.34.0
+botocore>=1.34.0
+# ==================== 配置和数据处理 ====================
+# YAML配置文件解析
+PyYAML>=6.0
+# ==================== 注意事项 ====================
+# 1. Python内置模块（os、json、logging、typing等）不需要安装
+# 2. nexus_utils是本地工具包，使用相对路径引用
+# 3. 所有第三方包均可通过pip install -r requirements.txt安装
+# 4. 建议使用虚拟环境（venv或conda）管理依赖

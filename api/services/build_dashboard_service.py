@@ -238,15 +238,20 @@ def _build_stage_model(entry: Dict[str, Any]) -> BuildDashboardStage:
     if not isinstance(metadata_dict, dict):
         metadata_dict = {}
 
+    # Support both old format (name, display_name, order) and new format (stage_name, stage_name_cn, stage_number)
+    name = _coerce_str(entry.get("stage_name") or entry.get("name")) or "unknown"
+    display_name = _coerce_str(entry.get("stage_name_cn") or entry.get("display_name"))
+    order = _coerce_int(entry.get("stage_number") or entry.get("order")) or 0
+
     return BuildDashboardStage(
-        name=_coerce_str(entry.get("name")) or "unknown",
-        display_name=_coerce_str(entry.get("display_name")),
-        order=_coerce_int(entry.get("order")) or 0,
+        name=name,
+        display_name=display_name,
+        order=order,
         status=status,
         started_at=started_at,
         completed_at=completed_at,
         duration_seconds=duration,
-        error=_coerce_str(entry.get("error")),
+        error=_coerce_str(entry.get("error_message") or entry.get("error")),
         input_tokens=_coerce_int(entry.get("input_tokens")),
         output_tokens=_coerce_int(entry.get("output_tokens")),
         tool_calls=_coerce_int(entry.get("tool_calls")),

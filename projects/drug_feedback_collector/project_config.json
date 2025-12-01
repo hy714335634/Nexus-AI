@@ -1,0 +1,133 @@
+{
+  "project_name": "drug_feedback_collector",
+  "validation_timestamp": "2025-11-29T15:42:38.372438+00:00",
+  "overall_status": "success",
+  "agent_scripts": [
+    {
+      "script_path": "agents/generated_agents/drug_feedback_collector/drug_feedback_collector.py",
+      "syntax_valid": true,
+      "dependencies": [
+        "os",
+        "json",
+        "logging",
+        "typing",
+        "nexus_utils.agent_factory",
+        "bedrock_agentcore.runtime",
+        "argparse"
+      ],
+      "execution_params": [],
+      "argparse_params": [
+        {
+          "name": "-i",
+          "type": "str",
+          "description": "测试输入内容（完整的prompt）",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "-d",
+          "type": "str",
+          "description": "药物名称",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "--depth",
+          "type": "str",
+          "description": "搜索深度（basic: 基础, standard: 标准, comprehensive: 全面）",
+          "required": false,
+          "default": "standard",
+          "action": null
+        },
+        {
+          "name": "--language",
+          "type": "str",
+          "description": "语言偏好（zh: 中文, en: 英文, both: 中英文）",
+          "required": false,
+          "default": "both",
+          "action": null
+        },
+        {
+          "name": "-e",
+          "type": "str",
+          "description": "运行环境（production/development/testing）",
+          "required": false,
+          "default": "production",
+          "action": null
+        },
+        {
+          "name": "-v",
+          "type": "str",
+          "description": "Agent版本",
+          "required": false,
+          "default": "latest",
+          "action": null
+        }
+      ],
+      "error_message": ""
+    }
+  ],
+  "prompt_files": [
+    {
+      "prompt_path": "generated_agents_prompts/drug_feedback_collector/drug_feedback_collector.yaml",
+      "tool_count": 18,
+      "valid": true,
+      "error_message": "",
+      "metadata": {
+        "tags": [
+          "research",
+          "medical",
+          "feedback_analysis",
+          "sentiment_analysis",
+          "topic_classification"
+        ],
+        "supported_models": [
+          "global.anthropic.claude-sonnet-4-5-20250929-v1:0"
+        ],
+        "tools_dependencies": [
+          "strands_tools/current_time",
+          "strands_tools/calculator",
+          "strands_tools/http_request",
+          "strands_tools/python_repl",
+          "strands_tools/file_read",
+          "strands_tools/file_write",
+          "generated_tools/drug_feedback_collector/drug_feedback_tools/validate_drug_name",
+          "generated_tools/drug_feedback_collector/drug_feedback_tools/search_drug_feedback",
+          "generated_tools/drug_feedback_collector/drug_feedback_tools/extract_page_content",
+          "generated_tools/drug_feedback_collector/drug_feedback_tools/analyze_sentiment",
+          "generated_tools/drug_feedback_collector/drug_feedback_tools/classify_feedback_topic",
+          "generated_tools/drug_feedback_collector/drug_feedback_tools/deduplicate_feedback",
+          "generated_tools/drug_feedback_collector/drug_feedback_tools/filter_quality_feedback",
+          "generated_tools/drug_feedback_collector/drug_feedback_tools/aggregate_feedback_statistics",
+          "generated_tools/drug_feedback_collector/drug_feedback_tools/extract_representative_feedback",
+          "generated_tools/drug_feedback_collector/drug_feedback_tools/generate_feedback_summary",
+          "generated_tools/drug_feedback_collector/drug_feedback_tools/format_feedback_report",
+          "generated_tools/drug_feedback_collector/drug_feedback_tools/manage_feedback_cache"
+        ]
+      },
+      "agent_info": {
+        "name": "drug_feedback_collector",
+        "description": "专业的药物反馈收集与分析专家，用于接收药物名称输入，从互联网多个来源收集、分析和总结关于该药物的用户反馈信息，生成全面的分析报告",
+        "category": "research_analysis"
+      }
+    }
+  ],
+  "generated_tools": [
+    {
+      "tool_path": "generated_tools/drug_feedback_collector/drug_feedback_tools.py",
+      "syntax_valid": true,
+      "error_message": ""
+    }
+  ],
+  "total_tools": 18,
+  "summary": {
+    "agent_scripts_count": 1,
+    "prompt_files_count": 1,
+    "generated_tool_files_count": 1,
+    "all_scripts_valid": true,
+    "all_tools_valid": true,
+    "all_prompts_valid": true
+  }
+}

@@ -1,0 +1,225 @@
+{
+  "agent_code_development": {
+    "development_overview": {
+      "project_name": "sports_team_match_predictor",
+      "version": "1.0",
+      "date": "2025-11-30",
+      "development_scope": "开发完整的体育比赛预测分析Agent代码，基于deep_research_agent模板，集成专业体育数据工具，实现从球队信息收集到比赛结果预测的完整流程",
+      "design_principles": [
+        "模块化设计：Agent代码结构清晰，功能分离明确",
+        "健壮性优先：完善的错误处理和异常管理机制",
+        "可部署性：支持本地测试和AgentCore部署两种模式",
+        "日志完整：详细的日志记录便于问题排查和性能监控",
+        "易用性：提供友好的命令行接口和丰富的使用示例"
+      ],
+      "key_decisions": [
+        "基于deep_research_agent模板：复用成熟的研究分析框架",
+        "使用BedrockAgentCoreApp：支持部署到AWS Bedrock AgentCore",
+        "集成专业体育工具：使用sports_data_tools.py中的5个专业工具",
+        "实现双模式运行：支持本地测试(-i参数)和AgentCore服务器模式",
+        "完善的日志系统：使用Python logging模块记录关键操作"
+      ]
+    },
+    "agent_implementation": {
+      "agent_name": "sports_team_match_predictor",
+      "file_path": "agents/generated_agents/sports_team_match_predictor/sports_team_match_predictor.py",
+      "main_class": "无（使用函数式编程）",
+      "entry_point": "handler(payload: Dict[str, Any]) -> str",
+      "dependencies": [
+        "strands-agents",
+        "strands-agents-tools",
+        "./nexus_utils",
+        "bedrock_agentcore"
+      ],
+      "imports": [
+        "os",
+        "json",
+        "logging",
+        "typing.Dict",
+        "typing.Any",
+        "nexus_utils.agent_factory.create_agent_from_prompt_template",
+        "bedrock_agentcore.runtime.BedrockAgentCoreApp"
+      ]
+    },
+    "core_functions": [
+      {
+        "function_name": "create_sports_predictor_agent",
+        "purpose": "创建体育比赛预测分析Agent实例",
+        "parameters": [
+          {
+            "name": "env",
+            "type": "str",
+            "description": "运行环境 (production/development/testing)",
+            "required": false
+          },
+          {
+            "name": "version",
+            "type": "str",
+            "description": "Agent版本",
+            "required": false
+          },
+          {
+            "name": "model_id",
+            "type": "str",
+            "description": "模型ID (default使用配置文件中的模型)",
+            "required": false
+          },
+          {
+            "name": "enable_logging",
+            "type": "bool",
+            "description": "是否启用日志",
+            "required": false
+          }
+        ],
+        "return_type": "Any",
+        "return_description": "创建的Agent实例",
+        "implementation_notes": [
+          "使用agent_factory.create_agent_from_prompt_template创建Agent",
+          "Agent配置路径: generated_agents_prompts/sports_team_match_predictor/sports_team_match_predictor",
+          "包含完整的错误处理和日志记录",
+          "返回配置好的Agent实例供后续使用"
+        ]
+      },
+      {
+        "function_name": "handler",
+        "purpose": "AgentCore标准入口点，处理来自AgentCore的请求",
+        "parameters": [
+          {
+            "name": "payload",
+            "type": "Dict[str, Any]",
+            "description": "AgentCore传入的请求体，包含prompt、sport_type、analysis_depth等参数",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "预测分析报告文本",
+        "implementation_notes": [
+          "使用@app.entrypoint装饰器标记为AgentCore入口点",
+          "从payload中提取prompt参数（支持prompt/message/input多种键名）",
+          "调用sports_predictor Agent进行分析",
+          "处理多种Agent返回格式（message.content、content、str等）",
+          "包含完整的错误处理和日志记录",
+          "返回字符串格式的分析报告"
+        ]
+      }
+    ],
+    "tool_integration": {
+      "custom_tools": [
+        "team_info_collector",
+        "match_predictor",
+        "sports_api_client",
+        "sports_news_collector",
+        "match_report_generator"
+      ],
+      "system_tools": [
+        "file_read",
+        "file_write",
+        "current_time",
+        "http_request",
+        "rss"
+      ],
+      "strands_tools": [
+        "information_collector",
+        "web_search_enhanced",
+        "data_analyzer",
+        "trend_predictor",
+        "report_generator",
+        "data_validator"
+      ],
+      "integration_notes": [
+        "所有工具通过提示词模板配置文件自动加载",
+        "自定义工具位于tools/generated_tools/sports_team_match_predictor/sports_data_tools.py",
+        "工具调用由Agent根据提示词指令自动编排",
+        "支持工具调用链和并发调用",
+        "工具返回JSON格式数据便于Agent处理"
+      ]
+    },
+    "configuration": {
+      "environment_variables": [
+        "BYPASS_TOOL_CONSENT=true",
+        "DOCKER_CONTAINER (可选，用于判断是否在Docker环境运行)"
+      ],
+      "model_configuration": {
+        "model_name": "anthropic.claude-sonnet-4-5-20250929-v1:0",
+        "max_tokens": 60000,
+        "temperature": 0.3
+      },
+      "streaming_config": {
+        "enabled": false,
+        "chunk_size": 1024
+      }
+    },
+    "error_handling": {
+      "exception_types": [
+        "Agent创建失败",
+        "提示词参数缺失",
+        "工具调用异常",
+        "数据解析错误",
+        "网络请求超时"
+      ],
+      "error_responses": [
+        "友好的错误提示信息",
+        "详细的错误日志记录",
+        "错误堆栈跟踪（调试模式）",
+        "HTTP错误状态码（AgentCore模式）"
+      ],
+      "recovery_strategies": [
+        "参数验证：在调用前验证必需参数",
+        "异常捕获：使用try-except捕获所有异常",
+        "日志记录：记录错误详情便于排查",
+        "优雅降级：在非关键错误时继续执行",
+        "用户反馈：提供清晰的错误说明和建议"
+      ]
+    },
+    "testing": {
+      "test_cases": [
+        "基本测试: python sports_team_match_predictor.py -i 'Manchester United'",
+        "指定项目: python sports_team_match_predictor.py -i 'Lakers' --sport basketball",
+        "指定深度: python sports_team_match_predictor.py -i 'Barcelona' --depth advanced",
+        "环境切换: python sports_team_match_predictor.py -i 'Real Madrid' -e development",
+        "调试模式: python sports_team_match_predictor.py -i 'Bayern Munich' --debug"
+      ],
+      "test_scenarios": [
+        "单球队分析：输入球队名称，验证完整分析流程",
+        "多体育项目：测试足球和篮球项目的识别和分析",
+        "不同深度：测试basic、standard、advanced三种分析深度",
+        "错误处理：测试无效球队名称、网络异常等错误场景",
+        "AgentCore模式：测试HTTP服务器启动和请求处理"
+      ],
+      "validation_criteria": [
+        "Agent创建成功并正确加载配置",
+        "工具集成正常，能够正确调用所有工具",
+        "错误处理完善，异常情况不导致崩溃",
+        "日志记录完整，关键操作都有日志",
+        "输出格式正确，分析报告结构化清晰",
+        "性能满足要求，单次分析在3分钟内完成"
+      ]
+    },
+    "deployment": {
+      "deployment_requirements": [
+        "Python 3.13+运行环境",
+        "安装依赖包：strands-agents、strands-agents-tools、bedrock_agentcore",
+        "配置AWS凭证（用于Bedrock模型调用）",
+        "提示词配置文件：prompts/generated_agents_prompts/sports_team_match_predictor/sports_team_match_predictor.yaml",
+        "工具代码文件：tools/generated_tools/sports_team_match_predictor/sports_data_tools.py"
+      ],
+      "runtime_dependencies": [
+        "strands-agents>=1.0.0",
+        "strands-agents-tools>=1.0.0",
+        "./nexus_utils",
+        "bedrock_agentcore>=1.0.0",
+        "PyYAML>=6.0",
+        "boto3>=1.34.0",
+        "botocore>=1.34.0"
+      ],
+      "performance_considerations": [
+        "单次完整分析控制在3分钟内",
+        "工具调用实现合理的超时控制（30秒）",
+        "支持并发处理多个用户请求",
+        "日志级别可配置，生产环境使用INFO级别",
+        "内存占用优化，避免大数据集的内存复制"
+      ]
+    },
+    "development_notes": "Agent代码开发完成，基于deep_research_agent模板进行定制化开发。代码结构清晰，采用函数式编程风格，避免了不必要的类封装。实现了完整的AgentCore部署支持，包括@app.entrypoint装饰的handler函数、HTTP服务器启动逻辑、以及本地测试模式。集成了5个专业体育工具和6个模板工具，通过提示词配置文件自动加载。实现了完善的错误处理机制，包括参数验证、异常捕获、日志记录等。提供了丰富的命令行参数支持，便于本地测试和调试。代码遵循PEP 8规范，使用完整的类型注解，包含详细的文档字符串。Agent能够处理来自AgentCore的请求，正确解析payload参数，调用Agent进行分析，并返回字符串格式的响应。支持多种Agent返回格式的适配，确保兼容性。日志系统完整，记录了Agent创建、请求处理、分析执行、错误处理等关键步骤。"
+  }
+}

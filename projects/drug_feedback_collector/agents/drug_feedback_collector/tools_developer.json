@@ -1,0 +1,600 @@
+{
+  "tool_development": {
+    "development_overview": {
+      "project_name": "drug_feedback_collector",
+      "version": "1.0",
+      "date": "2025-11-29",
+      "development_scope": "开发药物反馈收集Agent所需的专业工具集，包括网络搜索、内容提取、情感分析、主题分类、数据去重、质量过滤、统计聚合、报告生成等核心功能",
+      "design_principles": [
+        "单一职责：每个工具函数专注于一个特定功能",
+        "可组合性：工具之间可以灵活组合使用",
+        "错误处理：完善的异常处理和错误信息",
+        "性能优化：使用缓存机制减少重复请求",
+        "类型安全：完整的类型注解",
+        "可扩展性：易于添加新的数据源和分析方法"
+      ],
+      "key_decisions": [
+        "使用DuckDuckGo搜索引擎（免费、无需API密钥）",
+        "实现本地缓存机制（.cache/drug_feedback_collector目录）",
+        "采用基于关键词的简单情感分析（无需外部NLP服务）",
+        "支持多种输出格式（JSON、Markdown、HTML、Text）",
+        "使用BeautifulSoup进行HTML解析",
+        "所有工具返回JSON格式的结构化数据"
+      ]
+    },
+    "tools": [
+      {
+        "tool_name": "search_drug_feedback",
+        "description": "从多个来源（网页、新闻、论坛）搜索药物相关的用户反馈信息",
+        "function_signature": "search_drug_feedback(drug_name: str, search_sources: List[str] = ['web', 'news', 'forums'], max_results_per_source: int = 10, use_cache: bool = True) -> str",
+        "parameters": [
+          {
+            "name": "drug_name",
+            "type": "str",
+            "description": "药物名称",
+            "required": true
+          },
+          {
+            "name": "search_sources",
+            "type": "List[str]",
+            "description": "搜索来源列表，可选值：web（网页）、news（新闻）、forums（论坛）",
+            "required": false
+          },
+          {
+            "name": "max_results_per_source",
+            "type": "int",
+            "description": "每个来源的最大结果数量",
+            "required": false
+          },
+          {
+            "name": "use_cache",
+            "type": "bool",
+            "description": "是否使用缓存（1小时有效期）",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的搜索结果，包含标题、URL、摘要等信息",
+        "dependencies": ["duckduckgo-search"],
+        "implementation_notes": [
+          "使用DuckDuckGo搜索引擎进行搜索",
+          "支持多种搜索来源（网页、新闻、论坛）",
+          "实现缓存机制，避免重复搜索",
+          "对论坛结果进行URL过滤",
+          "返回结构化的JSON数据"
+        ],
+        "error_handling": [
+          "验证药物名称不为空",
+          "检查duckduckgo-search依赖是否安装",
+          "捕获各个搜索源的异常，确保部分失败不影响整体",
+          "记录执行时间用于性能监控"
+        ],
+        "usage_examples": [
+          "search_drug_feedback('阿司匹林')",
+          "search_drug_feedback('aspirin', search_sources=['web', 'news'], max_results_per_source=20)",
+          "search_drug_feedback('布洛芬', use_cache=False)"
+        ]
+      },
+      {
+        "tool_name": "extract_page_content",
+        "description": "从指定URL提取网页内容（文本或HTML结构）",
+        "function_signature": "extract_page_content(url: str, extract_type: str = 'text', timeout: int = 30) -> str",
+        "parameters": [
+          {
+            "name": "url",
+            "type": "str",
+            "description": "网页URL",
+            "required": true
+          },
+          {
+            "name": "extract_type",
+            "type": "str",
+            "description": "提取类型，可选值：text（纯文本）、html（HTML结构）、all（全部）",
+            "required": false
+          },
+          {
+            "name": "timeout",
+            "type": "int",
+            "description": "请求超时时间（秒）",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的提取结果，包含文本、段落、链接等信息",
+        "dependencies": ["requests", "beautifulsoup4"],
+        "implementation_notes": [
+          "使用requests发送HTTP请求",
+          "使用BeautifulSoup解析HTML",
+          "移除脚本、样式、导航、页脚等无关内容",
+          "提取纯文本并清理多余空格",
+          "支持提取段落和链接结构"
+        ],
+        "error_handling": [
+          "验证URL格式",
+          "处理请求超时",
+          "处理网络请求异常",
+          "处理HTML解析异常"
+        ],
+        "usage_examples": [
+          "extract_page_content('https://example.com/drug-review')",
+          "extract_page_content('https://example.com', extract_type='html')",
+          "extract_page_content('https://example.com', extract_type='all', timeout=60)"
+        ]
+      },
+      {
+        "tool_name": "analyze_sentiment",
+        "description": "对药物反馈文本进行情感分析，识别正面、负面或中性情感",
+        "function_signature": "analyze_sentiment(text: str, language: str = 'auto') -> str",
+        "parameters": [
+          {
+            "name": "text",
+            "type": "str",
+            "description": "要分析的文本内容",
+            "required": true
+          },
+          {
+            "name": "language",
+            "type": "str",
+            "description": "语言类型，可选值：auto（自动检测）、zh（中文）、en（英文）",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的情感分析结果，包含情感类型、置信度、信号数量等",
+        "dependencies": [],
+        "implementation_notes": [
+          "基于关键词匹配的简单情感分析",
+          "支持中文和英文",
+          "自动检测语言（检查是否包含中文字符）",
+          "统计正面和负面关键词出现次数",
+          "计算情感得分和置信度"
+        ],
+        "error_handling": [
+          "验证文本不为空",
+          "捕获分析异常"
+        ],
+        "usage_examples": [
+          "analyze_sentiment('这个药效果很好，副作用小')",
+          "analyze_sentiment('This drug is very effective', language='en')",
+          "analyze_sentiment('药物无效，有严重副作用')"
+        ]
+      },
+      {
+        "tool_name": "classify_feedback_topic",
+        "description": "将药物反馈分类为不同的主题类别（疗效、副作用、价格、用法、购买渠道、对比等）",
+        "function_signature": "classify_feedback_topic(text: str, drug_name: str) -> str",
+        "parameters": [
+          {
+            "name": "text",
+            "type": "str",
+            "description": "反馈文本",
+            "required": true
+          },
+          {
+            "name": "drug_name",
+            "type": "str",
+            "description": "药物名称",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的主题分类结果，包含主要主题、置信度、次要主题等",
+        "dependencies": [],
+        "implementation_notes": [
+          "定义6个主题类别：疗效、副作用、价格、用法、购买渠道、对比",
+          "每个主题包含中英文关键词",
+          "统计各主题关键词出现次数",
+          "计算主题权重和置信度",
+          "返回主要主题和次要主题"
+        ],
+        "error_handling": [
+          "验证文本不为空",
+          "处理无明确主题的情况（返回general）"
+        ],
+        "usage_examples": [
+          "classify_feedback_topic('这个药疗效显著', '阿司匹林')",
+          "classify_feedback_topic('副作用太大，头晕恶心', '布洛芬')",
+          "classify_feedback_topic('价格太贵，能报销吗', '某药')"
+        ]
+      },
+      {
+        "tool_name": "deduplicate_feedback",
+        "description": "基于内容相似度去除重复的反馈信息",
+        "function_signature": "deduplicate_feedback(feedback_items: str, similarity_threshold: float = 0.8) -> str",
+        "parameters": [
+          {
+            "name": "feedback_items",
+            "type": "str",
+            "description": "JSON格式的反馈项列表",
+            "required": true
+          },
+          {
+            "name": "similarity_threshold",
+            "type": "float",
+            "description": "相似度阈值（0-1），超过此值认为是重复",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的去重后的反馈列表，包含原始数量、去重后数量、去重率等",
+        "dependencies": [],
+        "implementation_notes": [
+          "提取反馈文本（snippet、text或title）",
+          "标准化文本（小写、去除多余空格）",
+          "计算MD5哈希值",
+          "使用哈希集合进行去重",
+          "统计去重数量和去重率"
+        ],
+        "error_handling": [
+          "验证JSON格式",
+          "验证输入为列表类型",
+          "处理空列表情况",
+          "跳过无效的反馈项"
+        ],
+        "usage_examples": [
+          "deduplicate_feedback('[{\"snippet\": \"text1\"}, {\"snippet\": \"text1\"}, {\"snippet\": \"text2\"}]')",
+          "deduplicate_feedback(feedback_json, similarity_threshold=0.9)"
+        ]
+      },
+      {
+        "tool_name": "filter_quality_feedback",
+        "description": "基于内容长度、关键词等标准过滤低质量的反馈信息",
+        "function_signature": "filter_quality_feedback(feedback_items: str, min_length: int = 20, max_length: int = 5000, remove_spam: bool = True) -> str",
+        "parameters": [
+          {
+            "name": "feedback_items",
+            "type": "str",
+            "description": "JSON格式的反馈项列表",
+            "required": true
+          },
+          {
+            "name": "min_length",
+            "type": "int",
+            "description": "最小文本长度",
+            "required": false
+          },
+          {
+            "name": "max_length",
+            "type": "int",
+            "description": "最大文本长度",
+            "required": false
+          },
+          {
+            "name": "remove_spam",
+            "type": "bool",
+            "description": "是否移除垃圾信息",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的过滤后的反馈列表，包含过滤统计信息",
+        "dependencies": [],
+        "implementation_notes": [
+          "检查文本长度（过短或过长）",
+          "检测垃圾信息关键词",
+          "统计移除原因（过短、过长、垃圾、空内容）",
+          "计算质量率"
+        ],
+        "error_handling": [
+          "验证JSON格式",
+          "验证输入为列表类型",
+          "处理空文本"
+        ],
+        "usage_examples": [
+          "filter_quality_feedback(feedback_json)",
+          "filter_quality_feedback(feedback_json, min_length=50, max_length=3000)",
+          "filter_quality_feedback(feedback_json, remove_spam=False)"
+        ]
+      },
+      {
+        "tool_name": "aggregate_feedback_statistics",
+        "description": "对收集的反馈进行统计分析，生成汇总报告",
+        "function_signature": "aggregate_feedback_statistics(feedback_items: str, include_sentiment: bool = True, include_topics: bool = True) -> str",
+        "parameters": [
+          {
+            "name": "feedback_items",
+            "type": "str",
+            "description": "JSON格式的反馈项列表（需包含sentiment和topic字段）",
+            "required": true
+          },
+          {
+            "name": "include_sentiment",
+            "type": "bool",
+            "description": "是否包含情感统计",
+            "required": false
+          },
+          {
+            "name": "include_topics",
+            "type": "bool",
+            "description": "是否包含主题统计",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的统计结果，包含总数、来源分布、情感分布、主题分布等",
+        "dependencies": [],
+        "implementation_notes": [
+          "统计反馈总数",
+          "统计来源分布",
+          "统计情感分布（正面、负面、中性）",
+          "计算情感比例和平均置信度",
+          "统计主题分布（主要主题和次要主题）",
+          "使用Counter进行高效计数"
+        ],
+        "error_handling": [
+          "验证JSON格式",
+          "验证输入为列表类型",
+          "处理缺失字段"
+        ],
+        "usage_examples": [
+          "aggregate_feedback_statistics(feedback_json)",
+          "aggregate_feedback_statistics(feedback_json, include_sentiment=True, include_topics=False)"
+        ]
+      },
+      {
+        "tool_name": "generate_feedback_summary",
+        "description": "基于收集的反馈和统计数据生成结构化的摘要报告",
+        "function_signature": "generate_feedback_summary(feedback_items: str, statistics: str, drug_name: str, summary_type: str = 'comprehensive') -> str",
+        "parameters": [
+          {
+            "name": "feedback_items",
+            "type": "str",
+            "description": "JSON格式的反馈项列表",
+            "required": true
+          },
+          {
+            "name": "statistics",
+            "type": "str",
+            "description": "JSON格式的统计信息",
+            "required": true
+          },
+          {
+            "name": "drug_name",
+            "type": "str",
+            "description": "药物名称",
+            "required": true
+          },
+          {
+            "name": "summary_type",
+            "type": "str",
+            "description": "摘要类型，可选值：brief（简要）、standard（标准）、comprehensive（全面）",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的摘要报告，包含数据概览、情感概览、主题概览、代表性反馈、详细分析等",
+        "dependencies": [],
+        "implementation_notes": [
+          "提取关键统计信息",
+          "生成数据概览",
+          "生成情感概览（数量、比例、总体倾向）",
+          "生成主题概览（前5个主题）",
+          "根据摘要类型添加不同详细程度的信息",
+          "standard和comprehensive类型包含代表性反馈",
+          "comprehensive类型包含详细分析和局限性说明"
+        ],
+        "error_handling": [
+          "验证JSON格式",
+          "处理缺失字段",
+          "提供默认值"
+        ],
+        "usage_examples": [
+          "generate_feedback_summary(feedback_json, stats_json, '阿司匹林')",
+          "generate_feedback_summary(feedback_json, stats_json, '布洛芬', summary_type='brief')",
+          "generate_feedback_summary(feedback_json, stats_json, '某药', summary_type='comprehensive')"
+        ]
+      },
+      {
+        "tool_name": "validate_drug_name",
+        "description": "检查药物名称的有效性和标准化",
+        "function_signature": "validate_drug_name(drug_name: str) -> str",
+        "parameters": [
+          {
+            "name": "drug_name",
+            "type": "str",
+            "description": "药物名称",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的验证结果，包含是否有效、标准化名称、警告、建议等",
+        "dependencies": [],
+        "implementation_notes": [
+          "检查名称是否为空",
+          "检查名称长度",
+          "检查特殊字符",
+          "检查是否为常见的非药物词汇",
+          "提供标准化建议（首字母大写）",
+          "返回警告和建议"
+        ],
+        "error_handling": [
+          "处理空名称",
+          "捕获验证异常"
+        ],
+        "usage_examples": [
+          "validate_drug_name('阿司匹林')",
+          "validate_drug_name('aspirin')",
+          "validate_drug_name('test')"
+        ]
+      },
+      {
+        "tool_name": "manage_feedback_cache",
+        "description": "管理药物反馈的本地缓存，支持列出、清除、统计等操作",
+        "function_signature": "manage_feedback_cache(operation: str, drug_name: Optional[str] = None) -> str",
+        "parameters": [
+          {
+            "name": "operation",
+            "type": "str",
+            "description": "操作类型，可选值：list（列出缓存）、clear（清除缓存）、clear_all（清除所有缓存）、stats（统计信息）",
+            "required": true
+          },
+          {
+            "name": "drug_name",
+            "type": "Optional[str]",
+            "description": "药物名称（用于clear操作）",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的操作结果",
+        "dependencies": [],
+        "implementation_notes": [
+          "list操作：列出所有缓存文件及其信息",
+          "clear操作：清除指定药物的缓存",
+          "clear_all操作：清除所有缓存文件",
+          "stats操作：统计缓存数量、大小、过期数量等",
+          "缓存目录：.cache/drug_feedback_collector",
+          "缓存有效期：1小时"
+        ],
+        "error_handling": [
+          "处理文件不存在",
+          "处理文件读取异常",
+          "处理文件删除异常"
+        ],
+        "usage_examples": [
+          "manage_feedback_cache('list')",
+          "manage_feedback_cache('clear', drug_name='阿司匹林')",
+          "manage_feedback_cache('clear_all')",
+          "manage_feedback_cache('stats')"
+        ]
+      },
+      {
+        "tool_name": "extract_representative_feedback",
+        "description": "从大量反馈中提取最具代表性的案例",
+        "function_signature": "extract_representative_feedback(feedback_items: str, count_per_category: int = 3, categories: Optional[List[str]] = None) -> str",
+        "parameters": [
+          {
+            "name": "feedback_items",
+            "type": "str",
+            "description": "JSON格式的反馈项列表",
+            "required": true
+          },
+          {
+            "name": "count_per_category",
+            "type": "int",
+            "description": "每个类别提取的数量",
+            "required": false
+          },
+          {
+            "name": "categories",
+            "type": "Optional[List[str]]",
+            "description": "要提取的类别列表（如：positive, negative, efficacy, side_effects等）",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的代表性反馈列表，按类别组织",
+        "dependencies": [],
+        "implementation_notes": [
+          "默认类别：positive、negative、neutral、efficacy、side_effects",
+          "按情感和主题分组",
+          "按置信度排序",
+          "每个类别提取前N个",
+          "简化输出（只保留关键信息）"
+        ],
+        "error_handling": [
+          "验证JSON格式",
+          "处理空列表",
+          "处理缺失字段"
+        ],
+        "usage_examples": [
+          "extract_representative_feedback(feedback_json)",
+          "extract_representative_feedback(feedback_json, count_per_category=5)",
+          "extract_representative_feedback(feedback_json, categories=['positive', 'negative'])"
+        ]
+      },
+      {
+        "tool_name": "format_feedback_report",
+        "description": "将摘要数据格式化为易读的报告格式（Markdown、HTML、Text）",
+        "function_signature": "format_feedback_report(summary_data: str, output_format: str = 'markdown') -> str",
+        "parameters": [
+          {
+            "name": "summary_data",
+            "type": "str",
+            "description": "JSON格式的摘要数据",
+            "required": true
+          },
+          {
+            "name": "output_format",
+            "type": "str",
+            "description": "输出格式，可选值：markdown、html、text",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "格式化后的报告内容",
+        "dependencies": [],
+        "implementation_notes": [
+          "markdown格式：使用标准Markdown语法",
+          "html格式：包含CSS样式的完整HTML文档",
+          "text格式：纯文本格式",
+          "包含报告概览、情感分析、主题分布、代表性反馈、关键发现、局限性说明等章节",
+          "添加免责声明"
+        ],
+        "error_handling": [
+          "验证JSON格式",
+          "处理缺失字段",
+          "提供默认值"
+        ],
+        "usage_examples": [
+          "format_feedback_report(summary_json)",
+          "format_feedback_report(summary_json, output_format='html')",
+          "format_feedback_report(summary_json, output_format='text')"
+        ]
+      }
+    ],
+    "code_quality": {
+      "code_standards": [
+        "遵循PEP 8代码规范",
+        "使用Python 3.13+类型注解",
+        "所有函数使用@tool装饰器",
+        "完整的文档字符串（docstring）",
+        "清晰的变量命名",
+        "适当的代码注释",
+        "模块化设计，功能分离"
+      ],
+      "testing_strategy": [
+        "单元测试：测试每个工具函数的基本功能",
+        "边界测试：测试空输入、异常输入等边界情况",
+        "集成测试：测试工具组合使用的场景",
+        "性能测试：测试缓存机制和搜索性能",
+        "错误处理测试：验证异常处理的正确性"
+      ],
+      "performance_considerations": [
+        "使用缓存机制减少重复搜索（1小时有效期）",
+        "限制搜索结果数量（可配置）",
+        "使用哈希进行快速去重",
+        "使用Counter进行高效统计",
+        "设置请求超时避免长时间等待",
+        "记录执行时间用于性能监控"
+      ],
+      "security_measures": [
+        "验证所有输入参数",
+        "使用正则表达式检查URL格式",
+        "过滤垃圾信息关键词",
+        "使用User-Agent避免被封禁",
+        "不存储敏感信息",
+        "缓存文件使用哈希命名避免路径遍历"
+      ]
+    },
+    "integration_details": {
+      "aws_services": [],
+      "external_libraries": [
+        "duckduckgo-search - DuckDuckGo搜索引擎API",
+        "beautifulsoup4 - HTML解析",
+        "requests - HTTP请求",
+        "strands - Strands框架（@tool装饰器）"
+      ],
+      "api_endpoints": [
+        "DuckDuckGo搜索API（通过duckduckgo-search库）"
+      ],
+      "data_formats": [
+        "JSON - 所有工具的输入输出格式",
+        "Markdown - 报告输出格式之一",
+        "HTML - 报告输出格式之一",
+        "Text - 报告输出格式之一"
+      ]
+    },
+    "development_notes": "本工具集专为药物反馈收集Agent设计，提供了从搜索、提取、分析到报告生成的完整工作流支持。所有工具都遵循Strands框架规范，使用@tool装饰器，返回JSON格式的结构化数据。实现了完善的错误处理和性能优化机制，包括本地缓存、去重、质量过滤等功能。工具之间可以灵活组合使用，支持多种数据源和输出格式。基于关键词的情感分析和主题分类方法简单高效，适合快速原型开发和实际应用。所有工具都包含详细的文档字符串和类型注解，易于理解和维护。"
+  }
+}

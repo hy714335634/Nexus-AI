@@ -355,32 +355,56 @@ class PDFExtractorAgent:
             return {"success": False, "message": f"获取状态错误: {str(e)}"}
 
 
+# 创建 BedrockAgentCoreApp 实例
+from bedrock_agentcore.runtime import BedrockAgentCoreApp
+import json as _json
+app = BedrockAgentCoreApp()
+
+
 # ==================== AgentCore 入口点（必须包含）====================
 from typing import Dict, Any as TypingAny
 
-def handler(event: Dict[str, TypingAny], context: TypingAny = None) -> Dict[str, TypingAny]:
+@app.entrypoint
+def handler(payload: Dict[str, TypingAny]) -> str:
     """
     AgentCore 标准入口点
+
+    Args:
+        payload: AgentCore 传入的请求体，包含:
+            - prompt: 用户消息
+            - pdf_path: PDF文件路径
+            - output_path: 输出文件路径
+
+    Returns:
+        str: 响应文本
     """
-    prompt = event.get("prompt") or event.get("message") or event.get("input", "")
-    pdf_path = event.get("pdf_path") or event.get("file_path")
-    output_path = event.get("output_path")
+    print(f"📥 Received payload: {_json.dumps(payload, ensure_ascii=False)}")
+
+    prompt = payload.get("prompt") or payload.get("message") or payload.get("input", "")
+    pdf_path = payload.get("pdf_path") or payload.get("file_path")
+    output_path = payload.get("output_path")
 
     if not prompt and not pdf_path:
-        return {"success": False, "error": "Missing 'prompt' or 'pdf_path' in request"}
+        return "Error: Missing 'prompt' or 'pdf_path' in request"
+
+    print(f"🔄 Processing: prompt={prompt}, pdf_path={pdf_path}")
 
     try:
         extractor = PDFExtractorAgent()
         if pdf_path:
             result = extractor.process_pdf(pdf_path, output_file=output_path)
-            return result
+            if result.get("success"):
+                response_text = f"PDF处理完成: {result.get('message', '')}"
+                if result.get("output_file"):
+                    response_text += f"\n输出文件: {result['output_file']}"
+                return response_text
+            else:
+                return f"Error: {result.get('message', 'Unknown error')}"
         else:
-            # 如果只有 prompt，尝试从 prompt 中提取文件路径
-            return {"success": False, "error": "Please provide pdf_path parameter"}
+            return "Error: Please provide pdf_path parameter"
     except Exception as e:
-        return {"success": False, "error": str(e)}
-
-invoke = handler
+        print(f"❌ Error: {str(e)}")
+        return f"Error: {str(e)}"
 
 
 # ==================== 本地运行入口 ====================
@@ -442,4 +466,12 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # 检查是否在 Docker 容器中运行（AgentCore 部署）
+    is_docker = os.environ.get("DOCKER_CONTAINER") == "1"
+
+    if is_docker:
+        # AgentCore 部署模式：启动 HTTP 服务器
+        print("🚀 启动 AgentCore HTTP 服务器，端口: 8080")
+        app.run()
+    else:
+        main()

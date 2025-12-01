@@ -605,6 +605,9 @@ def get_all_stages() -> List[BuildStage]:
         BuildStage.REQUIREMENTS_ANALYSIS,
         BuildStage.SYSTEM_ARCHITECTURE,
         BuildStage.AGENT_DESIGN,
+        BuildStage.PROMPT_ENGINEER,
+        BuildStage.TOOLS_DEVELOPER,
+        BuildStage.AGENT_CODE_DEVELOPER,
         BuildStage.AGENT_DEVELOPER_MANAGER,
         BuildStage.AGENT_DEPLOYER,
     ]

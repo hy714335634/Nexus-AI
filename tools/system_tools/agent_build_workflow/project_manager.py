@@ -2254,9 +2254,10 @@ def generate_python_requirements(project_name: str, content: str) -> str:
             if lower.startswith("nexus_utils") and not lower.startswith("./nexus_utils"):
                 continue
 
-            entries.append(line)
+            # Use module_name (already extracted without version specifiers at line 2243)
+            entries.append(module_name)
 
-    baseline = ["./nexus_utils", "strands-agents", "strands-agents-tools", "PyYAML"]
+    baseline = ["./nexus_utils", "strands-agents", "strands-agents-tools", "PyYAML", "bedrock-agentcore"]
     merged: dict[str, None] = {}
     for value in baseline + entries:
         key = value.strip()
