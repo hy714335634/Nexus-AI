@@ -106,11 +106,19 @@ class DynamoDBClient:
         )
         
         # Initialize DynamoDB resource with enhanced configuration
-        session = boto3.Session(
-            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-            region_name=settings.DYNAMODB_REGION
-        )
+        # In ECS/Fargate, use IAM role if credentials are not explicitly provided
+        # This allows boto3 to automatically use the task's IAM role
+        session_kwargs = {
+            'region_name': settings.DYNAMODB_REGION
+        }
+        
+        # Only provide explicit credentials if they are set (for local development)
+        # In production on ECS, boto3 will automatically use the task's IAM role
+        if settings.AWS_ACCESS_KEY_ID and settings.AWS_SECRET_ACCESS_KEY:
+            session_kwargs['aws_access_key_id'] = settings.AWS_ACCESS_KEY_ID
+            session_kwargs['aws_secret_access_key'] = settings.AWS_SECRET_ACCESS_KEY
+        
+        session = boto3.Session(**session_kwargs)
         
         self.dynamodb = session.resource(
             'dynamodb',

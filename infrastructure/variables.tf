@@ -96,7 +96,7 @@ variable "availability_zones" {
 variable "alb_internal" {
   description = "Whether the ALB should be internal (true) or internet-facing (false). Internal ALB is accessible only from within the VPC."
   type        = bool
-  default     = true # Default to internal for security
+  default     = false # Changed to false for public access (can be restricted via security group)
 }
 
 variable "alb_allowed_cidr_blocks" {
@@ -127,19 +127,19 @@ variable "api_desired_count" {
 variable "frontend_cpu" {
   description = "CPU units for Frontend service (1024 = 1 vCPU). For Fargate: 1024 CPU allows 2048-3072 MB, 2048 CPU requires 4096-16384 MB"
   type        = number
-  default     = 1024
+  default     = 2048
 }
 
 variable "frontend_memory" {
   description = "Memory for Frontend service in MB. For Fargate, must be valid combination with CPU (e.g., 1024 CPU: 2048-3072 MB, 2048 CPU: 4096-16384 MB)"
   type        = number
-  default     = 2048
+  default     = 4096
 }
 
 variable "frontend_desired_count" {
   description = "Desired number of Frontend service instances"
   type        = number
-  default     = 2
+  default     = 1
 }
 
 variable "celery_worker_cpu" {
@@ -197,4 +197,61 @@ variable "bastion_key_name" {
     condition     = var.enable_bastion ? var.bastion_key_name != "" : true
     error_message = "bastion_key_name must be provided when enable_bastion is true."
   }
+}
+
+# ============================================
+# EC2 API Service Configuration
+# ============================================
+variable "api_deploy_on_ec2" {
+  description = "Deploy API service on EC2 instead of ECS Fargate. Required when API needs to build Docker images."
+  type        = bool
+  default     = false
+}
+
+variable "ec2_api_instance_type" {
+  description = "EC2 instance type for API service"
+  type        = string
+  default     = "t3.xlarge"
+}
+
+variable "ec2_api_key_name" {
+  description = "Name of the AWS Key Pair to use for EC2 API instances SSH access. Leave empty to disable SSH access."
+  type        = string
+  default     = "Og_Normal"
+}
+
+variable "ec2_api_volume_size" {
+  description = "Root volume size in GB for EC2 API instances"
+  type        = number
+  default     = 50
+}
+
+variable "ec2_api_min_size" {
+  description = "Minimum number of EC2 API instances in Auto Scaling Group"
+  type        = number
+  default     = 1
+}
+
+variable "ec2_api_max_size" {
+  description = "Maximum number of EC2 API instances in Auto Scaling Group"
+  type        = number
+  default     = 4
+}
+
+variable "ec2_api_desired_capacity" {
+  description = "Desired number of EC2 API instances in Auto Scaling Group"
+  type        = number
+  default     = 2
+}
+
+variable "github_repo_url" {
+  description = "GitHub repository URL for cloning project code"
+  type        = string
+  default     = "https://github.com/hy714335634/Nexus-AI.git"
+}
+
+variable "github_branch" {
+  description = "GitHub branch to clone (default: main)"
+  type        = string
+  default     = "main"
 }

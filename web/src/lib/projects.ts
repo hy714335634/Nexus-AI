@@ -76,7 +76,7 @@ export async function fetchProjectSummaries(): Promise<ProjectSummary[]> {
     } satisfies ProjectSummary;
   });
 
-  return projects.sort((a, b) => {
+  return projects.sort((a: ProjectSummary, b: ProjectSummary) => {
     const timeA = a.updatedAt ? Date.parse(a.updatedAt) : 0;
     const timeB = b.updatedAt ? Date.parse(b.updatedAt) : 0;
     return timeB - timeA;

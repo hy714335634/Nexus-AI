@@ -36,11 +36,12 @@ resource "null_resource" "scale_down_services" {
   }
 
   depends_on = [
-    aws_ecs_service.api,
     aws_ecs_service.frontend,
     aws_ecs_service.celery_worker_builds,
     aws_ecs_service.celery_worker_status,
     aws_ecs_service.redis
+    # Note: aws_ecs_service.api is conditionally created, so we don't include it here
+    # to avoid dependency issues when api_deploy_on_ec2 = true
   ]
 }
 

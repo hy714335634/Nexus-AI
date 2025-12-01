@@ -1,0 +1,109 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+*.md
+docs/
+README.md
+
+# Infrastructure (not needed in container)
+infrastructure/
+terraform.tfstate
+terraform.tfstate.backup
+*.tfvars
+
+# Frontend (not needed in API container)
+web/
+node_modules/
+
+# Logs
+logs/
+*.log
+nohup.out
+
+# Test files
+tests/
+test_*.py
+*_test.py
+
+# Backup files
+backup/
+*.backup
+*.bak
+
+# Case files
+case/
+
+# Output files
+output/
+
+# Deployment files
+deployment/
+
+# Tech Design
+Tech Design/
+
+# Temporary files
+*.tmp
+*.temp
+.DS_Store
+
+# Environment files (will be set via ECS task definition)
+.env
+.env.local
+
+# Jupyter notebooks
+*.ipynb
+
+# MCP config (not needed in container)
+mcp/
+
+# Architecture images
+architecture/
+
+# Scripts that are not needed
+scripts/deploy.sh
+scripts/init_session_tables.py
+scripts/migrate_agent_instances.py
+scripts/register_fitness_advisor.py
+scripts/seed_agent_instances.py
+
+# Large cache files
+*.cache
+embeddings_cache.json
+tools/generated_tools/tooluniverse/embedding/embeddings_cache.json
+
+# Large test files
+tests/html2ppt/
+tests/*.pptx
+tests/*.png
+tests/*.jpg
+tests/*.jpeg
+
+# Large log files (if any)
+logs/stages/*.txt
+
+# Projects directory (mounted via EFS, not needed in image)
+projects/
+

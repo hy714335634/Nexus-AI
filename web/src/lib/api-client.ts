@@ -2,6 +2,22 @@ import type { ApiResponse } from '@/types/api';
 
 const DEFAULT_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8000';
 
+/**
+ * Get the base URL for API calls.
+ * In browser environment, use relative paths so requests go through the same tunnel/proxy.
+ * In server-side (SSR), use the configured absolute URL.
+ */
+function getBaseUrl(): string {
+  // In browser environment, use relative path (empty string) to automatically use current origin
+  // This ensures API calls go through the same tunnel/proxy as the frontend
+  if (typeof window !== 'undefined') {
+    return '';
+  }
+  
+  // In server-side (SSR), use the configured absolute URL
+  return DEFAULT_BASE_URL;
+}
+
 export class ApiError extends Error {
   constructor(public readonly status: number, message: string, public readonly payload?: unknown) {
     super(message);
@@ -25,9 +41,18 @@ async function parseJSON<T>(response: Response): Promise<T> {
 export async function apiFetch<TData>(
   path: string,
   init: RequestInit = {},
-  baseUrl: string = DEFAULT_BASE_URL,
+  baseUrl?: string,
 ): Promise<TData> {
-  const url = path.startsWith('http') ? path : `${baseUrl.replace(/\/$/, '')}${path}`;
+  // Use provided baseUrl, or get default based on environment
+  const effectiveBaseUrl = baseUrl ?? getBaseUrl();
+  
+  // If path is already absolute (starts with http:// or https://), use it directly
+  // Otherwise, construct URL from baseUrl and path
+  const url = path.startsWith('http') 
+    ? path 
+    : effectiveBaseUrl 
+      ? `${effectiveBaseUrl.replace(/\/$/, '')}${path}`
+      : path; // Relative path (empty baseUrl means use current origin)
 
   const response = await fetch(url, {
     ...init,

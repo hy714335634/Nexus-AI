@@ -57,9 +57,9 @@ resource "aws_cloudwatch_log_group" "redis" {
 # ECS Task Definitions
 # ============================================
 
-# API Backend Task Definition
+# API Backend Task Definition (only when not using EC2)
 resource "aws_ecs_task_definition" "api" {
-  count = var.create_vpc ? 1 : 0
+  count = var.create_vpc && !var.api_deploy_on_ec2 ? 1 : 0
 
   family                   = "${var.project_name}-api-${var.environment}"
   network_mode             = "awsvpc"
@@ -105,7 +105,7 @@ resource "aws_ecs_task_definition" "api" {
         },
         {
           name  = "REDIS_HOST"
-          value = "redis"
+          value = "redis.${var.project_name}.local"
         },
         {
           name  = "REDIS_PORT"
@@ -113,11 +113,11 @@ resource "aws_ecs_task_definition" "api" {
         },
         {
           name  = "CELERY_BROKER_URL"
-          value = "redis://redis:6379/0"
+          value = "redis://redis.${var.project_name}.local:6379/0"
         },
         {
           name  = "CELERY_RESULT_BACKEND"
-          value = "redis://redis:6379/0"
+          value = "redis://redis.${var.project_name}.local:6379/0"
         },
         {
           name  = "EFS_MOUNT_PATH"
@@ -203,6 +203,10 @@ resource "aws_ecs_task_definition" "frontend" {
         {
           name  = "NEXT_PUBLIC_API_URL"
           value = "http://${aws_lb.nexus_ai[0].dns_name}"
+        },
+        {
+          name  = "NEXT_PUBLIC_API_BASE_URL"
+          value = "http://${aws_lb.nexus_ai[0].dns_name}"
         }
       ]
 
@@ -223,14 +227,8 @@ resource "aws_ecs_task_definition" "frontend" {
         }
       }
 
-      healthCheck = {
-        # Use Node.js to check health (Alpine image doesn't have curl by default)
-        command     = ["CMD-SHELL", "node -e \"require('http').get('http://localhost:3000', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)}).on('error', () => process.exit(1))\" || exit 1"]
-        interval    = 30
-        timeout     = 10
-        retries     = 3
-        startPeriod = 90
-      }
+      # Removed container health check - rely on ALB health check only
+      # This avoids issues with missing curl/wget in container
     }
   ])
 
@@ -301,7 +299,7 @@ resource "aws_ecs_task_definition" "celery_worker_builds" {
         },
         {
           name  = "REDIS_HOST"
-          value = "redis"
+          value = "redis.${var.project_name}.local"
         },
         {
           name  = "REDIS_PORT"
@@ -309,11 +307,11 @@ resource "aws_ecs_task_definition" "celery_worker_builds" {
         },
         {
           name  = "CELERY_BROKER_URL"
-          value = "redis://redis:6379/0"
+          value = "redis://redis.${var.project_name}.local:6379/0"
         },
         {
           name  = "CELERY_RESULT_BACKEND"
-          value = "redis://redis:6379/0"
+          value = "redis://redis.${var.project_name}.local:6379/0"
         },
         {
           name  = "EFS_MOUNT_PATH"
@@ -407,7 +405,7 @@ resource "aws_ecs_task_definition" "celery_worker_status" {
         },
         {
           name  = "REDIS_HOST"
-          value = "redis"
+          value = "redis.${var.project_name}.local"
         },
         {
           name  = "REDIS_PORT"
@@ -415,11 +413,11 @@ resource "aws_ecs_task_definition" "celery_worker_status" {
         },
         {
           name  = "CELERY_BROKER_URL"
-          value = "redis://redis:6379/0"
+          value = "redis://redis.${var.project_name}.local:6379/0"
         },
         {
           name  = "CELERY_RESULT_BACKEND"
-          value = "redis://redis:6379/0"
+          value = "redis://redis.${var.project_name}.local:6379/0"
         },
         {
           name  = "EFS_MOUNT_PATH"

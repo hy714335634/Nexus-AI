@@ -37,3 +37,22 @@ dynamodb_write_capacity = 10
 # AWS Key Pair name (must already exist in your AWS account)
 # You can list existing key pairs with: aws ec2 describe-key-pairs
 # bastion_key_name = "your-existing-key-pair-name"
+
+# ============================================
+# EC2 API Service Configuration
+# ============================================
+# Deploy API service on EC2 instead of ECS Fargate
+# Required when API needs to build Docker images (Docker-in-Docker)
+# api_deploy_on_ec2 = false  # Set to true to enable EC2 deployment
+
+# EC2 instance configuration
+# ec2_api_instance_type = "t3.medium"  # Instance type for API service
+# ec2_api_desired_capacity = 2  # Desired number of instances
+# ec2_api_min_size = 1  # Minimum number of instances
+# ec2_api_max_size = 4  # Maximum number of instances
+# ec2_api_key_name = ""  # Optional: SSH key pair name for EC2 instances
+# ec2_api_volume_size = 50  # Root volume size in GB
+
+# GitHub Configuration (for EC2 deployment)
+# github_repo_url = "https://github.com/hy714335634/Nexus-AI.git"  # GitHub repository URL
+# github_branch = "main"  # Branch to clone (default: main)

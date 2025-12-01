@@ -58,11 +58,36 @@ resource "aws_instance" "bastion" {
   ami                    = data.aws_ami.amazon_linux_2023_arm64[0].id
   instance_type          = "t4g.nano"  # 1 vCPU, 1 GB RAM, ARM architecture
   key_name               = var.bastion_key_name
+  iam_instance_profile   = aws_iam_instance_profile.bastion[0].name
   vpc_security_group_ids = [aws_security_group.bastion[0].id]
   subnet_id              = aws_subnet.public[0].id  # Place in first public subnet
 
+  # User data script to mount EFS
+  user_data = base64encode(templatefile("${path.module}/scripts/bastion-userdata.sh", {
+    # Lowercase variables (used in script variable assignments)
+    efs_file_system_id  = aws_efs_file_system.nexus_ai[0].id
+    efs_access_point_id = aws_efs_access_point.app_data[0].id
+    aws_region          = var.aws_region
+    efs_mount_path      = "/mnt/efs"
+    github_repo_url     = var.github_repo_url
+    github_branch       = var.github_branch
+    # Uppercase variables (used directly in script commands)
+    EFS_FILE_SYSTEM_ID  = aws_efs_file_system.nexus_ai[0].id
+    EFS_ACCESS_POINT_ID = aws_efs_access_point.app_data[0].id
+    AWS_REGION          = var.aws_region
+    EFS_MOUNT_PATH      = "/mnt/efs"
+  }))
+
   # Enable detailed monitoring (optional, can disable to save costs)
   monitoring = false
+
+  # Configure Instance Metadata Service v2 (IMDSv2) - Security best practice
+  metadata_options {
+    http_endpoint               = "enabled"
+    http_tokens                 = "required"  # Require IMDSv2 (session tokens)
+    http_put_response_hop_limit = 1
+    instance_metadata_tags      = "enabled"
+  }
 
   # Root volume configuration
   # Amazon Linux 2023 requires at least 30GB for the root volume

@@ -138,8 +138,9 @@ resource "aws_security_group" "alb" {
     to_port     = 80
     protocol    = "tcp"
     # Use provided CIDR blocks, or default to VPC CIDR for internal access
+    # Note: For public testing, manually add 0.0.0.0/0 via AWS Console or use alb_allowed_cidr_blocks variable
     cidr_blocks = var.alb_allowed_cidr_blocks != null ? var.alb_allowed_cidr_blocks : [var.vpc_cidr]
-    description = "HTTP traffic from allowed CIDR blocks"
+    description = "HTTP traffic from allowed CIDR blocks (can be manually updated in AWS Console for public access)"
   }
 
   egress {
@@ -193,26 +194,41 @@ resource "aws_security_group" "efs" {
   count = var.create_vpc ? 1 : 0
 
   name        = "${var.project_name}-efs-sg-${var.environment}"
-  description = "Security group for EFS"
+  description = "Security group for EFS - allows access from ECS, EC2 API, and Bastion"
   vpc_id      = module.vpc[0].vpc_id
 
-  ingress {
-    from_port       = 2049
-    to_port         = 2049
-    protocol        = "tcp"
-    security_groups = [aws_security_group.ecs[0].id]
-  }
-
+  # Note: Ingress rules are defined separately via aws_security_group_rule 
+  # to allow proper dependencies and conditional creation
+  
   egress {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
+    description = "Allow all outbound traffic"
   }
 
   tags = merge(local.common_tags, {
     Name = "${var.project_name}-efs-sg-${var.environment}"
   })
+}
+
+# Allow ECS to access EFS
+resource "aws_security_group_rule" "efs_ecs" {
+  count = var.create_vpc ? 1 : 0
+
+  type                     = "ingress"
+  from_port                = 2049
+  to_port                  = 2049
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.ecs[0].id
+  security_group_id        = aws_security_group.efs[0].id
+  description              = "Allow ECS containers to access EFS (port 2049)"
+
+  depends_on = [
+    aws_security_group.efs,
+    aws_security_group.ecs
+  ]
 }
 
 # Redis will use the same ECS security group
@@ -227,6 +243,120 @@ resource "aws_security_group_rule" "ecs_redis" {
   source_security_group_id = aws_security_group.ecs[0].id
   security_group_id        = aws_security_group.ecs[0].id
   description              = "Allow ECS containers to access Redis"
+}
+
+# ============================================
+# Security Group for EC2 API Service
+# ============================================
+resource "aws_security_group" "ec2_api" {
+  count = var.create_vpc && var.api_deploy_on_ec2 ? 1 : 0
+
+  name        = "${var.project_name}-ec2-api-sg-${var.environment}"
+  description = "Security group for EC2 API service"
+  vpc_id      = module.vpc[0].vpc_id
+
+  ingress {
+    from_port       = 8000
+    to_port         = 8000
+    protocol        = "tcp"
+    security_groups = [aws_security_group.alb[0].id]
+    description     = "API from ALB"
+  }
+
+  ingress {
+    from_port   = 8000
+    to_port     = 8000
+    protocol    = "tcp"
+    cidr_blocks = [var.vpc_cidr]
+    description = "API from VPC internal traffic"
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+    description = "Allow all outbound traffic"
+  }
+
+  tags = merge(local.common_tags, {
+    Name = "${var.project_name}-ec2-api-sg-${var.environment}"
+  })
+}
+
+# Allow EC2 API to access Redis in ECS
+resource "aws_security_group_rule" "ec2_api_redis" {
+  count = var.create_vpc && var.api_deploy_on_ec2 ? 1 : 0
+
+  type                     = "ingress"
+  from_port                = 6379
+  to_port                  = 6379
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.ec2_api[0].id
+  security_group_id        = aws_security_group.ecs[0].id
+  description              = "Allow EC2 API to access Redis"
+}
+
+# Allow EC2 API to access EFS
+resource "aws_security_group_rule" "efs_ec2_api" {
+  count = var.create_vpc && var.api_deploy_on_ec2 ? 1 : 0
+
+  type                     = "ingress"
+  from_port                = 2049
+  to_port                  = 2049
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.ec2_api[0].id
+  security_group_id        = aws_security_group.efs[0].id
+  description              = "Allow EC2 API to access EFS (port 2049)"
+
+  depends_on = [
+    aws_security_group.efs,
+    aws_security_group.ec2_api
+  ]
+}
+
+# Allow Bastion to access EFS
+resource "aws_security_group_rule" "efs_bastion" {
+  count = var.create_vpc && var.enable_bastion ? 1 : 0
+
+  type                     = "ingress"
+  from_port                = 2049
+  to_port                  = 2049
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.bastion[0].id
+  security_group_id        = aws_security_group.efs[0].id
+  description              = "Allow Bastion to access EFS (port 2049)"
+
+  depends_on = [
+    aws_security_group.efs,
+    aws_security_group.bastion
+  ]
+}
+
+# Allow Bastion to SSH to EC2 API instances
+resource "aws_security_group_rule" "ec2_api_ssh_from_bastion" {
+  count = var.create_vpc && var.api_deploy_on_ec2 && var.enable_bastion ? 1 : 0
+
+  type                     = "ingress"
+  from_port                = 22
+  to_port                  = 22
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.bastion[0].id
+  security_group_id        = aws_security_group.ec2_api[0].id
+  description              = "Allow SSH from Bastion to EC2 API instances"
+}
+
+# Allow Bastion to access EC2 API service (port 8000) for debugging
+resource "aws_security_group_rule" "ec2_api_tcp_from_bastion" {
+  count = var.create_vpc && var.api_deploy_on_ec2 && var.enable_bastion ? 1 : 0
+
+  type                     = "ingress"
+  from_port                = 8000
+  to_port                  = 8000
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.bastion[0].id
+  security_group_id        = aws_security_group.ec2_api[0].id
+  description              = "Allow TCP access from Bastion to EC2 API service (port 8000) for debugging"
 }
 
 # ============================================

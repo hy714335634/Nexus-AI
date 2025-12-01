@@ -2,112 +2,61 @@
 
 使用 Terraform 一键部署 NexusAI 所需的 AWS 基础设施。
 
+## 🚀 快速开始
+
+```bash
+# 1. 配置参数
+cp terraform.tfvars.example terraform.tfvars
+vim terraform.tfvars
+
+# 2. 初始化并部署
+terraform init
+terraform apply -auto-approve
+
+# 3. 获取访问地址
+terraform output alb_dns_name
+```
+
 ## 📁 目录结构
 
 ```
 infrastructure/
-├── 核心配置
-│   ├── versions.tf              # Terraform & Provider 版本
-│   ├── main.tf                  # Provider 配置
-│   ├── variables.tf             # 变量定义
-│   └── outputs.tf               # 输出定义
-│
-├── 资源定义（按依赖层级）
-│   ├── 02-storage-*.tf          # DynamoDB
-│   └── 03-messaging-sqs.tf      # SQS 队列
-│
-└── docs/                        # 详细文档
-    ├── ARCHITECTURE.md          # 架构设计
-    └── ...
+├── *.tf                    # Terraform配置文件
+├── scripts/                # 部署脚本
+│   ├── ec2-api-userdata.sh
+│   ├── bastion-userdata.sh
+│   └── *.sh               # 运维脚本
+├── docs/                   # 文档
+│   ├── operations/        # 运维文档
+│   ├── troubleshooting/   # 故障排查
+│   └── architecture/      # 架构设计
+└── README.md
 ```
 
 ## 🏗️ 架构组件
 
-- **DynamoDB**: 5个表用于存储项目、Agent、会话等数据
+- **VPC**: 2个公有子网 + 2个私有子网
+- **ALB**: 应用负载均衡器
+- **EC2**: API服务（Auto Scaling）
+- **ECS Fargate**: 前端服务
+- **EFS**: 共享存储（代码仓库 + 用户数据）
+- **DynamoDB**: 5个表（项目、Agent、会话等）
 - **SQS**: 异步通知队列
-
-## 🚀 快速开始
-
-### 1. 配置参数
-
-```bash
-cp terraform.tfvars.example terraform.tfvars
-vim terraform.tfvars
-```
-
-配置示例：
-```hcl
-# AWS 配置
-aws_region     = "us-east-1"
-aws_access_key = ""  # 留空使用 AWS profile
-aws_secret_key = ""
-
-# 项目配置
-project_name = "nexus-ai"
-environment  = "dev"
-```
-
-### 2. 初始化
-
-```bash
-terraform init
-```
-
-### 3. 预览变更
-
-```bash
-terraform plan
-```
-
-### 4. 部署
-
-```bash
-terraform apply
-```
-
-### 5. 查看输出
-
-```bash
-terraform output
-```
+- **Bastion**: 跳板机
 
 ## 📋 主要变量
 
 | 变量 | 说明 | 默认值 |
 |------|------|--------|
-| `aws_region` | AWS 区域 | us-east-1 |
-| `project_name` | 项目名称前缀 | nexus-ai |
-| `environment` | 环境 (dev/staging/prod) | dev |
-| `enable_dynamodb` | 启用 DynamoDB | true |
-| `enable_sqs` | 启用 SQS | true |
+| `aws_region` | AWS区域 | us-west-2 |
+| `project_name` | 项目名称 | nexus-ai |
+| `environment` | 环境 | prod |
+| `api_deploy_on_ec2` | API部署方式 | true |
+| `alb_allowed_cidr_blocks` | ALB访问白名单 | VPC CIDR |
 
-## 📊 DynamoDB 表结构
-
-1. **AgentProjects**: 项目记录
-   - 主键: project_id
-   - GSI: UserIndex, StatusIndex
-
-2. **AgentInstances**: Agent 实例
-   - 主键: agent_id
-   - GSI: ProjectIndex, StatusIndex, CategoryIndex
-
-3. **AgentInvocations**: Agent 调用记录
-   - 主键: invocation_id
-   - GSI: AgentInvocationIndex
-
-4. **AgentSessions**: Agent 会话
-   - 主键: agent_id, session_id
-   - GSI: LastActiveIndex
-
-5. **AgentSessionMessages**: 会话消息
-   - 主键: session_id, created_at
-
-## 🔄 管理命令
+## 🔧 常用命令
 
 ```bash
-# 查看状态
-terraform show
-
 # 查看输出
 terraform output
 
@@ -117,50 +66,41 @@ terraform apply
 # 销毁资源
 terraform destroy
 
-# 格式化代码
-terraform fmt
-
-# 验证配置
-terraform validate
+# SSH到bastion
+ssh -i ~/.ssh/Og_Normal.pem ec2-user@$(terraform output -raw bastion_public_ip)
 ```
+
+## 📚 文档
+
+- [部署指南](docs/operations/DEPLOYMENT.md)
+- [故障排查](docs/troubleshooting/FIXES.md)
+- [EFS存储架构](docs/architecture/EFS_STORAGE.md)
 
 ## 💰 成本估算
 
-使用默认配置的预估月成本（轻度使用）：
-- DynamoDB (5 tables): ~$12
-- SQS: ~$0-1
+默认配置预估月成本（轻度使用）：
+- EC2 (t3.xlarge × 2): ~$120
+- ECS Fargate: ~$30
+- DynamoDB: ~$12
+- EFS: ~$5
+- ALB: ~$20
+- 其他: ~$10
 
-**总计**: ~$12-13/月
+**总计**: ~$200/月
 
-## 🔒 安全建议
+## 🔒 安全
 
-1. **不要提交敏感信息**
-   - `terraform.tfvars` 已在 `.gitignore` 中
-   - 使用 AWS profile 而非硬编码密钥
-
-2. **最小权限原则**
-   - 所有资源遵循最小权限原则
-
-3. **启用加密**
-   - DynamoDB 默认加密
-
-## 📚 详细文档
-
-- [架构设计](docs/ARCHITECTURE.md) - 系统架构和依赖关系
-- [最终结构](docs/FINAL_STRUCTURE.md) - 目录结构说明
-- [改进记录](docs/IMPROVEMENTS.md) - 重组改进历史
+- 所有资源在VPC内
+- 最小权限IAM策略
+- DynamoDB加密
+- IMDSv2强制启用
+- 安全组严格限制
 
 ## 🐛 故障排查
 
-### Terraform 初始化失败
-```bash
-rm -rf .terraform
-terraform init
-```
-
+常见问题参见 [docs/troubleshooting/FIXES.md](docs/troubleshooting/FIXES.md)
 
 ## 📞 支持
 
 - [Terraform AWS Provider](https://registry.terraform.io/providers/hashicorp/aws/latest/docs)
-- [AWS DynamoDB](https://docs.aws.amazon.com/dynamodb/)
-- [AWS SQS](https://docs.aws.amazon.com/sqs/)
+- [AWS Documentation](https://docs.aws.amazon.com/)

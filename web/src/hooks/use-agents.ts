@@ -38,8 +38,8 @@ export function useAgentsList(limit = 100, options?: Omit<UseQueryOptions<AgentS
 /**
  * Hook to fetch detailed information about a specific agent
  */
-export function useAgentDetails(agentId: string, options?: Omit<UseQueryOptions<AgentDetails, Error>, 'queryKey' | 'queryFn'>) {
-  return useQuery<AgentDetails>({
+export function useAgentDetails(agentId: string, options?: Omit<UseQueryOptions<AgentDetails | null, Error>, 'queryKey' | 'queryFn'>) {
+  return useQuery<AgentDetails | null>({
     queryKey: ['agents', 'details', agentId],
     queryFn: () => fetchAgentDetails(agentId),
     enabled: Boolean(agentId),
@@ -51,8 +51,8 @@ export function useAgentDetails(agentId: string, options?: Omit<UseQueryOptions<
 /**
  * Hook to fetch agent context (system prompt, code path, tools path)
  */
-export function useAgentContext(agentId: string, options?: Omit<UseQueryOptions<AgentContextResponseData, Error>, 'queryKey' | 'queryFn'>) {
-  return useQuery<AgentContextResponseData>({
+export function useAgentContext(agentId: string, options?: Omit<UseQueryOptions<AgentContextResponseData | null, Error>, 'queryKey' | 'queryFn'>) {
+  return useQuery<AgentContextResponseData | null>({
     queryKey: ['agents', 'context', agentId],
     queryFn: () => fetchAgentContext(agentId),
     enabled: Boolean(agentId),

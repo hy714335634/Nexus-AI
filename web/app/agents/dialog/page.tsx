@@ -268,9 +268,10 @@ export default function AgentDialogPage() {
     message: string,
     assistantMessageId: string,
   ) => {
-    const baseUrl = (process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8000').replace(/\/$/, '');
+    // Use relative path in browser to work with SSH tunnel
+    // This ensures the request goes through the same tunnel as the frontend
     const response = await fetch(
-      `${baseUrl}/api/v1/agents/${encodeURIComponent(agentId)}/sessions/${encodeURIComponent(sessionId)}/stream`,
+      `/api/v1/agents/${encodeURIComponent(agentId)}/sessions/${encodeURIComponent(sessionId)}/stream`,
       {
         method: 'POST',
         headers: {

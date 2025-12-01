@@ -402,7 +402,7 @@ function BuildModulesPageContent() {
   );
 
   const projectDisplayName =
-    extractProjectName(selectedProject, dashboard) ?? projectId ?? '未命名构建任务';
+    extractProjectName(selectedProject, dashboard ?? undefined) ?? projectId ?? '未命名构建任务';
 
   const stageCards = useMemo(
     () => buildStageCards(dashboard?.stages),

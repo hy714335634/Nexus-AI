@@ -125,6 +125,7 @@ agent:
       metadata:
         tags: ["aws", "pricing", "cloud_consulting", "cost_optimization"]
         supported_models:
+          - "global.anthropic.claude-sonnet-4-5-20250929-v1:0"
           - "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
         tools_dependencies:
           - "strands_tools/current_time"

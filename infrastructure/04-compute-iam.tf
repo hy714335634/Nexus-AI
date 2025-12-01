@@ -74,7 +74,8 @@ resource "aws_iam_role_policy" "ecs_dynamodb" {
           "dynamodb:Query",
           "dynamodb:Scan",
           "dynamodb:BatchGetItem",
-          "dynamodb:BatchWriteItem"
+          "dynamodb:BatchWriteItem",
+          "dynamodb:DescribeTable"
         ]
         Resource = [
           var.enable_dynamodb ? aws_dynamodb_table.agent_projects[0].arn : "*",

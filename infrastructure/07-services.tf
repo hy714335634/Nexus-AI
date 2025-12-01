@@ -31,9 +31,9 @@ resource "aws_ecs_service" "redis" {
   ]
 }
 
-# API Service
+# API Service (ECS Fargate - only when not using EC2)
 resource "aws_ecs_service" "api" {
-  count = var.create_vpc ? 1 : 0
+  count = var.create_vpc && !var.api_deploy_on_ec2 ? 1 : 0
 
   name            = "${var.project_name}-api-${var.environment}"
   cluster         = aws_ecs_cluster.nexus_ai[0].id
