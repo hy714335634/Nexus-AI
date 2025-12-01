@@ -404,7 +404,7 @@ async def _invoke_agentcore_runtime(
             # 添加 botocore 配置以增加超时（处理冷启动和长时间运行的 Agent）
             from botocore.config import Config
             config = Config(
-                read_timeout=300,  # 5分钟读取超时（Agent可能需要调用多个工具）
+                read_timeout=3000,  # 5分钟读取超时（Agent可能需要调用多个工具）
                 connect_timeout=30,  # 30秒连接超时
                 retries={'max_attempts': 0}  # 不重试，避免重复调用
             )
