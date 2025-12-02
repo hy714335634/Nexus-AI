@@ -134,7 +134,7 @@ def project():
               help='Output format')
 @click.pass_obj
 def project_list(ctx, output):
-    """List all projects"""
+    """List all projects with brief descriptions"""
     try:
         projects = ctx.project_manager.list_projects()
         
@@ -148,8 +148,15 @@ def project_list(ctx, output):
             # Prepare data for table/text
             data = []
             for p in projects:
+                # Get brief description from config
+                description = p.config.description if p.config.description else 'No description'
+                # Truncate description for table display
+                if len(description) > 50:
+                    description = description[:47] + '...'
+                
                 data.append({
                     'name': p.name,
+                    'description': description,
                     'agents': p.agent_count,
                     'templates': p.template_count,
                     'prompts': p.prompt_count,
@@ -157,7 +164,7 @@ def project_list(ctx, output):
                     'created': p.created_at.strftime('%Y-%m-%d %H:%M')
                 })
             
-            headers = ['name', 'agents', 'templates', 'prompts', 'tools', 'created']
+            headers = ['name', 'description', 'agents', 'templates', 'prompts', 'tools', 'created']
             click.echo(format_output(data, output, headers))
             click.echo(f"\nTotal: {len(projects)} projects")
     
@@ -172,7 +179,7 @@ def project_list(ctx, output):
               help='Output format')
 @click.pass_obj
 def project_describe(ctx, name, output):
-    """Describe a project in detail"""
+    """Describe a project in detail with agent descriptions and dependencies"""
     try:
         project = ctx.project_manager.get_project(name)
         
@@ -181,35 +188,119 @@ def project_describe(ctx, name, output):
             sys.exit(1)
         
         if output == 'json':
-            click.echo(format_output(project.to_dict(), 'json'))
+            # Enhanced JSON output with agent descriptions
+            project_dict = project.to_dict()
+            # Add agent descriptions
+            agent_details = []
+            for agent_name in project.agents:
+                agent = ctx.agent_manager.get_agent(agent_name)
+                if agent and agent.config:
+                    agent_details.append({
+                        'name': agent_name,
+                        'description': agent.config.description,
+                        'category': agent.config.category,
+                        'tools': agent.config.tools_dependencies
+                    })
+            project_dict['agent_details'] = agent_details
+            click.echo(format_output(project_dict, 'json'))
         else:
-            # Text format with detailed information
-            click.echo("=" * 70)
+            # Enhanced text format with structured, human-readable information
+            click.echo("=" * 80)
             click.echo(f"PROJECT: {project.name}")
-            click.echo("=" * 70)
+            click.echo("=" * 80)
             click.echo()
+            
+            # Project Description
+            if project.config.description:
+                click.echo("Description:")
+                click.echo(f"  {project.config.description}")
+                click.echo()
+            
+            # Basic Information
             click.echo("Basic Information:")
             click.echo(f"  Name:        {project.name}")
+            click.echo(f"  Version:     {project.config.version}")
             click.echo(f"  Created:     {project.created_at.strftime('%Y-%m-%d %H:%M:%S')}")
             click.echo(f"  Updated:     {project.updated_at.strftime('%Y-%m-%d %H:%M:%S')}")
             click.echo()
             
-            click.echo("Resources:")
-            click.echo(f"  Agents:      {project.agent_count}")
-            for agent in project.agents:
-                click.echo(f"    - {agent}")
-            click.echo(f"  Templates:   {project.template_count}")
-            for template in project.templates:
-                click.echo(f"    - {template}")
-            click.echo(f"  Prompts:     {project.prompt_count}")
-            for prompt in project.prompts:
-                click.echo(f"    - {prompt}")
-            click.echo(f"  Tools:       {project.tool_count}")
-            for tool in project.tools:
-                click.echo(f"    - {tool}")
+            # Agents with descriptions
+            click.echo(f"Agents ({project.agent_count}):")
+            if project.agents:
+                for agent_name in project.agents:
+                    agent = ctx.agent_manager.get_agent(agent_name)
+                    if agent and agent.config:
+                        click.echo(f"  ✓ {agent_name}")
+                        if agent.config.description:
+                            # Format description with proper indentation
+                            desc_lines = agent.config.description.split('\n')
+                            for line in desc_lines[:3]:  # Show first 3 lines
+                                if line.strip():
+                                    click.echo(f"    {line.strip()}")
+                            if len(desc_lines) > 3:
+                                click.echo(f"    ...")
+                        if agent.config.category:
+                            click.echo(f"    Category: {agent.config.category}")
+                        click.echo()
+                    else:
+                        click.echo(f"  - {agent_name}")
+            else:
+                click.echo("  (none)")
             click.echo()
             
-            click.echo("=" * 70)
+            # Dependencies
+            click.echo("Dependencies:")
+            click.echo(f"  Tools:       {project.tool_count}")
+            if project.tools:
+                # Group tools by type
+                strands_tools = [t for t in project.tools if t.startswith('strands_tools/')]
+                generated_tools = [t for t in project.tools if t.startswith('generated_tools/')]
+                system_tools = [t for t in project.tools if t.startswith('tools/system_tools/')]
+                
+                if strands_tools:
+                    click.echo(f"    Strands Tools ({len(strands_tools)}):")
+                    for tool in strands_tools[:5]:
+                        click.echo(f"      - {tool}")
+                    if len(strands_tools) > 5:
+                        click.echo(f"      ... and {len(strands_tools) - 5} more")
+                
+                if generated_tools:
+                    click.echo(f"    Generated Tools ({len(generated_tools)}):")
+                    for tool in generated_tools[:5]:
+                        tool_name = tool.split('/')[-1]
+                        click.echo(f"      - {tool_name}")
+                    if len(generated_tools) > 5:
+                        click.echo(f"      ... and {len(generated_tools) - 5} more")
+                
+                if system_tools:
+                    click.echo(f"    System Tools ({len(system_tools)}):")
+                    for tool in system_tools[:5]:
+                        tool_name = tool.split('/')[-1]
+                        click.echo(f"      - {tool_name}")
+                    if len(system_tools) > 5:
+                        click.echo(f"      ... and {len(system_tools) - 5} more")
+            
+            click.echo(f"  Prompts:     {project.prompt_count}")
+            click.echo(f"  Templates:   {project.template_count}")
+            click.echo()
+            
+            # Usage Information
+            click.echo("Usage:")
+            click.echo(f"  Location:    projects/{project.name}/")
+            click.echo(f"  Agents:      agents/generated_agents/{project.name}/")
+            click.echo(f"  Prompts:     prompts/generated_agents_prompts/{project.name}/")
+            if project.tools:
+                click.echo(f"  Tools:       tools/generated_tools/{project.name}/")
+            click.echo()
+            
+            # Documentation
+            readme_path = ctx.fs_adapter.base_path / 'projects' / project.name / 'README.md'
+            if readme_path.exists():
+                click.echo("Documentation:")
+                click.echo(f"  README:      projects/{project.name}/README.md")
+                click.echo()
+            
+            click.echo("=" * 80)
     
     except Exception as e:
         click.echo(f"Error: {e}", err=True)
@@ -662,7 +753,7 @@ def agents():
               help='Output format')
 @click.pass_obj
 def agents_list(ctx, project, output):
-    """List all agents"""
+    """List all agents with brief descriptions"""
     try:
         agents = ctx.agent_manager.list_agents(project=project)
         
@@ -676,14 +767,24 @@ def agents_list(ctx, project, output):
             # Prepare data for table/text
             data = []
             for a in agents:
+                # Get brief description
+                description = 'No description'
+                if a.config and a.config.description:
+                    # Extract first line or first sentence
+                    desc = a.config.description.split('\n')[0].strip()
+                    if len(desc) > 60:
+                        desc = desc[:57] + '...'
+                    description = desc
+                
                 data.append({
                     'name': a.name,
+                    'description': description,
                     'project': a.project or '-',
                     'tools': len(a.dependencies),
                     'created': a.created_at.strftime('%Y-%m-%d') if a.created_at else '-'
                 })
             
-            headers = ['name', 'project', 'tools', 'created']
+            headers = ['name', 'description', 'project', 'tools', 'created']
             click.echo(format_output(data, output, headers))
             
             if project:
@@ -702,7 +803,7 @@ def agents_list(ctx, project, output):
               help='Output format')
 @click.pass_obj
 def agents_describe(ctx, name, output):
-    """Describe an agent in detail"""
+    """Describe an agent in detail with structured, human-readable information"""
     try:
         agent = ctx.agent_manager.get_agent(name)
         
@@ -713,24 +814,114 @@ def agents_describe(ctx, name, output):
         if output == 'json':
             click.echo(format_output(agent.to_dict(), 'json'))
         else:
-            click.echo(f"Agent: {agent.name}")
-            click.echo(f"Project: {agent.project or 'None'}")
-            click.echo(f"Path: {agent.path}")
+            # Structured, human-readable output
+            click.echo("=" * 80)
+            click.echo(f"AGENT: {agent.name}")
+            click.echo("=" * 80)
+            click.echo()
             
+            # Basic Information
+            click.echo("Basic Information:")
+            click.echo(f"  Name:        {agent.name}")
+            click.echo(f"  Project:     {agent.project or 'Standalone'}")
             if agent.config:
-                click.echo(f"\nDescription: {agent.config.description}")
-                click.echo(f"Category: {agent.config.category}")
-                click.echo(f"Version: {agent.config.version}")
+                click.echo(f"  Category:    {agent.config.category or 'General'}")
+                click.echo(f"  Version:     {agent.config.version}")
+            click.echo(f"  Location:    {agent.path}")
+            if agent.created_at:
+                click.echo(f"  Created:     {agent.created_at.strftime('%Y-%m-%d %H:%M:%S')}")
+            click.echo()
+            
+            # Description
+            if agent.config and agent.config.description:
+                click.echo("Description:")
+                # Format multi-line description with proper indentation
+                desc_lines = agent.config.description.split('\n')
+                for line in desc_lines:
+                    if line.strip():
+                        click.echo(f"  {line.strip()}")
+                click.echo()
+            
+            # Functionality (extract from agent file docstring if available)
+            agent_file = ctx.fs_adapter.base_path / agent.path
+            if agent_file.exists():
+                try:
+                    with open(agent_file, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                        # Extract docstring
+                        if '"""' in content:
+                            start = content.find('"""') + 3
+                            end = content.find('"""', start)
+                            if end > start:
+                                docstring = content[start:end].strip()
+                                # Look for "功能:" or "Features:" section
+                                if '功能:' in docstring or 'Features:' in docstring:
+                                    click.echo("Functionality:")
+                                    in_features = False
+                                    for line in docstring.split('\n'):
+                                        if '功能:' in line or 'Features:' in line:
+                                            in_features = True
+                                            continue
+                                        if in_features:
+                                            if line.strip() and (line.strip().startswith(('工具:', 'Tools:', '使用:', 'Usage:'))):
+                                                break
+                                            if line.strip():
+                                                click.echo(f"  {line.strip()}")
+                                    click.echo()
+                except Exception:
+                    pass
+            
+            # Tools and Dependencies
+            if agent.config and agent.config.tools_dependencies:
+                click.echo(f"Tools & Dependencies ({len(agent.config.tools_dependencies)}):")
+                # Group tools by type
+                strands_tools = [t for t in agent.config.tools_dependencies if 'strands_tools/' in t]
+                generated_tools = [t for t in agent.config.tools_dependencies if 'generated_tools/' in t]
+                system_tools = [t for t in agent.config.tools_dependencies if 'system_tools/' in t or (t.startswith('tools/') and 'generated_tools/' not in t)]
                 
-                if agent.config.tools_dependencies:
-                    click.echo(f"\nTools ({len(agent.config.tools_dependencies)}):")
-                    for tool in agent.config.tools_dependencies:
-                        click.echo(f"  - {tool}")
+                if strands_tools:
+                    click.echo(f"  Strands Tools ({len(strands_tools)}):")
+                    for tool in strands_tools:
+                        tool_name = tool.split('/')[-1]
+                        click.echo(f"    - {tool_name}")
                 
-                if agent.config.supported_models:
-                    click.echo(f"\nSupported Models:")
-                    for model in agent.config.supported_models:
-                        click.echo(f"  - {model}")
+                if generated_tools:
+                    click.echo(f"  Generated Tools ({len(generated_tools)}):")
+                    for tool in generated_tools:
+                        tool_name = tool.split('/')[-1]
+                        click.echo(f"    - {tool_name}")
+                
+                if system_tools:
+                    click.echo(f"  System Tools ({len(system_tools)}):")
+                    for tool in system_tools:
+                        tool_name = tool.split('/')[-1]
+                        click.echo(f"    - {tool_name}")
+                click.echo()
+            
+            # Supported Models
+            if agent.config and agent.config.supported_models:
+                click.echo("Supported Models:")
+                for model in agent.config.supported_models:
+                    click.echo(f"  - {model}")
+                click.echo()
+            
+            # Interaction Methods
+            click.echo("Interaction Methods:")
+            click.echo(f"  CLI:         python {agent.path}")
+            if agent.project:
+                click.echo(f"  Prompt:      prompts/generated_agents_prompts/{agent.project}/{agent.name}.yaml")
+            click.echo(f"  API:         Use agent_factory.create_agent_from_prompt_template()")
+            click.echo()
+            
+            # Documentation
+            if agent.project:
+                readme_path = ctx.fs_adapter.base_path / 'projects' / agent.project / 'README.md'
+                if readme_path.exists():
+                    click.echo("Documentation:")
+                    click.echo(f"  Project README:  projects/{agent.project}/README.md")
+                    click.echo()
+            
+            click.echo("=" * 80)
     
     except Exception as e:
         click.echo(f"Error: {e}", err=True)

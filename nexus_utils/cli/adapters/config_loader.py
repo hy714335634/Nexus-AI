@@ -19,24 +19,36 @@ class ConfigLoader:
         
         try:
             data = self.fs.read_yaml(config_path)
+            # Check if data has 'project' key (nested structure)
+            if 'project' in data:
+                project_data = data['project']
+            else:
+                project_data = data
+            
             return ProjectConfig(
-                name=data.get('name', project_name),
-                description=data.get('description', ''),
-                version=data.get('version', '1.0.0'),
-                dependencies=data.get('dependencies', []),
-                metadata=data.get('metadata', {})
+                name=project_data.get('name', project_name),
+                description=project_data.get('description', ''),
+                version=project_data.get('version', '1.0.0'),
+                dependencies=project_data.get('dependencies', []),
+                metadata=project_data.get('metadata', {})
             )
         except FileNotFoundError:
             # Try JSON format
             config_path = f"projects/{project_name}/project_config.json"
             try:
                 data = self.fs.read_json(config_path)
+                # Check if data has 'project' key (nested structure)
+                if 'project' in data:
+                    project_data = data['project']
+                else:
+                    project_data = data
+                
                 return ProjectConfig(
-                    name=data.get('name', project_name),
-                    description=data.get('description', ''),
-                    version=data.get('version', '1.0.0'),
-                    dependencies=data.get('dependencies', []),
-                    metadata=data.get('metadata', {})
+                    name=project_data.get('name', project_name),
+                    description=project_data.get('description', ''),
+                    version=project_data.get('version', '1.0.0'),
+                    dependencies=project_data.get('dependencies', []),
+                    metadata=project_data.get('metadata', {})
                 )
             except FileNotFoundError:
                 # Return default config
@@ -68,14 +80,19 @@ class ConfigLoader:
     
     def load_agent_config(self, agent_path: str) -> Dict[str, Any]:
         """Load agent configuration from prompt file"""
-        # Try to find the prompt YAML file
-        prompt_path = agent_path.replace('agents/generated_agents', 'prompts/generated_agents_prompts')
-        prompt_file = f"{prompt_path}.yaml"
+        # Extract agent name from path
+        # agent_path format: "agents/generated_agents/agent_name"
+        agent_name = agent_path.split('/')[-1]
+        
+        # Construct prompt file path
+        prompt_file = f"prompts/generated_agents_prompts/{agent_name}/{agent_name}.yaml"
         
         try:
             data = self.fs.read_yaml(prompt_file)
             return data.get('agent', {})
         except FileNotFoundError:
+            return {}
+        except Exception:
             return {}
     
     def validate_config(self, config: Dict[str, Any], schema: Dict[str, Any]) -> bool:
