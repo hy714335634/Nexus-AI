@@ -746,11 +746,12 @@ def project_delete(ctx, name, force, dry_run):
 @click.option('--agent', '-a', help='Specific agent to build')
 @click.option('--tag', '-t', help='Custom image tag (default: latest)')
 @click.option('--no-cache', is_flag=True, help='Build without cache')
-@click.option('--push', default=None, help='Push to registry (default or custom URI)')
+@click.option('--push', 'push', flag_value='default', default=None, help='Push to default registry (or provide custom URI)')
 @click.option('--platform', help='Target platform (e.g., linux/amd64)')
 @click.option('--build-arg', multiple=True, help='Build arguments (KEY=VALUE)')
+@click.option('--no-create-repo', is_flag=True, help='Disable auto-creation of ECR repository')
 @click.pass_obj
-def project_build(ctx, project_name, agent, tag, no_cache, push, platform, build_arg):
+def project_build(ctx, project_name, agent, tag, no_cache, push, platform, build_arg, no_create_repo):
     """Build Docker image for project
     
     Builds Docker images for Nexus-AI projects locally. By default, builds all
@@ -784,11 +785,11 @@ def project_build(ctx, project_name, agent, tag, no_cache, push, platform, build
       # Build without cache
       nexus-cli project build aws_pricing_agent --no-cache
       
-      # Build and push to default registry
+      # Build and push to default registry (no argument needed)
       nexus-cli project build aws_pricing_agent --push
       
-      # Build and push to custom registry
-      nexus-cli project build aws_pricing_agent --push 123456.dkr.ecr.us-east-1.amazonaws.com/my-registry
+      # Build and push to custom registry (provide URI as argument)
+      nexus-cli project build aws_pricing_agent --push=123456.dkr.ecr.us-east-1.amazonaws.com/my-registry
       
       # Build for specific platform
       nexus-cli project build aws_pricing_agent --platform linux/amd64
@@ -806,6 +807,7 @@ def project_build(ctx, project_name, agent, tag, no_cache, push, platform, build
       ✓ Support for multi-platform builds
       ✓ Custom build arguments
       ✓ Push to default or custom registry
+      ✓ Auto-create ECR repositories on first push
     
     \b
     REQUIREMENTS:
@@ -830,7 +832,8 @@ def project_build(ctx, project_name, agent, tag, no_cache, push, platform, build
             no_cache=no_cache,
             push=push,
             platform=platform,
-            build_args=build_args
+            build_args=build_args,
+            create_ecr_repo=not no_create_repo  # Invert the flag
         )
         
         # Build project

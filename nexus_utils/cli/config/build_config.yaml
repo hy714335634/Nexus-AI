@@ -11,6 +11,22 @@ registry:
     region: "us-west-2"
     account_id: "533267047935"
     repository_prefix: "nexus-ai"
+    
+    # Auto-create ECR repositories
+    auto_create:
+      enabled: true
+      image_scanning: true
+      encryption_type: "AES256"  # or "KMS"
+      
+      # Lifecycle policy
+      lifecycle_policy:
+        enabled: true
+        max_image_count: 100
+      
+      # Default tags for created repositories
+      tags:
+        ManagedBy: "nexus-cli"
+        CreatedBy: "auto-build"
   
   # Alternative registries (can be used with --push option)
   alternatives:

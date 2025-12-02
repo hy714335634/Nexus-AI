@@ -11,6 +11,7 @@ from ..models.build import (
     DockerfileTemplate, AgentBuildInfo
 )
 from ..adapters.docker_adapter import DockerAdapter
+from ..adapters.ecr_adapter import ECRAdapter
 from ..config import get_build_config
 
 
@@ -20,6 +21,7 @@ class BuildManager(ResourceManager):
     def __init__(self, fs, config):
         super().__init__(fs, config)
         self.docker = DockerAdapter()
+        self.ecr = ECRAdapter()
         self.build_config = get_build_config()
     
     def validate_build_environment(self) -> tuple[bool, str]:
@@ -198,7 +200,7 @@ class BuildManager(ResourceManager):
             
             # Push if requested
             if options.push:
-                self._push_image(result.image_tag, options.push, build_config)
+                self._push_image(result.image_tag, options.push, build_config, options.create_ecr_repo)
         
         return result
     
@@ -373,7 +375,8 @@ class BuildManager(ResourceManager):
         self,
         image_tag: str,
         push_option: str,
-        build_config: BuildConfig
+        build_config: BuildConfig,
+        create_ecr_repo: bool = True
     ):
         """Push image to registry
         
@@ -381,9 +384,10 @@ class BuildManager(ResourceManager):
             image_tag: Image tag to push
             push_option: Push option (True for default, or custom URI)
             build_config: Build configuration
+            create_ecr_repo: Whether to auto-create ECR repository
         """
         # Determine target tag
-        if isinstance(push_option, str) and push_option.lower() not in ['true', '1', 'yes']:
+        if isinstance(push_option, str) and push_option.lower() not in ['true', '1', 'yes', 'default']:
             # Custom registry URI provided
             # Extract image name from current tag
             image_name = image_tag.split('/')[-1]
@@ -399,6 +403,33 @@ class BuildManager(ResourceManager):
         else:
             # Use default registry (already in image tag)
             push_tag = image_tag
+        
+        # Check and create ECR repository if needed
+        if create_ecr_repo:
+            click.echo(f"\nChecking ECR repository...")
+            success, message = self.ecr.ensure_repository_exists(
+                image_uri=push_tag,
+                auto_create=True,
+                image_scanning=True,
+                encryption_type="AES256",
+                set_lifecycle_policy=True,
+                max_image_count=100,
+                tags={
+                    'ManagedBy': 'nexus-cli',
+                    'CreatedBy': 'auto-build'
+                }
+            )
+            
+            if success:
+                if "created successfully" in message:
+                    click.echo(f"✓ {message}")
+                elif "already exists" in message:
+                    click.echo(f"✓ {message}")
+                else:
+                    click.echo(f"  {message}")
+            else:
+                click.echo(f"⚠ Warning: {message}", err=True)
+                click.echo("  Continuing with push attempt...", err=True)
         
         # Push image
         success, message = self.docker.push_image(push_tag)

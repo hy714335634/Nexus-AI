@@ -15,6 +15,7 @@ class BuildOptions:
     push: Optional[str] = None  # Custom registry URI, or True for default
     platform: Optional[str] = None
     build_args: Dict[str, str] = field(default_factory=dict)
+    create_ecr_repo: bool = True  # Auto-create ECR repository if not exists
 
 
 @dataclass
