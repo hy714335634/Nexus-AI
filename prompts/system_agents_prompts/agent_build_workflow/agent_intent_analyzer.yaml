@@ -8,11 +8,11 @@ agent:
       temperature: 0.3
       streaming: False
     production:
-      max_tokens: 3000
+      max_tokens: 4096
       temperature: 0.3
       streaming: False
     testing:
-      max_tokens: 2048
+      max_tokens: 4096
       temperature: 0.3
       streaming: False
   versions:
@@ -119,8 +119,8 @@ agent:
       metadata:
         tags: ["intent", "analysis", "project"]
         supported_models:
-          - "global.anthropic.claude-haiku-4-5-20251001-v1:0"
-          - "us.anthropic.claude-opus-4-20250514-v1:0"
+          - "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
+          - "us.anthropic.claude-opus-4-5-20251101-v1:0"
         tools_dependencies:
           - "strands_tools/file_read"
           - "strands_tools/current_time"

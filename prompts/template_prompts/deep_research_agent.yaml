@@ -122,7 +122,7 @@ agent:
         tags: ["research_analysis", "information_collection", "data_analysis", "report_generation", "trend_prediction", "real_data"]
         supported_models:
           - "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
-          - "us.anthropic.claude-opus-4-20250514-v1:0"
+          - "us.anthropic.claude-opus-4-5-20251101-v1:0"
         tools_dependencies:
           - "strands_tools/http_request"
           - "strands_tools/rss"

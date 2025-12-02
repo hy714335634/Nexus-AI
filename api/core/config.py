@@ -15,22 +15,7 @@ class Settings(BaseSettings):
     # Database Configuration
     DYNAMODB_REGION: str = "us-west-2"
     DYNAMODB_ENDPOINT_URL: Optional[str] = None  # For local development
-    
-    # Redis Configuration
-    REDIS_URL: str = "redis://localhost:6379/0"
-    REDIS_HOST: Optional[str] = None  # AWS ElastiCache endpoint
-    REDIS_PORT: int = 6379
-    REDIS_PASSWORD: Optional[str] = None
-    REDIS_SSL: bool = False  # Set to True for AWS ElastiCache with TLS
-    
-    # Celery Configuration
-    CELERY_BROKER_URL: str = "redis://localhost:6379/0"
-    CELERY_RESULT_BACKEND: str = "redis://localhost:6379/0"
-    CELERY_TASK_SERIALIZER: str = "json"
-    CELERY_RESULT_SERIALIZER: str = "json"
-    CELERY_ACCEPT_CONTENT: List[str] = ["json"]
-    CELERY_TIMEZONE: str = "UTC"
-    CELERY_ENABLE_UTC: bool = True
+
     
     # AWS Configuration
     AWS_ACCESS_KEY_ID: Optional[str] = None

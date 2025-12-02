@@ -962,8 +962,7 @@ async def resume_build(
         reason = request.reason if request else "用户手动恢复"
         logger.info(f"Project {project_id} resumed. Reason: {reason}")
         
-        # TODO: In a real implementation, we would restart the workflow engine
-        # For now, we just update the status
+
         
         return APIResponse(
             success=True,

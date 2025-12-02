@@ -88,7 +88,7 @@ agent:
         tags: ["api_integration", "http_client", "data_sync", "service_integration"]
         supported_models:
           - "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
-          - "us.anthropic.claude-opus-4-20250514-v1:0"
+          - "us.anthropic.claude-opus-4-5-20251101-v1:0"
         tools_dependencies:
           - "strands_tools/current_time"
           - "template_tools/network/http_client/api_client"
