@@ -109,7 +109,8 @@ export function useBuildDashboard(
         return false;
       }
 
-      return 5_000;
+      // Increased from 5s to 10s to reduce server load
+      return 10_000;
     },
     ...options,
   });

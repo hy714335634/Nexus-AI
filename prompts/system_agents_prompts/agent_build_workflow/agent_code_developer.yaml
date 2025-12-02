@@ -353,7 +353,7 @@ agent:
             "configuration": {
               "environment_variables": ["环境变量1", "环境变量2"],
               "model_configuration": {
-                "model_name": "模型名称",
+                "model_name": "global.anthropic.claude-sonnet-4-5-20250929-v1:0",
                 "max_tokens": 60000,
                 "temperature": 0.3,
               },
@@ -483,7 +483,7 @@ agent:
         tags: ["agent_development", "strands", "aws_bedrock", "python"]
         supported_models:
           - "global.anthropic.claude-sonnet-4-5-20250929-v1:0"
-          - "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
+          - "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
           - "us.anthropic.claude-opus-4-20250514-v1:0"
         tools_dependencies:
           - "strands_tools/file_read"

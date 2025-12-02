@@ -468,7 +468,7 @@ def get_processing_status() -> str:
                 "region_source": "environment" if os.getenv('AWS_DEFAULT_REGION') or os.getenv('AWS_REGION') else "config"
             },
             "model_configuration": {
-                "primary_model": model_config.get('primary_model', 'us.anthropic.claude-3-7-sonnet-20250219-v1:0'),
+                "primary_model": model_config.get('primary_model', 'us.anthropic.claude-sonnet-4-5-20250929-v1:0'),
                 "fallback_model": model_config.get('fallback_model', 'us.anthropic.claude-3-5-haiku-20241022-v1:0'),
                 "max_tokens": model_config.get('max_tokens', 4000)
             },

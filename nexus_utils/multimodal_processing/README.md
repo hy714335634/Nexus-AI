@@ -117,7 +117,7 @@ s3_service.download_file("remote_path.txt", "local_file.txt")
 ```yaml
 multimodal_parser:
   model:
-    primary_model: "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
+    primary_model: "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
     fallback_model: "us.anthropic.claude-3-5-haiku-20241022-v1:0"
     max_tokens: 4000
   processing:

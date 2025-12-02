@@ -103,7 +103,7 @@ agent:
                 "constraints": ["约束条件1"],
                 "evaluation_criteria": ["评估标准1"],
                 "model_requirements": {
-                  "model_name": "推荐模型",
+                  "model_name": "global.anthropic.claude-sonnet-4-5-20250929-v1:0",
                   "minimum_capabilities": ["能力1"],
                   "rationale": "模型选择理由"
                 },
@@ -210,7 +210,7 @@ agent:
         tags: ["agent_design", "specification", "architecture"]
         supported_models:
           # - "global.anthropic.claude-sonnet-4-5-20250929-v1:0"
-          - "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
+          - "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
           - "us.anthropic.claude-opus-4-20250514-v1:0"
         tools_dependencies:
           - "strands_tools/file_read"
@@ -319,7 +319,7 @@ agent:
                 "constraints": ["约束条件1"],
                 "evaluation_criteria": ["评估标准1"],
                 "model_requirements": {
-                  "model_name": "推荐模型",
+                  "model_name": "global.anthropic.claude-sonnet-4-5-20250929-v1:0",
                   "minimum_capabilities": ["能力1"],
                   "rationale": "模型选择理由"
                 },
@@ -426,7 +426,7 @@ agent:
         tags: ["agent_design", "specification", "architecture"]
         supported_models:
           - "global.anthropic.claude-sonnet-4-5-20250929-v1:0"
-          - "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
+          - "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
           - "us.anthropic.claude-opus-4-20250514-v1:0"
         tools_dependencies:
           - "strands_tools/file_read"

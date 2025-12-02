@@ -49,7 +49,7 @@ class MultimodalModelService:
             self.aws_config = {}
             
         # Model settings
-        self.primary_model = self.model_config.get('primary_model', 'us.anthropic.claude-3-7-sonnet-20250219-v1:0')
+        self.primary_model = self.model_config.get('primary_model', 'us.anthropic.claude-sonnet-4-5-20250929-v1:0')
         self.fallback_model = self.model_config.get('fallback_model', 'us.anthropic.claude-3-5-haiku-20241022-v1:0')
         self.max_tokens = self.model_config.get('max_tokens', 4000)
         

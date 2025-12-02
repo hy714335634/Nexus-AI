@@ -375,7 +375,7 @@ default-config:
     runtime_timeout_minutes: 30            # Agent运行时超时时间
   
   bedrock:
-    model_id: 'us.anthropic.claude-3-7-sonnet-20250219-v1:0'    # 默认模型
+    model_id: 'us.anthropic.claude-sonnet-4-5-20250929-v1:0'    # 默认模型
     lite_model_id: 'us.anthropic.claude-3-5-haiku-20241022-v1:0' # 轻量模型
     pro_model_id: 'us.anthropic.claude-opus-4-20250514-v1:0'     # 专业模型
   
@@ -444,7 +444,7 @@ multimodal_parser:
   
   model:
     primary_model: "us.anthropic.claude-opus-4-20250514-v1:0"    # 主模型
-    fallback_model: "us.anthropic.claude-3-7-sonnet-20250219-v1:0" # 备用模型
+    fallback_model: "us.anthropic.claude-sonnet-4-5-20250929-v1:0" # 备用模型
     max_tokens: 40000                          # 最大Token数
 ```
 

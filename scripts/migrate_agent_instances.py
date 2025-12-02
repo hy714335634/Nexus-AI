@@ -81,7 +81,7 @@ def backfill_agent_records():
             
             if 'model_id' not in item:
                 update_expr_parts.append('model_id = :model_id')
-                expr_attr_values[':model_id'] = 'us.anthropic.claude-3-7-sonnet-20250219-v1:0'
+                expr_attr_values[':model_id'] = 'us.anthropic.claude-sonnet-4-5-20250929-v1:0'
             
             if 'invoke_url' not in item:
                 update_expr_parts.append('invoke_url = :invoke_url')
