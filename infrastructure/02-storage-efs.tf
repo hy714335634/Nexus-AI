@@ -25,8 +25,10 @@ resource "aws_efs_mount_target" "nexus_ai" {
 }
 
 # ============================================
-# EFS Access Point for Application Data
+# EFS Access Point for Application Data (Root Access)
 # ============================================
+# This access point provides root directory access so all services
+# (Bastion, EC2, Fargate) can share the same repo and projects directory
 resource "aws_efs_access_point" "app_data" {
   count = var.create_vpc ? 1 : 0
 
@@ -37,8 +39,9 @@ resource "aws_efs_access_point" "app_data" {
     uid = 1000
   }
 
+  # Use root directory "/" to allow access to all paths including /nexus-ai-repo
   root_directory {
-    path = "/app-data"
+    path = "/"
     creation_info {
       owner_gid   = 1000
       owner_uid   = 1000
@@ -46,5 +49,7 @@ resource "aws_efs_access_point" "app_data" {
     }
   }
 
-  tags = local.common_tags
+  tags = merge(local.common_tags, {
+    Name = "${var.project_name}-efs-access-point-${var.environment}"
+  })
 }

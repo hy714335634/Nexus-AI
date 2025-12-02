@@ -135,3 +135,50 @@ resource "aws_lb_listener_rule" "api_docs" {
   depends_on = [aws_lb_target_group.api]
 }
 
+# Jaeger Target Group (when enabled)
+resource "aws_lb_target_group" "jaeger" {
+  count = var.create_vpc && var.enable_jaeger ? 1 : 0
+
+  name        = "${var.project_name}-jaeger-tg-${var.environment}"
+  port        = 16686
+  protocol    = "HTTP"
+  vpc_id      = local.vpc_id
+  target_type = "ip"
+
+  health_check {
+    enabled             = true
+    healthy_threshold   = 2
+    unhealthy_threshold = 3
+    timeout             = 5
+    interval            = 30
+    path                = "/"
+    protocol            = "HTTP"
+    matcher             = "200"
+  }
+
+  deregistration_delay = 30
+
+  tags = local.common_tags
+}
+
+# ALB Listener Rule for Jaeger UI
+resource "aws_lb_listener_rule" "jaeger" {
+  count = var.create_vpc && var.enable_jaeger ? 1 : 0
+
+  listener_arn = aws_lb_listener.http[0].arn
+  priority     = 90
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.jaeger[0].arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/jaeger", "/jaeger/*"]
+    }
+  }
+
+  depends_on = [aws_lb_target_group.jaeger]
+}
+

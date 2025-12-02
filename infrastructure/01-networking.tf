@@ -178,6 +178,14 @@ resource "aws_security_group" "ecs" {
     description     = "Frontend from ALB"
   }
 
+  ingress {
+    from_port       = 16686
+    to_port         = 16686
+    protocol        = "tcp"
+    security_groups = [aws_security_group.alb[0].id]
+    description     = "Jaeger UI from ALB"
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
@@ -231,20 +239,6 @@ resource "aws_security_group_rule" "efs_ecs" {
   ]
 }
 
-# Redis will use the same ECS security group
-# Allow ECS containers to communicate with each other (including Redis)
-resource "aws_security_group_rule" "ecs_redis" {
-  count = var.create_vpc ? 1 : 0
-
-  type                     = "ingress"
-  from_port                = 6379
-  to_port                  = 6379
-  protocol                 = "tcp"
-  source_security_group_id = aws_security_group.ecs[0].id
-  security_group_id        = aws_security_group.ecs[0].id
-  description              = "Allow ECS containers to access Redis"
-}
-
 # ============================================
 # Security Group for EC2 API Service
 # ============================================
@@ -282,19 +276,6 @@ resource "aws_security_group" "ec2_api" {
   tags = merge(local.common_tags, {
     Name = "${var.project_name}-ec2-api-sg-${var.environment}"
   })
-}
-
-# Allow EC2 API to access Redis in ECS
-resource "aws_security_group_rule" "ec2_api_redis" {
-  count = var.create_vpc && var.api_deploy_on_ec2 ? 1 : 0
-
-  type                     = "ingress"
-  from_port                = 6379
-  to_port                  = 6379
-  protocol                 = "tcp"
-  source_security_group_id = aws_security_group.ec2_api[0].id
-  security_group_id        = aws_security_group.ecs[0].id
-  description              = "Allow EC2 API to access Redis"
 }
 
 # Allow EC2 API to access EFS
@@ -357,19 +338,6 @@ resource "aws_security_group_rule" "ec2_api_tcp_from_bastion" {
   source_security_group_id = aws_security_group.bastion[0].id
   security_group_id        = aws_security_group.ec2_api[0].id
   description              = "Allow TCP access from Bastion to EC2 API service (port 8000) for debugging"
-}
-
-# Allow Bastion to access Redis
-resource "aws_security_group_rule" "bastion_redis" {
-  count = var.create_vpc && var.enable_bastion ? 1 : 0
-
-  type                     = "ingress"
-  from_port                = 6379
-  to_port                  = 6379
-  protocol                 = "tcp"
-  source_security_group_id = aws_security_group.bastion[0].id
-  security_group_id        = aws_security_group.ecs[0].id
-  description              = "Allow Bastion to access Redis"
 }
 
 # ============================================

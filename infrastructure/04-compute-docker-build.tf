@@ -18,7 +18,6 @@ resource "null_resource" "docker_build_and_push" {
     # Rebuild when ECR repositories change
     api_repo          = aws_ecr_repository.api.repository_url
     frontend_repo     = aws_ecr_repository.frontend.repository_url
-    celery_repo       = aws_ecr_repository.celery_worker.repository_url
     
     # Rebuild when Dockerfiles or dependencies change
     api_dockerfile_hash    = filemd5("${path.module}/../api/Dockerfile")
@@ -63,8 +62,40 @@ resource "null_resource" "docker_build_and_push" {
       TIMESTAMP=$(date +%Y%m%d-%H%M%S)
       docker tag ${aws_ecr_repository.api.repository_url}:latest ${aws_ecr_repository.api.repository_url}:$TIMESTAMP
       echo "📤 Pushing API image..."
-      docker push ${aws_ecr_repository.api.repository_url}:latest
-      docker push ${aws_ecr_repository.api.repository_url}:$TIMESTAMP
+      # Retry logic for network issues
+      MAX_PUSH_RETRIES=3
+      PUSH_RETRY=0
+      while [ $PUSH_RETRY -lt $MAX_PUSH_RETRIES ]; do
+        if docker push ${aws_ecr_repository.api.repository_url}:latest; then
+          echo "✅ API image pushed successfully"
+          break
+        else
+          PUSH_RETRY=$((PUSH_RETRY + 1))
+          if [ $PUSH_RETRY -lt $MAX_PUSH_RETRIES ]; then
+            echo "⚠️  Push failed, retrying ($PUSH_RETRY/$MAX_PUSH_RETRIES) in 10 seconds..."
+            sleep 10
+          else
+            echo "❌ Failed to push API image after $MAX_PUSH_RETRIES attempts"
+            exit 1
+          fi
+        fi
+      done
+      
+      PUSH_RETRY=0
+      while [ $PUSH_RETRY -lt $MAX_PUSH_RETRIES ]; do
+        if docker push ${aws_ecr_repository.api.repository_url}:$TIMESTAMP; then
+          echo "✅ API image (tagged) pushed successfully"
+          break
+        else
+          PUSH_RETRY=$((PUSH_RETRY + 1))
+          if [ $PUSH_RETRY -lt $MAX_PUSH_RETRIES ]; then
+            echo "⚠️  Push failed, retrying ($PUSH_RETRY/$MAX_PUSH_RETRIES) in 10 seconds..."
+            sleep 10
+          else
+            echo "⚠️  Failed to push tagged API image, but latest tag succeeded"
+          fi
+        fi
+      done
       
       # Build and push Frontend image
       echo "📦 Building Frontend image..."
@@ -82,19 +113,40 @@ resource "null_resource" "docker_build_and_push" {
       docker build --platform linux/amd64 -f web/Dockerfile -t ${aws_ecr_repository.frontend.repository_url}:latest web/
       docker tag ${aws_ecr_repository.frontend.repository_url}:latest ${aws_ecr_repository.frontend.repository_url}:$TIMESTAMP
       echo "📤 Pushing Frontend image..."
-      docker push ${aws_ecr_repository.frontend.repository_url}:latest
-      docker push ${aws_ecr_repository.frontend.repository_url}:$TIMESTAMP
+      # Retry logic for network issues
+      MAX_PUSH_RETRIES=3
+      PUSH_RETRY=0
+      while [ $PUSH_RETRY -lt $MAX_PUSH_RETRIES ]; do
+        if docker push ${aws_ecr_repository.frontend.repository_url}:latest; then
+          echo "✅ Frontend image pushed successfully"
+          break
+        else
+          PUSH_RETRY=$((PUSH_RETRY + 1))
+          if [ $PUSH_RETRY -lt $MAX_PUSH_RETRIES ]; then
+            echo "⚠️  Push failed, retrying ($PUSH_RETRY/$MAX_PUSH_RETRIES) in 10 seconds..."
+            sleep 10
+          else
+            echo "❌ Failed to push Frontend image after $MAX_PUSH_RETRIES attempts"
+            exit 1
+          fi
+        fi
+      done
       
-      # Build and push Celery Worker image (reuse API image)
-      echo "📦 Building Celery Worker image..."
-      cd $PROJECT_ROOT
-      # Build for linux/amd64 platform (required for AWS ECS Fargate)
-      # Build from project root with project root as context (same as API image)
-      docker build --platform linux/amd64 -f api/Dockerfile -t ${aws_ecr_repository.celery_worker.repository_url}:latest .
-      docker tag ${aws_ecr_repository.celery_worker.repository_url}:latest ${aws_ecr_repository.celery_worker.repository_url}:$TIMESTAMP
-      echo "📤 Pushing Celery Worker image..."
-      docker push ${aws_ecr_repository.celery_worker.repository_url}:latest
-      docker push ${aws_ecr_repository.celery_worker.repository_url}:$TIMESTAMP
+      PUSH_RETRY=0
+      while [ $PUSH_RETRY -lt $MAX_PUSH_RETRIES ]; do
+        if docker push ${aws_ecr_repository.frontend.repository_url}:$TIMESTAMP; then
+          echo "✅ Frontend image (tagged) pushed successfully"
+          break
+        else
+          PUSH_RETRY=$((PUSH_RETRY + 1))
+          if [ $PUSH_RETRY -lt $MAX_PUSH_RETRIES ]; then
+            echo "⚠️  Push failed, retrying ($PUSH_RETRY/$MAX_PUSH_RETRIES) in 10 seconds..."
+            sleep 10
+          else
+            echo "⚠️  Failed to push tagged Frontend image, but latest tag succeeded"
+          fi
+        fi
+      done
       
       echo "✅ All images built and pushed successfully!"
     EOT
@@ -102,8 +154,7 @@ resource "null_resource" "docker_build_and_push" {
 
   depends_on = [
     aws_ecr_repository.api,
-    aws_ecr_repository.frontend,
-    aws_ecr_repository.celery_worker
+    aws_ecr_repository.frontend
   ]
 }
 

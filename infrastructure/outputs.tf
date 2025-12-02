@@ -36,7 +36,6 @@ output "ecr_repositories" {
   value = var.create_vpc ? {
     api          = aws_ecr_repository.api.repository_url
     frontend     = aws_ecr_repository.frontend.repository_url
-    celery_worker = aws_ecr_repository.celery_worker.repository_url
   } : null
 }
 
@@ -48,6 +47,11 @@ output "alb_dns_name" {
 output "alb_zone_id" {
   description = "Application Load Balancer zone ID"
   value       = var.create_vpc ? aws_lb.nexus_ai[0].zone_id : null
+}
+
+output "alb_internal" {
+  description = "Whether the ALB is internal (true) or internet-facing (false)"
+  value       = var.create_vpc ? var.alb_internal : null
 }
 
 output "efs_file_system_id" {

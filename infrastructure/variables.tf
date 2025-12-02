@@ -107,15 +107,28 @@ variable "alb_allowed_cidr_blocks" {
 
 # ECS Configuration
 variable "api_cpu" {
-  description = "CPU units for API service (1024 = 1 vCPU)"
+  description = "CPU units for API service (1024 = 1 vCPU). For workflows with async threads, recommend at least 4096 (4 vCPU)"
   type        = number
-  default     = 2048
+  default     = 4096
 }
 
 variable "api_memory" {
-  description = "Memory for API service in MB"
+  description = "Memory for API service in MB. For workflows with async threads, recommend at least 8192 MB"
   type        = number
-  default     = 4096
+  default     = 8192
+}
+
+variable "max_workflow_workers" {
+  description = "Maximum number of concurrent workflow workers (ThreadPoolExecutor max_workers)"
+  type        = number
+  default     = 5
+}
+
+# Jaeger Configuration
+variable "enable_jaeger" {
+  description = "Enable Jaeger tracing as sidecar container (for OpenTelemetry)"
+  type        = bool
+  default     = false
 }
 
 variable "api_desired_count" {
@@ -140,36 +153,6 @@ variable "frontend_desired_count" {
   description = "Desired number of Frontend service instances"
   type        = number
   default     = 1
-}
-
-variable "celery_worker_cpu" {
-  description = "CPU units for Celery worker service (1024 = 1 vCPU)"
-  type        = number
-  default     = 2048
-}
-
-variable "celery_worker_memory" {
-  description = "Memory for Celery worker service in MB"
-  type        = number
-  default     = 4096
-}
-
-variable "celery_worker_desired_count" {
-  description = "Desired number of Celery worker instances per queue"
-  type        = number
-  default     = 2
-}
-
-variable "redis_cpu" {
-  description = "CPU units for Redis service (1024 = 1 vCPU)"
-  type        = number
-  default     = 2048
-}
-
-variable "redis_memory" {
-  description = "Memory for Redis service in MB"
-  type        = number
-  default     = 4096
 }
 
 # Docker Build Configuration

@@ -41,8 +41,6 @@ resource "aws_launch_template" "api" {
     efs_access_point_id  = aws_efs_access_point.app_data[0].id
     aws_region           = var.aws_region
     ecr_repository_url   = aws_ecr_repository.api.repository_url
-    redis_host           = "redis.${var.project_name}.local"
-    redis_port           = "6379"
     dynamodb_region      = var.aws_region
     agent_projects_table = var.enable_dynamodb ? aws_dynamodb_table.agent_projects[0].name : ""
     agent_instances_table = var.enable_dynamodb ? aws_dynamodb_table.agent_instances[0].name : ""
@@ -58,8 +56,6 @@ resource "aws_launch_template" "api" {
     EFS_ACCESS_POINT_ID  = aws_efs_access_point.app_data[0].id
     AWS_REGION           = var.aws_region
     ECR_REPOSITORY_URL   = aws_ecr_repository.api.repository_url
-    REDIS_HOST           = "redis.${var.project_name}.local"
-    REDIS_PORT           = "6379"
     DYNAMODB_REGION      = var.aws_region
     AGENT_PROJECTS_TABLE = var.enable_dynamodb ? aws_dynamodb_table.agent_projects[0].name : ""
     AGENT_INSTANCES_TABLE = var.enable_dynamodb ? aws_dynamodb_table.agent_instances[0].name : ""
@@ -110,8 +106,7 @@ resource "aws_launch_template" "api" {
   tags = local.common_tags
 
   depends_on = [
-    aws_efs_mount_target.nexus_ai,
-    aws_service_discovery_service.redis
+    aws_efs_mount_target.nexus_ai
   ]
 }
 

@@ -72,9 +72,12 @@ ssh -i ~/.ssh/Og_Normal.pem ec2-user@$(terraform output -raw bastion_public_ip)
 
 ## 📚 文档
 
-- [部署指南](docs/operations/DEPLOYMENT.md)
+- [Terraform 部署指南](docs/operations/DEPLOYMENT.md)
+- [快速开始指南](docs/operations/QUICK_START.md)
+- [本地开发指南](docs/operations/LOCAL_DEVELOPMENT.md)
 - [故障排查](docs/troubleshooting/FIXES.md)
 - [EFS存储架构](docs/architecture/EFS_STORAGE.md)
+- [AWS部署架构](docs/architecture/aws-deployment-architecture.md)
 
 ## 💰 成本估算
 

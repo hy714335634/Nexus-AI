@@ -75,7 +75,9 @@ resource "aws_iam_role_policy" "ecs_dynamodb" {
           "dynamodb:Scan",
           "dynamodb:BatchGetItem",
           "dynamodb:BatchWriteItem",
-          "dynamodb:DescribeTable"
+          "dynamodb:DescribeTable",
+          "dynamodb:ListTables",
+          "dynamodb:CreateTable"
         ]
         Resource = [
           var.enable_dynamodb ? aws_dynamodb_table.agent_projects[0].arn : "*",
@@ -89,6 +91,13 @@ resource "aws_iam_role_policy" "ecs_dynamodb" {
           var.enable_dynamodb ? aws_dynamodb_table.agent_session_messages[0].arn : "*",
           var.enable_dynamodb ? "${aws_dynamodb_table.agent_session_messages[0].arn}/index/*" : "*"
         ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "dynamodb:ListTables"
+        ]
+        Resource = "*"
       }
     ]
   })
@@ -119,7 +128,7 @@ resource "aws_iam_role_policy" "ecs_sqs" {
   })
 }
 
-# Policy for Bedrock access
+# Policy for Bedrock access (including AgentCore)
 resource "aws_iam_role_policy" "ecs_bedrock" {
   count = var.create_vpc ? 1 : 0
 
@@ -133,9 +142,97 @@ resource "aws_iam_role_policy" "ecs_bedrock" {
         Effect = "Allow"
         Action = [
           "bedrock:InvokeModel",
-          "bedrock:InvokeModelWithResponseStream"
+          "bedrock:InvokeModelWithResponseStream",
+          "bedrock:ListFoundationModels",
+          "bedrock:GetFoundationModel"
         ]
         Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "bedrock-agentcore:CreateAgent",
+          "bedrock-agentcore:GetAgent",
+          "bedrock-agentcore:UpdateAgent",
+          "bedrock-agentcore:DeleteAgent",
+          "bedrock-agentcore:ListAgents",
+          "bedrock-agentcore:CreateAgentAlias",
+          "bedrock-agentcore:GetAgentAlias",
+          "bedrock-agentcore:UpdateAgentAlias",
+          "bedrock-agentcore:ListAgentAliases",
+          "bedrock-agentcore:DeleteAgentAlias",
+          "bedrock-agent-runtime:InvokeAgent",
+          "bedrock-agent-runtime:InvokeAgentWithResponseStream"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+# Policy for IAM access (for AgentCore execution roles)
+resource "aws_iam_role_policy" "ecs_iam_agentcore" {
+  count = var.create_vpc ? 1 : 0
+
+  name = "${var.project_name}-ecs-iam-agentcore-${var.environment}"
+  role = aws_iam_role.ecs_task[0].id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "iam:CreateRole",
+          "iam:GetRole",
+          "iam:UpdateRole",
+          "iam:DeleteRole",
+          "iam:AttachRolePolicy",
+          "iam:DetachRolePolicy",
+          "iam:PutRolePolicy",
+          "iam:DeleteRolePolicy",
+          "iam:GetRolePolicy",
+          "iam:ListRolePolicies",
+          "iam:ListAttachedRolePolicies",
+          "iam:PassRole",
+          "iam:TagRole",
+          "iam:UntagRole"
+        ]
+        Resource = [
+          "arn:aws:iam::*:role/agentcore*",
+          "arn:aws:iam::*:role/AmazonBedrockAgentCoreSDKRuntime-*",
+          "arn:aws:iam::*:role/AmazonBedrockAgentCoreSDKCodeBuild-*"
+        ]
+      }
+    ]
+  })
+}
+
+# Policy for S3 access (for AgentCore deployments and artifacts)
+resource "aws_iam_role_policy" "ecs_s3" {
+  count = var.create_vpc ? 1 : 0
+
+  name = "${var.project_name}-ecs-s3-${var.environment}"
+  role = aws_iam_role.ecs_task[0].id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:GetObject",
+          "s3:PutObject",
+          "s3:DeleteObject",
+          "s3:ListBucket",
+          "s3:GetObjectVersion",
+          "s3:PutObjectAcl",
+          "s3:GetObjectAcl"
+        ]
+        Resource = [
+          "arn:aws:s3:::*",
+          "arn:aws:s3:::*/*"
+        ]
       }
     ]
   })

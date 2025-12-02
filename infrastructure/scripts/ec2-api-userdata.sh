@@ -11,8 +11,6 @@ EFS_FILE_SYSTEM_ID="${efs_file_system_id}"
 EFS_ACCESS_POINT_ID="${efs_access_point_id}"
 AWS_REGION="${aws_region}"
 ECR_REPOSITORY_URL="${ecr_repository_url}"
-REDIS_HOST="${redis_host}"
-REDIS_PORT="${redis_port}"
 DYNAMODB_REGION="${dynamodb_region}"
 AGENT_PROJECTS_TABLE="${agent_projects_table}"
 AGENT_INSTANCES_TABLE="${agent_instances_table}"
@@ -28,7 +26,7 @@ PROJECT_ROOT="${project_root}"
 
 # Export variables for use in heredoc
 export EFS_FILE_SYSTEM_ID EFS_ACCESS_POINT_ID AWS_REGION ECR_REPOSITORY_URL
-export REDIS_HOST REDIS_PORT DYNAMODB_REGION
+export DYNAMODB_REGION
 export AGENT_PROJECTS_TABLE AGENT_INSTANCES_TABLE SQS_QUEUE_URL ENVIRONMENT
 export GITHUB_REPO_URL GITHUB_BRANCH
 export EFS_MOUNT_PATH APP_DIR PROJECT_ROOT
@@ -178,10 +176,6 @@ services:
       - AGENT_PROJECTS_TABLE=${AGENT_PROJECTS_TABLE}
       - AGENT_INSTANCES_TABLE=${AGENT_INSTANCES_TABLE}
       - SQS_QUEUE_URL=${SQS_QUEUE_URL}
-      - REDIS_HOST=${REDIS_HOST}
-      - REDIS_PORT=${REDIS_PORT}
-      - CELERY_BROKER_URL=redis://${REDIS_HOST}:${REDIS_PORT}/0
-      - CELERY_RESULT_BACKEND=redis://${REDIS_HOST}:${REDIS_PORT}/0
       - EFS_MOUNT_PATH=${EFS_MOUNT_PATH}
       - DOCKER_HOST=unix:///var/run/docker.sock
     volumes:
