@@ -1,0 +1,264 @@
+{
+  "agent_code_development": {
+    "development_overview": {
+      "project_name": "sports_match_prediction_agent",
+      "version": "1.0",
+      "date": "2025-12-02",
+      "development_scope": "开发体育赛事预测分析Agent的完整代码实现，集成数据收集、分析、预测和报告生成功能。基于API集成专家模板和数据分析师模板，实现单Agent架构的体育赛事预测系统。",
+      "design_principles": [
+        "遵循Strands SDK和AgentCore规范",
+        "实现BedrockAgentCoreApp标准入口点",
+        "使用agent_factory创建Agent实例",
+        "完善的错误处理和日志记录",
+        "支持本地测试和AgentCore部署双模式",
+        "清晰的代码结构和文档注释"
+      ],
+      "key_decisions": [
+        "使用create_agent_from_prompt_template创建Agent，提示词路径为generated_agents_prompts/sports_match_prediction_agent/sports_match_prediction_agent",
+        "实现@app.entrypoint装饰的handler函数作为AgentCore入口点",
+        "handler函数返回字符串类型，不是Dict",
+        "使用Claude Sonnet 4.5模型（global.anthropic.claude-sonnet-4-5-20250929-v1:0）",
+        "实现环境变量检测，自动选择本地测试或AgentCore服务器模式",
+        "提供详细的命令行参数和使用示例",
+        "实现健壮的响应内容提取逻辑，适配Strands Agent多种返回格式"
+      ]
+    },
+    "agent_implementation": {
+      "agent_name": "sports_match_prediction_agent",
+      "file_path": "agents/generated_agents/sports_match_prediction_agent/sports_match_prediction_agent.py",
+      "main_class": "无（函数式实现）",
+      "entry_point": "handler函数（@app.entrypoint装饰）",
+      "dependencies": [
+        "os - 环境变量管理",
+        "json - JSON数据处理",
+        "logging - 日志记录",
+        "typing.Dict, typing.Any - 类型注解",
+        "nexus_utils.agent_factory - Agent创建工厂",
+        "bedrock_agentcore.runtime.BedrockAgentCoreApp - AgentCore应用框架"
+      ],
+      "imports": [
+        "import os",
+        "import json",
+        "import logging",
+        "from typing import Dict, Any",
+        "from nexus_utils.agent_factory import create_agent_from_prompt_template",
+        "from bedrock_agentcore.runtime import BedrockAgentCoreApp"
+      ]
+    },
+    "core_functions": [
+      {
+        "function_name": "create_sports_prediction_agent",
+        "purpose": "创建体育赛事预测Agent实例，支持自定义环境、版本和模型参数",
+        "parameters": [
+          {
+            "name": "env",
+            "type": "str",
+            "description": "运行环境（development/testing/production）",
+            "required": false
+          },
+          {
+            "name": "version",
+            "type": "str",
+            "description": "Agent版本",
+            "required": false
+          },
+          {
+            "name": "model_id",
+            "type": "str",
+            "description": "模型ID",
+            "required": false
+          }
+        ],
+        "return_type": "Agent",
+        "return_description": "创建的Agent实例",
+        "implementation_notes": [
+          "使用AGENT_PARAMS作为默认参数",
+          "支持参数覆盖",
+          "调用create_agent_from_prompt_template创建Agent",
+          "包含完整的错误处理和日志记录",
+          "Agent名称为generated_agents_prompts/sports_match_prediction_agent/sports_match_prediction_agent"
+        ]
+      },
+      {
+        "function_name": "handler",
+        "purpose": "AgentCore标准入口点，处理来自AgentCore的请求",
+        "parameters": [
+          {
+            "name": "payload",
+            "type": "Dict[str, Any]",
+            "description": "AgentCore传入的请求体，包含prompt、user_id、session_id等字段",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "预测报告的字符串表示（不是Dict！）",
+        "implementation_notes": [
+          "使用@app.entrypoint装饰器",
+          "从payload中提取prompt字段",
+          "调用sports_prediction_agent进行分析",
+          "实现健壮的响应内容提取逻辑",
+          "支持多种Strands Agent返回格式（message.content、content、str）",
+          "返回字符串类型，成功时返回预测报告，失败时返回以'Error: '开头的错误信息",
+          "完整的异常捕获和错误处理",
+          "详细的日志记录"
+        ]
+      }
+    ],
+    "tool_integration": {
+      "custom_tools": [
+        "sports_data_tools.cache_get - 从缓存获取数据",
+        "sports_data_tools.cache_set - 设置缓存数据",
+        "sports_data_tools.cache_clear - 清空缓存",
+        "sports_data_tools.search_team - 搜索球队",
+        "sports_data_tools.get_team_details - 获取球队详情",
+        "sports_data_tools.get_team_last_matches - 获取历史比赛",
+        "sports_data_tools.get_team_next_matches - 获取未来赛程",
+        "sports_data_tools.get_head_to_head - 获取历史交锋",
+        "sports_analysis_tools.validate_team_data - 验证球队数据",
+        "sports_analysis_tools.validate_match_data - 验证比赛数据",
+        "sports_analysis_tools.calculate_team_statistics - 计算统计指标",
+        "sports_analysis_tools.analyze_recent_form - 分析近期状态",
+        "sports_analysis_tools.predict_match_outcome - 预测比赛结果",
+        "sports_analysis_tools.generate_prediction_report - 生成预测报告"
+      ],
+      "system_tools": [
+        "strands_tools/current_time - 获取当前时间"
+      ],
+      "strands_tools": [
+        "通过提示词配置自动集成"
+      ],
+      "integration_notes": [
+        "所有工具通过提示词配置集成到Agent",
+        "Agent通过工具调用实现数据收集和分析",
+        "工具返回JSON格式，Agent负责解析和处理",
+        "实现完善的工具调用错误处理"
+      ]
+    },
+    "configuration": {
+      "environment_variables": [
+        "BYPASS_TOOL_CONSENT=true - 绕过工具同意检查",
+        "OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 - OpenTelemetry导出端点",
+        "DOCKER_CONTAINER - 检测是否在Docker容器中运行"
+      ],
+      "model_configuration": {
+        "model_name": "global.anthropic.claude-sonnet-4-5-20250929-v1:0",
+        "max_tokens": 60000,
+        "temperature": 0.3,
+        "rationale": "Claude Sonnet 4.5在自然语言理解、逻辑推理和文本生成方面表现优秀，temperature 0.3确保输出一致性和准确性"
+      },
+      "streaming_config": {
+        "enabled": false,
+        "rationale": "预测分析需要完整结果，不适合流式输出"
+      }
+    },
+    "error_handling": {
+      "exception_types": [
+        "ValueError - 参数验证失败",
+        "KeyError - payload缺少必需字段",
+        "Exception - 通用异常捕获"
+      ],
+      "error_responses": [
+        "缺少prompt：返回'Error: Missing 'prompt' in request'",
+        "Agent创建失败：抛出异常并记录日志",
+        "Agent调用失败：返回'Error: {异常信息}'",
+        "响应提取失败：使用str(result)作为备用"
+      ],
+      "recovery_strategies": [
+        "payload验证失败：返回明确的错误提示",
+        "Agent调用异常：捕获并返回错误信息",
+        "响应格式异常：尝试多种提取方式",
+        "所有错误都记录详细日志"
+      ]
+    },
+    "testing": {
+      "test_cases": [
+        "单个球队分析：'帮我分析一下湖人队'",
+        "特定比赛预测：'湖人队 vs 勇士队，谁会赢？'",
+        "足球队分析：'曼联未来几场比赛怎么样'",
+        "模糊球队名称：'分析巴萨'"
+      ],
+      "test_scenarios": [
+        "本地测试模式：使用-i参数传入测试输入",
+        "AgentCore部署模式：启动HTTP服务器，通过POST请求测试",
+        "不同环境测试：使用-e参数指定development/testing/production",
+        "调试模式：使用-d参数启用详细日志"
+      ],
+      "validation_criteria": [
+        "Agent创建成功",
+        "handler函数正确处理payload",
+        "响应内容提取成功",
+        "错误处理有效",
+        "日志记录完整",
+        "命令行参数正常工作"
+      ]
+    },
+    "deployment": {
+      "deployment_requirements": [
+        "Python 3.13+运行环境",
+        "Strands SDK安装",
+        "bedrock-agentcore包安装",
+        "nexus_utils模块可用",
+        "提示词配置文件存在于prompts/generated_agents_prompts/sports_match_prediction_agent/",
+        "工具代码存在于tools/generated_tools/sports_match_prediction_agent/",
+        "AWS Bedrock访问权限（生产环境）"
+      ],
+      "runtime_dependencies": [
+        "strands-agents - Strands Agent框架",
+        "strands-agents-tools - Strands工具框架",
+        "bedrock-agentcore - AgentCore运行时",
+        "./nexus_utils - 本地工具包",
+        "requests - HTTP请求库",
+        "PyYAML - YAML配置解析"
+      ],
+      "performance_considerations": [
+        "缓存策略：球队24h、战绩7d、球员12h，显著提升性能",
+        "响应时间：单次完整分析目标10秒内完成",
+        "并发支持：AgentCore模式支持多请求并发处理",
+        "内存使用：缓存限制500MB，自动清理",
+        "日志级别：生产环境使用INFO，调试使用DEBUG"
+      ]
+    },
+    "deployment_modes": {
+      "local_testing": {
+        "description": "本地命令行测试模式",
+        "usage": "python sports_match_prediction_agent.py -i '帮我分析一下湖人队'",
+        "features": [
+          "支持命令行参数",
+          "详细的日志输出",
+          "支持调试模式",
+          "支持环境和版本选择"
+        ]
+      },
+      "agentcore_deployment": {
+        "description": "Amazon Bedrock AgentCore部署模式",
+        "usage": "在Docker容器中运行或直接运行python sports_match_prediction_agent.py",
+        "features": [
+          "启动HTTP服务器监听8080端口",
+          "通过/invocations端点接收请求",
+          "支持AgentCore标准payload格式",
+          "自动环境检测（DOCKER_CONTAINER环境变量）"
+        ]
+      }
+    },
+    "code_structure": {
+      "sections": [
+        "文件头部：模块文档字符串，描述Agent功能和技术栈",
+        "导入部分：所有必需的模块导入",
+        "环境配置：环境变量设置和日志配置",
+        "全局常量：AGENT_NAME和AGENT_PARAMS",
+        "Agent创建函数：create_sports_prediction_agent",
+        "默认Agent实例：sports_prediction_agent",
+        "AgentCore入口点：handler函数（@app.entrypoint装饰）",
+        "入口点别名：invoke和main",
+        "本地运行入口：if __name__ == '__main__'部分"
+      ],
+      "design_patterns": [
+        "工厂模式：create_sports_prediction_agent函数",
+        "单例模式：默认Agent实例",
+        "装饰器模式：@app.entrypoint",
+        "策略模式：环境检测和模式选择"
+      ]
+    },
+    "development_notes": "智能体代码开发已完成，严格遵循所有规范和最佳实践：\n\n1. **架构设计**：\n   - 基于API集成专家模板和数据分析师模板\n   - 单Agent架构，功能模块化\n   - 使用agent_factory创建Agent实例\n   - 实现BedrockAgentCoreApp标准入口点\n\n2. **关键实现**：\n   - create_sports_prediction_agent函数：支持自定义参数的Agent创建\n   - handler函数：AgentCore标准入口点，使用@app.entrypoint装饰\n   - 健壮的响应提取逻辑：适配Strands Agent多种返回格式\n   - 完善的错误处理：所有异常都被捕获并返回友好提示\n   - 详细的日志记录：关键操作都有日志记录\n\n3. **部署支持**：\n   - 本地测试模式：命令行参数，详细日志，调试支持\n   - AgentCore部署模式：HTTP服务器，标准payload，自动环境检测\n   - 双模式自动切换：通过DOCKER_CONTAINER环境变量检测\n\n4. **代码质量**：\n   - 遵循PEP 8代码风格\n   - 完整的类型注解\n   - 详细的文档字符串\n   - 清晰的代码结构\n   - 已通过语法验证\n\n5. **用户体验**：\n   - 详细的使用示例\n   - 友好的错误提示\n   - 灵活的参数配置\n   - 完善的帮助信息\n\n6. **集成要点**：\n   - Agent名称：generated_agents_prompts/sports_match_prediction_agent/sports_match_prediction_agent\n   - 模型：global.anthropic.claude-sonnet-4-5-20250929-v1:0\n   - 工具：通过提示词配置自动集成14个工具\n   - 缓存：.cache/sports_match_prediction_agent/目录\n\n代码已成功生成并通过验证，可直接用于测试和部署。"
+  }
+}

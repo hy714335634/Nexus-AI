@@ -445,8 +445,7 @@ def run_workflow(user_input: str, session_id: Optional[str] = None):
         db_client.update_project_status(
             project_id,
             ProjectStatus.COMPLETED,
-            completed_at=now,
-            updated_at=now
+            completed_at=now
         )
         print(f"✅ 项目状态已更新为 COMPLETED")
 

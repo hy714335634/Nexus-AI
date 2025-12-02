@@ -1,0 +1,19 @@
+./nexus_utils
+strands-agents
+strands-agents-tools
+PyYAML
+bedrock-agentcore
+# 体育赛事预测Agent依赖包
+# 项目: sports_match_prediction_agent
+# Python版本: >=3.12
+# 生成时间: 2025-12-02
+# Nexus-AI本地工具包
+# Strands Agent框架和工具
+# AWS Bedrock AgentCore
+# 配置文件解析
+pyyaml
+# HTTP请求
+requests
+# AWS SDK
+boto3
+botocore

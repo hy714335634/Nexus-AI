@@ -182,8 +182,7 @@ def _execute_build_agent(
                     project_id,
                     ProjectStatus.FAILED,
                     completed_at=finish_time,
-                    error_info={"error": error_msg, "type": "task_exception"},
-                    updated_at=finish_time
+                    error_info={"error": error_msg, "type": "task_exception"}
                 )
                 logger.info(f"Updated project {project_id} status to failed")
         except Exception as db_exc:
@@ -250,8 +249,7 @@ def _execute_build_agent(
     db_client.update_project_status(
         project_id,
         ProjectStatus.COMPLETED,
-        completed_at=finish_time,
-        updated_at=finish_time
+        completed_at=finish_time
     )
     logger.info(f"Updated project {project_id} status to completed")
 

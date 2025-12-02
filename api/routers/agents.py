@@ -881,8 +881,7 @@ async def pause_build(
         # Update project status to paused
         db_client.update_project_status(
             project_id,
-            ProjectStatus.PAUSED,
-            updated_at=datetime.now(timezone.utc)
+            ProjectStatus.PAUSED
         )
         
         # Log the pause action
@@ -954,8 +953,7 @@ async def resume_build(
         # Update project status to building
         db_client.update_project_status(
             project_id,
-            ProjectStatus.BUILDING,
-            updated_at=datetime.now(timezone.utc)
+            ProjectStatus.BUILDING
         )
         
         # Log the resume action
@@ -1031,7 +1029,6 @@ async def stop_build(
         db_client.update_project_status(
             project_id,
             ProjectStatus.FAILED,
-            updated_at=datetime.now(timezone.utc),
             error_info={
                 "type": "user_stopped",
                 "reason": stop_reason,

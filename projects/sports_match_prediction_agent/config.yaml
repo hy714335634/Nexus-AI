@@ -1,0 +1,6 @@
+project:
+  created_date: '2025-12-02T12:51:20.064196+00:00'
+  description: 体育赛事预测智能体 - 根据用户输入的球队名称收集相关信息（球队数据、球员状态、历史战绩等），分析未来几场比赛的输赢可能性，并提供预测结果和依据
+  name: sports_match_prediction_agent
+  updated_date: '2025-12-02T12:51:33.513474+00:00'
+  version: 1.0.0
