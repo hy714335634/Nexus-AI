@@ -1614,18 +1614,6 @@ class DynamoDBClient:
             stage
         )
         return []
-
-    def delete_artifacts_for_stage(self, project_id: str, stage: str) -> None:
-        """
-        DEPRECATED: AgentArtifacts table has been removed per design specs.
-        This method is a no-op stub to prevent crashes.
-        """
-        logger.warning(
-            "delete_artifacts_for_stage called but AgentArtifacts table no longer exists. "
-            "No action taken. project_id=%s stage=%s",
-            project_id,
-            stage
-        )
         # No-op - do nothing
 
     # Invocation operations

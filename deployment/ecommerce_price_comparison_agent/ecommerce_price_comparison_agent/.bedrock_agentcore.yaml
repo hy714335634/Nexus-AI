@@ -1,0 +1,30 @@
+default_agent: ecommerce_price_comparison_agent
+agents:
+  ecommerce_price_comparison_agent:
+    name: ecommerce_price_comparison_agent
+    entrypoint: /Users/ychchen/warren_ws/Nexus-AI/agents/generated_agents/ecommerce_price_comparison_agent/ecommerce_price_comparison_agent.py
+    platform: linux/arm64
+    container_runtime: docker
+    aws:
+      execution_role: arn:aws:iam::034362076319:role/AmazonBedrockAgentCoreSDKRuntime-us-west-2-39e1b4ecec
+      execution_role_auto_create: false
+      account: 034362076319
+      region: us-west-2
+      ecr_repository: 034362076319.dkr.ecr.us-west-2.amazonaws.com/bedrock-agentcore-ecommerce_price_comparison_agent
+      ecr_auto_create: false
+      network_configuration:
+        network_mode: PUBLIC
+      protocol_configuration:
+        server_protocol: HTTP
+      observability:
+        enabled: true
+    bedrock_agentcore:
+      agent_id: ecommerce_price_comparison_agent-WHAZ3o2D8y
+      agent_arn: arn:aws:bedrock-agentcore:us-west-2:034362076319:runtime/ecommerce_price_comparison_agent-WHAZ3o2D8y
+      agent_session_id: null
+    codebuild:
+      project_name: bedrock-agentcore-ecommerce_price_comparison_agent-builder
+      execution_role: arn:aws:iam::034362076319:role/AmazonBedrockAgentCoreSDKCodeBuild-us-west-2-39e1b4ecec
+      source_bucket: bedrock-agentcore-codebuild-sources-034362076319-us-west-2
+    authorizer_configuration: null
+    oauth_configuration: null

@@ -1,0 +1,6 @@
+project:
+  created_date: '2025-12-02T07:05:32.003035+00:00'
+  description: 智能电商价格比较Agent - 根据商品名称自动搜索多个大型电商平台（淘宝、京东、拼多多等）的价格信息，并进行智能对比分析，帮助用户快速找到最优惠的购买选择
+  name: ecommerce_price_comparison_agent
+  updated_date: '2025-12-02T07:05:41.719801+00:00'
+  version: 1.0.0

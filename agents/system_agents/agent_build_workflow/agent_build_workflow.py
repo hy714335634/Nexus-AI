@@ -435,7 +435,21 @@ def run_workflow(user_input: str, session_id: Optional[str] = None):
         print(f"\n⏱️ 实际执行时间: {execution_duration:.2f}秒")
 
         print("✅ 工作流执行完成")
-        
+
+        # 更新项目状态为 COMPLETED
+        from api.database.dynamodb_client import DynamoDBClient
+        from api.models.schemas import ProjectStatus
+        from datetime import datetime, timezone
+        db_client = DynamoDBClient()
+        now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+        db_client.update_project_status(
+            project_id,
+            ProjectStatus.COMPLETED,
+            completed_at=now,
+            updated_at=now
+        )
+        print(f"✅ 项目状态已更新为 COMPLETED")
+
         # 生成工作流总结报告
         print(f"\n{'='*80}")
         print(f"📊 [RESULTS] 工作流执行结果")

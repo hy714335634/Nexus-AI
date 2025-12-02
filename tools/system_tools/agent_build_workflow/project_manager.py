@@ -182,7 +182,6 @@ def _record_stage_artifacts(stage_name: str, artifact_paths: List[str]) -> None:
 
     try:
         db_client = DynamoDBClient()
-        db_client.delete_artifacts_for_stage(project_id, stage_name)
 
         timestamp = datetime.utcnow().replace(tzinfo=timezone.utc)
         for path in artifact_paths:

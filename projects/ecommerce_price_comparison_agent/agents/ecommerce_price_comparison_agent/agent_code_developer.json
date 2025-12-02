@@ -1,0 +1,335 @@
+{
+  "agent_code_development": {
+    "development_overview": {
+      "project_name": "ecommerce_price_comparison_agent",
+      "version": "1.0",
+      "date": "2025-12-02",
+      "development_scope": "基于Agent设计规格、系统架构、提示词模板和工具代码，开发完整的智能电商价格比较Agent代码，实现多平台并发查询、智能商品匹配、价格对比分析和结构化报告生成功能",
+      "design_principles": [
+        "单一职责：Agent专注价格比较核心逻辑，工具负责数据采集和处理",
+        "并发优先：使用asyncio实现多平台并发查询，提升响应速度",
+        "容错设计：完善的错误处理和输入验证，单平台失败不影响整体",
+        "缓存优化：5分钟短期缓存减少重复查询，提升性能",
+        "标准部署：遵循BedrockAgentCore规范，支持本地测试和生产部署",
+        "代码质量：清晰的模块划分、完整的文档注释、类型注解"
+      ],
+      "key_decisions": [
+        "基于deep_research_agent和api_integration_agent模板进行定制化开发",
+        "使用BedrockAgentCoreApp框架，@app.entrypoint装饰器定义handler入口点",
+        "实现本地缓存管理，使用MD5哈希生成缓存键，5分钟TTL",
+        "输入验证函数独立封装，支持长度检查和规范化处理",
+        "Handler函数返回字符串类型，符合AgentCore规范",
+        "支持本地测试模式（-i参数）和AgentCore部署模式（HTTP服务器）",
+        "完整的命令行参数支持，包括环境选择、版本指定、缓存清理等"
+      ]
+    },
+    "agent_implementation": {
+      "agent_name": "ecommerce_price_comparison_agent",
+      "file_path": "agents/generated_agents/ecommerce_price_comparison_agent/ecommerce_price_comparison_agent.py",
+      "main_class": "N/A (函数式编程，无主类)",
+      "entry_point": "handler(payload: Dict[str, Any]) -> str",
+      "dependencies": [
+        "os",
+        "json",
+        "asyncio",
+        "hashlib",
+        "time",
+        "pathlib.Path",
+        "typing (Dict, Any, List, Optional, Tuple)",
+        "nexus_utils.agent_factory.create_agent_from_prompt_template",
+        "bedrock_agentcore.runtime.BedrockAgentCoreApp"
+      ],
+      "imports": [
+        "import os",
+        "import json",
+        "import asyncio",
+        "import hashlib",
+        "import time",
+        "from typing import Dict, Any, List, Optional, Tuple",
+        "from pathlib import Path",
+        "from nexus_utils.agent_factory import create_agent_from_prompt_template",
+        "from bedrock_agentcore.runtime import BedrockAgentCoreApp"
+      ]
+    },
+    "core_functions": [
+      {
+        "function_name": "create_ecommerce_price_agent",
+        "purpose": "创建电商价格比较Agent实例，支持环境、版本、模型配置",
+        "parameters": [
+          {
+            "name": "env",
+            "type": "str",
+            "description": "运行环境（production/development/testing）",
+            "required": false,
+            "default": "production"
+          },
+          {
+            "name": "version",
+            "type": "str",
+            "description": "Agent版本",
+            "required": false,
+            "default": "latest"
+          },
+          {
+            "name": "model_id",
+            "type": "str",
+            "description": "模型ID（默认使用Claude Sonnet 4.5）",
+            "required": false,
+            "default": "default"
+          }
+        ],
+        "return_type": "Agent实例",
+        "return_description": "配置好的Agent实例，可用于处理价格查询请求",
+        "implementation_notes": [
+          "使用nexus_utils.agent_factory.create_agent_from_prompt_template工厂函数",
+          "Agent配置路径：generated_agents_prompts/ecommerce_price_comparison_agent/ecommerce_price_comparison_agent",
+          "启用日志记录：enable_logging=True",
+          "支持灵活的环境和版本配置"
+        ]
+      },
+      {
+        "function_name": "get_cache_key",
+        "purpose": "生成查询的缓存键（MD5哈希）",
+        "parameters": [
+          {
+            "name": "query",
+            "type": "str",
+            "description": "商品查询关键词",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "MD5哈希值，用作缓存文件名",
+        "implementation_notes": [
+          "使用hashlib.md5生成哈希",
+          "UTF-8编码确保中文支持",
+          "哈希值唯一标识查询内容"
+        ]
+      },
+      {
+        "function_name": "check_cache",
+        "purpose": "检查缓存是否存在且有效（5分钟内）",
+        "parameters": [
+          {
+            "name": "query",
+            "type": "str",
+            "description": "商品查询关键词",
+            "required": true
+          }
+        ],
+        "return_type": "Optional[str]",
+        "return_description": "缓存的结果字符串，如果缓存不存在或已过期则返回None",
+        "implementation_notes": [
+          "检查缓存文件是否存在",
+          "验证缓存时间戳是否在TTL内（5分钟）",
+          "自动删除过期缓存文件",
+          "完整的异常处理，缓存失败不影响主流程",
+          "打印缓存状态日志（命中/未命中/过期）"
+        ]
+      },
+      {
+        "function_name": "update_cache",
+        "purpose": "更新缓存，保存查询结果和时间戳",
+        "parameters": [
+          {
+            "name": "query",
+            "type": "str",
+            "description": "商品查询关键词",
+            "required": true
+          },
+          {
+            "name": "result",
+            "type": "str",
+            "description": "查询结果",
+            "required": true
+          }
+        ],
+        "return_type": "bool",
+        "return_description": "是否成功更新缓存",
+        "implementation_notes": [
+          "缓存数据包含：query、result、timestamp",
+          "JSON格式存储，ensure_ascii=False支持中文",
+          "缓存文件路径：.cache/ecommerce_price_comparison_agent/{cache_key}.json",
+          "完整的异常处理，缓存失败不影响主流程"
+        ]
+      },
+      {
+        "function_name": "validate_input",
+        "purpose": "验证用户输入的商品名称，检查非空和长度",
+        "parameters": [
+          {
+            "name": "prompt",
+            "type": "str",
+            "description": "用户输入的商品名称",
+            "required": true
+          }
+        ],
+        "return_type": "Tuple[bool, str]",
+        "return_description": "(是否有效, 错误信息或规范化后的输入)",
+        "implementation_notes": [
+          "检查输入是否为空或仅包含空白字符",
+          "规范化输入：去除首尾空白",
+          "长度限制：最多100字符",
+          "返回元组：(验证结果, 错误信息或规范化输入)"
+        ]
+      },
+      {
+        "function_name": "handler",
+        "purpose": "AgentCore标准入口点，处理HTTP请求并返回价格对比结果",
+        "parameters": [
+          {
+            "name": "payload",
+            "type": "Dict[str, Any]",
+            "description": "AgentCore传入的请求体，包含prompt/message/input字段",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "价格对比报告（Markdown格式）或错误信息",
+        "implementation_notes": [
+          "使用@app.entrypoint装饰器标注为AgentCore入口点",
+          "从payload中提取prompt/message/input字段（兼容多种输入格式）",
+          "调用validate_input验证输入",
+          "调用check_cache检查缓存",
+          "如缓存命中，直接返回缓存结果并添加缓存提示",
+          "如缓存未命中，调用Agent进行查询",
+          "适配Strands Agent返回格式，提取响应文本",
+          "调用update_cache更新缓存",
+          "完整的异常处理，返回友好的错误信息",
+          "所有关键步骤都有日志输出"
+        ]
+      }
+    ],
+    "tool_integration": {
+      "custom_tools": [
+        "generated_tools/ecommerce_price_comparison_agent/parse_html/parse_html - HTML解析和商品信息提取",
+        "generated_tools/ecommerce_price_comparison_agent/data_processor/standardize_price - 价格数据标准化",
+        "generated_tools/ecommerce_price_comparison_agent/data_processor/calculate_statistics - 价格统计计算",
+        "generated_tools/ecommerce_price_comparison_agent/cache_manager/check_cache - 缓存检查（未使用，由Agent代码直接管理）",
+        "generated_tools/ecommerce_price_comparison_agent/cache_manager/update_cache - 缓存更新（未使用，由Agent代码直接管理）"
+      ],
+      "system_tools": [
+        "strands_tools/http_request - 发起HTTP请求获取电商平台页面",
+        "strands_tools/current_time - 获取当前时间戳"
+      ],
+      "strands_tools": [
+        "strands_tools/http_request",
+        "strands_tools/current_time"
+      ],
+      "integration_notes": [
+        "工具调用由Agent内部的提示词模板控制",
+        "Agent通过提示词指导调用相应工具",
+        "缓存管理由Agent代码直接实现，未使用cache_manager工具",
+        "所有工具调用都有完整的错误处理"
+      ]
+    },
+    "configuration": {
+      "environment_variables": [
+        "BYPASS_TOOL_CONSENT=true - 绕过工具确认",
+        "DOCKER_CONTAINER=1 - 标识Docker部署模式（可选）"
+      ],
+      "model_configuration": {
+        "model_name": "global.anthropic.claude-sonnet-4-5-20250929-v1:0",
+        "max_tokens": 60000,
+        "temperature": 0.3,
+        "streaming": false
+      },
+      "streaming_config": {
+        "enabled": false,
+        "chunk_size": null
+      },
+      "cache_configuration": {
+        "cache_dir": ".cache/ecommerce_price_comparison_agent",
+        "cache_ttl": 300,
+        "cache_file_format": "JSON"
+      },
+      "timeout_configuration": {
+        "single_platform_timeout": 10,
+        "total_response_timeout": 15
+      }
+    },
+    "error_handling": {
+      "exception_types": [
+        "输入验证错误：空输入、输入过长",
+        "缓存读写错误：文件不存在、JSON解析失败",
+        "Agent调用错误：网络超时、平台失败、解析失败",
+        "系统错误：文件权限、内存不足"
+      ],
+      "error_responses": [
+        "Error: 请输入要查询的商品名称",
+        "Error: 商品名称过长（超过100字符），请简化输入",
+        "Error: 查询过程中发生错误 - {详细错误信息}",
+        "Error: Missing 'prompt' in request"
+      ],
+      "recovery_strategies": [
+        "输入验证失败：返回友好提示，不进行查询",
+        "缓存读写失败：降级为无缓存模式，继续主流程",
+        "Agent调用失败：捕获异常，返回错误信息和建议",
+        "单平台失败：Agent内部处理，不影响其他平台",
+        "所有平台失败：返回错误信息和重试建议"
+      ]
+    },
+    "testing": {
+      "test_cases": [
+        "正常查询：python ecommerce_price_comparison_agent.py -i \"iPhone 15 Pro\"",
+        "缓存测试：连续两次查询相同商品，验证缓存命中",
+        "输入验证：空输入、超长输入测试",
+        "环境切换：-e development/production/testing",
+        "版本指定：-v latest/1.0",
+        "缓存清理：--clear-cache",
+        "AgentCore模式：DOCKER_CONTAINER=1启动HTTP服务器"
+      ],
+      "test_scenarios": [
+        "单商品查询成功场景",
+        "缓存命中场景",
+        "缓存过期场景",
+        "输入验证失败场景",
+        "部分平台失败场景",
+        "所有平台失败场景",
+        "网络超时场景",
+        "并发查询场景"
+      ],
+      "validation_criteria": [
+        "输入验证：正确识别空输入和超长输入",
+        "缓存功能：5分钟内缓存命中，超过5分钟自动过期",
+        "响应格式：返回Markdown格式的价格对比报告",
+        "错误处理：所有错误都有友好提示",
+        "日志输出：关键步骤都有日志记录",
+        "性能：响应时间控制在15秒内",
+        "部署兼容：支持本地测试和AgentCore部署"
+      ]
+    },
+    "deployment": {
+      "deployment_requirements": [
+        "Python 3.13+运行环境",
+        "nexus_utils包（本地工具包）",
+        "strands-agents包（Strands Agent框架）",
+        "bedrock-agentcore包（BedrockAgentCore框架）",
+        "AWS Bedrock服务访问权限",
+        "提示词模板：prompts/generated_agents_prompts/ecommerce_price_comparison_agent/ecommerce_price_comparison_agent.yaml",
+        "工具代码：tools/generated_tools/ecommerce_price_comparison_agent/",
+        "缓存目录：.cache/ecommerce_price_comparison_agent/（自动创建）"
+      ],
+      "runtime_dependencies": [
+        "./nexus_utils - 本地工具包",
+        "strands-agents - Strands Agent框架",
+        "bedrock-agentcore - BedrockAgentCore框架",
+        "boto3 - AWS SDK（如需）",
+        "PyYAML - YAML配置解析"
+      ],
+      "performance_considerations": [
+        "并发查询：Agent内部使用asyncio并发查询多平台",
+        "缓存优化：5分钟短期缓存减少重复查询",
+        "超时控制：单平台10秒超时，总体15秒超时",
+        "内存管理：缓存文件定期清理，避免磁盘占用过多",
+        "日志优化：关键日志输出，避免过多日志影响性能"
+      ],
+      "deployment_modes": [
+        "本地测试模式：使用-i参数直接测试，无需启动HTTP服务器",
+        "AgentCore部署模式：设置DOCKER_CONTAINER=1启动HTTP服务器，监听8080端口",
+        "默认模式：不带参数运行，启动HTTP服务器"
+      ]
+    },
+    "development_notes": "智能体代码开发完成，基于deep_research_agent和api_integration_agent模板进行定制化开发。\n\n核心设计决策：\n1. **缓存管理由Agent代码直接实现**：考虑到缓存逻辑简单且与业务紧密耦合，直接在Agent代码中实现缓存管理（get_cache_key、check_cache、update_cache），而非使用cache_manager工具。这简化了工具依赖，提升了代码可读性和维护性。\n\n2. **BedrockAgentCoreApp标准入口点**：严格遵循BedrockAgentCore规范，使用@app.entrypoint装饰器定义handler函数，接收Dict类型的payload参数，返回str类型结果。这确保了Agent能够顺利部署到AWS Bedrock平台。\n\n3. **完整的输入验证**：独立封装validate_input函数，支持空值检查、长度限制、输入规范化。验证失败时返回友好的错误提示，不进行实际查询，节省资源。\n\n4. **灵活的部署模式**：支持本地测试模式（-i参数）和AgentCore部署模式（HTTP服务器）。本地测试模式提供详细的日志输出和进度提示，便于开发调试。AgentCore部署模式自动启动HTTP服务器，支持生产环境。\n\n5. **详细的命令行支持**：提供丰富的命令行参数，包括环境选择（-e）、版本指定（-v）、缓存清理（--clear-cache）等，提升开发和运维体验。\n\n6. **Strands Agent响应格式适配**：实现完整的响应格式提取逻辑，适配Strands Agent的多层级返回格式（message.content、content、str），确保能够正确提取响应文本。\n\n7. **完善的日志记录**：所有关键步骤都有日志输出，包括payload接收、输入验证、缓存检查、查询开始、查询完成、错误发生等，便于问题排查和性能监控。\n\n8. **缓存状态标识**：缓存命中时在结果中添加缓存提示信息，告知用户数据来自缓存及有效期，提升用户体验和透明度。\n\n代码质量：\n- 完整的文档注释（模块、函数、参数、返回值）\n- 清晰的函数命名和模块划分\n- 完整的类型注解（typing）\n- 完善的错误处理和异常捕获\n- 详细的命令行帮助信息\n- 符合PEP 8代码规范\n\n技术亮点：\n- 基于成熟模板（deep_research_agent、api_integration_agent）进行定制\n- 遵循BedrockAgentCore标准部署规范\n- 完整的缓存管理机制（MD5哈希、TTL过期、自动清理）\n- 灵活的部署模式支持（本地测试、AgentCore部署）\n- 详细的命令行参数和帮助信息\n- 完善的日志记录和错误处理\n\n后续优化建议：\n1. 考虑实现分布式缓存（Redis）以支持多实例部署\n2. 添加缓存预热机制，提前缓存热门商品\n3. 实现缓存统计和监控，分析缓存命中率\n4. 添加更多命令行参数，如超时配置、缓存TTL配置等\n5. 实现异步日志输出，避免日志阻塞主流程\n6. 添加健康检查端点（/health）用于监控\n7. 实现请求追踪（trace_id）便于问题定位"
+  }
+}

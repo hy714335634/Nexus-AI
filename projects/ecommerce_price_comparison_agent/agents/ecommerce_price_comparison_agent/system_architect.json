@@ -1,0 +1,493 @@
+{
+  "system_design": {
+    "design_overview": {
+      "project_name": "ecommerce_price_comparison_agent",
+      "version": "1.0",
+      "date": "2025-12-02",
+      "design_scope": "设计一个单Agent架构的电商价格比较系统，实现多平台商品价格采集、智能匹配、对比分析和结构化展示功能。系统基于Strands SDK和AWS Bedrock平台，使用Claude Sonnet 4.5模型，遵循BedrockAgentCore部署规范。",
+      "design_principles": [
+        "单一职责：Agent专注价格比较核心功能，通过工具扩展能力",
+        "并发优先：使用异步并发提升多平台查询效率",
+        "容错设计：单平台失败不影响整体结果，具备完善的错误处理",
+        "可扩展性：支持未来添加更多电商平台和功能扩展",
+        "合规优先：严格遵守各平台使用条款和反爬虫规则",
+        "性能优化：通过缓存和并发控制保证15秒内响应"
+      ],
+      "key_decisions": [
+        "采用单Agent架构，通过工具组合实现多平台查询，避免多Agent协调复杂性",
+        "基于API集成专家模板扩展，集成HTTP请求、HTML解析和数据分析工具",
+        "使用Python asyncio实现并发查询，提升响应速度",
+        "采用CSS选择器方式解析HTML，灵活适配不同平台页面结构",
+        "实现5分钟短期缓存机制，平衡实时性和性能",
+        "使用BedrockAgentCore标准入口点，支持部署到AWS Bedrock"
+      ],
+      "workflow_type": "single_agent",
+      "recommended_templates": [
+        "api_integration_agent (API集成专家) - 作为基础框架",
+        "http_request (内置工具) - 网络请求",
+        "parse_html (生成工具) - HTML解析",
+        "data_analyzer (模板工具) - 数据分析"
+      ]
+    },
+    "architecture": {
+      "system_context": "该系统是一个独立的价格比较服务，接收用户输入的商品名称，自动访问多个电商平台（淘宝、京东、拼多多）获取商品信息，提取价格数据，进行智能对比分析，最后以结构化格式返回结果。系统部署在AWS Bedrock平台，通过HTTP接口对外提供服务，支持本地测试和AgentCore部署两种模式。",
+      "agent_topology": "单Agent拓扑结构：\n\n┌─────────────────────────────────────────────────────────┐\n│            EcommercePriceComparisonAgent               │\n│                  (价格比较核心Agent)                    │\n└─────────────────────────────────────────────────────────┘\n                            │\n        ┌───────────────────┼───────────────────┐\n        │                   │                   │\n        ▼                   ▼                   ▼\n   ┌─────────────┐  ┌──────────────┐  ┌──────────────┐\n   │ HTTP请求    │  │ HTML解析     │  │ 数据分析     │\n   │ 工具        │  │ 工具         │  │ 工具         │\n   └─────────────┘  └──────────────┘  └──────────────┘\n        │                   │                   │\n        └───────────────────┼───────────────────┘\n                            │\n        ┌───────────────────┴───────────────────┐\n        │                                       │\n        ▼                                       ▼\n   ┌──────────────────┐              ┌──────────────────┐\n   │ 并发查询模块     │              │ 价格对比模块     │\n   │ (asyncio)        │              │ (分析统计)       │\n   └──────────────────┘              └──────────────────┘\n        │                                       │\n        └───────────────────┬───────────────────┘\n                            │\n                            ▼\n                    ┌──────────────────┐\n                    │ 结果格式化输出   │\n                    └──────────────────┘",
+      "interaction_model": "用户交互模型：\n1. 用户通过HTTP POST请求发送商品名称到/invocations端点\n2. BedrockAgentCore接收请求，调用handler入口函数\n3. Agent解析用户输入，提取商品关键词\n4. Agent并发调用多平台查询函数：\n   - 使用http_request工具获取平台搜索页面HTML\n   - 使用parse_html工具解析HTML，提取商品信息\n   - 每个平台查询设置10秒超时，失败不阻塞其他平台\n5. Agent收集所有平台结果，使用data_analyzer工具进行对比分析\n6. Agent格式化输出结果，包括：\n   - 最低价、最高价、平均价统计\n   - 各平台商品列表（按价格排序）\n   - 商品链接和平台信息\n7. Handler函数返回字符串格式的结果给用户\n\n错误处理流程：\n- 输入验证失败 → 返回友好提示\n- 单平台查询失败 → 标记该平台失败，继续其他平台\n- 所有平台失败 → 返回错误信息和重试建议\n- 网络超时 → 记录日志，返回部分结果\n- 解析失败 → 跳过该商品，处理其他结果",
+      "technology_stack": {
+        "sdk": "Strands SDK",
+        "runtime": "AWS Bedrock AgentCore",
+        "model": "global.anthropic.claude-sonnet-4-5-20250929-v1:0",
+        "framework": "BedrockAgentCoreApp (Starlette HTTP Server)",
+        "tools": [
+          "strands_tools.http_request - HTTP网络请求",
+          "generated_tools.html2pptx.parse_html - HTML解析和数据提取",
+          "template_tools.common.data_analyzer - 数据分析和统计"
+        ],
+        "python_libraries": [
+          "asyncio - 异步并发处理",
+          "json - 数据序列化",
+          "typing - 类型注解",
+          "boto3 - AWS SDK（如需）",
+          "cachetools - 缓存管理（可选）"
+        ],
+        "integrations": [
+          "淘宝搜索接口（网页爬取）",
+          "京东搜索接口（网页爬取）",
+          "拼多多搜索接口（网页爬取）"
+        ]
+      }
+    },
+    "agents": [
+      {
+        "name": "ecommerce_price_comparison_agent",
+        "purpose": "根据用户输入的商品名称，自动搜索多个电商平台的价格信息，进行智能对比分析，并以结构化格式返回最优购买建议",
+        "responsibilities": [
+          "接收和验证用户输入的商品名称",
+          "并发查询多个电商平台（淘宝、京东、拼多多）",
+          "解析平台返回的HTML页面，提取商品信息",
+          "智能匹配和过滤相关商品",
+          "提取和标准化价格数据",
+          "进行价格对比分析和统计",
+          "生成结构化的对比结果报告",
+          "处理各类异常情况并提供友好提示",
+          "管理缓存以提升响应速度"
+        ],
+        "interfaces": {
+          "inputs": [
+            "prompt: str - 用户输入的商品名称（通过payload['prompt']接收）",
+            "message: str - 备选输入字段（兼容性）",
+            "input: str - 备选输入字段（兼容性）"
+          ],
+          "outputs": [
+            "str - 结构化的价格对比结果文本，包含：",
+            "  - 查询摘要（商品名称、查询时间、成功平台数）",
+            "  - 价格统计（最低价、最高价、平均价）",
+            "  - 各平台商品详情（平台、商品名、价格、链接）",
+            "  - 推荐建议（最优购买平台）",
+            "  - 错误提示（如有失败平台）"
+          ]
+        },
+        "dependencies": [
+          "strands_tools.http_request - 发起HTTP请求获取平台页面",
+          "generated_tools.html2pptx.parse_html - 解析HTML提取商品数据",
+          "template_tools.common.data_analyzer - 进行价格对比分析",
+          "Python asyncio库 - 实现并发查询",
+          "Python json库 - 数据序列化和反序列化"
+        ],
+        "implementation_notes": [
+          "必须使用BedrockAgentCoreApp模式，定义@app.entrypoint装饰的handler函数",
+          "handler函数接收Dict类型的payload参数，返回str类型结果",
+          "使用create_agent_from_prompt_template工厂函数创建Agent实例",
+          "Agent参数设置：env='production', version='latest', model_id='default', enable_logging=True",
+          "实现并发查询函数，使用asyncio.gather收集结果",
+          "为每个平台实现独立的查询函数（fetch_taobao、fetch_jd、fetch_pdd）",
+          "使用CSS选择器精准定位价格元素（需要针对各平台调整）",
+          "实现5分钟短期缓存，缓存路径：.cache/ecommerce_price_comparison_agent/",
+          "设置单平台查询超时为10秒，总体响应时间控制在15秒内",
+          "错误处理：捕获所有异常，返回以'Error: '开头的错误信息",
+          "日志记录：使用print输出关键步骤日志，便于调试",
+          "环境变量：设置BYPASS_TOOL_CONSENT=true绕过工具确认",
+          "本地测试：支持-i参数直接测试，无需启动HTTP服务器",
+          "Docker部署：检查DOCKER_CONTAINER环境变量，自动启动HTTP服务器"
+        ],
+        "recommended_template": "api_integration_agent"
+      }
+    ],
+    "data_models": [
+      {
+        "name": "ProductInfo",
+        "schema": "{\n  \"platform\": \"string - 平台名称（taobao/jd/pdd）\",\n  \"product_name\": \"string - 商品名称\",\n  \"price\": \"float - 价格（人民币元）\",\n  \"currency\": \"string - 货币单位（CNY）\",\n  \"product_url\": \"string - 商品链接\",\n  \"image_url\": \"string - 商品图片链接（可选）\",\n  \"shop_name\": \"string - 店铺名称（可选）\",\n  \"sales\": \"int - 销量（可选）\",\n  \"timestamp\": \"string - 数据采集时间（ISO 8601格式）\"\n}",
+        "validation_rules": [
+          "platform必须是['taobao', 'jd', 'pdd']之一",
+          "price必须是正数，保留2位小数",
+          "product_url必须是有效的HTTP/HTTPS链接",
+          "product_name不能为空字符串",
+          "timestamp必须符合ISO 8601格式"
+        ],
+        "relationships": [
+          "多个ProductInfo组成ProductList",
+          "ProductList用于PriceComparisonResult的products字段"
+        ]
+      },
+      {
+        "name": "PriceStatistics",
+        "schema": "{\n  \"min_price\": \"float - 最低价\",\n  \"max_price\": \"float - 最高价\",\n  \"avg_price\": \"float - 平均价\",\n  \"price_range\": \"float - 价格区间（最高-最低）\",\n  \"price_variance\": \"float - 价格方差\",\n  \"best_deal_platform\": \"string - 最优惠平台\",\n  \"best_deal_product\": \"ProductInfo - 最优惠商品\"\n}",
+        "validation_rules": [
+          "min_price <= avg_price <= max_price",
+          "price_range = max_price - min_price",
+          "所有价格字段保留2位小数",
+          "best_deal_platform必须在查询的平台列表中"
+        ],
+        "relationships": [
+          "基于ProductList计算得出",
+          "用于PriceComparisonResult的statistics字段"
+        ]
+      },
+      {
+        "name": "PriceComparisonResult",
+        "schema": "{\n  \"query\": \"string - 用户查询的商品名称\",\n  \"query_time\": \"string - 查询时间（ISO 8601格式）\",\n  \"total_platforms\": \"int - 查询的平台总数\",\n  \"success_platforms\": \"int - 成功查询的平台数\",\n  \"failed_platforms\": \"list[string] - 失败的平台列表\",\n  \"products\": \"list[ProductInfo] - 所有商品列表（按价格排序）\",\n  \"statistics\": \"PriceStatistics - 价格统计信息\",\n  \"recommendations\": \"string - 推荐建议\",\n  \"errors\": \"list[string] - 错误信息列表\",\n  \"cache_hit\": \"bool - 是否命中缓存\"\n}",
+        "validation_rules": [
+          "products列表按price字段升序排序",
+          "success_platforms + len(failed_platforms) = total_platforms",
+          "如果success_platforms = 0，则products为空列表",
+          "recommendations基于statistics生成",
+          "errors列表记录所有非致命错误"
+        ],
+        "relationships": [
+          "包含多个ProductInfo对象",
+          "包含一个PriceStatistics对象",
+          "最终序列化为字符串返回给用户"
+        ]
+      },
+      {
+        "name": "PlatformConfig",
+        "schema": "{\n  \"platform_name\": \"string - 平台标识\",\n  \"search_url_template\": \"string - 搜索URL模板\",\n  \"price_selector\": \"string - 价格CSS选择器\",\n  \"title_selector\": \"string - 标题CSS选择器\",\n  \"link_selector\": \"string - 链接CSS选择器\",\n  \"timeout\": \"int - 超时时间（秒）\",\n  \"max_results\": \"int - 最大结果数\",\n  \"enabled\": \"bool - 是否启用\"\n}",
+        "validation_rules": [
+          "search_url_template必须包含{keyword}占位符",
+          "所有selector必须是有效的CSS选择器语法",
+          "timeout范围：5-15秒",
+          "max_results范围：1-20"
+        ],
+        "relationships": [
+          "用于配置各平台的查询参数",
+          "支持动态添加或禁用平台"
+        ]
+      }
+    ],
+    "interaction_flows": [
+      {
+        "name": "主流程：商品价格查询与对比",
+        "description": "用户输入商品名称，系统并发查询多个平台，提取价格数据，进行对比分析，返回结构化结果",
+        "steps": [
+          {
+            "step": "1. 接收用户请求",
+            "agent": "ecommerce_price_comparison_agent",
+            "action": "BedrockAgentCore接收HTTP POST请求，调用handler函数",
+            "data": "payload: {\"prompt\": \"iPhone 15 Pro\"}"
+          },
+          {
+            "step": "2. 输入验证与解析",
+            "agent": "ecommerce_price_comparison_agent",
+            "action": "验证输入非空，提取商品关键词，规范化处理",
+            "data": "keyword: \"iPhone 15 Pro\""
+          },
+          {
+            "step": "3. 检查缓存",
+            "agent": "ecommerce_price_comparison_agent",
+            "action": "检查.cache/目录是否有5分钟内的缓存数据",
+            "data": "cache_key: hash(keyword), cache_ttl: 300秒"
+          },
+          {
+            "step": "4. 并发查询多平台",
+            "agent": "ecommerce_price_comparison_agent",
+            "action": "使用asyncio.gather并发调用fetch_taobao、fetch_jd、fetch_pdd",
+            "data": "tasks: [fetch_taobao(keyword), fetch_jd(keyword), fetch_pdd(keyword)]"
+          },
+          {
+            "step": "4.1. 淘宝平台查询",
+            "agent": "ecommerce_price_comparison_agent",
+            "action": "调用http_request获取淘宝搜索页面HTML",
+            "data": "url: 淘宝搜索URL + keyword, timeout: 10秒"
+          },
+          {
+            "step": "4.2. 解析淘宝HTML",
+            "agent": "ecommerce_price_comparison_agent",
+            "action": "调用parse_html解析HTML，使用CSS选择器提取商品信息",
+            "data": "selector: {price: '.price', title: '.title', link: '.item-link'}"
+          },
+          {
+            "step": "4.3. 京东平台查询",
+            "agent": "ecommerce_price_comparison_agent",
+            "action": "调用http_request获取京东搜索页面HTML",
+            "data": "url: 京东搜索URL + keyword, timeout: 10秒"
+          },
+          {
+            "step": "4.4. 解析京东HTML",
+            "agent": "ecommerce_price_comparison_agent",
+            "action": "调用parse_html解析HTML，提取商品信息",
+            "data": "selector: {price: '.p-price', title: '.p-name', link: '.p-img a'}"
+          },
+          {
+            "step": "4.5. 拼多多平台查询",
+            "agent": "ecommerce_price_comparison_agent",
+            "action": "调用http_request获取拼多多搜索页面HTML",
+            "data": "url: 拼多多搜索URL + keyword, timeout: 10秒"
+          },
+          {
+            "step": "4.6. 解析拼多多HTML",
+            "agent": "ecommerce_price_comparison_agent",
+            "action": "调用parse_html解析HTML，提取商品信息",
+            "data": "selector: {price: '.goods-price', title: '.goods-name', link: '.goods-item a'}"
+          },
+          {
+            "step": "5. 收集查询结果",
+            "agent": "ecommerce_price_comparison_agent",
+            "action": "等待所有并发任务完成，收集成功和失败的结果",
+            "data": "results: {taobao: [ProductInfo], jd: [ProductInfo], pdd: [ProductInfo]}, errors: [error_messages]"
+          },
+          {
+            "step": "6. 商品智能匹配与过滤",
+            "agent": "ecommerce_price_comparison_agent",
+            "action": "计算商品名称与关键词的相似度，过滤不相关商品，每平台最多保留10个结果",
+            "data": "filtered_products: [ProductInfo], similarity_threshold: 0.6"
+          },
+          {
+            "step": "7. 价格数据标准化",
+            "agent": "ecommerce_price_comparison_agent",
+            "action": "统一价格格式，转换为浮点数，保留2位小数，标记异常数据",
+            "data": "normalized_products: [ProductInfo with float price]"
+          },
+          {
+            "step": "8. 价格对比分析",
+            "agent": "ecommerce_price_comparison_agent",
+            "action": "调用data_analyzer工具进行综合分析",
+            "data": "analysis_type: 'comprehensive', dimensions: ['platform', 'price']"
+          },
+          {
+            "step": "9. 计算价格统计",
+            "agent": "ecommerce_price_comparison_agent",
+            "action": "计算最低价、最高价、平均价、价格区间等统计指标",
+            "data": "statistics: PriceStatistics"
+          },
+          {
+            "step": "10. 生成推荐建议",
+            "agent": "ecommerce_price_comparison_agent",
+            "action": "基于统计结果生成购买建议，标注最优平台",
+            "data": "recommendations: '推荐在{platform}购买，价格最低为{min_price}元'"
+          },
+          {
+            "step": "11. 格式化输出结果",
+            "agent": "ecommerce_price_comparison_agent",
+            "action": "将PriceComparisonResult序列化为易读的文本格式",
+            "data": "output: str (包含表格、统计、推荐)"
+          },
+          {
+            "step": "12. 缓存结果",
+            "agent": "ecommerce_price_comparison_agent",
+            "action": "将结果写入缓存文件，设置5分钟过期时间",
+            "data": "cache_file: .cache/ecommerce_price_comparison_agent/{cache_key}.json"
+          },
+          {
+            "step": "13. 返回结果",
+            "agent": "ecommerce_price_comparison_agent",
+            "action": "handler函数返回字符串结果给BedrockAgentCore",
+            "data": "return: str (formatted result)"
+          }
+        ]
+      },
+      {
+        "name": "异常流程：输入验证失败",
+        "description": "用户输入为空或格式不正确时的处理流程",
+        "steps": [
+          {
+            "step": "1. 接收请求",
+            "agent": "ecommerce_price_comparison_agent",
+            "action": "handler函数接收payload",
+            "data": "payload: {}"
+          },
+          {
+            "step": "2. 输入验证",
+            "agent": "ecommerce_price_comparison_agent",
+            "action": "检查prompt/message/input字段，均为空或缺失",
+            "data": "validation_result: False"
+          },
+          {
+            "step": "3. 返回错误提示",
+            "agent": "ecommerce_price_comparison_agent",
+            "action": "返回友好的错误信息",
+            "data": "return: 'Error: 请输入要查询的商品名称'"
+          }
+        ]
+      },
+      {
+        "name": "异常流程：所有平台查询失败",
+        "description": "所有电商平台都无法访问或查询失败时的处理流程",
+        "steps": [
+          {
+            "step": "1. 并发查询",
+            "agent": "ecommerce_price_comparison_agent",
+            "action": "发起多平台并发查询",
+            "data": "tasks: [fetch_taobao, fetch_jd, fetch_pdd]"
+          },
+          {
+            "step": "2. 所有任务失败",
+            "agent": "ecommerce_price_comparison_agent",
+            "action": "所有平台都返回异常（网络超时、解析失败等）",
+            "data": "results: {taobao: Error, jd: Error, pdd: Error}"
+          },
+          {
+            "step": "3. 记录错误日志",
+            "agent": "ecommerce_price_comparison_agent",
+            "action": "打印错误日志到控制台",
+            "data": "log: '所有平台查询失败: {error_details}'"
+          },
+          {
+            "step": "4. 返回错误信息",
+            "agent": "ecommerce_price_comparison_agent",
+            "action": "返回友好的错误提示和重试建议",
+            "data": "return: 'Error: 无法连接到电商平台，请检查网络连接或稍后重试。详细错误: {errors}'"
+          }
+        ]
+      },
+      {
+        "name": "异常流程：单平台查询失败",
+        "description": "部分平台查询成功，部分失败时的处理流程",
+        "steps": [
+          {
+            "step": "1. 并发查询",
+            "agent": "ecommerce_price_comparison_agent",
+            "action": "发起多平台并发查询",
+            "data": "tasks: [fetch_taobao, fetch_jd, fetch_pdd]"
+          },
+          {
+            "step": "2. 部分任务失败",
+            "agent": "ecommerce_price_comparison_agent",
+            "action": "淘宝和京东成功，拼多多失败",
+            "data": "results: {taobao: [ProductInfo], jd: [ProductInfo], pdd: Error}"
+          },
+          {
+            "step": "3. 收集成功结果",
+            "agent": "ecommerce_price_comparison_agent",
+            "action": "合并成功平台的结果，记录失败平台",
+            "data": "success_products: [...], failed_platforms: ['pdd']"
+          },
+          {
+            "step": "4. 继续分析流程",
+            "agent": "ecommerce_price_comparison_agent",
+            "action": "基于成功获取的数据进行分析",
+            "data": "继续执行步骤6-11"
+          },
+          {
+            "step": "5. 在结果中标注失败平台",
+            "agent": "ecommerce_price_comparison_agent",
+            "action": "在输出结果中说明拼多多平台查询失败",
+            "data": "output: '注意：拼多多平台暂时无法访问，以下为淘宝和京东的价格对比...'"
+          }
+        ]
+      },
+      {
+        "name": "优化流程：缓存命中",
+        "description": "查询相同商品时命中缓存，快速返回结果",
+        "steps": [
+          {
+            "step": "1. 接收请求",
+            "agent": "ecommerce_price_comparison_agent",
+            "action": "handler函数接收payload",
+            "data": "payload: {\"prompt\": \"iPhone 15 Pro\"}"
+          },
+          {
+            "step": "2. 输入验证",
+            "agent": "ecommerce_price_comparison_agent",
+            "action": "验证输入，提取关键词",
+            "data": "keyword: \"iPhone 15 Pro\""
+          },
+          {
+            "step": "3. 检查缓存",
+            "agent": "ecommerce_price_comparison_agent",
+            "action": "计算cache_key，检查缓存文件是否存在且未过期",
+            "data": "cache_hit: True, cache_file: .cache/.../xxx.json"
+          },
+          {
+            "step": "4. 读取缓存",
+            "agent": "ecommerce_price_comparison_agent",
+            "action": "从缓存文件读取结果",
+            "data": "cached_result: PriceComparisonResult"
+          },
+          {
+            "step": "5. 标注缓存状态",
+            "agent": "ecommerce_price_comparison_agent",
+            "action": "在结果中标注使用了缓存数据",
+            "data": "cache_hit: True, cache_time: '缓存于2分钟前'"
+          },
+          {
+            "step": "6. 返回缓存结果",
+            "agent": "ecommerce_price_comparison_agent",
+            "action": "直接返回缓存的格式化结果",
+            "data": "return: str (cached result)"
+          }
+        ]
+      }
+    ],
+    "security_considerations": [
+      "遵守robots.txt：检查各电商平台的robots.txt，遵守爬虫规则",
+      "请求频率限制：实现请求间隔控制，避免频繁访问导致IP封禁",
+      "User-Agent设置：使用真实浏览器User-Agent，避免被识别为爬虫",
+      "数据隐私保护：不存储用户敏感信息，查询历史仅保留5分钟",
+      "合规数据采集：仅采集公开展示的商品信息，不访问需要登录的页面",
+      "错误日志脱敏：日志中不包含敏感URL参数或用户信息",
+      "HTTPS通信：所有外部请求使用HTTPS协议",
+      "输入过滤：防止SQL注入、XSS等攻击（虽然不涉及数据库）",
+      "环境变量管理：敏感配置（如API密钥）通过环境变量管理",
+      "代码安全：避免使用eval、exec等危险函数"
+    ],
+    "error_handling": [
+      "网络超时：单平台查询超时10秒后自动放弃，不阻塞其他平台",
+      "HTTP错误：捕获4xx/5xx错误，记录日志，返回友好提示",
+      "解析失败：HTML结构变化导致解析失败时，标记该平台失败，继续处理其他平台",
+      "数据格式异常：价格数据格式不正确时，标记为'价格未知'",
+      "空结果处理：某平台无搜索结果时，标注'该平台无相关商品'",
+      "并发异常：使用try-except包裹每个并发任务，确保单个失败不影响整体",
+      "缓存读写失败：缓存操作失败时降级为不使用缓存，不影响主流程",
+      "内存溢出：限制单平台最多返回10个商品，避免数据量过大",
+      "递归错误：不使用递归算法，避免栈溢出",
+      "异常重试：网络请求失败时最多重试3次，每次间隔1秒",
+      "优雅降级：关键功能失败时提供基础服务，如只返回部分平台结果",
+      "错误日志记录：所有异常都记录到日志，便于问题排查",
+      "用户友好提示：所有错误信息都转换为用户易懂的语言",
+      "异常聚合：收集所有非致命错误，在结果中统一展示"
+    ],
+    "performance_considerations": [
+      "并发查询：使用asyncio实现多平台并发，理论响应时间等于最慢平台的时间",
+      "超时控制：单平台10秒超时，总体15秒内返回结果",
+      "缓存策略：5分钟短期缓存，减少重复查询",
+      "结果数量限制：每平台最多10个商品，减少数据传输和处理时间",
+      "连接复用：使用HTTP连接池，减少TCP握手开销",
+      "数据压缩：HTTP请求启用gzip压缩，减少传输时间",
+      "选择器优化：使用高效的CSS选择器，避免复杂的XPath",
+      "内存管理：及时释放大对象，避免内存泄漏",
+      "异步IO：所有网络请求使用异步IO，避免阻塞",
+      "懒加载：仅在需要时解析HTML，避免不必要的计算",
+      "批量处理：批量提取多个商品信息，减少解析次数",
+      "索引优化：使用字典索引快速查找数据",
+      "算法优化：价格排序使用O(n log n)的排序算法",
+      "监控指标：记录各平台响应时间，识别性能瓶颈"
+    ],
+    "monitoring_strategy": [
+      "关键步骤日志：在handler入口、并发查询、结果返回等关键点打印日志",
+      "性能指标记录：记录每个平台的查询时间、成功率、错误类型",
+      "错误监控：统计各类错误的发生频率，识别常见问题",
+      "缓存命中率：监控缓存命中率，评估缓存效果",
+      "响应时间分布：记录P50、P95、P99响应时间",
+      "平台可用性：监控各平台的成功率和失败原因",
+      "并发性能：监控并发查询的实际并行度",
+      "资源使用：监控CPU、内存、网络带宽使用情况",
+      "用户输入分析：统计常见查询关键词，优化缓存策略",
+      "异常告警：关键错误发生时触发告警（如所有平台失败）",
+      "健康检查：提供/health端点，用于服务健康检查",
+      "链路追踪：为每个请求生成trace_id，便于问题追踪",
+      "日志聚合：将日志发送到集中式日志系统（如CloudWatch）",
+      "实时监控：使用AWS CloudWatch监控Agent运行状态"
+    ]
+  },
+  "design_rationale": "本系统设计基于以下核心理念和技术决策：\n\n1. **单Agent架构的选择**：\n   - 需求分析显示这是一个典型的单一职责场景，核心逻辑是'查询-解析-对比-展示'\n   - 多个电商平台的查询是并行的独立任务，不需要Agent间协作\n   - 单Agent架构大幅降低了系统复杂度，易于开发、测试和维护\n   - 通过工具组合（http_request、parse_html、data_analyzer）实现功能扩展\n\n2. **基于API集成专家模板**：\n   - 该模板提供了完善的HTTP客户端和数据处理框架\n   - 包含认证管理、错误处理、数据转换等基础能力\n   - 代码结构清晰，易于在此基础上扩展HTML解析和数据分析功能\n   - 符合Strands SDK和BedrockAgentCore的最佳实践\n\n3. **工具选择策略**：\n   - http_request（内置工具）：成熟稳定，无需额外开发，支持各种HTTP请求\n   - parse_html（生成工具）：功能强大，支持CSS选择器、表格提取等，完美适配电商页面解析需求\n   - data_analyzer（模板工具）：提供comprehensive分析能力，支持多维度数据对比\n   - 避免重复造轮，充分利用现有工具库\n\n4. **并发查询设计**：\n   - 使用Python asyncio实现真正的并发，而非顺序查询\n   - 理论响应时间 = max(平台1时间, 平台2时间, 平台3时间)，而非累加\n   - 单平台失败不阻塞其他平台，提高系统鲁棒性\n   - 10秒单平台超时 + 15秒总体超时，保证用户体验\n\n5. **数据模型设计**：\n   - ProductInfo：标准化的商品数据结构，支持不同平台的数据统一\n   - PriceStatistics：完整的统计指标，支持深度价格分析\n   - PriceComparisonResult：结构化的输出格式，易于序列化和展示\n   - PlatformConfig：可配置的平台参数，支持动态添加平台\n\n6. **缓存策略**：\n   - 5分钟TTL平衡了数据实时性和性能\n   - 电商价格短期内变化不大，缓存命中率高\n   - 缓存路径按商品关键词哈希，避免冲突\n   - 缓存失败不影响主流程，优雅降级\n\n7. **错误处理策略**：\n   - 分层错误处理：输入验证、网络请求、数据解析、结果生成各层独立处理\n   - 部分失败容忍：单平台失败不影响整体结果\n   - 用户友好提示：技术错误转换为易懂的语言\n   - 完整的错误日志：便于问题排查和系统优化\n\n8. **性能优化考虑**：\n   - 并发查询：最重要的性能优化手段\n   - 短期缓存：减少重复查询，提升响应速度\n   - 结果数量限制：避免数据量过大影响性能\n   - 连接复用：减少网络开销\n   - 异步IO：充分利用等待时间\n\n9. **安全合规设计**：\n   - 遵守robots.txt：尊重平台规则\n   - 请求频率限制：避免被封禁\n   - 真实User-Agent：降低被识别为爬虫的风险\n   - 数据隐私保护：不存储敏感信息\n   - 仅采集公开数据：避免法律风险\n\n10. **BedrockAgentCore适配**：\n    - 使用@app.entrypoint装饰器定义标准入口点\n    - Handler函数接收Dict返回str，符合AgentCore规范\n    - 支持Docker部署模式自动检测\n    - 兼容本地测试模式（-i参数）\n    - 环境变量BYPASS_TOOL_CONSENT绕过工具确认\n\n11. **可扩展性设计**：\n    - 平台配置化：通过PlatformConfig轻松添加新平台\n    - 工具化设计：新功能通过添加工具实现\n    - 模块化代码：各功能模块独立，易于修改\n    - 标准化接口：数据模型统一，支持多种输出格式\n\n12. **监控与可观测性**：\n    - 关键步骤日志：便于追踪执行流程\n    - 性能指标记录：识别瓶颈和优化方向\n    - 错误统计：发现常见问题\n    - 缓存命中率：评估缓存效果\n    - 平台可用性监控：及时发现平台变更\n\n总结：本设计以'简单、高效、鲁棒'为核心原则，通过单Agent架构、并发查询、工具组合、缓存优化等手段，在满足功能需求的同时，确保系统的性能、可靠性和可维护性。设计充分考虑了电商平台的特点和限制，采用合规的数据采集方式，具备完善的错误处理和监控机制，能够稳定运行并持续优化。"
+}

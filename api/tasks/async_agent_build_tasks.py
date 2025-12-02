@@ -170,6 +170,25 @@ def _execute_build_agent(
             project_name=agent_name,
         )
 
+        # Update project status to failed (if not already updated by mark_stage_failed)
+        from api.database.dynamodb_client import DynamoDBClient
+        from api.models.schemas import ProjectStatus
+        db_client = DynamoDBClient()
+        try:
+            # Check current status to avoid overwriting if already failed
+            project = db_client.get_project(project_id)
+            if project.get('status') != ProjectStatus.FAILED.value:
+                db_client.update_project_status(
+                    project_id,
+                    ProjectStatus.FAILED,
+                    completed_at=finish_time,
+                    error_info={"error": error_msg, "type": "task_exception"},
+                    updated_at=finish_time
+                )
+                logger.info(f"Updated project {project_id} status to failed")
+        except Exception as db_exc:
+            logger.error(f"Failed to update project status: {db_exc}")
+
         # Update status to FAILURE
         _update_task_status(task_id, "FAILURE", error=error_msg)
 
@@ -223,6 +242,18 @@ def _execute_build_agent(
         metrics_payload=metrics_payload,
         project_name=resolved_agent_name,
     )
+
+    # Update project status to completed
+    from api.database.dynamodb_client import DynamoDBClient
+    from api.models.schemas import ProjectStatus
+    db_client = DynamoDBClient()
+    db_client.update_project_status(
+        project_id,
+        ProjectStatus.COMPLETED,
+        completed_at=finish_time,
+        updated_at=finish_time
+    )
+    logger.info(f"Updated project {project_id} status to completed")
 
     payload = output.to_dict()
     payload.update({

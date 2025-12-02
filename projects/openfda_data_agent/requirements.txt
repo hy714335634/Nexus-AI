@@ -1,0 +1,27 @@
+./nexus_utils
+strands-agents
+strands-agents-tools
+PyYAML
+bedrock-agentcore
+# OpenFDA Data Agent - Python Dependencies
+# Generated: 2025-12-02
+# Python Version: 3.13+
+# ==================== 核心框架 ====================
+# Strands Agent框架（正确的包名）
+# ==================== 本地工具包 ====================
+# 本地工具包（相对路径引用）
+# ==================== AWS服务 ====================
+# AWS SDK
+boto3
+botocore
+# ==================== HTTP请求 ====================
+# HTTP客户端库（OpenFDA API调用）
+requests
+# ==================== 配置管理 ====================
+# YAML配置解析
+pyyaml
+# ==================== 注意事项 ====================
+# 1. Python标准库模块（os, json, logging, typing等）不需要安装
+# 2. nexus_utils通过相对路径./nexus_utils引用
+# 3. 所有包必须在PyPI上存在
+# 4. 确保Python版本为3.13+

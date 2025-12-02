@@ -1,0 +1,344 @@
+{
+  "tool_development": {
+    "development_overview": {
+      "project_name": "openfda_data_agent",
+      "version": "1.0",
+      "date": "2025-12-02",
+      "development_scope": "为OpenFDA数据查询Agent开发专用的API集成工具集，包括API查询、端点路由、搜索参数构建、结果解析和格式化等核心功能。工具基于Python 3.13+和Strands框架开发，支持完整的OpenFDA API交互流程。",
+      "design_principles": [
+        "单一职责：每个工具专注于一个特定功能",
+        "容错优先：实现完善的错误处理和重试机制",
+        "类型安全：使用完整的类型注解",
+        "可扩展性：支持未来添加新的端点和功能",
+        "用户友好：提供清晰的错误信息和建议"
+      ],
+      "key_decisions": [
+        "使用requests库进行HTTP请求，简单可靠且支持重试",
+        "实现指数退避重试机制（1秒、2秒、4秒），最多重试3次",
+        "支持OpenFDA的所有主要端点（drug、device、food）",
+        "提供多种格式化选项（summary、detailed、table）",
+        "自动提取关键字段，减少Agent的处理负担"
+      ]
+    },
+    "tools": [
+      {
+        "tool_name": "openfda_query",
+        "description": "OpenFDA API查询工具 - 执行OpenFDA API查询并返回结构化结果",
+        "function_signature": "openfda_query(query_type: str, endpoint: str, search_params: Dict[str, Any] = None, limit: int = 10, skip: int = 0, sort: str = None, count: str = None, timeout: int = 30) -> str",
+        "parameters": [
+          {
+            "name": "query_type",
+            "type": "str",
+            "description": "查询类型 (drug, device, food)",
+            "required": true
+          },
+          {
+            "name": "endpoint",
+            "type": "str",
+            "description": "API端点 (event, label, enforcement等)",
+            "required": true
+          },
+          {
+            "name": "search_params",
+            "type": "Dict[str, Any]",
+            "description": "搜索参数，支持多种字段和运算符",
+            "required": false
+          },
+          {
+            "name": "limit",
+            "type": "int",
+            "description": "返回结果数量限制 (1-100)，默认10",
+            "required": false
+          },
+          {
+            "name": "skip",
+            "type": "int",
+            "description": "跳过的结果数量（分页），默认0",
+            "required": false
+          },
+          {
+            "name": "sort",
+            "type": "str",
+            "description": "排序字段和方向，例如 'report_date:desc'",
+            "required": false
+          },
+          {
+            "name": "count",
+            "type": "str",
+            "description": "计数字段，用于统计分析",
+            "required": false
+          },
+          {
+            "name": "timeout",
+            "type": "int",
+            "description": "请求超时时间（秒），默认30",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的查询结果，包含status、query_info、meta、results等字段",
+        "dependencies": [
+          "requests",
+          "json",
+          "time",
+          "datetime"
+        ],
+        "implementation_notes": [
+          "实现指数退避重试机制，最多重试3次",
+          "自动验证参数有效性",
+          "支持OpenFDA的所有主要端点",
+          "处理404（无结果）、429（速率限制）、500（服务器错误）等状态码",
+          "返回结构化的JSON响应，包含完整的查询元信息"
+        ],
+        "error_handling": [
+          "参数验证：检查query_type和endpoint的有效性",
+          "超时处理：捕获requests.Timeout异常，重试或返回错误",
+          "网络错误：捕获requests.RequestException，重试或返回错误",
+          "API错误：根据状态码分类处理（404、429、500等）",
+          "速率限制：检测到429时等待后重试",
+          "服务器错误：对5xx错误实施重试策略"
+        ],
+        "usage_examples": [
+          "查询药物不良事件：openfda_query('drug', 'event', {'patient.drug.medicinalproduct': 'aspirin'}, limit=10)",
+          "查询设备召回：openfda_query('device', 'enforcement', {'classification': 'Class I'}, limit=5)",
+          "分页查询：openfda_query('drug', 'label', {'openfda.brand_name': 'Advil'}, skip=10, limit=10)"
+        ]
+      },
+      {
+        "tool_name": "openfda_endpoint_router",
+        "description": "OpenFDA端点路由工具 - 根据查询意图智能选择合适的API端点",
+        "function_signature": "openfda_endpoint_router(query_intent: str, keywords: List[str] = None, query_context: Dict[str, Any] = None) -> str",
+        "parameters": [
+          {
+            "name": "query_intent",
+            "type": "str",
+            "description": "查询意图描述（自然语言）",
+            "required": true
+          },
+          {
+            "name": "keywords",
+            "type": "List[str]",
+            "description": "关键词列表",
+            "required": false
+          },
+          {
+            "name": "query_context",
+            "type": "Dict[str, Any]",
+            "description": "查询上下文信息",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的路由决策结果，包含recommendations列表，每个推荐包含query_type、endpoint、confidence、reason等",
+        "dependencies": [
+          "json"
+        ],
+        "implementation_notes": [
+          "基于关键词匹配识别查询类型（drug、device、food）",
+          "根据意图词（不良、召回、标签等）选择具体端点",
+          "为每个推荐计算置信度分数（0-1）",
+          "支持中英文关键词",
+          "返回按置信度排序的推荐列表"
+        ],
+        "error_handling": [
+          "无匹配：返回no_match状态和建议",
+          "异常捕获：捕获所有异常并返回错误信息"
+        ],
+        "usage_examples": [
+          "路由查询：openfda_endpoint_router('查询阿司匹林的不良反应', ['阿司匹林', '不良反应'])",
+          "设备查询：openfda_endpoint_router('医疗设备召回信息', ['设备', '召回'])"
+        ]
+      },
+      {
+        "tool_name": "openfda_search_builder",
+        "description": "OpenFDA搜索参数构建工具 - 构建符合OpenFDA API规范的搜索查询字符串",
+        "function_signature": "openfda_search_builder(field_conditions: List[Dict[str, Any]], logic_operator: str = 'AND') -> str",
+        "parameters": [
+          {
+            "name": "field_conditions",
+            "type": "List[Dict[str, Any]]",
+            "description": "字段条件列表，每个条件包含field、operator、value",
+            "required": true
+          },
+          {
+            "name": "logic_operator",
+            "type": "str",
+            "description": "逻辑运算符 (AND, OR)，默认AND",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的搜索参数构建结果，包含search_query字符串",
+        "dependencies": [
+          "json"
+        ],
+        "implementation_notes": [
+          "支持精确匹配（:）、范围查询（range）、字段存在（exists）、字段缺失（missing）",
+          "自动处理字符串值的引号",
+          "支持AND和OR逻辑运算符",
+          "生成符合OpenFDA API规范的查询字符串"
+        ],
+        "error_handling": [
+          "空条件列表：返回错误",
+          "无效条件：跳过无效条件并继续处理",
+          "异常捕获：捕获所有异常并返回错误信息"
+        ],
+        "usage_examples": [
+          "精确匹配：openfda_search_builder([{'field': 'patient.drug.medicinalproduct', 'operator': ':', 'value': 'aspirin'}])",
+          "范围查询：openfda_search_builder([{'field': 'receivedate', 'operator': 'range', 'start': '20230101', 'end': '20231231'}])",
+          "组合条件：openfda_search_builder([{'field': 'serious', 'value': '1'}, {'field': 'patient.patientsex', 'value': '2'}], 'AND')"
+        ]
+      },
+      {
+        "tool_name": "openfda_result_parser",
+        "description": "OpenFDA结果解析工具 - 解析和提取OpenFDA API响应中的关键信息",
+        "function_signature": "openfda_result_parser(raw_results: str, extract_fields: List[str] = None, max_items: int = 10) -> str",
+        "parameters": [
+          {
+            "name": "raw_results",
+            "type": "str",
+            "description": "原始API响应（JSON字符串）",
+            "required": true
+          },
+          {
+            "name": "extract_fields",
+            "type": "List[str]",
+            "description": "要提取的字段列表，如果不指定则自动提取关键字段",
+            "required": false
+          },
+          {
+            "name": "max_items",
+            "type": "int",
+            "description": "最大处理项数，默认10",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的解析结果，包含parsed_count、items等字段",
+        "dependencies": [
+          "json",
+          "datetime"
+        ],
+        "implementation_notes": [
+          "支持自动提取关键字段（根据query_type和endpoint）",
+          "支持指定字段提取（extract_fields）",
+          "处理嵌套字段（使用点号分隔）",
+          "限制处理数量以提高性能",
+          "针对不同数据类型（drug、device、food）提取不同的关键字段"
+        ],
+        "error_handling": [
+          "JSON解析错误：返回解析失败信息",
+          "无结果：返回no_results状态",
+          "错误状态：直接返回原始错误信息",
+          "异常捕获：捕获所有异常并返回错误信息"
+        ],
+        "usage_examples": [
+          "自动提取：openfda_result_parser(raw_results)",
+          "指定字段：openfda_result_parser(raw_results, ['patient.drug.medicinalproduct', 'serious', 'receivedate'])",
+          "限制数量：openfda_result_parser(raw_results, max_items=5)"
+        ]
+      },
+      {
+        "tool_name": "openfda_result_formatter",
+        "description": "OpenFDA结果格式化工具 - 将解析后的结果格式化为用户友好的文本",
+        "function_signature": "openfda_result_formatter(parsed_results: str, format_type: str = 'summary') -> str",
+        "parameters": [
+          {
+            "name": "parsed_results",
+            "type": "str",
+            "description": "解析后的结果（JSON字符串）",
+            "required": true
+          },
+          {
+            "name": "format_type",
+            "type": "str",
+            "description": "格式化类型 (summary, detailed, table)，默认summary",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "格式化后的用户友好文本",
+        "dependencies": [
+          "json"
+        ],
+        "implementation_notes": [
+          "支持三种格式：summary（摘要）、detailed（详细）、table（表格）",
+          "summary格式：简洁展示关键信息",
+          "detailed格式：完整展示所有字段，包含详细说明",
+          "table格式：表格形式展示数据",
+          "自动处理长文本截断",
+          "自动处理列表和字典类型的值"
+        ],
+        "error_handling": [
+          "JSON解析错误：返回格式化失败信息",
+          "无结果：返回友好提示",
+          "错误状态：返回错误信息",
+          "异常捕获：捕获所有异常并返回错误信息"
+        ],
+        "usage_examples": [
+          "摘要格式：openfda_result_formatter(parsed_results, 'summary')",
+          "详细格式：openfda_result_formatter(parsed_results, 'detailed')",
+          "表格格式：openfda_result_formatter(parsed_results, 'table')"
+        ]
+      }
+    ],
+    "code_quality": {
+      "code_standards": [
+        "遵循PEP 8代码规范",
+        "使用Python 3.13+类型注解",
+        "完整的文档字符串（docstring）",
+        "清晰的变量和函数命名",
+        "适当的代码注释"
+      ],
+      "testing_strategy": [
+        "单元测试：测试每个工具函数的基本功能",
+        "集成测试：测试工具之间的协作",
+        "错误测试：测试各种错误场景的处理",
+        "性能测试：测试重试机制和超时处理",
+        "真实API测试：使用OpenFDA API进行端到端测试"
+      ],
+      "performance_considerations": [
+        "限制单次查询结果数量（最大100条）",
+        "实现超时控制（默认30秒）",
+        "使用指数退避避免频繁重试",
+        "限制解析和格式化的数据量",
+        "避免不必要的数据复制"
+      ],
+      "security_measures": [
+        "输入验证：验证所有参数的有效性",
+        "错误信息脱敏：不泄露敏感信息",
+        "HTTPS通信：使用HTTPS协议",
+        "超时控制：防止长时间阻塞",
+        "异常捕获：防止异常导致系统崩溃"
+      ]
+    },
+    "integration_details": {
+      "aws_services": [],
+      "external_libraries": [
+        "requests - HTTP请求库",
+        "json - JSON处理（标准库）",
+        "time - 时间处理（标准库）",
+        "datetime - 日期时间处理（标准库）",
+        "typing - 类型注解（标准库）",
+        "urllib.parse - URL处理（标准库）"
+      ],
+      "api_endpoints": [
+        "https://api.fda.gov/drug/event.json - 药物不良事件",
+        "https://api.fda.gov/drug/label.json - 药物标签",
+        "https://api.fda.gov/drug/enforcement.json - 药物召回",
+        "https://api.fda.gov/device/event.json - 设备不良事件",
+        "https://api.fda.gov/device/enforcement.json - 设备召回",
+        "https://api.fda.gov/device/classification.json - 设备分类",
+        "https://api.fda.gov/food/event.json - 食品不良事件",
+        "https://api.fda.gov/food/enforcement.json - 食品召回"
+      ],
+      "data_formats": [
+        "输入：JSON格式的参数",
+        "输出：JSON格式的结构化数据",
+        "API响应：JSON格式",
+        "格式化输出：纯文本（支持多种格式）"
+      ]
+    },
+    "development_notes": "工具开发完成，实现了OpenFDA API的完整交互流程。所有工具均基于Strands框架的@tool装饰器开发，支持类型注解和完整的错误处理。实现了指数退避重试机制，确保在网络不稳定或API服务波动时仍能提供可靠服务。提供了多种格式化选项，满足不同场景的输出需求。工具之间相互协作，形成完整的查询流程：端点路由 -> 搜索构建 -> API查询 -> 结果解析 -> 结果格式化。"
+  }
+}

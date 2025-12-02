@@ -1,0 +1,414 @@
+{
+  "system_design": {
+    "design_overview": {
+      "project_name": "openfda_data_agent",
+      "version": "1.0",
+      "date": "2025-12-02",
+      "design_scope": "设计一个智能Agent系统，能够与OpenFDA API进行交互，支持药物、医疗设备、食品等多种数据类型的自然语言查询。系统采用单Agent架构，基于API集成专家模板进行定制开发，实现从自然语言理解到API调用、数据解析、结果展示的完整流程。",
+      "design_principles": [
+        "单一职责原则：Agent专注于OpenFDA API集成和数据获取",
+        "开放封闭原则：基于成熟的API集成专家模板，支持未来扩展新的数据端点",
+        "接口清晰原则：输入为自然语言查询，输出为结构化数据",
+        "容错优先原则：完善的错误处理和重试机制确保系统稳定性",
+        "用户体验原则：提供友好的自然语言交互界面，屏蔽API技术细节",
+        "平台兼容原则：遵循AWS Bedrock AgentCore部署规范"
+      ],
+      "key_decisions": [
+        "采用单Agent架构而非多Agent：需求功能聚焦，单Agent足以满足所有查询场景",
+        "基于API集成专家模板：该模板提供完整的API调用、认证、数据转换工具链，匹配度92%",
+        "使用Claude Sonnet 4.5模型：强大的自然语言理解能力，支持复杂的意图识别和参数提取",
+        "工具驱动架构：利用现有的api_client、auth_manager、json_converter等工具，避免重复开发",
+        "提示词工程优先：大部分OpenFDA特定逻辑通过提示词定制实现，而非代码开发",
+        "缓存机制可选：初期不实现缓存，待性能测试后按需添加",
+        "HTTP请求库选择：使用Python requests库，简单可靠，支持重试机制"
+      ],
+      "workflow_type": "single_agent",
+      "recommended_templates": [
+        "api_integration_agent (强烈推荐，评分92/100)",
+        "deep_research_agent (备选方案，评分78/100)"
+      ]
+    },
+    "architecture": {
+      "system_context": "OpenFDA数据获取Agent作为独立服务运行，接收用户的自然语言查询请求，通过调用OpenFDA公开API获取数据，并将结果以结构化格式返回给用户。系统不存储FDA数据，仅作为查询代理。部署在AWS Bedrock AgentCore平台，支持HTTP/HTTPS访问。",
+      "agent_topology": "单Agent拓扑：\n\n┌─────────────────────────────────────────────────────────┐\n│                     用户界面层                            │\n│              (自然语言输入/结构化输出)                     │\n└───────────────────────┬─────────────────────────────────┘\n                        │\n                        ▼\n┌─────────────────────────────────────────────────────────┐\n│              OpenFDA Data Agent (单Agent)                │\n│  ┌─────────────────────────────────────────────────┐   │\n│  │  核心能力：                                       │   │\n│  │  - 自然语言理解 (LLM驱动)                        │   │\n│  │  - 意图识别与参数提取                             │   │\n│  │  - 多端点路由决策                                 │   │\n│  │  - API调用编排                                    │   │\n│  │  - 数据解析与格式化                               │   │\n│  │  - 错误处理与重试                                 │   │\n│  └─────────────────────────────────────────────────┘   │\n│                                                          │\n│  ┌──────────────────工具层─────────────────────────┐   │\n│  │  - api_client (HTTP调用)                         │   │\n│  │  - auth_manager (认证管理)                       │   │\n│  │  - json_converter (数据转换)                     │   │\n│  │  - xml_converter (XML处理)                       │   │\n│  │  - data_validator (数据验证)                     │   │\n│  └──────────────────────────────────────────────────┘   │\n└───────────────────────┬─────────────────────────────────┘\n                        │\n                        ▼\n┌─────────────────────────────────────────────────────────┐\n│                  OpenFDA API服务                         │\n│  ┌──────────────┬──────────────┬──────────────┐        │\n│  │ /drug/*      │ /device/*    │ /food/*      │        │\n│  │ 药物数据端点  │ 设备数据端点  │ 食品数据端点  │        │\n│  └──────────────┴──────────────┴──────────────┘        │\n└─────────────────────────────────────────────────────────┘\n\n数据流向：用户查询 → Agent理解 → 端点选择 → API调用 → 数据解析 → 结果返回",
+      "interaction_model": "请求-响应模型 (Request-Response Pattern)：\n\n1. 同步交互模式：\n   - 用户发起查询请求\n   - Agent立即处理并返回结果\n   - 单次交互完成一个查询任务\n\n2. 对话式交互（支持上下文）：\n   - 支持多轮对话\n   - Agent维护会话上下文\n   - 后续查询可引用之前的结果\n\n3. 工具调用模式：\n   - Agent作为协调者\n   - 工具提供具体能力（API调用、数据转换等）\n   - Agent根据需求选择和组合工具\n\n4. 错误恢复模式：\n   - API调用失败时自动重试（最多3次）\n   - 参数错误时请求用户澄清\n   - 服务不可用时提供友好提示\n\n5. 部署交互模式：\n   - 本地测试：命令行输入输出\n   - AgentCore部署：HTTP /invocations端点\n   - 请求格式：{\"prompt\": \"查询内容\"}\n   - 响应格式：字符串（结构化文本）",
+      "technology_stack": {
+        "sdk": "Strands SDK (基于Bedrock Agent Framework)",
+        "runtime": "AWS Bedrock AgentCore (Docker容器)",
+        "integrations": [
+          "OpenFDA REST API (https://api.fda.gov)",
+          "AWS Bedrock LLM (Claude Sonnet 4.5)",
+          "Python Requests库 (HTTP客户端)",
+          "JSON数据处理 (内置json模块)",
+          "环境变量配置 (API密钥管理)"
+        ]
+      }
+    },
+    "agents": [
+      {
+        "name": "openfda_data_agent",
+        "purpose": "提供OpenFDA数据的自然语言查询接口，支持药物、医疗设备、食品等多种数据类型的查询，自动处理API调用、数据解析和结果展示",
+        "responsibilities": [
+          "理解用户的自然语言查询意图，识别查询类型（药物/设备/食品）和具体参数",
+          "根据查询意图选择正确的OpenFDA API端点（drug/device/food）",
+          "构建符合OpenFDA API规范的查询参数（search、limit、skip等）",
+          "调用OpenFDA API并处理响应数据",
+          "解析JSON格式的API响应，提取关键信息",
+          "将数据格式化为用户友好的结构化文本",
+          "处理API调用错误，实现自动重试和错误提示",
+          "维护会话上下文，支持多轮对话式查询",
+          "提供查询帮助和使用示例"
+        ],
+        "interfaces": {
+          "inputs": [
+            "自然语言查询文本（中文或英文）",
+            "查询参数（可选）：日期范围、结果数量、排序方式等",
+            "上下文信息（可选）：之前的查询历史"
+          ],
+          "outputs": [
+            "结构化查询结果（JSON格式或格式化文本）",
+            "查询状态信息（成功/失败/部分成功）",
+            "错误提示和建议（如果查询失败）",
+            "数据摘要和关键发现（如果结果较多）"
+          ]
+        },
+        "dependencies": [
+          "OpenFDA API服务可用性",
+          "AWS Bedrock LLM服务（Claude Sonnet 4.5）",
+          "api_client工具（HTTP请求）",
+          "auth_manager工具（API认证）",
+          "json_converter工具（数据转换）",
+          "Python requests库",
+          "网络连接"
+        ],
+        "implementation_notes": [
+          "基于api_integration_agent模板进行定制开发",
+          "使用create_agent_from_prompt_template工厂方法创建Agent实例",
+          "系统提示词中需包含OpenFDA API的端点映射规则和参数说明",
+          "用户提示词模板需定义多端点路由的决策逻辑",
+          "实现指数退避的重试机制（1秒、2秒、4秒）",
+          "支持部分匹配和模糊搜索，提升用户体验",
+          "必须实现handler入口点函数，符合AgentCore部署规范",
+          "handler函数返回字符串而非Dict",
+          "使用@app.entrypoint装饰器定义入口点",
+          "在__main__中启动HTTP服务器（app.run()）",
+          "设置环境变量BYPASS_TOOL_CONSENT=true"
+        ],
+        "recommended_template": "api_integration_agent"
+      }
+    ],
+    "data_models": [
+      {
+        "name": "QueryRequest",
+        "schema": "{\n  \"prompt\": \"string (必需)\",\n  \"query_type\": \"string (可选): drug|device|food\",\n  \"filters\": {\n    \"date_range\": {\n      \"start\": \"string (ISO日期格式)\",\n      \"end\": \"string (ISO日期格式)\"\n    },\n    \"limit\": \"integer (默认10，最大100)\",\n    \"skip\": \"integer (分页偏移，默认0)\"\n  },\n  \"context\": {\n    \"session_id\": \"string (会话标识)\",\n    \"previous_queries\": \"array (历史查询)\"\n  }\n}",
+        "validation_rules": [
+          "prompt字段不能为空",
+          "query_type必须是drug、device、food之一（如果提供）",
+          "limit必须在1-100之间",
+          "skip必须是非负整数",
+          "日期格式必须符合ISO 8601标准（YYYY-MM-DD）"
+        ],
+        "relationships": [
+          "关联到QueryResponse：一个请求对应一个响应"
+        ]
+      },
+      {
+        "name": "QueryResponse",
+        "schema": "{\n  \"status\": \"string: success|error|partial\",\n  \"data\": {\n    \"endpoint\": \"string (调用的API端点)\",\n    \"query_params\": \"object (实际使用的查询参数)\",\n    \"results\": \"array (查询结果列表)\",\n    \"total_count\": \"integer (总结果数)\",\n    \"returned_count\": \"integer (返回结果数)\"\n  },\n  \"metadata\": {\n    \"query_time\": \"string (查询时间戳)\",\n    \"response_time_ms\": \"integer (响应时间毫秒)\",\n    \"api_version\": \"string (OpenFDA API版本)\"\n  },\n  \"error\": {\n    \"code\": \"string (错误代码)\",\n    \"message\": \"string (错误信息)\",\n    \"suggestion\": \"string (解决建议)\"\n  },\n  \"formatted_text\": \"string (格式化的文本输出)\"\n}",
+        "validation_rules": [
+          "status字段必需且只能是success、error、partial之一",
+          "成功响应必须包含data字段",
+          "错误响应必须包含error字段",
+          "results数组中的每个元素必须符合OpenFDA数据结构",
+          "响应时间必须是正整数"
+        ],
+        "relationships": [
+          "关联到QueryRequest：响应对应一个请求",
+          "关联到OpenFDARecord：results数组包含多个OpenFDA记录"
+        ]
+      },
+      {
+        "name": "OpenFDARecord",
+        "schema": "{\n  \"id\": \"string (记录唯一标识)\",\n  \"type\": \"string (drug|device|food)\",\n  \"name\": \"string (产品名称)\",\n  \"event_date\": \"string (事件日期)\",\n  \"description\": \"string (描述信息)\",\n  \"severity\": \"string (严重程度)\",\n  \"status\": \"string (状态)\",\n  \"raw_data\": \"object (原始API数据)\"\n}",
+        "validation_rules": [
+          "id必须唯一",
+          "type必须是drug、device、food之一",
+          "日期格式必须一致",
+          "raw_data保留完整的API响应数据以备后续分析"
+        ],
+        "relationships": [
+          "被QueryResponse引用：多个记录组成查询结果"
+        ]
+      },
+      {
+        "name": "APIEndpointConfig",
+        "schema": "{\n  \"base_url\": \"string (https://api.fda.gov)\",\n  \"endpoints\": {\n    \"drug\": {\n      \"event\": \"/drug/event.json\",\n      \"label\": \"/drug/label.json\",\n      \"enforcement\": \"/drug/enforcement.json\"\n    },\n    \"device\": {\n      \"event\": \"/device/event.json\",\n      \"enforcement\": \"/device/enforcement.json\",\n      \"classification\": \"/device/classification.json\"\n    },\n    \"food\": {\n      \"event\": \"/food/event.json\",\n      \"enforcement\": \"/food/enforcement.json\"\n    }\n  },\n  \"auth\": {\n    \"type\": \"api_key (可选)\",\n    \"key_param\": \"api_key\"\n  },\n  \"rate_limits\": {\n    \"requests_per_minute\": \"integer (默认240)\",\n    \"requests_per_day\": \"integer (默认120000)\"\n  }\n}",
+        "validation_rules": [
+          "base_url必须是有效的HTTPS URL",
+          "端点路径必须以/开头",
+          "速率限制必须是正整数"
+        ],
+        "relationships": [
+          "被Agent使用：配置API调用参数"
+        ]
+      }
+    ],
+    "interaction_flows": [
+      {
+        "name": "基础查询流程",
+        "description": "用户发起单次查询，Agent处理并返回结果的基本流程",
+        "steps": [
+          {
+            "step": "1. 接收用户查询",
+            "agent": "openfda_data_agent",
+            "action": "接收自然语言查询输入",
+            "data": "QueryRequest (prompt字段)"
+          },
+          {
+            "step": "2. 意图识别",
+            "agent": "openfda_data_agent",
+            "action": "使用LLM分析查询意图，识别查询类型和参数",
+            "data": "解析出的查询类型（drug/device/food）、关键词、过滤条件"
+          },
+          {
+            "step": "3. 端点选择",
+            "agent": "openfda_data_agent",
+            "action": "根据查询类型选择正确的OpenFDA API端点",
+            "data": "APIEndpointConfig中的具体端点路径"
+          },
+          {
+            "step": "4. 参数构建",
+            "agent": "openfda_data_agent",
+            "action": "构建符合OpenFDA API规范的查询参数",
+            "data": "search、limit、skip等参数的JSON对象"
+          },
+          {
+            "step": "5. API调用",
+            "agent": "openfda_data_agent",
+            "action": "使用api_client工具调用OpenFDA API",
+            "data": "HTTP GET请求，包含查询参数"
+          },
+          {
+            "step": "6. 响应接收",
+            "agent": "openfda_data_agent",
+            "action": "接收API响应数据",
+            "data": "HTTP响应（JSON格式）"
+          },
+          {
+            "step": "7. 数据解析",
+            "agent": "openfda_data_agent",
+            "action": "使用json_converter工具解析响应数据",
+            "data": "解析后的JSON对象"
+          },
+          {
+            "step": "8. 数据验证",
+            "agent": "openfda_data_agent",
+            "action": "验证数据完整性和有效性",
+            "data": "验证结果（通过/失败）"
+          },
+          {
+            "step": "9. 格式化输出",
+            "agent": "openfda_data_agent",
+            "action": "将数据格式化为用户友好的文本",
+            "data": "结构化文本（包含关键字段和摘要）"
+          },
+          {
+            "step": "10. 返回结果",
+            "agent": "openfda_data_agent",
+            "action": "将格式化结果返回给用户",
+            "data": "QueryResponse (formatted_text字段)"
+          }
+        ]
+      },
+      {
+        "name": "多端点路由流程",
+        "description": "当查询涉及多个数据类型时，Agent需要智能路由到不同端点",
+        "steps": [
+          {
+            "step": "1. 接收复杂查询",
+            "agent": "openfda_data_agent",
+            "action": "接收可能涉及多个数据类型的查询",
+            "data": "例如：'比较药物和设备的不良事件'"
+          },
+          {
+            "step": "2. 查询分解",
+            "agent": "openfda_data_agent",
+            "action": "将复杂查询分解为多个子查询",
+            "data": "子查询列表：[药物查询, 设备查询]"
+          },
+          {
+            "step": "3. 并行端点调用",
+            "agent": "openfda_data_agent",
+            "action": "同时调用多个API端点",
+            "data": "多个API请求（/drug/event、/device/event）"
+          },
+          {
+            "step": "4. 结果聚合",
+            "agent": "openfda_data_agent",
+            "action": "合并多个端点的响应数据",
+            "data": "聚合后的结果集"
+          },
+          {
+            "step": "5. 对比分析",
+            "agent": "openfda_data_agent",
+            "action": "使用LLM分析和对比不同数据源的结果",
+            "data": "对比报告（差异、共同点、趋势）"
+          },
+          {
+            "step": "6. 综合输出",
+            "agent": "openfda_data_agent",
+            "action": "生成综合性的查询结果",
+            "data": "包含多数据源的格式化输出"
+          }
+        ]
+      },
+      {
+        "name": "错误处理与重试流程",
+        "description": "当API调用失败时，Agent的错误处理和重试机制",
+        "steps": [
+          {
+            "step": "1. API调用失败",
+            "agent": "openfda_data_agent",
+            "action": "检测到API调用返回错误",
+            "data": "HTTP错误码（4xx或5xx）"
+          },
+          {
+            "step": "2. 错误分类",
+            "agent": "openfda_data_agent",
+            "action": "判断错误类型（客户端错误/服务器错误/网络错误）",
+            "data": "错误类型标识"
+          },
+          {
+            "step": "3. 重试决策",
+            "agent": "openfda_data_agent",
+            "action": "根据错误类型决定是否重试",
+            "data": "重试决策（是/否）和重试次数"
+          },
+          {
+            "step": "4. 指数退避",
+            "agent": "openfda_data_agent",
+            "action": "如果重试，使用指数退避策略（1秒、2秒、4秒）",
+            "data": "等待时间"
+          },
+          {
+            "step": "5. 重试调用",
+            "agent": "openfda_data_agent",
+            "action": "重新调用API",
+            "data": "相同的请求参数"
+          },
+          {
+            "step": "6. 成功/失败处理",
+            "agent": "openfda_data_agent",
+            "action": "如果重试成功则继续，否则返回错误",
+            "data": "成功：继续数据解析；失败：返回错误响应"
+          },
+          {
+            "step": "7. 错误提示生成",
+            "agent": "openfda_data_agent",
+            "action": "生成用户友好的错误提示和解决建议",
+            "data": "错误信息和建议（例如：'API暂时不可用，请稍后重试'）"
+          }
+        ]
+      },
+      {
+        "name": "对话式查询流程",
+        "description": "支持多轮对话，Agent维护上下文进行连续查询",
+        "steps": [
+          {
+            "step": "1. 首次查询",
+            "agent": "openfda_data_agent",
+            "action": "处理用户的初始查询",
+            "data": "例如：'查询阿司匹林的不良反应'"
+          },
+          {
+            "step": "2. 上下文存储",
+            "agent": "openfda_data_agent",
+            "action": "存储查询结果和关键信息到会话上下文",
+            "data": "会话上下文（药物名称、查询类型、结果摘要）"
+          },
+          {
+            "step": "3. 后续查询",
+            "agent": "openfda_data_agent",
+            "action": "接收后续查询",
+            "data": "例如：'再查询10条'或'这个药物的召回信息呢？'"
+          },
+          {
+            "step": "4. 上下文理解",
+            "agent": "openfda_data_agent",
+            "action": "结合上下文理解后续查询意图",
+            "data": "识别出'这个药物'指的是'阿司匹林'"
+          },
+          {
+            "step": "5. 参数继承",
+            "agent": "openfda_data_agent",
+            "action": "继承上次查询的参数（如药物名称）",
+            "data": "药物名称：阿司匹林，查询类型：召回信息"
+          },
+          {
+            "step": "6. 执行后续查询",
+            "agent": "openfda_data_agent",
+            "action": "调用新的API端点（/drug/enforcement）",
+            "data": "API请求（包含继承的参数）"
+          },
+          {
+            "step": "7. 更新上下文",
+            "agent": "openfda_data_agent",
+            "action": "更新会话上下文",
+            "data": "添加新的查询记录和结果"
+          }
+        ]
+      }
+    ],
+    "security_considerations": [
+      "API密钥管理：如果OpenFDA需要API密钥，必须通过环境变量配置，不得硬编码在代码中",
+      "速率限制遵守：严格遵守OpenFDA API的速率限制（240请求/分钟，120000请求/天），避免被封禁",
+      "数据隐私：不存储用户的查询历史或个人信息，会话上下文仅在内存中临时保存",
+      "输入验证：对用户输入进行验证，防止注入攻击和恶意查询",
+      "HTTPS通信：所有API调用必须使用HTTPS协议，确保数据传输安全",
+      "错误信息脱敏：错误提示不应泄露系统内部信息或敏感配置",
+      "使用条款遵守：严格遵守OpenFDA API的使用条款，仅用于合法目的",
+      "部署安全：在AgentCore部署时，确保容器安全配置和网络隔离",
+      "环境变量安全：使用AWS Secrets Manager或环境变量管理敏感配置",
+      "日志脱敏：日志中不应包含API密钥或用户敏感信息"
+    ],
+    "error_handling": [
+      "网络错误：捕获连接超时、DNS解析失败等网络异常，提示用户检查网络连接",
+      "API错误码处理：400错误（参数错误）提示用户修正查询，404错误（未找到）提示无结果，500错误（服务器错误）自动重试",
+      "重试机制：对5xx错误和网络超时实施指数退避重试（1秒、2秒、4秒），最多重试3次",
+      "数据解析错误：捕获JSON解析异常，记录原始响应数据，提示数据格式异常",
+      "验证错误：对查询参数进行预验证，提前发现并提示参数错误，避免无效API调用",
+      "速率限制错误：检测到429错误时，延迟后重试，并提示用户稍后再试",
+      "超时控制：设置合理的API调用超时时间（默认30秒），避免长时间等待",
+      "部分成功处理：多端点查询时，如果部分端点失败，返回成功部分的结果并标注失败端点",
+      "降级策略：当API完全不可用时，提供缓存数据（如果实现了缓存）或明确告知用户服务暂时不可用",
+      "错误日志记录：记录所有错误详情（错误类型、时间、请求参数、响应内容）到日志文件，便于问题排查"
+    ],
+    "performance_considerations": [
+      "响应时间目标：单次查询总响应时间控制在5秒内（不含OpenFDA API自身延迟）",
+      "API调用优化：合理设置limit参数，避免一次获取过多数据，默认限制为10条",
+      "并行调用：多端点查询时使用异步并行调用，减少总等待时间",
+      "连接复用：使用requests.Session()复用HTTP连接，减少建立连接的开销",
+      "超时设置：设置合理的连接超时（5秒）和读取超时（30秒），避免长时间阻塞",
+      "数据压缩：在HTTP请求头中设置Accept-Encoding: gzip，减少数据传输量",
+      "缓存机制（可选）：对相同查询的结果进行缓存（有效期1小时），缓存命中时响应时间可降至1秒内",
+      "LLM调用优化：精简提示词长度，减少LLM推理时间，优先使用结构化输出减少解析开销",
+      "内存管理：及时释放大型响应数据的内存，避免内存泄漏",
+      "资源限制：限制并发查询数量（如部署为服务），防止资源耗尽",
+      "性能监控：记录每次API调用的响应时间，定期分析性能瓶颈"
+    ],
+    "monitoring_strategy": [
+      "请求日志：记录每次查询的输入、输出、响应时间、API端点、状态码",
+      "错误监控：统计错误类型、频率、错误率，设置告警阈值（如错误率>10%）",
+      "性能指标：监控平均响应时间、P95响应时间、API调用成功率",
+      "速率限制监控：跟踪API调用频率，确保不超过OpenFDA的速率限制",
+      "资源使用：监控CPU、内存、网络带宽使用情况",
+      "会话统计：记录会话数量、平均会话时长、多轮对话比例",
+      "查询分析：统计热门查询、查询类型分布（药物/设备/食品）、查询失败原因",
+      "健康检查：定期执行健康检查（每分钟），验证OpenFDA API可用性",
+      "日志聚合：将日志集中收集到CloudWatch或ELK，便于查询和分析",
+      "告警机制：设置告警规则（API不可用、错误率过高、响应时间过长），及时通知运维人员",
+      "仪表盘：创建实时监控仪表盘，展示关键指标和趋势图"
+    ]
+  },
+  "design_rationale": "本系统设计基于以下核心考虑：\n\n1. **单Agent架构选择**：经过需求分析，OpenFDA数据获取的功能相对聚焦，主要是API调用、数据解析和结果展示，不涉及复杂的多Agent协作。单Agent架构可以简化系统复杂度，降低开发和维护成本，同时满足所有功能需求。\n\n2. **模板选择理由**：选择api_integration_agent模板（评分92/100）是因为该模板提供了完整的API集成工具链，包括api_client（HTTP调用）、auth_manager（认证管理）、json_converter（数据转换）等，这些工具与OpenFDA API集成的需求高度匹配。相比从零开始开发，基于成熟模板可以节省60%以上的开发时间。\n\n3. **提示词工程优先**：OpenFDA API的特定逻辑（端点映射、参数构建、数据解析）主要通过提示词定制实现，而非硬编码。这种设计使得系统更加灵活，当OpenFDA API更新或需要支持新端点时，只需修改提示词而无需改动代码。\n\n4. **工具驱动架构**：将具体能力封装为工具（api_client、json_converter等），Agent作为协调者根据需求选择和组合工具。这种设计符合关注点分离原则，工具负责具体执行，Agent负责决策和编排。\n\n5. **错误处理优先**：由于依赖外部API，网络和服务不稳定性是主要风险。设计中强调完善的错误处理和重试机制（指数退避、最多3次重试），确保系统在不利条件下仍能提供可接受的服务质量。\n\n6. **自然语言交互**：使用Claude Sonnet 4.5模型的强大自然语言理解能力，将用户的自然语言查询转换为API参数。这是系统的核心价值所在，让非技术用户无需了解API细节即可查询FDA数据。\n\n7. **多端点路由设计**：OpenFDA提供多个数据端点（药物、设备、食品），系统设计了智能路由机制，Agent根据查询意图自动选择正确的端点。对于涉及多个数据类型的复杂查询，支持并行调用多个端点并聚合结果。\n\n8. **对话式交互支持**：通过维护会话上下文，支持多轮对话式查询。用户可以进行连续的相关查询（如'再查询10条'、'这个药物的召回信息呢？'），提升用户体验。\n\n9. **性能与可靠性平衡**：设置合理的超时时间（连接5秒、读取30秒）、限制单次查询结果数量（默认10条）、使用连接复用等手段优化性能。同时通过重试机制和降级策略保证可靠性。\n\n10. **AgentCore部署兼容**：严格遵循AWS Bedrock AgentCore的部署规范，实现handler入口点函数、使用@app.entrypoint装饰器、返回字符串而非Dict、启动HTTP服务器等。这确保Agent可以无缝部署到AgentCore平台。\n\n11. **安全性考虑**：遵守OpenFDA API的使用条款和速率限制，通过环境变量管理API密钥（如需要），使用HTTPS通信，输入验证防止注入攻击，错误信息脱敏等，确保系统安全合规。\n\n12. **可观测性设计**：完善的日志记录、性能监控、错误统计、告警机制，确保系统运行状态可见、问题可追溯、异常可及时发现和处理。\n\n13. **可扩展性考虑**：虽然初期不实现缓存机制，但设计中预留了缓存接口。如果未来性能测试发现需要，可以轻松添加缓存层（文件缓存或Redis）而无需大规模重构。\n\n14. **数据模型标准化**：定义清晰的数据模型（QueryRequest、QueryResponse、OpenFDARecord等），确保输入输出接口标准化，便于未来集成和扩展。\n\n总结：本设计在满足功能需求的前提下，优先考虑简单性、可维护性、可靠性，充分利用成熟模板和工具，通过提示词工程实现灵活性，为未来扩展预留空间。"
+}

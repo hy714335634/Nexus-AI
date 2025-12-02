@@ -1,0 +1,112 @@
+{
+  "project_name": "ecommerce_price_comparison_agent",
+  "validation_timestamp": "2025-12-02T07:31:20.813870+00:00",
+  "overall_status": "success",
+  "agent_scripts": [
+    {
+      "script_path": "agents/generated_agents/ecommerce_price_comparison_agent/ecommerce_price_comparison_agent.py",
+      "syntax_valid": true,
+      "dependencies": [
+        "os",
+        "json",
+        "asyncio",
+        "hashlib",
+        "time",
+        "typing",
+        "pathlib",
+        "nexus_utils.agent_factory",
+        "bedrock_agentcore.runtime",
+        "argparse"
+      ],
+      "execution_params": [],
+      "argparse_params": [
+        {
+          "name": "-i",
+          "type": "str",
+          "description": "测试输入的商品名称",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "-e",
+          "type": "str",
+          "description": "指定Agent运行环境（默认: production）",
+          "required": false,
+          "default": "production",
+          "action": null
+        },
+        {
+          "name": "-v",
+          "type": "str",
+          "description": "指定Agent版本（默认: latest）",
+          "required": false,
+          "default": "latest",
+          "action": null
+        },
+        {
+          "name": "--clear-cache",
+          "type": "str",
+          "description": "清除所有缓存",
+          "required": false,
+          "default": null,
+          "action": "store_true"
+        }
+      ],
+      "error_message": ""
+    }
+  ],
+  "prompt_files": [
+    {
+      "prompt_path": "generated_agents_prompts/ecommerce_price_comparison_agent/ecommerce_price_comparison_agent.yaml",
+      "tool_count": 3,
+      "valid": true,
+      "error_message": "",
+      "metadata": {
+        "tags": [
+          "ecommerce",
+          "price_comparison",
+          "web_scraping",
+          "data_analysis"
+        ],
+        "supported_models": [
+          "global.anthropic.claude-sonnet-4-5-20250929-v1:0"
+        ],
+        "tools_dependencies": [
+          "strands_tools/http_request",
+          "generated_tools/ecommerce_price_comparison_agent/ecommerce_tools/parse_html",
+          "generated_tools/ecommerce_price_comparison_agent/ecommerce_tools/data_analyzer"
+        ],
+        "examples": [
+          {
+            "input": "iPhone 15 Pro",
+            "output": "═══════════════════════════════════════════════════════\n📊 电商价格对比报告\n═══════════════════════════════════════════════════════\n\n🔍 查询商品: iPhone 15 Pro\n⏰ 查询时间: 2025-12-02 15:20:00\n📈 查询平台: 3/3\n\n───────────────────────────────────────────────────────\n💰 价格统计\n───────────────────────────────────────────────────────\n\n最低价格: ¥7999.00\n最高价格: ¥8999.00\n平均价格: ¥8399.00\n价格区间: ¥1000.00\n\n───────────────────────────────────────────────────────\n🛒 商品列表（按价格排序）\n───────────────────────────────────────────────────────\n\n【拼多多】Apple iPhone 15 Pro 256GB 黑色钛金属\n💵 价格: ¥7999.00\n🔗 链接: https://mobile.yangkeduo.com/goods.html?goods_id=xxx\n🏪 店铺: Apple官方旗舰店\n📦 销量: 10000+\n\n【京东】Apple iPhone 15 Pro (A3108) 256GB 黑色钛金属\n💵 价格: ¥8299.00\n🔗 链接: https://item.jd.com/xxx.html\n🏪 店铺: Apple京东自营旗舰店\n📦 销量: 50000+\n\n【淘宝】Apple iPhone 15 Pro 256GB 黑色钛金属 5G手机\n💵 价格: ¥8899.00\n🔗 链接: https://item.taobao.com/item.htm?id=xxx\n🏪 店铺: Apple官方旗舰店\n📦 销量: 30000+\n\n───────────────────────────────────────────────────────\n✅ 推荐建议\n───────────────────────────────────────────────────────\n\n推荐在【拼多多】购买，价格最低为¥7999.00，\n相比最高价节省¥900.00（10.1%）。\n\n💡 提示：价格信息基于公开搜索结果，实际价格以商家页面为准。\n💡 提示：建议查看商品详情页的规格、评价等信息后再购买。\n\n═══════════════════════════════════════════════════════\n"
+          },
+          {
+            "input": "",
+            "output": "Error: 请输入要查询的商品名称"
+          },
+          {
+            "input": "不存在的商品xyz123",
+            "output": "未找到相关商品，请尝试使用其他关键词或简化搜索词"
+          }
+        ]
+      },
+      "agent_info": {
+        "name": "ecommerce_price_comparison_agent",
+        "description": "智能电商价格比较Agent - 根据用户输入的商品名称，自动搜索多个主流电商平台（淘宝、京东、拼多多）的价格信息，进行智能对比分析，帮助用户找到最优惠的购买选择",
+        "category": "ecommerce_analysis"
+      }
+    }
+  ],
+  "generated_tools": [],
+  "total_tools": 3,
+  "summary": {
+    "agent_scripts_count": 1,
+    "prompt_files_count": 1,
+    "generated_tool_files_count": 0,
+    "all_scripts_valid": true,
+    "all_tools_valid": true,
+    "all_prompts_valid": true
+  }
+}

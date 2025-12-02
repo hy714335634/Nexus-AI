@@ -1,0 +1,24 @@
+./nexus_utils
+strands-agents
+strands-agents-tools
+PyYAML
+bedrock-agentcore
+# Python Dependencies for ecommerce_price_comparison_agent
+# Generated: 2025-12-02
+# AWS SDK - for Bedrock service access
+boto3
+# YAML Configuration Parser
+pyyaml
+# Strands Agent Framework (installed locally via ./nexus_utils)
+# strands-agents
+# BedrockAgentCore Framework (installed locally)
+# bedrock-agentcore
+# Note: The following are Python standard libraries (no installation needed):
+# - os
+# - json
+# - asyncio
+# - hashlib
+# - time
+# - typing
+# - pathlib
+# - argparse
