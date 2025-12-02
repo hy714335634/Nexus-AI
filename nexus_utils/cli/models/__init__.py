@@ -7,6 +7,7 @@ from .prompt import Prompt
 from .tool import Tool
 from .common import Dependency, DirectoryTree, ValidationResult
 from .backup import Backup, BackupManifest
+from .build import BuildOptions, BuildConfig, BuildResult, DockerfileTemplate, AgentBuildInfo
 
 __all__ = [
     'Project',
@@ -22,4 +23,9 @@ __all__ = [
     'ValidationResult',
     'Backup',
     'BackupManifest',
+    'BuildOptions',
+    'BuildConfig',
+    'BuildResult',
+    'DockerfileTemplate',
+    'AgentBuildInfo',
 ]

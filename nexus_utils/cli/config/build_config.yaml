@@ -1,0 +1,321 @@
+# Nexus-AI CLI Build Configuration
+# Centralized configuration for Docker builds and CI/CD parameters
+
+# Docker Registry Configuration
+registry:
+  # Default registry for all builds
+  default: "533267047935.dkr.ecr.us-west-2.amazonaws.com/nexus-ai"
+  
+  # AWS ECR configuration
+  ecr:
+    region: "us-west-2"
+    account_id: "533267047935"
+    repository_prefix: "nexus-ai"
+  
+  # Alternative registries (can be used with --push option)
+  alternatives:
+    - name: "production"
+      uri: "533267047935.dkr.ecr.us-west-2.amazonaws.com/nexus-ai-prod"
+      description: "Production registry"
+    
+    - name: "staging"
+      uri: "533267047935.dkr.ecr.us-west-2.amazonaws.com/nexus-ai-staging"
+      description: "Staging registry"
+    
+    - name: "development"
+      uri: "533267047935.dkr.ecr.us-west-2.amazonaws.com/nexus-ai-dev"
+      description: "Development registry"
+
+# Image Tagging Rules
+tagging:
+  # Default tag format: <project>:<agent>-<tag>
+  # Available variables: {project}, {agent}, {version}, {timestamp}, {git_commit}, {git_branch}
+  default_format: "{project}:{agent}-latest"
+  
+  # Tag patterns for different environments
+  patterns:
+    latest: "{project}:{agent}-latest"
+    version: "{project}:{agent}-v{version}"
+    timestamp: "{project}:{agent}-{timestamp}"
+    git: "{project}:{agent}-{git_commit}"
+    branch: "{project}:{agent}-{git_branch}"
+  
+  # Default tag when no --tag option provided
+  default_tag: "latest"
+  
+  # Timestamp format for timestamp-based tags
+  timestamp_format: "%Y%m%d-%H%M%S"
+
+# Docker Build Configuration
+build:
+  # Default base image
+  base_image: "public.ecr.aws/docker/library/python:3.12-slim"
+  
+  # Default build arguments
+  default_args:
+    AWS_REGION: "us-west-2"
+    PYTHON_VERSION: "3.12"
+  
+  # Default environment variables
+  default_env:
+    AWS_DEFAULT_REGION: "us-west-2"
+    DOCKER_CONTAINER: "1"
+    PYTHONPATH: "/app:/app/nexus_utils:$PYTHONPATH"
+  
+  # Default exposed ports
+  default_ports:
+    - "8080"
+    - "8000"
+  
+  # Build context (relative to repository root)
+  context: "."
+  
+  # Dockerfile location pattern
+  # Variables: {project}, {agent}
+  dockerfile_pattern: "deployment/{project}/{agent}/Dockerfile"
+  
+  # Build options
+  options:
+    # Use BuildKit for improved performance
+    use_buildkit: true
+    
+    # Default platform (leave empty for host platform)
+    default_platform: ""
+    
+    # Cache configuration
+    cache:
+      enabled: true
+      # Cache from previous builds
+      cache_from: []
+      # Cache to registry
+      cache_to: ""
+  
+  # Resource limits
+  limits:
+    # Maximum build time in seconds (0 = no limit)
+    max_build_time: 3600
+    
+    # Maximum image size in GB (0 = no limit)
+    max_image_size: 5
+
+# Build Logging Configuration
+logging:
+  # Enable build logging
+  enabled: true
+  
+  # Log directory (relative to repository root)
+  directory: "logs/builds"
+  
+  # Log file naming pattern
+  # Variables: {project}, {agent}, {timestamp}, {tag}
+  filename_pattern: "{project}_{agent}_{timestamp}.log"
+  
+  # Log retention
+  retention:
+    # Keep logs for N days (0 = keep forever)
+    days: 30
+    
+    # Maximum number of log files per project (0 = unlimited)
+    max_files: 100
+    
+    # Maximum total log size in MB (0 = unlimited)
+    max_total_size: 1000
+  
+  # Log level (DEBUG, INFO, WARNING, ERROR)
+  level: "INFO"
+  
+  # Include timestamps in console output
+  console_timestamps: false
+  
+  # Colorize console output
+  colorize: true
+
+# CI/CD Integration
+ci:
+  # Detect CI environment automatically
+  auto_detect: true
+  
+  # CI-specific configurations
+  environments:
+    github_actions:
+      # Use GitHub Actions cache
+      use_cache: true
+      # Push on main branch only
+      push_on_branches: ["main", "master"]
+      # Tag format for CI builds
+      tag_format: "{project}:{agent}-{git_commit}"
+    
+    gitlab_ci:
+      use_cache: true
+      push_on_branches: ["main", "master"]
+      tag_format: "{project}:{agent}-{git_commit}"
+    
+    jenkins:
+      use_cache: true
+      push_on_branches: ["main", "master"]
+      tag_format: "{project}:{agent}-build-{build_number}"
+    
+    circleci:
+      use_cache: true
+      push_on_branches: ["main", "master"]
+      tag_format: "{project}:{agent}-{git_commit}"
+  
+  # Automatic tagging in CI
+  auto_tag:
+    # Tag with git commit SHA
+    git_commit: true
+    # Tag with git branch name
+    git_branch: false
+    # Tag with build number (if available)
+    build_number: false
+    # Tag with timestamp
+    timestamp: true
+  
+  # Automatic push in CI
+  auto_push:
+    # Push on successful build
+    enabled: false
+    # Only push on specific branches
+    branches: ["main", "master"]
+    # Only push on tags
+    tags_only: false
+
+# Dockerfile Generation
+dockerfile:
+  # Template configuration
+  template:
+    # Use custom template if exists
+    custom_template_path: ""
+    
+    # Default template variables
+    variables:
+      maintainer: "Nexus-AI Team"
+      workdir: "/app"
+      user: "bedrock_agentcore"
+      user_id: "1000"
+  
+  # Auto-generation settings
+  auto_generate:
+    # Generate Dockerfile if missing
+    enabled: true
+    
+    # Backup existing Dockerfile before overwriting
+    backup: true
+    
+    # Prompt before generating
+    prompt: false
+
+# Build Validation
+validation:
+  # Validate Docker is available before build
+  check_docker: true
+  
+  # Validate project exists
+  check_project: true
+  
+  # Validate agents exist
+  check_agents: true
+  
+  # Validate Dockerfile syntax
+  check_dockerfile: false
+  
+  # Validate requirements.txt exists
+  check_requirements: true
+  
+  # Run security scan after build
+  security_scan:
+    enabled: false
+    tool: "trivy"  # trivy, snyk, clair
+    fail_on_critical: false
+
+# Build Notifications
+notifications:
+  # Enable notifications
+  enabled: false
+  
+  # Notification channels
+  channels:
+    # Slack notifications
+    slack:
+      enabled: false
+      webhook_url: ""
+      notify_on: ["failure", "success"]
+    
+    # Email notifications
+    email:
+      enabled: false
+      smtp_server: ""
+      from_address: ""
+      to_addresses: []
+      notify_on: ["failure"]
+    
+    # Webhook notifications
+    webhook:
+      enabled: false
+      url: ""
+      method: "POST"
+      notify_on: ["failure", "success"]
+
+# Performance Optimization
+performance:
+  # Parallel builds
+  parallel:
+    # Enable parallel builds for multiple agents
+    enabled: false
+    # Maximum number of parallel builds
+    max_workers: 4
+  
+  # Build cache optimization
+  cache_optimization:
+    # Use layer caching
+    layer_cache: true
+    # Use inline cache
+    inline_cache: false
+    # Use registry cache
+    registry_cache: false
+
+# Advanced Options
+advanced:
+  # Docker daemon configuration
+  docker:
+    # Docker host (leave empty for default)
+    host: ""
+    # TLS verification
+    tls_verify: true
+    # API version
+    api_version: "auto"
+  
+  # Build hooks
+  hooks:
+    # Run before build starts
+    pre_build: []
+    # Run after successful build
+    post_build: []
+    # Run after failed build
+    post_build_failure: []
+    # Run before push
+    pre_push: []
+    # Run after successful push
+    post_push: []
+  
+  # Custom build arguments from environment
+  env_build_args:
+    # Map environment variables to build arguments
+    # Format: ENV_VAR: BUILD_ARG
+    AWS_ACCESS_KEY_ID: "AWS_ACCESS_KEY_ID"
+    AWS_SECRET_ACCESS_KEY: "AWS_SECRET_ACCESS_KEY"
+    AWS_SESSION_TOKEN: "AWS_SESSION_TOKEN"
+
+# Feature Flags
+features:
+  # Enable experimental features
+  experimental: false
+  
+  # Enable multi-platform builds
+  multi_platform: false
+  
+  # Enable build attestations
+  attestations: false
+  
+  # Enable SBOM generation
+  sbom: false

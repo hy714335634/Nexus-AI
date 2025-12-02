@@ -13,6 +13,8 @@ from .adapters.filesystem import FileSystemAdapter
 from .adapters.config_loader import ConfigLoader
 from .managers.project_manager import ProjectManager
 from .managers.agent_manager import AgentManager
+from .managers.build_manager import BuildManager
+from .models.build import BuildOptions
 from .utils.formatters import format_output
 
 
@@ -25,6 +27,7 @@ class CLIContext:
         self.config_loader = ConfigLoader(self.fs_adapter)
         self.project_manager = ProjectManager(self.fs_adapter, self.config_loader)
         self.agent_manager = AgentManager(self.fs_adapter, self.config_loader)
+        self.build_manager = BuildManager(self.fs_adapter, self.config_loader)
 
 
 @click.group()
@@ -39,7 +42,7 @@ def cli(ctx, base_path):
     
     \b
     CORE COMMANDS:
-      project     Manage projects (init, list, describe, backup, restore, delete)
+      project     Manage projects (init, list, describe, build, backup, restore, delete)
       agents      Manage AI agents (list, describe)
       backup      Manage backups (list, describe, validate, delete)
       overview    Display system-wide overview
@@ -107,6 +110,7 @@ def project():
       init        Create a new project
       list        List all projects
       describe    Show detailed project information
+      build       Build Docker images for project
       backup      Create a backup of a project
       restore     Restore a project from backup
       delete      Delete a project and all resources
@@ -732,6 +736,137 @@ def project_delete(ctx, name, force, dry_run):
         click.echo(f"✓ Project '{name}' and all related resources deleted successfully")
         click.echo(f"  Total: {len(deleted_items)} directories removed")
     
+    except Exception as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+
+
+@project.command('build')
+@click.argument('project_name')
+@click.option('--agent', '-a', help='Specific agent to build')
+@click.option('--tag', '-t', help='Custom image tag (default: latest)')
+@click.option('--no-cache', is_flag=True, help='Build without cache')
+@click.option('--push', default=None, help='Push to registry (default or custom URI)')
+@click.option('--platform', help='Target platform (e.g., linux/amd64)')
+@click.option('--build-arg', multiple=True, help='Build arguments (KEY=VALUE)')
+@click.pass_obj
+def project_build(ctx, project_name, agent, tag, no_cache, push, platform, build_arg):
+    """Build Docker image for project
+    
+    Builds Docker images for Nexus-AI projects locally. By default, builds all
+    agents in the project. Use --agent to build a specific agent.
+    
+    \b
+    DEFAULT BEHAVIOR:
+      • Builds all agents in the project
+      • Uses default registry: 533267047935.dkr.ecr.us-west-2.amazonaws.com/nexus-ai/
+      • Tags images as: <registry>/<project>:<agent>-latest
+      • Generates Dockerfile if missing
+      • Saves build logs to logs/builds/
+      • Stops on first failure (fail-fast)
+    
+    \b
+    IMAGE NAMING:
+      Default: 533267047935.dkr.ecr.us-west-2.amazonaws.com/nexus-ai/<project>:<agent>-latest
+      Custom:  533267047935.dkr.ecr.us-west-2.amazonaws.com/nexus-ai/<project>:<custom-tag>
+    
+    \b
+    EXAMPLES:
+      # Build all agents in project
+      nexus-cli project build aws_pricing_agent
+      
+      # Build specific agent
+      nexus-cli project build aws_pricing_agent --agent aws_pricing_agent
+      
+      # Build with custom tag
+      nexus-cli project build aws_pricing_agent --tag v1.0.0
+      
+      # Build without cache
+      nexus-cli project build aws_pricing_agent --no-cache
+      
+      # Build and push to default registry
+      nexus-cli project build aws_pricing_agent --push
+      
+      # Build and push to custom registry
+      nexus-cli project build aws_pricing_agent --push 123456.dkr.ecr.us-east-1.amazonaws.com/my-registry
+      
+      # Build for specific platform
+      nexus-cli project build aws_pricing_agent --platform linux/amd64
+      
+      # Build with custom build arguments
+      nexus-cli project build aws_pricing_agent --build-arg AWS_REGION=us-east-1
+    
+    \b
+    BUILD FEATURES:
+      ✓ Auto-detect existing Dockerfiles
+      ✓ Generate Dockerfiles from template if missing
+      ✓ Real-time build output streaming
+      ✓ Build logs saved to files
+      ✓ Fail-fast on errors
+      ✓ Support for multi-platform builds
+      ✓ Custom build arguments
+      ✓ Push to default or custom registry
+    
+    \b
+    REQUIREMENTS:
+      • Docker must be installed and running
+      • Project must exist with at least one agent
+      • For push: Docker must be authenticated to registry
+    """
+    try:
+        # Parse build arguments
+        build_args = {}
+        for arg in build_arg:
+            if '=' in arg:
+                key, value = arg.split('=', 1)
+                build_args[key] = value
+            else:
+                click.echo(f"Warning: Invalid build argument format: {arg} (expected KEY=VALUE)", err=True)
+        
+        # Create build options
+        options = BuildOptions(
+            agent=agent,
+            tag=tag,
+            no_cache=no_cache,
+            push=push,
+            platform=platform,
+            build_args=build_args
+        )
+        
+        # Build project
+        results = ctx.build_manager.build_project(project_name, options)
+        
+        # Display summary
+        click.echo()
+        click.echo("=" * 50)
+        click.echo("Build Summary")
+        click.echo("=" * 50)
+        
+        successful = [r for r in results if r.success]
+        failed = [r for r in results if not r.success]
+        
+        if successful:
+            click.echo(f"\n✓ Successful builds: {len(successful)}")
+            for result in successful:
+                click.echo(f"  • {result.agent_name}: {result.image_tag}")
+        
+        if failed:
+            click.echo(f"\n✗ Failed builds: {len(failed)}", err=True)
+            for result in failed:
+                click.echo(f"  • {result.agent_name}: {result.error}", err=True)
+            sys.exit(1)
+        
+        click.echo()
+        click.echo(f"✓ All builds completed successfully!")
+        
+    except RuntimeError as e:
+        # Docker not available or other runtime errors
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+    except ValueError as e:
+        # Project not found or validation errors
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
     except Exception as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)
