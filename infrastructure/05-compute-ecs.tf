@@ -491,6 +491,7 @@ resource "aws_ecs_task_definition" "redis" {
         "redis-server",
         "--appendonly", "yes",
         "--maxmemory-policy", "allkeys-lru",
+        "--maxmemory", "3500mb",  # Set max memory to ~85% of container memory (4096MB) to avoid overcommit issues
         "--dir", "/tmp"  # Use /tmp instead of EFS for AOF files to avoid permission issues
       ]
 

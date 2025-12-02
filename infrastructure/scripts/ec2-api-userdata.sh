@@ -1,5 +1,6 @@
 #!/bin/bash
-set -e
+# Removed 'set -e' to prevent script from exiting on non-critical errors
+# Critical errors are handled explicitly
 
 # Log all output
 exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
@@ -147,10 +148,17 @@ else
 fi
 
 # Login to ECR
-aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REPOSITORY_URL}
+echo "Logging into ECR..."
+if ! aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REPOSITORY_URL}; then
+    echo "ERROR: Failed to login to ECR"
+    exit 1
+fi
 
 # Pull API image
-docker pull ${ECR_REPOSITORY_URL}:latest || echo "Warning: Failed to pull image, will build locally"
+echo "Pulling API image..."
+if ! docker pull ${ECR_REPOSITORY_URL}:latest; then
+    echo "WARNING: Failed to pull image from ECR, container may fail to start"
+fi
 
 # Create docker-compose.yml for API service
 # Build the file in parts to handle conditional EFS mount

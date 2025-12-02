@@ -122,7 +122,7 @@ resource "aws_autoscaling_group" "api" {
   name                = "${var.project_name}-api-asg-${var.environment}"
   vpc_zone_identifier = local.private_subnets
   target_group_arns   = [aws_lb_target_group.api[0].arn]
-  health_check_type   = "ELB"
+  health_check_type   = "EC2"
   health_check_grace_period = 300
 
   min_size         = var.ec2_api_min_size

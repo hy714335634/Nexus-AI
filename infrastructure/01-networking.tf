@@ -359,6 +359,19 @@ resource "aws_security_group_rule" "ec2_api_tcp_from_bastion" {
   description              = "Allow TCP access from Bastion to EC2 API service (port 8000) for debugging"
 }
 
+# Allow Bastion to access Redis
+resource "aws_security_group_rule" "bastion_redis" {
+  count = var.create_vpc && var.enable_bastion ? 1 : 0
+
+  type                     = "ingress"
+  from_port                = 6379
+  to_port                  = 6379
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.bastion[0].id
+  security_group_id        = aws_security_group.ecs[0].id
+  description              = "Allow Bastion to access Redis"
+}
+
 # ============================================
 # Locals for VPC
 # ============================================
