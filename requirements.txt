@@ -3,7 +3,6 @@ strands-agents-tools
 bedrock-agentcore
 bedrock-agentcore-starter-toolkit
 .
-
 boto3
 botocore
 neo4j
@@ -44,4 +43,6 @@ networkx
 streamlit
 
 setuptools
-strands-agents
+
+tabulate
+opentelemetry

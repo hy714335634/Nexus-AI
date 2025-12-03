@@ -1,6 +1,0 @@
-project:
-  created_date: '2025-10-08T13:48:20.523733+00:00'
-  description: 一个能够帮助用户生成睡觉提醒的智能体，可以根据用户设定的时间和偏好发送提醒
-  name: sleep_reminder_agent
-  updated_date: '2025-10-08T14:19:26.421381+00:00'
-  version: 1.0.0

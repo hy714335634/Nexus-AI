@@ -7,6 +7,7 @@ wheels/
 case
 
 # Virtual environments
+venv
 .venv
 .sessions
 .kiro
@@ -20,6 +21,8 @@ tests/
 笔记.txt
 backup/
 nohup.out
+
+TROUBLESHOOTING.md
 
 # 隐藏文件和目录
 .DS_Store
@@ -47,3 +50,10 @@ logs/
 web/.next/
 nohup.out
 api/.env
+
+/Users/ychchen/warren_ws/Nexus-AI/venv
+/Users/ychchen/warren_ws/Nexus-AI/web/.next
+
+venv
+nexus_utils/cli/docs
+nexus_utils/cli/logs
