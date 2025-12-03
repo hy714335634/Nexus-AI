@@ -192,8 +192,8 @@ docker stop <container_id>  # 停止特定容器
 ## 📚 下一步
 
 - 查看 [API 文档](http://localhost:8000/docs) 了解可用接口
-- 阅读 [NEXUS_AI_SYSTEM_GUIDE.md](./NEXUS_AI_SYSTEM_GUIDE.md) 了解系统架构
-- 查看 [agent_runtime_design.md](./agent_runtime_design.md) 了解 Agent 运行时设计
+- 阅读 [系统指南](../../NEXUS_AI_SYSTEM_GUIDE.md) 了解系统架构
+- 查看 [Agent 运行时设计](../../architecture/agent_runtime_design.md) 了解 Agent 运行时设计
 
 ### Redis Commander
 
@@ -201,4 +201,4 @@ docker stop <container_id>  # 停止特定容器
 
 ---
 
-**需要帮助？** 查看详细的 [deploy.md](./deploy.md) 或提交 Issue。
+**需要帮助？** 查看详细的 [本地开发指南](./LOCAL_DEVELOPMENT.md) 或提交 Issue。

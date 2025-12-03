@@ -479,10 +479,20 @@ def update_project_readme(project_name: str, additional_content: str = None) -> 
         if os.path.exists(config_path):
             try:
                 with open(config_path, 'r', encoding='utf-8') as f:
-                    config = yaml.safe_load(f) or {}
-                    project_description = config.get("project", {}).get("description", project_description)
-            except yaml.YAMLError:
-                pass  # 使用默认描述
+                    config_raw = yaml.safe_load(f)
+                    # 确保config是字典类型，如果不是则使用空字典
+                    if not isinstance(config_raw, dict):
+                        config = {}
+                    else:
+                        config = config_raw
+                    
+                    # 安全获取项目描述
+                    project_section = config.get("project", {})
+                    if isinstance(project_section, dict):
+                        project_description = project_section.get("description", project_description)
+            except (yaml.YAMLError, TypeError, AttributeError):
+                # 使用默认描述
+                pass
         
         # 读取项目状态以生成阶段结果
         status_path = os.path.join(project_root, "status.yaml")
@@ -491,18 +501,31 @@ def update_project_readme(project_name: str, additional_content: str = None) -> 
         if os.path.exists(status_path):
             try:
                 with open(status_path, 'r', encoding='utf-8') as f:
-                    status = yaml.safe_load(f) or {}
+                    status_raw = yaml.safe_load(f)
+                    # 确保status是字典类型，如果不是则使用空字典
+                    if not isinstance(status_raw, dict):
+                        status = {}
+                    else:
+                        status = status_raw
+                    
                     # 兼容新格式
-                    if "project_info" in status and isinstance(status["project_info"], list):
+                    if "project_info" in status and isinstance(status.get("project_info"), list):
                         for project in status["project_info"]:
-                            if project.get("name") == project_name:
+                            # 确保project是字典类型
+                            if isinstance(project, dict) and project.get("name") == project_name:
                                 agents_status = project.get("agents", [])
+                                if not isinstance(agents_status, list):
+                                    agents_status = []
                                 break
                     else:
                         # 兼容旧格式
-                        agents_status = status.get("project", [])
-            except yaml.YAMLError:
-                pass  # 使用空列表
+                        project_data = status.get("project", [])
+                        if isinstance(project_data, list):
+                            agents_status = project_data
+            except (yaml.YAMLError, TypeError, AttributeError) as e:
+                # 处理YAML解析错误或类型错误，使用空列表
+                logger.warning(f"读取status.yaml时出现错误: {str(e)}")
+                agents_status = []
         
         # 生成README内容
         readme_content = f"""# {project_name}
@@ -889,28 +912,41 @@ def get_project_status(project_name: str, agent_name: str = None) -> str:
         # 读取状态文件
         try:
             with open(status_path, 'r', encoding='utf-8') as f:
-                status_data = yaml.safe_load(f) or {}
-        except yaml.YAMLError as e:
+                status_raw = yaml.safe_load(f)
+                # 确保status_data是字典类型，如果不是则使用空字典
+                if not isinstance(status_raw, dict):
+                    status_data = {}
+                else:
+                    status_data = status_raw
+        except (yaml.YAMLError, TypeError, AttributeError) as e:
             return f"错误：无法解析状态文件: {str(e)}"
         
         # 获取项目信息，兼容新旧格式
         project_info = None
         agents_data = []
         
-        if "project_info" in status_data and isinstance(status_data["project_info"], list):
-            # 新格式 - project_info 是列表
-            for project in status_data["project_info"]:
-                if project.get("name") == project_name:
-                    project_info = project
-                    agents_data = project.get("agents", [])
-                    break
-        elif "project_info" in status_data and isinstance(status_data["project_info"], dict):
-            # 兼容格式 - project_info 是字典
-            project_info = status_data["project_info"]
-            agents_data = project_info.get("agents", [])
-        else:
-            # 旧格式兼容
-            agents_data = status_data.get("project", [])
+        if isinstance(status_data, dict):
+            if "project_info" in status_data and isinstance(status_data.get("project_info"), list):
+                # 新格式 - project_info 是列表
+                for project in status_data["project_info"]:
+                    # 确保project是字典类型
+                    if isinstance(project, dict) and project.get("name") == project_name:
+                        project_info = project
+                        agents_data = project.get("agents", [])
+                        if not isinstance(agents_data, list):
+                            agents_data = []
+                        break
+            elif "project_info" in status_data and isinstance(status_data.get("project_info"), dict):
+                # 兼容格式 - project_info 是字典
+                project_info = status_data["project_info"]
+                agents_data = project_info.get("agents", [])
+                if not isinstance(agents_data, list):
+                    agents_data = []
+            else:
+                # 旧格式兼容
+                project_data = status_data.get("project", [])
+                if isinstance(project_data, list):
+                    agents_data = project_data
         
         if project_info is None:
             project_info = {
@@ -920,11 +956,18 @@ def get_project_status(project_name: str, agent_name: str = None) -> str:
             }
         
         # 计算项目整体进度
+        # 确保agents_data是列表类型
+        if not isinstance(agents_data, list):
+            agents_data = []
+        
         total_agents = len(agents_data)
         total_completed_stages = 0
         total_stages = 0
         
         for agent in agents_data:
+            # 确保agent是字典类型
+            if not isinstance(agent, dict):
+                continue
             pipeline = agent.get("pipeline", [])
             if pipeline and isinstance(pipeline[0], dict) and "stage" in pipeline[0]:
                 # 新格式
@@ -958,22 +1001,34 @@ def get_project_status(project_name: str, agent_name: str = None) -> str:
         target_agent = None
         
         for agent in agents_data:
-            if agent.get("name") == agent_name:
+            # 确保agent是字典类型
+            if isinstance(agent, dict) and agent.get("name") == agent_name:
                 target_agent = agent
                 break
         
         if target_agent is None:
             return f"错误：在项目 '{project_name}' 中未找到 Agent '{agent_name}'"
         
+        # 确保target_agent是字典类型
+        if not isinstance(target_agent, dict):
+            return f"错误：Agent '{agent_name}' 的数据格式不正确"
+        
         # 分析制品路径信息
         artifact_info = {}
         artifact_stages = ["prompt_engineer", "tools_developer", "agent_code_developer"]
         
-        for stage_entry in target_agent.get("pipeline", []):
+        pipeline = target_agent.get("pipeline", [])
+        if not isinstance(pipeline, list):
+            pipeline = []
+        
+        for stage_entry in pipeline:
+            # 确保stage_entry是字典类型
+            if not isinstance(stage_entry, dict):
+                continue
             stage_name = stage_entry.get("stage", "")
             if stage_name in artifact_stages and "agent_artifact_path" in stage_entry:
                 artifact_paths = stage_entry.get("agent_artifact_path", [])
-                if artifact_paths:
+                if artifact_paths and isinstance(artifact_paths, list):
                     artifact_info[stage_name] = {
                         "artifact_count": len(artifact_paths),
                         "artifact_paths": artifact_paths,

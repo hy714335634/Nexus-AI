@@ -1,4 +1,45 @@
 import { apiFetch } from '@/lib/api-client';
+import type { AgentDialogMessage, SendMessageRequest, SendMessageResponseData } from '@/types/api';
+
+/**
+ * Get messages for a session
+ * @param sessionId - Session ID
+ * @returns Array of messages in the session
+ */
+export async function fetchSessionMessages(sessionId: string): Promise<AgentDialogMessage[]> {
+  const response = await apiFetch<{
+    success: boolean;
+    data: AgentDialogMessage[];
+  }>(`/api/v1/sessions/${encodeURIComponent(sessionId)}/messages`);
+
+  if (!response.success) {
+    throw new Error('Failed to fetch session messages');
+  }
+
+  return response.data;
+}
+
+/**
+ * Send a message to a session
+ * @param sessionId - Session ID
+ * @param request - Message request data
+ * @returns Response with message and agent reply
+ */
+export async function sendMessage(sessionId: string, request: SendMessageRequest): Promise<SendMessageResponseData> {
+  const response = await apiFetch<{
+    success: boolean;
+    data: SendMessageResponseData;
+  }>(`/api/v1/sessions/${encodeURIComponent(sessionId)}/messages`, {
+    method: 'POST',
+    body: JSON.stringify(request),
+  });
+
+  if (!response.success) {
+    throw new Error('Failed to send message');
+  }
+
+  return response.data;
+}
 
 /**
  * Get session details

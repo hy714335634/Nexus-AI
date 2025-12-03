@@ -13,8 +13,6 @@ neo4j
 fastapi
 uvicorn[standard]
 requests
-redis
-celery
 pydantic
 pydantic-settings
 python-dotenv

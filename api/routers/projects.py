@@ -123,10 +123,10 @@ async def create_project(
         )
 
         # 触发异步构建任务
-        from api.tasks.agent_build_tasks import build_agent
+        from api.tasks.async_agent_build_tasks import build_agent
         session_id = f"session_{uuid.uuid4().hex[:12]}"
 
-        build_agent.delay(
+        build_agent(
             project_id=project_id,
             requirement=requirement,
             session_id=session_id,

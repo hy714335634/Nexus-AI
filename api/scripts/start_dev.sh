@@ -21,20 +21,18 @@ python scripts/setup_tables.py
 
 # Start services with docker-compose
 echo "🐳 Starting services with Docker Compose..."
-docker-compose up -d redis dynamodb-local
+docker-compose up -d dynamodb-local
 
 # Wait for services to be ready
 echo "⏳ Waiting for services to be ready..."
 sleep 5
 
-# Start Celery worker in background
-echo "👷 Starting Celery worker..."
-celery -A api.core.celery_app worker --loglevel=info --detach
+# Note: Async tasks are handled by ThreadPoolExecutor, no separate worker needed
 
 # Start FastAPI application
 echo "🌐 Starting FastAPI application..."
 echo "API will be available at: http://localhost:8000"
 echo "API documentation: http://localhost:8000/docs"
-echo "Celery Flower: http://localhost:5555"
+# Note: No Celery Flower needed - tasks are handled internally
 
 uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
