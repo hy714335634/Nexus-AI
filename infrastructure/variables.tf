@@ -126,9 +126,27 @@ variable "max_workflow_workers" {
 
 # Jaeger Configuration
 variable "enable_jaeger" {
-  description = "Enable Jaeger tracing as sidecar container (for OpenTelemetry)"
+  description = "Enable Jaeger tracing as standalone service (for OpenTelemetry)"
   type        = bool
   default     = false
+}
+
+variable "jaeger_cpu" {
+  description = "CPU units for Jaeger service (1024 = 1 vCPU)"
+  type        = number
+  default     = 1024
+}
+
+variable "jaeger_memory" {
+  description = "Memory for Jaeger service in MB"
+  type        = number
+  default     = 2048
+}
+
+variable "jaeger_desired_count" {
+  description = "Desired number of Jaeger service instances"
+  type        = number
+  default     = 1
 }
 
 variable "api_desired_count" {

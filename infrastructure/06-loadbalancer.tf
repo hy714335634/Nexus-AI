@@ -174,8 +174,8 @@ resource "aws_lb_listener_rule" "jaeger" {
   }
 
   condition {
-    path_pattern {
-      values = ["/jaeger", "/jaeger/*"]
+    host_header {
+      values = ["jaeger.*"]
     }
   }
 

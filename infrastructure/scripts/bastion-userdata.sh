@@ -8,12 +8,11 @@ echo "Starting Bastion Host initialization at $(date)"
 
 # Variables (will be replaced by Terraform templatefile)
 EFS_FILE_SYSTEM_ID="${efs_file_system_id}"
-EFS_ACCESS_POINT_ID="${efs_access_point_id}"
 AWS_REGION="${aws_region}"
 EFS_MOUNT_PATH="${efs_mount_path}"
 
 # Export variables for use in script
-export EFS_FILE_SYSTEM_ID EFS_ACCESS_POINT_ID AWS_REGION EFS_MOUNT_PATH
+export EFS_FILE_SYSTEM_ID AWS_REGION EFS_MOUNT_PATH
 
 # Update system (non-critical, continue on failure)
 echo "Updating system packages..."
@@ -93,7 +92,6 @@ mkdir -p "$${EFS_MOUNT_PATH}" || {
 # Debug: Print EFS configuration
 echo "EFS Configuration:"
 echo "  - EFS File System ID: $${EFS_FILE_SYSTEM_ID}"
-echo "  - EFS Access Point ID: $${EFS_ACCESS_POINT_ID}"
 echo "  - EFS Mount Path: $${EFS_MOUNT_PATH}"
 echo "  - AWS Region: $${AWS_REGION}"
 
@@ -114,25 +112,12 @@ mount_efs() {
     MOUNT_SUCCESS=false
     
     while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-        # First, try with access point if provided
-        if [ -n "$${EFS_ACCESS_POINT_ID}" ] && [ "$${EFS_ACCESS_POINT_ID}" != "" ]; then
-            echo "Attempting to mount with access point: $${EFS_ACCESS_POINT_ID}"
-            if mount -t efs -o tls,accesspoint=$${EFS_ACCESS_POINT_ID} "$${EFS_FILE_SYSTEM_ID}:/" "$${EFS_MOUNT_PATH}" 2>&1; then
-                sleep 2
-                if mountpoint -q "$${EFS_MOUNT_PATH}"; then
-                    echo "✅ EFS mounted successfully with access point on attempt $(expr $RETRY_COUNT + 1)"
-                    MOUNT_SUCCESS=true
-                    break
-                fi
-            fi
-        fi
-        
-        # If access point mount failed or not provided, try without access point
-        echo "Attempting to mount without access point (root directory)"
+        # Mount EFS directly without access point (full permissions)
+        echo "Attempting to mount EFS (attempt $(expr $RETRY_COUNT + 1)/$MAX_RETRIES)..."
         if mount -t efs -o tls "$${EFS_FILE_SYSTEM_ID}:/" "$${EFS_MOUNT_PATH}" 2>&1; then
             sleep 2
             if mountpoint -q "$${EFS_MOUNT_PATH}"; then
-                echo "✅ EFS mounted successfully without access point on attempt $(expr $RETRY_COUNT + 1)"
+                echo "✅ EFS mounted successfully on attempt $(expr $RETRY_COUNT + 1)"
                 MOUNT_SUCCESS=true
                 break
             fi
@@ -163,12 +148,7 @@ if ! mount_efs; then
 fi
 
 # Add to fstab for persistence (check if already exists to avoid duplicates)
-# Use access point if provided, otherwise mount root directory
-if [ -n "$${EFS_ACCESS_POINT_ID}" ] && [ "$${EFS_ACCESS_POINT_ID}" != "" ]; then
-    FSTAB_ENTRY="$${EFS_FILE_SYSTEM_ID}:/ $${EFS_MOUNT_PATH} efs _netdev,tls,accesspoint=$${EFS_ACCESS_POINT_ID} 0 0"
-else
-    FSTAB_ENTRY="$${EFS_FILE_SYSTEM_ID}:/ $${EFS_MOUNT_PATH} efs _netdev,tls 0 0"
-fi
+FSTAB_ENTRY="$${EFS_FILE_SYSTEM_ID}:/ $${EFS_MOUNT_PATH} efs _netdev,tls 0 0"
 
 if ! grep -q "$${EFS_MOUNT_PATH}" /etc/fstab; then
     echo "Adding EFS to /etc/fstab for automatic mounting on boot..."
@@ -196,16 +176,18 @@ else
         echo "⚠️  Could not write test file to EFS"
 fi
 
-# Set permissions for ec2-user
-    chown -R ec2-user:ec2-user "$${EFS_MOUNT_PATH}" 2>/dev/null || echo "Note: Some files may have restricted permissions"
+# Set permissions for EFS root directory to allow all users to write
+# This is necessary for Fargate containers (UID 1000) to create directories
+echo "Setting EFS root directory permissions..."
+chmod 777 "$${EFS_MOUNT_PATH}" 2>/dev/null || echo "Note: Could not set EFS root permissions"
+echo "EFS root permissions: $(ls -ld "$${EFS_MOUNT_PATH}" | awk '{print $1, $3, $4}')"
+
+# Set permissions for ec2-user (optional, for any files created by Bastion)
+chown -R ec2-user:ec2-user "$${EFS_MOUNT_PATH}" 2>/dev/null || echo "Note: Some files may have restricted permissions"
     
-    # Initialize git repository in EFS (for API instances to use)
-    REPO_DIR="$${EFS_MOUNT_PATH}/nexus-ai-repo"
-    if [ ! -d "$REPO_DIR/.git" ]; then
-        echo "Initializing git repository in EFS..."
-        sudo -u ec2-user git clone -b ${github_branch} ${github_repo_url} "$REPO_DIR" 2>/dev/null || \
-            echo "Note: Git repo will be cloned by first API instance"
-    fi
+    # Note: Git clone will be performed by Fargate containers, not Bastion
+    # Bastion only sets up EFS permissions to allow Fargate to write
+    echo "✅ EFS is ready for Fargate containers to clone repository"
 else
     echo "⚠️  EFS is not currently mounted, but it will be mounted automatically on next reboot via /etc/fstab"
 fi

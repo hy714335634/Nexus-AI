@@ -8,7 +8,6 @@ echo "Starting EC2 API service initialization at $(date)"
 
 # Variables (will be replaced by Terraform templatefile)
 EFS_FILE_SYSTEM_ID="${efs_file_system_id}"
-EFS_ACCESS_POINT_ID="${efs_access_point_id}"
 AWS_REGION="${aws_region}"
 ECR_REPOSITORY_URL="${ecr_repository_url}"
 DYNAMODB_REGION="${dynamodb_region}"
@@ -25,7 +24,7 @@ APP_DIR="${app_dir}"
 PROJECT_ROOT="${project_root}"
 
 # Export variables for use in heredoc
-export EFS_FILE_SYSTEM_ID EFS_ACCESS_POINT_ID AWS_REGION ECR_REPOSITORY_URL
+export EFS_FILE_SYSTEM_ID AWS_REGION ECR_REPOSITORY_URL
 export DYNAMODB_REGION
 export AGENT_PROJECTS_TABLE AGENT_INSTANCES_TABLE SQS_QUEUE_URL ENVIRONMENT
 export GITHUB_REPO_URL GITHUB_BRANCH
@@ -64,8 +63,8 @@ RETRY_COUNT=0
 MOUNT_SUCCESS=false
 
 while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-    # Try to mount EFS using amazon-efs-utils (more reliable than direct mount)
-    if mount -t efs -o tls,accesspoint=${EFS_ACCESS_POINT_ID} ${EFS_FILE_SYSTEM_ID}:/ ${EFS_MOUNT_PATH} 2>&1; then
+    # Mount EFS directly without access point (full permissions)
+    if mount -t efs -o tls ${EFS_FILE_SYSTEM_ID}:/ ${EFS_MOUNT_PATH} 2>&1; then
         if mountpoint -q ${EFS_MOUNT_PATH}; then
             echo "✅ EFS mounted successfully on attempt $((RETRY_COUNT + 1))"
             MOUNT_SUCCESS=true
@@ -88,7 +87,7 @@ fi
 
 # Add to fstab for persistence (only if mount was successful)
 if [ "$MOUNT_SUCCESS" = true ]; then
-    echo "${EFS_FILE_SYSTEM_ID}:/ ${EFS_MOUNT_PATH} efs _netdev,tls,accesspoint=${EFS_ACCESS_POINT_ID} 0 0" >> /etc/fstab
+    echo "${EFS_FILE_SYSTEM_ID}:/ ${EFS_MOUNT_PATH} efs _netdev,tls 0 0" >> /etc/fstab
     echo "EFS mount added to /etc/fstab for persistence"
 fi
 

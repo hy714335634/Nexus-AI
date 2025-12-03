@@ -254,7 +254,8 @@ resource "aws_iam_role_policy" "ecs_efs" {
           "elasticfilesystem:ClientMount",
           "elasticfilesystem:ClientWrite",
           "elasticfilesystem:ClientRootAccess",
-          "elasticfilesystem:DescribeMountTargets"
+          "elasticfilesystem:DescribeMountTargets",
+          "elasticfilesystem:DescribeFileSystems"
         ]
         Resource = var.create_vpc ? aws_efs_file_system.nexus_ai[0].arn : "*"
       }

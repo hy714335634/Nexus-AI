@@ -49,19 +49,9 @@ resource "aws_iam_role_policy" "bastion_efs" {
           "elasticfilesystem:ClientWrite",
           "elasticfilesystem:ClientRootAccess",
           "elasticfilesystem:DescribeMountTargets",
-          "elasticfilesystem:DescribeFileSystems",
-          "elasticfilesystem:DescribeAccessPoints"
+          "elasticfilesystem:DescribeFileSystems"
         ]
         Resource = var.create_vpc ? aws_efs_file_system.nexus_ai[0].arn : "*"
-      },
-      {
-        Effect = "Allow"
-        Action = [
-          "elasticfilesystem:ClientMount",
-          "elasticfilesystem:ClientWrite",
-          "elasticfilesystem:ClientRootAccess"
-        ]
-        Resource = var.create_vpc ? aws_efs_access_point.app_data[0].arn : "*"
       }
     ]
   })

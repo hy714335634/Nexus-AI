@@ -54,6 +54,11 @@ output "alb_internal" {
   value       = var.create_vpc ? var.alb_internal : null
 }
 
+output "jaeger_url" {
+  description = "Jaeger UI URL (requires DNS setup: jaeger.<your-domain> -> ALB)"
+  value       = var.create_vpc && var.enable_jaeger ? "http://jaeger.${aws_lb.nexus_ai[0].dns_name}" : null
+}
+
 output "efs_file_system_id" {
   description = "EFS file system ID"
   value       = var.create_vpc ? aws_efs_file_system.nexus_ai[0].id : null

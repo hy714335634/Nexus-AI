@@ -66,14 +66,12 @@ resource "aws_instance" "bastion" {
   user_data = base64encode(templatefile("${path.module}/scripts/bastion-userdata.sh", {
     # Lowercase variables (used in script variable assignments)
     efs_file_system_id  = aws_efs_file_system.nexus_ai[0].id
-    efs_access_point_id = aws_efs_access_point.app_data[0].id
     aws_region          = var.aws_region
     efs_mount_path      = "/mnt/efs"
     github_repo_url     = var.github_repo_url
     github_branch       = var.github_branch
     # Uppercase variables (used directly in script commands)
     EFS_FILE_SYSTEM_ID  = aws_efs_file_system.nexus_ai[0].id
-    EFS_ACCESS_POINT_ID = aws_efs_access_point.app_data[0].id
     AWS_REGION          = var.aws_region
     EFS_MOUNT_PATH      = "/mnt/efs"
   }))

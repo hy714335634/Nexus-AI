@@ -38,7 +38,6 @@ resource "aws_launch_template" "api" {
   user_data = base64encode(templatefile("${path.module}/scripts/ec2-api-userdata.sh", {
     # Lowercase variables (used in script variable assignments)
     efs_file_system_id   = aws_efs_file_system.nexus_ai[0].id
-    efs_access_point_id  = aws_efs_access_point.app_data[0].id
     aws_region           = var.aws_region
     ecr_repository_url   = aws_ecr_repository.api.repository_url
     dynamodb_region      = var.aws_region
@@ -53,7 +52,6 @@ resource "aws_launch_template" "api" {
     project_root         = "/opt/nexus-ai"
     # Uppercase variables (used directly in script commands and heredoc)
     EFS_FILE_SYSTEM_ID   = aws_efs_file_system.nexus_ai[0].id
-    EFS_ACCESS_POINT_ID  = aws_efs_access_point.app_data[0].id
     AWS_REGION           = var.aws_region
     ECR_REPOSITORY_URL   = aws_ecr_repository.api.repository_url
     DYNAMODB_REGION      = var.aws_region

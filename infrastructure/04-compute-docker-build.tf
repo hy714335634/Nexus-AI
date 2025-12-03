@@ -26,7 +26,7 @@ resource "null_resource" "docker_build_and_push" {
     frontend_package_hash   = filemd5("${path.module}/../web/package.json")
     
     # Force rebuild trigger (increment this to force rebuild)
-    rebuild_trigger = "2025-01-28-v1"
+    rebuild_trigger = "2025-12-03-efs-permissions-fix"
   }
 
   provisioner "local-exec" {
