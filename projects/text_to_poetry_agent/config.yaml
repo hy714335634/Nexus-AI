@@ -1,0 +1,6 @@
+project:
+  created_date: '2025-12-02T15:29:01.792545+00:00'
+  description: 一个能够将普通文字转换为诗歌的AI智能体，具备文本理解、诗歌创作和格式化输出能力
+  name: text_to_poetry_agent
+  updated_date: '2025-12-02T15:29:08.826562+00:00'
+  version: 1.0.0

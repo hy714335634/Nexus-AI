@@ -1,0 +1,359 @@
+{
+  "system_design": {
+    "design_overview": {
+      "project_name": "xiaohongshu_ad_generator",
+      "version": "1.0",
+      "date": "2025-12-04",
+      "design_scope": "设计一个基于AI的小红书广告文案生成系统，能够根据产品信息自动生成符合小红书平台特色的完整广告内容，包括吸引人的标题、详细正文、话题标签和互动引导。系统采用单Agent架构，通过精心设计的提示词工程实现所有功能需求，无需额外的复杂工具开发。",
+      "design_principles": [
+        "单一职责原则：Agent专注于创意文案生成，职责明确",
+        "提示词驱动：核心功能通过优化的提示词实现，而非复杂工具",
+        "平台特化：深度理解小红书平台特点，生成符合平台调性的内容",
+        "用户友好：输入灵活（支持结构化和自然语言），输出清晰（标准化格式）",
+        "质量优先：通过提示词优化和few-shot示例确保内容质量",
+        "可扩展性：设计支持未来扩展（多风格、多平台、多语言）",
+        "合规性：遵循BedrockAgentCoreApp部署规范，确保可部署性"
+      ],
+      "key_decisions": [
+        "采用单Agent架构而非多Agent：需求功能聚焦，单Agent通过提示词工程即可满足所有需求，降低系统复杂度",
+        "选择content_generator_agent模板：该模板专为内容生成设计，功能匹配度92%，包含文本生成、模板管理、内容优化等成熟工具",
+        "提示词工程为核心：所有功能需求（FR-001至FR-007）都通过精心设计的提示词实现，无需开发额外工具",
+        "使用Claude Sonnet 4.5模型：强大的中文理解和创意生成能力，适合小红书风格文案创作",
+        "标准化输出格式：采用JSON格式输出，包含title、content、tags、cta等字段，便于用户使用",
+        "灵活输入方式：支持结构化JSON和自然语言描述两种输入方式，提升用户体验",
+        "遵循BedrockAgentCoreApp规范：使用@app.entrypoint装饰器和handler函数，确保可部署到Amazon Bedrock AgentCore"
+      ],
+      "workflow_type": "single_agent",
+      "recommended_templates": [
+        "content_generator_agent (智能内容生成器) - 评分92/100 - 强烈推荐",
+        "deep_research_agent (深度研究专家) - 评分65/100 - 备选方案（仅在需要市场调研时考虑）"
+      ]
+    },
+    "architecture": {
+      "system_context": "小红书广告文案生成系统是一个基于AI的内容创作工具，服务于商家、内容创作者和营销人员。用户输入产品信息（名称、类型、特点、目标用户、价格等），系统自动生成符合小红书平台风格的广告文案。系统部署在Amazon Bedrock AgentCore平台，使用Claude Sonnet 4.5模型进行文本生成。系统的核心价值在于：1）降低内容创作门槛，快速生成高质量文案；2）确保内容符合小红书平台调性（年轻化、生活化、真实感）；3）提高广告转化率和用户互动率。",
+      "agent_topology": "单Agent拓扑结构：\n\n用户 → xiaohongshu_ad_generator_agent → 输出文案\n\n说明：\n- 系统只有一个Agent：xiaohongshu_ad_generator_agent\n- Agent职责：接收产品信息 → 理解需求 → 生成创意文案 → 格式化输出\n- 无需多Agent协作，所有功能在单个Agent内完成\n- Agent基于content_generator_agent模板构建，集成文本生成、内容优化等工具\n- 通过精心设计的提示词实现小红书风格的内容生成",
+      "interaction_model": "线性交互模型：\n\n1. 用户交互层：\n   - 用户通过HTTP API发送请求（BedrockAgentCoreApp的/invocations端点）\n   - 输入格式：JSON（结构化产品信息）或自然语言描述\n   - 示例输入：{\"product_name\": \"维生素C精华液\", \"product_type\": \"美妆护肤\", \"features\": [\"美白\", \"淡斑\", \"抗氧化\"], \"target_audience\": \"25-35岁女性\", \"price\": \"299元\"}\n\n2. Agent处理层：\n   - Agent接收输入，通过提示词理解产品信息和用户需求\n   - 基于Claude Sonnet 4.5模型生成创意内容\n   - 内部流程：输入解析 → 风格适配 → 标题生成 → 正文创作 → emoji添加 → 标签推荐 → 格式化输出\n   - 提示词包含：小红书平台特点、内容风格指南、输出格式要求、few-shot示例\n\n3. 输出层：\n   - 标准化JSON格式输出\n   - 输出结构：{\"title\": \"吸引人的标题✨\", \"content\": \"详细正文内容...\", \"tags\": [\"#美白神器\", \"#护肤分享\"], \"cta\": \"互动引导文案\"}\n   - 用户可直接复制使用或稍作修改\n\n4. 错误处理：\n   - 输入验证：检查必填字段，提示补充信息\n   - 生成失败：返回错误信息和重试建议\n   - 超时处理：10秒超时机制，确保响应稳定性",
+      "technology_stack": {
+        "sdk": "Strands SDK",
+        "runtime": "Amazon Bedrock AgentCore (Local development + Cloud deployment)",
+        "model": "Claude Sonnet 4.5 (anthropic.claude-sonnet-4-5-20250929-v1:0)",
+        "framework": "BedrockAgentCoreApp (HTTP服务器模式)",
+        "language": "Python 3.13+",
+        "integrations": [
+          "Amazon Bedrock (AI推理引擎)",
+          "AWS boto3 SDK (AWS服务集成)",
+          "nexus_utils.agent_factory (Agent创建工具)"
+        ]
+      }
+    },
+    "agents": [
+      {
+        "name": "xiaohongshu_ad_generator",
+        "purpose": "根据产品信息自动生成符合小红书平台风格的广告文案，包括标题、正文、话题标签和互动引导",
+        "responsibilities": [
+          "接收并解析用户输入的产品信息（支持结构化JSON和自然语言描述）",
+          "理解小红书平台的内容特点（年轻化、生活化、真实感、社交化）",
+          "生成吸引人的广告标题（15-30字，包含1-3个emoji）",
+          "创作详细的广告正文（200-800字，第一人称视角，分点描述，自然融入emoji）",
+          "推荐相关话题标签（3-8个，包含产品类别、使用场景、目标人群等维度）",
+          "生成用户互动引导文案（行动号召，如'评论区告诉我''双击收藏'）",
+          "支持多种内容风格（测评、种草、教程等）",
+          "格式化输出为标准JSON格式，便于用户使用",
+          "处理输入验证和错误情况，提供友好的错误提示"
+        ],
+        "interfaces": {
+          "inputs": [
+            "product_name (string): 产品名称（必填）",
+            "product_type (string): 产品类型（如美妆、服饰、食品、电子产品等，可选）",
+            "features (list): 产品特点列表（如['美白', '淡斑', '抗氧化']，可选）",
+            "target_audience (string): 目标用户群体（如'25-35岁女性'，可选）",
+            "price (string): 价格信息（可选）",
+            "style (string): 内容风格（'测评'/'种草'/'教程'，可选，默认自动选择）",
+            "additional_info (string): 其他补充信息（可选）",
+            "或者：自然语言描述（如'我有一款维生素C精华液，主打美白淡斑，适合25-35岁女性，价格299元'）"
+          ],
+          "outputs": [
+            "title (string): 广告标题（15-30字，包含emoji）",
+            "content (string): 广告正文（200-800字，结构化分段，包含emoji）",
+            "tags (list): 话题标签列表（3-8个，格式：#标签名）",
+            "cta (string): 互动引导文案（行动号召）",
+            "metadata (object): 元数据（生成时间、内容风格、字数统计等）"
+          ]
+        },
+        "dependencies": [
+          "Claude Sonnet 4.5模型（AI推理引擎）",
+          "nexus_utils.agent_factory（Agent创建工具）",
+          "BedrockAgentCoreApp（部署框架）",
+          "prompts/generated_agents_prompts/xiaohongshu_ad_generator/xiaohongshu_ad_generator.yaml（提示词配置文件）"
+        ],
+        "implementation_notes": [
+          "基于content_generator_agent模板进行定制开发",
+          "核心功能通过提示词工程实现，无需开发额外工具",
+          "提示词应包含：小红书平台特点说明、内容风格示例（few-shot）、输出格式要求、emoji使用指导",
+          "支持灵活输入：结构化JSON和自然语言描述两种方式",
+          "输出格式标准化：JSON格式，便于解析和使用",
+          "必须遵循BedrockAgentCoreApp规范：使用@app.entrypoint装饰器定义handler函数",
+          "handler函数签名：handler(payload: Dict[str, Any]) -> str",
+          "handler函数返回字符串（str），不是Dict",
+          "在__main__中使用app.run()启动HTTP服务器（端口8080）",
+          "Agent初始化参数：{\"env\": \"production\", \"version\": \"latest\", \"model_id\": \"default\", \"enable_logging\": True}",
+          "模型ID配置：global.anthropic.claude-sonnet-4-5-20250929-v1:0",
+          "响应时间目标：10秒以内",
+          "错误处理：输入验证、生成失败、超时处理",
+          "内容质量保证：通过few-shot示例和提示词优化确保生成质量",
+          "未来扩展：可添加emoji_selector、hashtag_generator、content_validator等工具"
+        ],
+        "recommended_template": "content_generator_agent (智能内容生成器)"
+      }
+    ],
+    "data_models": [
+      {
+        "name": "ProductInfo",
+        "schema": "{\n  \"product_name\": \"string (required)\",\n  \"product_type\": \"string (optional)\",\n  \"features\": \"list of strings (optional)\",\n  \"target_audience\": \"string (optional)\",\n  \"price\": \"string (optional)\",\n  \"style\": \"string (optional, enum: ['测评', '种草', '教程'])\",\n  \"additional_info\": \"string (optional)\"\n}",
+        "validation_rules": [
+          "product_name为必填字段，不能为空",
+          "product_name长度应在2-50字之间",
+          "features列表最多包含10个特点",
+          "style如果提供，必须是['测评', '种草', '教程']之一",
+          "如果输入为自然语言描述，应能提取至少product_name"
+        ],
+        "relationships": [
+          "作为xiaohongshu_ad_generator Agent的输入数据"
+        ]
+      },
+      {
+        "name": "AdCopyOutput",
+        "schema": "{\n  \"title\": \"string\",\n  \"content\": \"string\",\n  \"tags\": \"list of strings\",\n  \"cta\": \"string\",\n  \"metadata\": {\n    \"generated_at\": \"string (ISO 8601 timestamp)\",\n    \"content_style\": \"string\",\n    \"word_count\": \"integer\",\n    \"emoji_count\": \"integer\",\n    \"tag_count\": \"integer\"\n  }\n}",
+        "validation_rules": [
+          "title长度应在15-30字之间，包含1-3个emoji",
+          "content长度应在200-800字之间",
+          "tags列表应包含3-8个标签，每个标签以#开头",
+          "cta应包含明确的行动号召",
+          "所有字段都不能为空"
+        ],
+        "relationships": [
+          "作为xiaohongshu_ad_generator Agent的输出数据",
+          "可被用户直接使用或进行二次编辑"
+        ]
+      },
+      {
+        "name": "ErrorResponse",
+        "schema": "{\n  \"error\": \"string\",\n  \"error_type\": \"string (enum: ['validation_error', 'generation_error', 'timeout_error'])\",\n  \"message\": \"string\",\n  \"suggestions\": \"list of strings (optional)\"\n}",
+        "validation_rules": [
+          "error字段描述错误类型",
+          "message字段提供详细的错误说明",
+          "suggestions字段提供解决建议（如输入格式示例）"
+        ],
+        "relationships": [
+          "在Agent处理失败时返回给用户"
+        ]
+      }
+    ],
+    "interaction_flows": [
+      {
+        "name": "标准广告文案生成流程",
+        "description": "用户输入产品信息，系统生成完整的小红书广告文案",
+        "steps": [
+          {
+            "step": "1. 用户输入",
+            "agent": "用户",
+            "action": "通过HTTP API发送产品信息",
+            "data": "ProductInfo JSON或自然语言描述"
+          },
+          {
+            "step": "2. 请求接收",
+            "agent": "xiaohongshu_ad_generator",
+            "action": "handler函数接收payload，提取prompt字段",
+            "data": "payload = {\"prompt\": \"产品信息...\"}"
+          },
+          {
+            "step": "3. 输入验证",
+            "agent": "xiaohongshu_ad_generator",
+            "action": "验证输入完整性，检查必填字段（product_name）",
+            "data": "验证结果：通过/失败"
+          },
+          {
+            "step": "4. 输入解析",
+            "agent": "xiaohongshu_ad_generator",
+            "action": "解析产品信息，提取关键字段（名称、类型、特点等）",
+            "data": "结构化的ProductInfo对象"
+          },
+          {
+            "step": "5. 风格适配",
+            "agent": "xiaohongshu_ad_generator",
+            "action": "根据产品类型和用户指定风格，选择合适的内容风格（测评/种草/教程）",
+            "data": "内容风格标识"
+          },
+          {
+            "step": "6. 标题生成",
+            "agent": "xiaohongshu_ad_generator",
+            "action": "基于Claude模型生成吸引人的标题，包含emoji",
+            "data": "标题文本（15-30字，1-3个emoji）"
+          },
+          {
+            "step": "7. 正文创作",
+            "agent": "xiaohongshu_ad_generator",
+            "action": "生成详细的广告正文，包含开场引入、产品介绍、使用体验、购买建议",
+            "data": "正文内容（200-800字，结构化分段）"
+          },
+          {
+            "step": "8. Emoji优化",
+            "agent": "xiaohongshu_ad_generator",
+            "action": "在正文中自然融入emoji表情，增强情感表达",
+            "data": "优化后的正文内容"
+          },
+          {
+            "step": "9. 标签推荐",
+            "agent": "xiaohongshu_ad_generator",
+            "action": "生成相关话题标签（产品类别、使用场景、目标人群等）",
+            "data": "标签列表（3-8个，#标签格式）"
+          },
+          {
+            "step": "10. 互动引导生成",
+            "agent": "xiaohongshu_ad_generator",
+            "action": "生成用户互动引导文案（行动号召）",
+            "data": "CTA文案"
+          },
+          {
+            "step": "11. 格式化输出",
+            "agent": "xiaohongshu_ad_generator",
+            "action": "将所有内容组装为标准JSON格式",
+            "data": "AdCopyOutput JSON"
+          },
+          {
+            "step": "12. 返回结果",
+            "agent": "xiaohongshu_ad_generator",
+            "action": "handler函数返回字符串格式的结果",
+            "data": "JSON字符串（包含title、content、tags、cta、metadata）"
+          },
+          {
+            "step": "13. 用户接收",
+            "agent": "用户",
+            "action": "接收生成的广告文案，可直接使用或进行二次编辑",
+            "data": "完整的广告文案"
+          }
+        ]
+      },
+      {
+        "name": "输入验证失败流程",
+        "description": "当用户输入的产品信息不完整或格式错误时的处理流程",
+        "steps": [
+          {
+            "step": "1. 用户输入",
+            "agent": "用户",
+            "action": "发送不完整或格式错误的产品信息",
+            "data": "缺少必填字段或格式错误的输入"
+          },
+          {
+            "step": "2. 输入验证",
+            "agent": "xiaohongshu_ad_generator",
+            "action": "检测到输入问题（如缺少product_name）",
+            "data": "验证失败，识别缺失字段"
+          },
+          {
+            "step": "3. 错误响应",
+            "agent": "xiaohongshu_ad_generator",
+            "action": "生成友好的错误提示和补充建议",
+            "data": "ErrorResponse JSON"
+          },
+          {
+            "step": "4. 返回错误信息",
+            "agent": "xiaohongshu_ad_generator",
+            "action": "handler函数返回以'Error: '开头的错误信息",
+            "data": "错误信息字符串"
+          },
+          {
+            "step": "5. 用户修正",
+            "agent": "用户",
+            "action": "根据提示补充完整信息，重新发送请求",
+            "data": "修正后的ProductInfo"
+          }
+        ]
+      },
+      {
+        "name": "生成超时或失败流程",
+        "description": "当内容生成超时或发生错误时的处理流程",
+        "steps": [
+          {
+            "step": "1. 生成过程",
+            "agent": "xiaohongshu_ad_generator",
+            "action": "调用Claude模型生成内容",
+            "data": "生成请求"
+          },
+          {
+            "step": "2. 检测异常",
+            "agent": "xiaohongshu_ad_generator",
+            "action": "检测到超时（>10秒）或生成失败",
+            "data": "异常信息"
+          },
+          {
+            "step": "3. 异常处理",
+            "agent": "xiaohongshu_ad_generator",
+            "action": "捕获异常，记录日志，生成错误响应",
+            "data": "ErrorResponse JSON"
+          },
+          {
+            "step": "4. 返回错误信息",
+            "agent": "xiaohongshu_ad_generator",
+            "action": "handler函数返回错误信息和重试建议",
+            "data": "错误信息字符串"
+          },
+          {
+            "step": "5. 用户重试",
+            "agent": "用户",
+            "action": "根据建议调整输入或稍后重试",
+            "data": "调整后的请求"
+          }
+        ]
+      }
+    ],
+    "security_considerations": [
+      "输入验证：对用户输入进行严格验证，防止注入攻击和恶意输入",
+      "数据隐私：不存储用户的产品信息和生成的文案内容，保护商业机密",
+      "内容过滤：生成的内容应避免敏感词、违规词，但需用户自行进行合规性审核",
+      "API安全：部署在Amazon Bedrock AgentCore，利用AWS的安全机制（IAM、VPC等）",
+      "模型安全：使用AWS Bedrock托管的Claude模型，确保模型安全性和稳定性",
+      "日志脱敏：日志中不记录敏感的产品信息和用户数据",
+      "访问控制：通过AWS IAM控制对Agent的访问权限",
+      "HTTPS传输：所有API请求使用HTTPS加密传输",
+      "速率限制：实施请求速率限制，防止滥用和DDoS攻击"
+    ],
+    "error_handling": [
+      "输入验证错误：检测缺失字段或格式错误，返回详细的错误提示和输入示例",
+      "模型调用失败：捕获模型API调用异常，返回友好的错误信息和重试建议",
+      "超时处理：设置10秒超时限制，超时后返回错误并建议用户简化输入或重试",
+      "内容生成失败：如果生成的内容不符合质量标准（如长度不足），自动重试或返回错误",
+      "网络错误：处理网络连接问题，提供重试机制",
+      "资源限制：处理模型配额或资源限制问题，提供明确的错误信息",
+      "数据解析错误：处理JSON解析失败等问题，返回格式错误提示",
+      "异常日志记录：所有异常都记录详细日志，便于问题排查和系统优化",
+      "优雅降级：在部分功能失败时，尝试返回部分结果而非完全失败",
+      "用户友好的错误信息：所有错误信息都使用用户易懂的语言，避免技术术语"
+    ],
+    "performance_considerations": [
+      "响应时间目标：单次文案生成在10秒内完成，确保用户体验",
+      "模型优化：使用Claude Sonnet 4.5模型，平衡生成质量和速度",
+      "提示词优化：精简提示词长度，减少token消耗，提升响应速度",
+      "缓存策略：对于相同或相似的产品信息，可考虑缓存生成结果（未来扩展）",
+      "并发处理：BedrockAgentCoreApp支持并发请求，可同时处理多个用户请求",
+      "资源管理：合理配置Agent实例数量和资源限制，避免资源耗尽",
+      "流式响应：考虑支持流式输出，逐步返回生成内容，改善用户体验（未来扩展）",
+      "负载均衡：在高并发场景下，利用AWS负载均衡分散请求压力",
+      "监控告警：监控响应时间、成功率等指标，及时发现性能问题",
+      "优化建议：定期分析性能瓶颈，优化提示词和模型配置"
+    ],
+    "monitoring_strategy": [
+      "日志记录：记录所有请求、响应、错误和异常，便于问题排查",
+      "性能指标：监控响应时间、吞吐量、并发数、成功率等关键指标",
+      "错误监控：统计错误类型、频率和原因，及时发现系统问题",
+      "内容质量监控：跟踪生成内容的长度、结构、emoji数量等质量指标",
+      "用户反馈收集：收集用户对生成文案的满意度和改进建议",
+      "资源使用监控：监控CPU、内存、网络等资源使用情况",
+      "模型调用监控：跟踪模型API调用次数、成本、配额使用情况",
+      "告警机制：设置阈值告警（如错误率>5%、响应时间>10秒），及时通知运维人员",
+      "可视化仪表板：使用AWS CloudWatch或自定义仪表板展示关键指标",
+      "定期审计：定期审查日志和监控数据，优化系统性能和内容质量"
+    ]
+  },
+  "design_rationale": "本系统设计基于以下核心理念和决策：\n\n1. **单Agent架构的选择**：\n   - 需求分析表明，所有功能（接收输入、生成标题、创作正文、推荐标签、互动引导）都属于创意文案生成的范畴，职责高度聚焦。\n   - 单Agent架构简化了系统复杂度，降低了开发和维护成本，提升了响应速度。\n   - 通过精心设计的提示词工程，单个Agent完全可以满足所有功能需求，无需多Agent协作。\n\n2. **content_generator_agent模板的选择**：\n   - 该模板专为内容生成设计，功能匹配度高达92%，包含文本生成、模板管理、内容优化等成熟工具。\n   - 模板已在生产环境验证，稳定可靠，可大幅缩短开发周期。\n   - 支持高度定制，可轻松适配小红书平台特点。\n\n3. **提示词驱动的设计理念**：\n   - 需求分析阶段明确指出，FR-001至FR-007的所有功能需求都可以通过提示词实现，无需额外开发复杂工具。\n   - 提示词工程是本系统的核心，通过在提示词中详细描述小红书平台特点、内容风格指南、输出格式要求和few-shot示例，引导模型生成高质量文案。\n   - 这种设计降低了技术复杂度，提升了灵活性，便于快速迭代和优化。\n\n4. **Claude Sonnet 4.5模型的选择**：\n   - 该模型具有强大的中文理解和创意生成能力，非常适合小红书风格的文案创作。\n   - 模型能够理解复杂的平台风格要求（年轻化、生活化、真实感），生成符合用户期望的内容。\n   - 通过Amazon Bedrock托管，确保模型的安全性、稳定性和可扩展性。\n\n5. **灵活的输入方式**：\n   - 支持结构化JSON和自然语言描述两种输入方式，满足不同用户的使用习惯。\n   - 结构化输入适合系统集成和批量处理，自然语言输入适合个人用户和快速测试。\n   - 通过提示词中的输入解析逻辑，Agent能够智能处理两种输入格式。\n\n6. **标准化的输出格式**：\n   - 采用JSON格式输出，包含title、content、tags、cta、metadata等字段，便于用户解析和使用。\n   - 输出结构清晰，用户可直接复制到小红书平台，或进行二次编辑。\n   - 元数据（如生成时间、内容风格、字数统计）提供额外的参考信息。\n\n7. **BedrockAgentCoreApp规范的遵循**：\n   - 系统严格遵循BedrockAgentCoreApp部署规范，确保可部署到Amazon Bedrock AgentCore平台。\n   - 使用@app.entrypoint装饰器定义handler函数，handler函数签名为handler(payload: Dict[str, Any]) -> str。\n   - handler函数返回字符串（str），不是Dict，确保与AgentCore的集成兼容性。\n   - 在__main__中使用app.run()启动HTTP服务器（端口8080），支持本地测试和云端部署。\n\n8. **质量优先的设计**：\n   - 通过few-shot示例、内容风格指南、输出格式要求等提示词优化技术，确保生成内容的质量和一致性。\n   - 设置响应时间目标（10秒）和内容长度要求（标题15-30字，正文200-800字），平衡质量和速度。\n   - 支持多种内容风格（测评、种草、教程），适配不同营销场景。\n\n9. **用户友好的错误处理**：\n   - 所有错误信息都使用用户易懂的语言，提供详细的错误原因和解决建议。\n   - 输入验证失败时，提示用户补充缺失信息并提供输入示例。\n   - 生成失败或超时时，提供重试建议和调整输入的指导。\n\n10. **可扩展的架构设计**：\n    - 当前版本聚焦核心功能（文案生成），为未来扩展预留空间。\n    - 未来可扩展功能：emoji_selector工具（智能选择emoji）、hashtag_generator工具（优化标签推荐）、content_validator工具（内容合规检查）、多平台适配（微博、抖音等）、多语言支持。\n    - 设计支持缓存机制、流式响应等性能优化功能的后续集成。\n\n11. **安全性和合规性**：\n    - 不存储用户的产品信息和生成的文案，保护商业机密。\n    - 利用AWS Bedrock和IAM的安全机制，确保系统安全。\n    - 生成的内容需要用户自行进行合规性审核，系统不承担法律责任。\n\n12. **监控和可观测性**：\n    - 全面的日志记录、性能监控、错误跟踪机制，确保系统稳定运行。\n    - 收集用户反馈，持续优化内容质量和用户体验。\n    - 定期审查监控数据，发现和解决潜在问题。\n\n总结：本系统设计充分考虑了需求分析的结果、技术栈约束、用户体验、可扩展性和可维护性，采用单Agent架构和提示词驱动的设计理念，基于成熟的content_generator_agent模板，确保系统能够高效、稳定地生成符合小红书平台风格的广告文案。设计遵循BedrockAgentCoreApp规范，确保可部署性，并为未来的功能扩展和性能优化预留了充足的空间。"
+}

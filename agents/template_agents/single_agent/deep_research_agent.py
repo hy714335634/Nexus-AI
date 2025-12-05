@@ -40,16 +40,22 @@ deep_researcher = create_deep_research_agent()
 
 # ==================== AgentCore 入口点（必须包含）====================
 @app.entrypoint
-def handler(payload: Dict[str, Any]) -> str:
+async def handler(payload: Dict[str, Any]) -> str:
     """
-    AgentCore 标准入口点
+    AgentCore 标准入口点（支持流式响应）
 
     Args:
         payload: AgentCore 传入的请求体，包含:
             - prompt: 用户消息
+            - user_id: 用户ID（可选）
+            - session_id: 会话ID（可选）
+            - media: 媒体文件列表（可选）
+
+    Yields:
+        str: 流式响应的文本片段（自动处理流式传输）
 
     Returns:
-        str: 响应文本
+        str: 最终响应文本（非流式模式）
     """
     print(f"📥 Received payload: {json.dumps(payload, ensure_ascii=False)}")
 
@@ -61,24 +67,12 @@ def handler(payload: Dict[str, Any]) -> str:
     print(f"🔄 Processing prompt: {prompt}")
 
     try:
-        result = deep_researcher(prompt)
-
-        # 提取响应内容 - 适配 Strands Agent 返回格式
-        if hasattr(result, 'message') and result.message:
-            content = result.message.get('content', [])
-            if content and isinstance(content, list) and len(content) > 0:
-                response_text = content[0].get('text', str(result))
-            else:
-                response_text = str(result)
-        elif hasattr(result, 'content') and result.content:
-            response_text = result.content
-        elif isinstance(result, str):
-            response_text = result
-        else:
-            response_text = str(result)
-
-        print(f"✅ Response: {response_text[:200]}...")
-        return response_text
+        # 使用流式响应
+        stream = deep_researcher.stream_async(prompt)
+        async for event in stream:
+            # 每个 event 包含流式响应的片段
+            print(f"📤 Streaming event: {event}")
+            yield event
 
     except Exception as e:
         print(f"❌ Error: {str(e)}")

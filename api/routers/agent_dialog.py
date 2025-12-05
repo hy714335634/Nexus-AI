@@ -330,6 +330,195 @@ async def upload_files_to_session(
 # --------------------------------------------------------------------------- #
 
 
+async def _invoke_agentcore_runtime_stream(
+    *,
+    runtime_arn: str,
+    runtime_alias: Optional[str],
+    runtime_region: Optional[str],
+    session_id: str,
+    message: str,
+    user_id: Optional[str] = None,
+    files: Optional[List[Dict[str, Any]]] = None,
+):
+    """
+    使用 boto3 调用 AgentCore runtime（流式版本）
+    支持文本和多模态输入（图片、文件等）
+
+    Yields:
+        Tuple[str, Optional[Dict]]: (chunk_text, metrics_or_none)
+    """
+
+    def _stream_call():
+        try:
+            print(f"\n🚀 Invoking AgentCore (streaming):")
+            print(f"   ARN: {runtime_arn}")
+            print(f"   Session: {session_id}")
+            print(f"   Message: {message[:100]}")
+            if files:
+                print(f"   Files: {len(files)} file(s)")
+
+            # 构建 payload（AgentCore 标准格式）
+            payload = {"prompt": message}
+
+            # 如果有文件，添加到 media 字段
+            if files and len(files) > 0:
+                media_items = []
+                for file_data in files:
+                    # 提取文件信息
+                    filename = file_data.get('filename', 'unknown')
+                    content_type = file_data.get('content_type', 'application/octet-stream')
+                    data = file_data.get('data', '')  # base64编码的内容
+
+                    # 确定媒体类型
+                    if content_type.startswith('image/'):
+                        media_type = 'image'
+                        format_type = content_type.split('/')[-1]  # jpeg, png, etc.
+                    elif content_type.startswith('audio/'):
+                        media_type = 'audio'
+                        format_type = content_type.split('/')[-1]
+                    elif content_type.startswith('video/'):
+                        media_type = 'video'
+                        format_type = content_type.split('/')[-1]
+                    else:
+                        media_type = 'document'
+                        format_type = filename.split('.')[-1] if '.' in filename else 'bin'
+
+                    media_items.append({
+                        'type': media_type,
+                        'format': format_type,
+                        'data': data,
+                        'filename': filename
+                    })
+
+                payload['media'] = media_items
+                print(f"   Media items: {len(media_items)}")
+
+            print(f"   Payload keys: {list(payload.keys())}\n")
+
+            logger.info(f"Invoking AgentCore: arn={runtime_arn}, session={session_id}")
+            logger.info(f"Payload: query={message[:100]}, media_count={len(files) if files else 0}")
+
+            # 调用 invoke_agent_runtime
+            payload_str = json.dumps(payload)
+            print(f"   Calling invoke_agent_runtime...")
+            print(f"   Payload: {payload_str[:200]}")
+
+            # 添加 botocore 配置以增加超时
+            from botocore.config import Config
+            config = Config(
+                read_timeout=3000,  # 5分钟读取超时
+                connect_timeout=30,  # 30秒连接超时
+                retries={'max_attempts': 0}  # 不重试
+            )
+            client = boto3.client(
+                "bedrock-agentcore",
+                region_name=runtime_region or settings.AWS_DEFAULT_REGION,
+                config=config
+            )
+
+            try:
+                response = client.invoke_agent_runtime(
+                    agentRuntimeArn=runtime_arn,
+                    qualifier="DEFAULT",
+                    sessionId=session_id,
+                    payload=payload_str
+                )
+            except Exception as e:
+                error_msg = str(e)
+                if "ReadTimeout" in error_msg or "read timeout" in error_msg.lower():
+                    logger.error(f"Agent runtime timeout after 5 minutes: {error_msg}")
+                    raise HTTPException(
+                        status_code=504,
+                        detail={
+                            "code": "AGENT_TIMEOUT",
+                            "message": "Agent 执行超时（超过5分钟）",
+                            "details": "请简化查询或优化 Agent 工具的性能"
+                        }
+                    )
+                raise
+
+            status_code = response['ResponseMetadata']['HTTPStatusCode']
+            print(f"   ✅ Response status: {status_code}")
+            logger.info(f"Response status: {status_code}")
+
+            # 检查 contentType 判断响应类型
+            content_type = response.get('contentType', '')
+            print(f"   Content-Type: {content_type}")
+
+            # 处理 text/event-stream 流式响应
+            if 'text/event-stream' in content_type:
+                print(f"   📡 Streaming response detected")
+                response_stream = response.get('response')
+                if response_stream and hasattr(response_stream, 'iter_lines'):
+                    for line in response_stream.iter_lines(chunk_size=1):
+                        if line:
+                            line_str = line.decode('utf-8') if isinstance(line, bytes) else line
+                            if line_str.startswith('data: '):
+                                data_content = line_str[6:]  # 去掉 "data: " 前缀
+                                print(f"   📤 Stream chunk: {data_content[:100]}")
+                                yield (data_content, None)
+                elif response_stream and hasattr(response_stream, 'read'):
+                    # fallback: 一次性读取
+                    raw_content = response_stream.read()
+                    completion = raw_content.decode('utf-8') if isinstance(raw_content, bytes) else raw_content
+                    yield (completion, None)
+            # 处理普通响应
+            elif 'response' in response:
+                print(f"   Reading non-streaming response...")
+                response_stream = response['response']
+                if hasattr(response_stream, 'read'):
+                    raw = response_stream.read()
+                    completion = raw.decode('utf-8') if isinstance(raw, bytes) else raw
+                else:
+                    completion = str(response_stream)
+                print(f"   ✅ Got response: {len(completion)} characters")
+                yield (completion, None)
+            elif 'payload' in response:
+                # 兼容旧版本
+                print(f"   Reading payload stream...")
+                payload_stream = response['payload']
+                if hasattr(payload_stream, 'read'):
+                    raw = payload_stream.read()
+                    completion = raw.decode('utf-8') if isinstance(raw, bytes) else raw
+                else:
+                    completion = str(payload_stream)
+                print(f"   ✅ Got response: {len(completion)} characters")
+                yield (completion, None)
+            else:
+                print(f"   ⚠️ No response/payload in response")
+                print(f"   Response keys: {list(response.keys())}\n")
+
+            # 提取指标（如果有的话）
+            if 'usage' in response:
+                usage = response['usage']
+                metrics = {
+                    'input_tokens': usage.get('inputTokens', 0),
+                    'output_tokens': usage.get('outputTokens', 0),
+                }
+                yield (None, metrics)
+
+        except ClientError as e:
+            error_code = e.response.get('Error', {}).get('Code', 'Unknown')
+            error_message = e.response.get('Error', {}).get('Message', str(e))
+            print(f"\n❌ AgentCore ClientError:")
+            print(f"   Code: {error_code}")
+            print(f"   Message: {error_message}\n")
+            logger.error(f"AgentCore invocation failed: {error_code} - {error_message}")
+            raise Exception(f"AgentCore error: {error_code} - {error_message}")
+        except Exception as e:
+            print(f"\n❌ AgentCore Exception: {str(e)}\n")
+            logger.error(f"AgentCore invocation failed: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            raise
+
+    # 使用 asyncio.to_thread 运行生成器
+    import asyncio
+    loop = asyncio.get_event_loop()
+    for chunk in await loop.run_in_executor(None, lambda: list(_stream_call())):
+        yield chunk
+
+
 async def _invoke_agentcore_runtime(
     *,
     runtime_arn: str,
@@ -341,7 +530,7 @@ async def _invoke_agentcore_runtime(
     files: Optional[List[Dict[str, Any]]] = None,
 ) -> Tuple[str, Dict[str, Any]]:
     """
-    使用 boto3 调用 AgentCore runtime
+    使用 boto3 调用 AgentCore runtime（非流式版本，保留用于向后兼容）
     支持文本和多模态输入（图片、文件等）
     """
 
@@ -418,6 +607,7 @@ async def _invoke_agentcore_runtime(
                 response = client.invoke_agent_runtime(
                     agentRuntimeArn=runtime_arn,
                     qualifier="DEFAULT",
+                    sessionId=session_id,  # 传递 session_id 以维护对话历史
                     payload=payload_str
                 )
             except Exception as e:
@@ -457,7 +647,7 @@ async def _invoke_agentcore_runtime(
                                 data_content = line_str[6:]  # 去掉 "data: " 前缀
                                 print(f"   Stream data: {data_content[:100]}")
                                 content_parts.append(data_content)
-                    completion = "\n".join(content_parts)
+                    completion = "".join(content_parts)
                 elif response_stream and hasattr(response_stream, 'read'):
                     # fallback: 一次性读取
                     raw_content = response_stream.read()
@@ -679,15 +869,15 @@ async def stream_agent_response(
 
         try:
             if runtime_arn:
-                # 使用 AgentCore (boto3)
-                print(f"✅ Using AgentCore runtime: {runtime_arn}")
-                logger.info(f"✅ Using AgentCore runtime: {runtime_arn}")
+                # 使用 AgentCore (boto3) - 流式响应
+                print(f"✅ Using AgentCore runtime (streaming): {runtime_arn}")
+                logger.info(f"✅ Using AgentCore runtime (streaming): {runtime_arn}")
                 try:
                     # 从会话中获取 user_id（如果有的话）
                     user_id = session.get('user_id') if isinstance(session, dict) else None
-                    
-                    # 调用 AgentCore（支持文件）
-                    text, runtime_metrics = await _invoke_agentcore_runtime(
+
+                    # 调用 AgentCore 流式函数
+                    async for chunk_text, metrics in _invoke_agentcore_runtime_stream(
                         runtime_arn=runtime_arn,
                         runtime_alias=runtime_alias,
                         runtime_region=runtime_region,
@@ -695,26 +885,20 @@ async def stream_agent_response(
                         message=user_message,
                         user_id=user_id,
                         files=files,
-                    )
-                    
-                    # 分块发送响应（模拟流式效果）
-                    if text:
-                        assistant_chunks.append(text)
-                        # 将响应分成小块发送
-                        chunk_size = 50
-                        for i in range(0, len(text), chunk_size):
-                            chunk = text[i:i+chunk_size]
-                            yield _format_sse({"event": "message", "data": chunk})
-                            await asyncio.sleep(0.01)  # 小延迟，模拟流式效果
-                    
-                    # 发送指标
-                    if runtime_metrics:
-                        metrics_snapshot.update(runtime_metrics)
-                        yield _format_sse({"event": "metrics", "data": runtime_metrics})
-                    
+                    ):
+                        if chunk_text:
+                            # 发送文本块
+                            assistant_chunks.append(chunk_text)
+                            yield _format_sse({"event": "message", "data": chunk_text})
+
+                        if metrics:
+                            # 发送指标
+                            metrics_snapshot.update(metrics)
+                            yield _format_sse({"event": "metrics", "data": metrics})
+
                     # 发送完成事件
                     yield _format_sse({"event": "done"})
-                    
+
                 except Exception as exc:
                     error_msg = f"AgentCore invocation failed: {str(exc)}"
                     logger.error(error_msg)
