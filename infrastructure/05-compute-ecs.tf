@@ -83,6 +83,14 @@ resource "aws_ecs_task_definition" "api" {
           value = var.aws_region
         },
         {
+          name  = "AWS_DEFAULT_REGION"
+          value = var.aws_region
+        },
+        {
+          name  = "AGENTCORE_REGION"
+          value = var.aws_region
+        },
+        {
           name  = "AGENT_PROJECTS_TABLE"
           value = var.enable_dynamodb ? aws_dynamodb_table.agent_projects[0].name : ""
         },
@@ -100,11 +108,11 @@ resource "aws_ecs_task_definition" "api" {
         },
         {
           name  = "REPO_ROOT"
-          value = "/mnt/efs/nexus-ai-repo"
+          value = "/app/nexus-ai"
         },
         {
           name  = "PROJECTS_ROOT"
-          value = "/mnt/efs/nexus-ai-repo/projects"
+          value = "/app/nexus-ai/projects"
         },
         {
           name  = "PYTHONPATH"
@@ -154,7 +162,7 @@ resource "aws_ecs_task_definition" "api" {
           # Wait for EFS to be fully mounted (up to 30 seconds)
           echo "Waiting for EFS mount..."
           for i in $(seq 1 30); do
-            if [ -d /mnt/efs ] && mountpoint -q /mnt/efs 2>/dev/null || [ -d /mnt/efs/nexus-ai-repo ] || [ -w /mnt/efs ]; then
+            if [ -d /mnt/efs ] && mountpoint -q /mnt/efs 2>/dev/null || [ -d /mnt/efs/nexus-ai ] || [ -w /mnt/efs ]; then
               echo "EFS mount detected"
               break
             fi
@@ -165,10 +173,11 @@ resource "aws_ecs_task_definition" "api" {
           done
           
           # Initialize repository in EFS if it doesn't exist
-          REPO_DIR="/mnt/efs/nexus-ai-repo"
+          EFS_REPO_DIR="/mnt/efs/nexus-ai"
+          APP_REPO_DIR="/app/nexus-ai"
           LOCK_FILE="/mnt/efs/.git-clone-in-progress"
           
-          if [ ! -d "$REPO_DIR/.git" ]; then
+          if [ ! -d "$EFS_REPO_DIR/.git" ]; then
             echo "Repository not found in EFS, will clone from GitHub..."
             echo "Current user: $(id)"
             echo "EFS mount permissions: $(ls -ld /mnt/efs 2>&1 || echo 'Cannot check permissions')"
@@ -180,7 +189,7 @@ resource "aws_ecs_task_definition" "api" {
               MAX_WAIT=600
               WAIT_COUNT=0
               while [ $WAIT_COUNT -lt $MAX_WAIT ]; do
-                if [ ! -f "$LOCK_FILE" ] && [ -d "$REPO_DIR/.git" ]; then
+                if [ ! -f "$LOCK_FILE" ] && [ -d "$EFS_REPO_DIR/.git" ]; then
                   echo "✅ Repository found (cloned by another task)"
                   break
                 fi
@@ -195,17 +204,16 @@ resource "aws_ecs_task_definition" "api" {
               # Try to create lock file and clone
               if touch "$LOCK_FILE" 2>/dev/null; then
                 echo "✅ Lock file created, starting git clone..."
-                echo "Cloning $${GITHUB_REPO_URL} (branch: $${GITHUB_BRANCH}) to $REPO_DIR..."
+                echo "Cloning $${GITHUB_REPO_URL} (branch: $${GITHUB_BRANCH}) to $EFS_REPO_DIR..."
                 
-                if git clone -b "$${GITHUB_BRANCH}" "$${GITHUB_REPO_URL}" "$REPO_DIR" 2>&1; then
+                if git clone -b "$${GITHUB_BRANCH}" "$${GITHUB_REPO_URL}" "$EFS_REPO_DIR" 2>&1; then
                   echo "✅ Repository cloned successfully to EFS"
-                  # Set permissions to allow all users
-                  find "$REPO_DIR" -type d -exec chmod 777 {} \; 2>/dev/null || true
-                  find "$REPO_DIR" -type f -exec chmod 666 {} \; 2>/dev/null || true
-                  # Keep .git directory writable for git operations
-                  chmod -R u+w "$REPO_DIR/.git" 2>/dev/null || true
+                  # Set directory permissions to allow container access
+                  # Only modify the repository root directory, not all nested files
+                  # EFS Access Point should handle permissions for nested files
+                  chmod 755 "$EFS_REPO_DIR" 2>/dev/null || true
                   # Verify clone was successful
-                  if [ ! -d "$REPO_DIR/.git" ] || [ ! -d "$REPO_DIR/api" ] || [ ! -d "$REPO_DIR/agents" ]; then
+                  if [ ! -d "$EFS_REPO_DIR/.git" ] || [ ! -d "$EFS_REPO_DIR/api" ] || [ ! -d "$EFS_REPO_DIR/agents" ]; then
                     echo "❌ Error: Repository clone incomplete or invalid"
                     rm -f "$LOCK_FILE" 2>/dev/null || true
                   else
@@ -225,7 +233,7 @@ resource "aws_ecs_task_definition" "api" {
                 MAX_WAIT=600
                 WAIT_COUNT=0
                 while [ $WAIT_COUNT -lt $MAX_WAIT ]; do
-                  if [ -d "$REPO_DIR/.git" ]; then
+                  if [ -d "$EFS_REPO_DIR/.git" ]; then
                     echo "✅ Repository found (cloned by another task)"
                     break
                   fi
@@ -242,22 +250,45 @@ resource "aws_ecs_task_definition" "api" {
           fi
           
           # Verify repository structure
-          if [ -d "$REPO_DIR/.git" ]; then
-            if [ ! -d "$REPO_DIR/api" ] || [ ! -d "$REPO_DIR/agents" ]; then
+          if [ -d "$EFS_REPO_DIR/.git" ]; then
+            if [ ! -d "$EFS_REPO_DIR/api" ] || [ ! -d "$EFS_REPO_DIR/agents" ]; then
               echo "⚠️  Warning: Repository structure incomplete, but continuing..."
             else
               echo "✅ Repository structure verified"
             fi
           fi
           
-          # Create projects directory symlink to EFS if it doesn't exist
-          if [ ! -d /app/projects ] && [ -d "$REPO_DIR/projects" ]; then
-            ln -sf "$REPO_DIR/projects" /app/projects || true
-            echo "✅ Created symlink: /app/projects -> $REPO_DIR/projects"
-          fi
+          # Create symlink from /app/nexus-ai to EFS repository
+          # This ensures the entire repository is accessible at /app/nexus-ai
+          # and code paths remain consistent between local and deployed environments
+          echo "Setting up symlink to EFS repository..."
           
-          # Ensure projects directory exists (create if symlink failed)
-          mkdir -p /app/projects
+          if [ -d "$EFS_REPO_DIR/.git" ]; then
+            # Remove /app/nexus-ai if it exists as a directory (from image or previous run)
+            if [ -d "$APP_REPO_DIR" ] && [ ! -L "$APP_REPO_DIR" ]; then
+              echo "Removing existing directory $APP_REPO_DIR (will use EFS version)"
+              rm -rf "$APP_REPO_DIR" || true
+            fi
+            
+            # Create symlink from /app/nexus-ai to EFS repository
+            if [ ! -L "$APP_REPO_DIR" ] && [ ! -d "$APP_REPO_DIR" ]; then
+              ln -sf "$EFS_REPO_DIR" "$APP_REPO_DIR" || true
+              echo "✅ Created symlink: $APP_REPO_DIR -> $EFS_REPO_DIR"
+            elif [ -L "$APP_REPO_DIR" ]; then
+              echo "✅ Symlink already exists: $APP_REPO_DIR -> $(readlink $APP_REPO_DIR)"
+            fi
+            
+            # Install the full project as editable after EFS is mounted
+            # This ensures all modules (agents, tools, etc.) are available
+            if [ -f "$EFS_REPO_DIR/pyproject.toml" ]; then
+              echo "Installing project from EFS as editable package..."
+              cd "$EFS_REPO_DIR" && \
+              pip install --no-cache-dir -e . 2>&1 | head -20 || \
+              echo "⚠️  Warning: Project editable install failed, using PYTHONPATH fallback..."
+            fi
+          else
+            echo "⚠️  Warning: EFS repository not found, application may have limited functionality"
+          fi
           
           # Start uvicorn server
           echo "Starting uvicorn server..."

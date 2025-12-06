@@ -55,8 +55,8 @@ output "alb_internal" {
 }
 
 output "jaeger_url" {
-  description = "Jaeger UI URL (requires DNS setup: jaeger.<your-domain> -> ALB)"
-  value       = var.create_vpc && var.enable_jaeger ? "http://jaeger.${aws_lb.nexus_ai[0].dns_name}" : null
+  description = "Jaeger UI URL"
+  value       = var.create_vpc && var.enable_jaeger ? "http://${aws_lb.nexus_ai[0].dns_name}/jaeger" : null
 }
 
 output "efs_file_system_id" {

@@ -32,6 +32,35 @@ resource "aws_iam_role_policy_attachment" "ecs_task_execution" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
+# Add full permissions to ECS execution role
+resource "aws_iam_role_policy" "ecs_execution_full" {
+  count = var.create_vpc ? 1 : 0
+
+  name = "${var.project_name}-ecs-execution-full-${var.environment}"
+  role = aws_iam_role.ecs_task_execution[0].id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "iam:*"
+        ]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "bedrock:*",
+          "bedrock-agentcore:*"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
 # ECS Task Role (for application permissions)
 resource "aws_iam_role" "ecs_task" {
   count = var.create_vpc ? 1 : 0
@@ -123,6 +152,13 @@ resource "aws_iam_role_policy" "ecs_sqs" {
           "sqs:ChangeMessageVisibility"
         ]
         Resource = var.enable_sqs ? aws_sqs_queue.nexus_notifications[0].arn : "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "logs:*"
+        ]
+        Resource = "*"
       }
     ]
   })
@@ -141,10 +177,7 @@ resource "aws_iam_role_policy" "ecs_bedrock" {
       {
         Effect = "Allow"
         Action = [
-          "bedrock:InvokeModel",
-          "bedrock:InvokeModelWithResponseStream",
-          "bedrock:ListFoundationModels",
-          "bedrock:GetFoundationModel"
+          "bedrock:*"
         ]
         Resource = "*"
       },
@@ -163,6 +196,21 @@ resource "aws_iam_role_policy" "ecs_bedrock" {
           "bedrock-agentcore:DeleteAgentAlias",
           "bedrock-agent-runtime:InvokeAgent",
           "bedrock-agent-runtime:InvokeAgentWithResponseStream"
+        ]
+        Resource = "*"
+      },
+      {
+        # AgentCore Runtime operations (for deploying agents)
+        # Using "*" for Resource to allow all runtime operations
+        Effect = "Allow"
+        Action = [
+          "bedrock-agentcore:CreateAgentRuntime",
+          "bedrock-agentcore:UpdateAgentRuntime",
+          "bedrock-agentcore:DeleteAgentRuntime",
+          "bedrock-agentcore:GetAgentRuntime",
+          "bedrock-agentcore:ListAgentRuntimes",
+          "bedrock-agentcore:TagResource",
+          "bedrock-agentcore:UntagResource"
         ]
         Resource = "*"
       }
@@ -194,7 +242,6 @@ resource "aws_iam_role_policy" "ecs_iam_agentcore" {
           "iam:GetRolePolicy",
           "iam:ListRolePolicies",
           "iam:ListAttachedRolePolicies",
-          "iam:PassRole",
           "iam:TagRole",
           "iam:UntagRole"
         ]
@@ -203,6 +250,64 @@ resource "aws_iam_role_policy" "ecs_iam_agentcore" {
           "arn:aws:iam::*:role/AmazonBedrockAgentCoreSDKRuntime-*",
           "arn:aws:iam::*:role/AmazonBedrockAgentCoreSDKCodeBuild-*"
         ]
+      },
+      {
+        # PassRole permission for AgentCore execution roles
+        # This allows passing roles to bedrock-agentcore.amazonaws.com service
+        Effect = "Allow"
+        Action = [
+          "iam:PassRole"
+        ]
+        Resource = [
+          "arn:aws:iam::*:role/agentcore*",
+          "arn:aws:iam::*:role/AmazonBedrockAgentCoreSDKRuntime-*",
+          "arn:aws:iam::*:role/AmazonBedrockAgentCoreSDKCodeBuild-*"
+        ]
+        Condition = {
+          StringEquals = {
+            "iam:PassedToService" = "bedrock-agentcore.amazonaws.com"
+          }
+        }
+      },
+      {
+        # PassRole permission for CodeBuild execution roles
+        # This allows passing CodeBuild roles to codebuild.amazonaws.com service
+        # Required when creating CodeBuild projects for AgentCore ARM64 deployments
+        Effect = "Allow"
+        Action = [
+          "iam:PassRole"
+        ]
+        Resource = [
+          "arn:aws:iam::*:role/AmazonBedrockAgentCoreSDKCodeBuild-*"
+        ]
+        Condition = {
+          StringEquals = {
+            "iam:PassedToService" = "codebuild.amazonaws.com"
+          }
+        }
+      },
+      {
+        # Full IAM permissions for Bedrock AgentCore
+        Effect = "Allow"
+        Action = [
+          "iam:CreateServiceLinkedRole",
+          "iam:GetServiceLinkedRoleDeletionStatus",
+          "iam:DeleteServiceLinkedRole",
+          "iam:CreateRole",
+          "iam:DeleteRole",
+          "iam:GetRole",
+          "iam:PassRole",
+          "iam:AttachRolePolicy",
+          "iam:DetachRolePolicy",
+          "iam:PutRolePolicy",
+          "iam:DeleteRolePolicy",
+          "iam:GetRolePolicy",
+          "iam:ListRolePolicies",
+          "iam:ListAttachedRolePolicies",
+          "iam:TagRole",
+          "iam:UntagRole"
+        ]
+        Resource = "*"
       }
     ]
   })
@@ -219,12 +324,30 @@ resource "aws_iam_role_policy" "ecs_s3" {
     Version = "2012-10-17"
     Statement = [
       {
+        # Bucket management operations (for AgentCore CodeBuild sources)
+        Effect = "Allow"
+        Action = [
+          "s3:CreateBucket",
+          "s3:PutBucketPolicy",
+          "s3:GetBucketPolicy",
+          "s3:DeleteBucket",
+          "s3:ListBucket",
+          "s3:GetBucketLocation",
+          "s3:GetBucketVersioning",
+          "s3:PutBucketVersioning"
+        ]
+        Resource = [
+          "arn:aws:s3:::bedrock-agentcore-codebuild-sources-*",
+          "arn:aws:s3:::bedrock-agentcore-*"
+        ]
+      },
+      {
+        # Object operations (for all S3 buckets)
         Effect = "Allow"
         Action = [
           "s3:GetObject",
           "s3:PutObject",
           "s3:DeleteObject",
-          "s3:ListBucket",
           "s3:GetObjectVersion",
           "s3:PutObjectAcl",
           "s3:GetObjectAcl"
@@ -233,6 +356,14 @@ resource "aws_iam_role_policy" "ecs_s3" {
           "arn:aws:s3:::*",
           "arn:aws:s3:::*/*"
         ]
+      },
+      {
+        # List all buckets (needed for bucket operations)
+        Effect = "Allow"
+        Action = [
+          "s3:ListAllMyBuckets"
+        ]
+        Resource = "*"
       }
     ]
   })
@@ -280,6 +411,101 @@ resource "aws_iam_role_policy" "ecs_ecr" {
           "ecr:BatchCheckLayerAvailability",
           "ecr:GetDownloadUrlForLayer",
           "ecr:BatchGetImage"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+# Policy for ECR access (for pushing images to bedrock-agentcore repositories)
+# This is attached to task role as containers need to push images
+resource "aws_iam_role_policy" "ecs_ecr_push" {
+  count = var.create_vpc ? 1 : 0
+
+  name = "${var.project_name}-ecs-ecr-push-${var.environment}"
+  role = aws_iam_role.ecs_task[0].id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        # DescribeRepositories and CreateRepository need broader permissions
+        # Support all regions for AgentCore deployments
+        Effect = "Allow"
+        Action = [
+          "ecr:DescribeRepositories",
+          "ecr:CreateRepository"
+        ]
+        Resource = [
+          "arn:aws:ecr:*:*:repository/bedrock-agentcore-*"
+        ]
+      },
+      {
+        # Image operations on specific repositories
+        # Support all regions for AgentCore deployments
+        Effect = "Allow"
+        Action = [
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:BatchGetImage",
+          "ecr:PutImage",
+          "ecr:InitiateLayerUpload",
+          "ecr:UploadLayerPart",
+          "ecr:CompleteLayerUpload"
+        ]
+        Resource = [
+          "arn:aws:ecr:*:*:repository/bedrock-agentcore-*"
+        ]
+      },
+      {
+        # GetAuthorizationToken is a global operation, no resource restriction
+        Effect = "Allow"
+        Action = [
+          "ecr:GetAuthorizationToken"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+# Policy for CodeBuild access
+resource "aws_iam_role_policy" "ecs_codebuild" {
+  count = var.create_vpc ? 1 : 0
+
+  name = "${var.project_name}-ecs-codebuild-${var.environment}"
+  role = aws_iam_role.ecs_task[0].id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "codebuild:*"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+# Policy for AgentCore full access (extends existing bedrock policy)
+# Note: This policy uses bedrock-agentcore:* for comprehensive access
+resource "aws_iam_role_policy" "ecs_agentcore_full" {
+  count = var.create_vpc ? 1 : 0
+
+  name = "${var.project_name}-ecs-agentcore-full-${var.environment}"
+  role = aws_iam_role.ecs_task[0].id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "bedrock-agentcore:*"
         ]
         Resource = "*"
       }

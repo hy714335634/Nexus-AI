@@ -149,6 +149,17 @@ resource "aws_iam_role_policy" "ec2_api_comprehensive" {
           "arn:aws:iam::*:role/AmazonBedrockAgentCoreSDKCodeBuild-*"
         ]
       },
+      # Service Linked Role permissions for Bedrock AgentCore
+      # Required when creating Agent Runtime - Bedrock needs to create service-linked roles
+      {
+        Effect = "Allow"
+        Action = [
+          "iam:CreateServiceLinkedRole",
+          "iam:GetServiceLinkedRoleDeletionStatus",
+          "iam:DeleteServiceLinkedRole"
+        ]
+        Resource = "arn:aws:iam::*:role/aws-service-role/*"
+      },
       # S3 access
       {
         Effect = "Allow"
