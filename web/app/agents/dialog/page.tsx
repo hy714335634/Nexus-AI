@@ -2,6 +2,9 @@
 
 import { useEffect, useMemo, useState, useRef, useCallback } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeHighlight from 'rehype-highlight';
 import styles from './dialog.module.css';
 import {
   createAgentSession,
@@ -57,6 +60,251 @@ function buildAssistantDraft(): AgentDialogMessage {
     created_at: new Date().toISOString(),
     metadata: { streaming: true },
   };
+}
+
+/**
+ * 将字段名格式化为可读标题
+ */
+function formatFieldName(field: string): string {
+  return field
+    .replace(/_/g, ' ')
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+/**
+ * 从 JSON 对象中提取可读的文本内容
+ */
+function extractReadableContent(obj: unknown, depth = 0): string {
+  if (depth > 5) return ''; // 防止过深递归
+
+  if (typeof obj === 'string') {
+    return obj;
+  }
+
+  if (Array.isArray(obj)) {
+    const items = obj
+      .map((item) => {
+        const itemContent = extractReadableContent(item, depth + 1);
+        if (itemContent && itemContent.length > 5) {
+          // 如果是简单字符串列表，添加列表标记
+          if (typeof item === 'string') {
+            return `- ${itemContent}`;
+          }
+          return itemContent;
+        }
+        return '';
+      })
+      .filter(Boolean);
+    return items.join('\n');
+  }
+
+  if (typeof obj === 'object' && obj !== null) {
+    const record = obj as Record<string, unknown>;
+    const parts: string[] = [];
+
+    // 定义友好的字段名映射
+    const fieldLabels: Record<string, string> = {
+      'research_summary': '## 研究摘要',
+      'summary': '## 摘要',
+      'conclusion': '## 结论',
+      'conclusions': '## 结论',
+      'result': '## 结果',
+      'results': '## 结果',
+      'analysis': '## 分析',
+      'analysis_results': '## 分析结果',
+      'findings': '## 发现',
+      'key_findings': '## 关键发现',
+      'recommendations': '## 建议',
+      'suggestions': '## 建议',
+      'suggestions_for_improvement': '## 改进建议',
+      'additional_notes': '## 补充说明',
+      'notes': '## 备注',
+      'description': '## 描述',
+      'content': '',
+      'text': '',
+      'message': '',
+      'answer': '## 回答',
+      'response': '',
+      'output': '',
+      'explanation': '## 解释',
+      'details': '## 详情',
+      'overview': '## 概述',
+      'introduction': '## 简介',
+      'background': '## 背景',
+      'methodology': '## 方法',
+      'data': '## 数据',
+      'sources': '## 来源',
+      'references': '## 参考资料',
+      'limitations': '## 局限性',
+      'future_work': '## 未来工作',
+      'next_steps': '## 下一步',
+      'action_items': '## 行动项',
+      'tasks': '## 任务',
+      'status': '**状态**',
+      'error': '**错误**',
+      'warning': '**警告**',
+    };
+
+    // 优先处理的字段顺序
+    const priorityFields = [
+      'summary', 'research_summary', 'overview', 'introduction',
+      'content', 'text', 'message', 'answer', 'response', 'output',
+      'analysis', 'analysis_results', 'findings', 'key_findings', 'results', 'result',
+      'conclusion', 'conclusions',
+      'recommendations', 'suggestions', 'suggestions_for_improvement',
+      'additional_notes', 'notes',
+      'explanation', 'details', 'description',
+    ];
+
+    // 首先按优先级处理字段
+    const processedFields = new Set<string>();
+
+    for (const field of priorityFields) {
+      if (field in record && record[field] != null) {
+        const value = record[field];
+        const extracted = extractReadableContent(value, depth + 1);
+        if (extracted && extracted.length > 5) {
+          const label = fieldLabels[field] || `## ${formatFieldName(field)}`;
+          if (label) {
+            parts.push(`${label}\n${extracted}`);
+          } else {
+            parts.push(extracted);
+          }
+          processedFields.add(field);
+        }
+      }
+    }
+
+    // 然后处理其他字段
+    for (const [key, value] of Object.entries(record)) {
+      if (processedFields.has(key)) continue;
+
+      // 跳过技术性字段
+      if (['id', 'timestamp', 'created_at', 'updated_at', 'metadata', 'raw', 'debug', 'trace', 'logs'].includes(key)) {
+        continue;
+      }
+
+      const extracted = extractReadableContent(value, depth + 1);
+      if (extracted && extracted.length > 10) {
+        const label = fieldLabels[key] || `## ${formatFieldName(key)}`;
+        parts.push(`${label}\n${extracted}`);
+      }
+    }
+
+    return parts.join('\n\n');
+  }
+
+  // 对于数字和布尔值
+  if (typeof obj === 'number' || typeof obj === 'boolean') {
+    return String(obj);
+  }
+
+  return '';
+}
+
+/**
+ * 清理消息内容，处理 JSON 响应并提取可读文本
+ */
+function cleanMessageContent(content: string): string {
+  if (!content) return content;
+
+  // 首先处理转义字符：将字面量 \n \t 替换为真正的换行符
+  let cleaned = content
+    .replace(/\\n/g, '\n')
+    .replace(/\\t/g, '\t')
+    .replace(/\\"/g, '"');
+
+  // 尝试解析为 JSON 并提取可读内容
+  const trimmed = cleaned.trim();
+  if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+    try {
+      const json = JSON.parse(trimmed);
+      const extractedText = extractReadableContent(json);
+      if (extractedText && extractedText.length > 20) {
+        return extractedText;
+      }
+    } catch {
+      // 不是有效的 JSON，继续处理
+    }
+  }
+
+  // 检查是否整个内容是被引号包裹的 JSON 字符串
+  if ((trimmed.startsWith('"{') && trimmed.endsWith('}"')) ||
+      (trimmed.startsWith("'{") && trimmed.endsWith("}'"))) {
+    try {
+      const unquoted = JSON.parse(trimmed);
+      if (typeof unquoted === 'string') {
+        const innerJson = JSON.parse(unquoted);
+        const extractedText = extractReadableContent(innerJson);
+        if (extractedText && extractedText.length > 20) {
+          return extractedText;
+        }
+      }
+    } catch {
+      // 继续处理
+    }
+  }
+
+  // 找到第一个 { 的位置（JSON 开始）
+  const jsonStart = cleaned.indexOf('\n{');
+  const jsonStart2 = cleaned.indexOf('\n\n{');
+  const actualJsonStart = jsonStart2 !== -1 ? jsonStart2 : jsonStart;
+
+  // 找到最后一个 } 的位置（JSON 结束）
+  const jsonEnd = cleaned.lastIndexOf('}');
+
+  // 如果找到了 JSON 块，尝试提取其中的可读内容
+  if (actualJsonStart !== -1 && jsonEnd !== -1 && jsonEnd > actualJsonStart) {
+    const beforeJson = cleaned.slice(0, actualJsonStart).trim();
+    const jsonString = cleaned.slice(actualJsonStart, jsonEnd + 1).trim();
+    const afterJson = cleaned.slice(jsonEnd + 1).trim();
+
+    // 尝试解析嵌入的 JSON
+    try {
+      const json = JSON.parse(jsonString);
+      const extractedFromJson = extractReadableContent(json);
+
+      const textParts: string[] = [];
+      if (beforeJson.length > 10) {
+        textParts.push(beforeJson);
+      }
+      if (extractedFromJson && extractedFromJson.length > 20) {
+        textParts.push(extractedFromJson);
+      }
+      if (afterJson.length > 10) {
+        textParts.push(afterJson);
+      }
+
+      if (textParts.length > 0) {
+        return textParts.join('\n\n').replace(/\n{3,}/g, '\n\n').trim();
+      }
+    } catch {
+      // JSON 解析失败，使用原有逻辑
+      const textParts: string[] = [];
+      if (beforeJson.length > 10) {
+        textParts.push(beforeJson);
+      }
+      if (afterJson.length > 10) {
+        textParts.push(afterJson);
+      }
+
+      if (textParts.length > 0) {
+        cleaned = textParts.join('\n\n');
+      }
+    }
+  }
+
+  // 移除 markdown 代码块中的 JSON
+  cleaned = cleaned.replace(/```json[\s\S]*?```/g, '');
+
+  // 移除任何剩余的内联 JSON 对象
+  cleaned = cleaned.replace(/\{[^{}]*"[^"]+"\s*:[^{}]*\}/g, '');
+
+  // 清理多余的空行
+  cleaned = cleaned.replace(/\n{3,}/g, '\n\n').trim();
+
+  return cleaned || content;
 }
 
 export default function AgentDialogPage() {
@@ -324,7 +572,9 @@ export default function AgentDialogPage() {
           const eventType = payload.event;
 
           if (eventType === 'message') {
-            const chunk = String(payload.data ?? '');
+            let chunk = String(payload.data ?? '');
+            // 处理可能的转义字符：将字面量 \n 替换为真正的换行符
+            chunk = chunk.replace(/\\n/g, '\n').replace(/\\t/g, '\t');
             assistantContent += chunk;
             setMessages((prev) =>
               prev.map((item) =>
@@ -625,7 +875,14 @@ export default function AgentDialogPage() {
                       <span className={styles.streamingText}>Agent 正在思考...</span>
                     </div>
                   ) : (
-                    <div dangerouslySetInnerHTML={{ __html: message.content.replace(/\n/g, '<br/>') }} />
+                    <div className={styles.markdownContent}>
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        rehypePlugins={[rehypeHighlight]}
+                      >
+                        {message.role === 'assistant' ? cleanMessageContent(message.content) : message.content}
+                      </ReactMarkdown>
+                    </div>
                   )}
                 </div>
                 <div className={styles.messageMeta}>

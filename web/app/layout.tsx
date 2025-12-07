@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import 'highlight.js/styles/github-dark.css';
 import { Providers } from './providers';
 import { AppShell } from '@components/app-shell';
 

@@ -164,7 +164,7 @@ async def create_agent_session(
     created_at = _utc_now()
     session_record = AgentSessionRecord(
         agent_id=agent_id,
-        session_id=uuid.uuid4().hex,
+        session_id=str(uuid.uuid4()),  # 使用带连字符的 UUID (36字符) 以满足 AWS runtimeSessionId 最小 33 字符要求
         display_name=payload.display_name or f"会话 {created_at.strftime('%H:%M')}",
         created_at=created_at,
         last_active_at=created_at,
@@ -420,7 +420,9 @@ async def _invoke_agentcore_runtime_stream(
                 response = client.invoke_agent_runtime(
                     agentRuntimeArn=runtime_arn,
                     qualifier="DEFAULT",
-                    sessionId=session_id,
+                    runtimeSessionId=session_id,
+                    contentType="application/json",
+                    accept="text/event-stream",  # 请求流式响应
                     payload=payload_str
                 )
             except Exception as e:
@@ -455,12 +457,34 @@ async def _invoke_agentcore_runtime_stream(
                             line_str = line.decode('utf-8') if isinstance(line, bytes) else line
                             if line_str.startswith('data: '):
                                 data_content = line_str[6:]  # 去掉 "data: " 前缀
+                                # 尝试解析 JSON 字符串（AgentCore 可能返回 JSON 编码的字符串）
+                                try:
+                                    parsed = json.loads(data_content)
+                                    # 如果解析成功且是字符串，使用解析后的值
+                                    if isinstance(parsed, str):
+                                        data_content = parsed
+                                        # 继续尝试解析（可能是双重编码）
+                                        try:
+                                            parsed2 = json.loads(data_content)
+                                            if isinstance(parsed2, str):
+                                                data_content = parsed2
+                                        except (json.JSONDecodeError, TypeError):
+                                            pass
+                                except (json.JSONDecodeError, TypeError):
+                                    pass  # 保持原样
                                 print(f"   📤 Stream chunk: {data_content[:100]}")
                                 yield (data_content, None)
                 elif response_stream and hasattr(response_stream, 'read'):
                     # fallback: 一次性读取
                     raw_content = response_stream.read()
                     completion = raw_content.decode('utf-8') if isinstance(raw_content, bytes) else raw_content
+                    # 尝试解析 JSON 字符串
+                    try:
+                        parsed = json.loads(completion)
+                        if isinstance(parsed, str):
+                            completion = parsed
+                    except (json.JSONDecodeError, TypeError):
+                        pass
                     yield (completion, None)
             # 处理普通响应
             elif 'response' in response:
@@ -471,6 +495,13 @@ async def _invoke_agentcore_runtime_stream(
                     completion = raw.decode('utf-8') if isinstance(raw, bytes) else raw
                 else:
                     completion = str(response_stream)
+                # 尝试解析 JSON 字符串
+                try:
+                    parsed = json.loads(completion)
+                    if isinstance(parsed, str):
+                        completion = parsed
+                except (json.JSONDecodeError, TypeError):
+                    pass
                 print(f"   ✅ Got response: {len(completion)} characters")
                 yield (completion, None)
             elif 'payload' in response:
@@ -482,6 +513,13 @@ async def _invoke_agentcore_runtime_stream(
                     completion = raw.decode('utf-8') if isinstance(raw, bytes) else raw
                 else:
                     completion = str(payload_stream)
+                # 尝试解析 JSON 字符串
+                try:
+                    parsed = json.loads(completion)
+                    if isinstance(parsed, str):
+                        completion = parsed
+                except (json.JSONDecodeError, TypeError):
+                    pass
                 print(f"   ✅ Got response: {len(completion)} characters")
                 yield (completion, None)
             else:
@@ -512,11 +550,46 @@ async def _invoke_agentcore_runtime_stream(
             traceback.print_exc()
             raise
 
-    # 使用 asyncio.to_thread 运行生成器
+    # 使用队列实现真正的流式传输
     import asyncio
-    loop = asyncio.get_event_loop()
-    for chunk in await loop.run_in_executor(None, lambda: list(_stream_call())):
-        yield chunk
+    import queue
+    import threading
+
+    chunk_queue: queue.Queue = queue.Queue()
+    error_holder: list = []
+
+    def run_stream():
+        try:
+            for chunk in _stream_call():
+                chunk_queue.put(chunk)
+        except Exception as e:
+            error_holder.append(e)
+        finally:
+            chunk_queue.put(None)  # 结束信号
+
+    # 在后台线程中运行同步生成器
+    thread = threading.Thread(target=run_stream, daemon=True)
+    thread.start()
+
+    # 异步地从队列中读取结果
+    while True:
+        # 使用 run_in_executor 来非阻塞地等待队列
+        try:
+            chunk = await asyncio.get_event_loop().run_in_executor(
+                None, lambda: chunk_queue.get(timeout=0.1)
+            )
+            if chunk is None:  # 结束信号
+                break
+            yield chunk
+        except queue.Empty:
+            # 队列为空，继续等待
+            if not thread.is_alive() and chunk_queue.empty():
+                break
+            await asyncio.sleep(0.01)
+
+    # 检查是否有错误
+    if error_holder:
+        raise error_holder[0]
 
 
 async def _invoke_agentcore_runtime(
@@ -904,25 +977,6 @@ async def stream_agent_response(
                     logger.error(error_msg)
                     yield _format_sse({"event": "error", "error": error_msg})
                     return
-            else:
-                # 使用本地 HTTP runtime
-                print(f"⚠️ No AgentCore ARN found, using local HTTP runtime")
-                print(f"   AGENT_RUNTIME_URL: {settings.AGENT_RUNTIME_URL}")
-                logger.warning(f"⚠️ No AgentCore ARN found, using local HTTP runtime")
-                logger.warning(f"   AGENT_RUNTIME_URL: {settings.AGENT_RUNTIME_URL}")
-                async for event_bytes, parsed in _proxy_http_runtime(
-                    agent_id=agent_id,
-                    session_id=session_id,
-                    message=user_message,
-                    request=request,
-                ):
-                    if parsed:
-                        event_type = parsed.get("event")
-                        if event_type == "message":
-                            assistant_chunks.append(str(parsed.get("data", "")))
-                        elif event_type == "metrics":
-                            metrics_snapshot.update(parsed.get("data") or {})
-                    yield event_bytes
         except Exception as exc:  # pragma: no cover - defensive logging
             logger.error(f"Stream error: {str(exc)}", exc_info=True)
             error_payload = {"event": "error", "error": str(exc)}

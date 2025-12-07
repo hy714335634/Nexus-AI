@@ -26,6 +26,7 @@ from typing import Dict, List, Any, Optional, Union, Tuple
 # 导入Strands SDK相关模块
 from nexus_utils.agent_factory import create_agent_from_prompt_template
 from strands.telemetry import StrandsTelemetry
+from bedrock_agentcore.runtime.context import RequestContext
 
 # 设置环境变量
 os.environ["BYPASS_TOOL_CONSENT"] = "true"
@@ -51,13 +52,13 @@ html2pptx_agent = create_html2pptx_agent()
 
 
 # 创建 BedrockAgentCoreApp 实例
-from bedrock_agentcore.runtime import BedrockAgentCoreApp
+from bedrock_agentcore import BedrockAgentCoreApp
 app = BedrockAgentCoreApp()
 
 
 # ==================== AgentCore 入口点（必须包含）====================
 @app.entrypoint
-async def handler(payload: Dict[str, Any]) -> str:
+async def handler(payload: Dict[str, Any], context: RequestContext):
     """
     AgentCore 标准入口点（支持流式响应）
 
@@ -65,21 +66,21 @@ async def handler(payload: Dict[str, Any]) -> str:
         payload: AgentCore 传入的请求体，包含:
             - prompt: 用户消息
             - user_id: 用户ID（可选）
-            - session_id: 会话ID（可选）
             - media: 媒体文件列表（可选）
+        context: 请求上下文，包含:
+            - session_id: 会话ID（从 runtimeSessionId header 获取）
 
     Yields:
         str: 流式响应的文本片段（自动处理流式传输）
-
-    Returns:
-        str: 最终响应文本（非流式模式）
     """
-    print(f"📥 Received payload: {json.dumps(payload, ensure_ascii=False)}")
+    session_id = context.session_id
+    print(f"📥 Received payload: {json.dumps(payload, ensure_ascii=False)}, session_id: {session_id}")
 
     prompt = payload.get("prompt") or payload.get("message") or payload.get("input", "")
 
     if not prompt:
-        return "Error: Missing 'prompt' in request"
+        yield "Error: Missing 'prompt' in request"
+        return
 
     print(f"🔄 Processing prompt: {prompt}")
 
@@ -93,7 +94,7 @@ async def handler(payload: Dict[str, Any]) -> str:
 
     except Exception as e:
         print(f"❌ Error: {str(e)}")
-        return f"Error: {str(e)}"
+        yield f"Error: {str(e)}"
 
 
 # ==================== 辅助函数 ====================

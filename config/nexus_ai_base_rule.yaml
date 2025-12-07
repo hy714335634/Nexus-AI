@@ -59,52 +59,44 @@ workflows:
              app = BedrockAgentCoreApp()
              ```
 
-          2. **必须使用@app.entrypoint装饰器定义handler函数**：
+          2. **必须使用@app.entrypoint装饰器定义异步handler函数（支持流式响应）**：
              ```python
              @app.entrypoint
-             def handler(payload: Dict[str, Any]) -> str:
+             async def handler(payload: Dict[str, Any]):
                  """
-                 AgentCore 标准入口点
+                 AgentCore 标准入口点（支持流式响应）
 
                  Args:
                      payload: AgentCore 传入的请求体，包含:
                          - prompt: 用户消息
+                         - user_id: 用户ID（可选）
+                         - session_id: 会话ID（可选）
+                         - media: 媒体文件列表（可选）
 
-                 Returns:
-                     str: 响应文本（不是Dict！）
+                 Yields:
+                     str: 流式响应的文本片段（自动处理流式传输）
                  """
                  print(f"📥 Received payload: {json.dumps(payload, ensure_ascii=False)}")
 
                  prompt = payload.get("prompt") or payload.get("message") or payload.get("input", "")
 
                  if not prompt:
-                     return "Error: Missing 'prompt' in request"
+                     yield "Error: Missing 'prompt' in request"
+                     return
 
                  print(f"🔄 Processing prompt: {prompt}")
 
                  try:
-                     result = my_agent(prompt)
-
-                     # 提取响应内容 - 适配 Strands Agent 返回格式
-                     if hasattr(result, 'message') and result.message:
-                         content = result.message.get('content', [])
-                         if content and isinstance(content, list) and len(content) > 0:
-                             response_text = content[0].get('text', str(result))
-                         else:
-                             response_text = str(result)
-                     elif hasattr(result, 'content') and result.content:
-                         response_text = result.content
-                     elif isinstance(result, str):
-                         response_text = result
-                     else:
-                         response_text = str(result)
-
-                     print(f"✅ Response: {response_text[:200]}...")
-                     return response_text
+                     # 使用流式响应
+                     stream = my_agent.stream_async(prompt)
+                     async for event in stream:
+                         # 每个 event 包含流式响应的片段
+                         print(f"📤 Streaming event: {event}")
+                         yield event
 
                  except Exception as e:
                      print(f"❌ Error: {str(e)}")
-                     return f"Error: {str(e)}"
+                     yield f"Error: {str(e)}"
              ```
 
           3. **必须在__main__中启动HTTP服务器**：
@@ -134,14 +126,16 @@ workflows:
                      app.run()
              ```
 
-          4. **返回格式要求**：
-             - handler函数必须返回字符串（str），不是Dict
-             - 成功时返回响应文本
-             - 失败时返回以"Error: "开头的错误信息
+          4. **返回格式要求（流式响应）**：
+             - handler函数必须是async异步函数
+             - 使用yield产生流式响应片段，而不是return
+             - 每个yield产生一个文本片段，AgentCore会自动处理流式传输
+             - 错误时yield以"Error: "开头的错误信息
 
           5. **关键注意事项**：
              - @app.entrypoint装饰的函数只接收一个参数：payload（Dict）
-             - 不要传递context参数
+             - 必须使用async def定义handler函数
+             - 必须使用agent.stream_async()获取流式响应
              - app.run() 会启动 Starlette HTTP 服务器监听 /invocations 端点
         cache_rules: |      # 缓存规则
           =====通用缓存规则=====
