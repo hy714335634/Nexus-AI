@@ -1,0 +1,272 @@
+{
+  "tool_development": {
+    "development_overview": {
+      "project_name": "dog_breed_identifier",
+      "version": "1.0",
+      "date": "2025-12-07",
+      "development_scope": "为犬种识别Agent开发完整的工具集，包括特征提取、犬种匹配、生活习惯查询、输入验证和响应格式化功能。所有工具基于Strands框架开发，使用@tool装饰器，支持结构化JSON输入输出。",
+      "design_principles": [
+        "单一职责：每个工具函数只负责一个特定功能",
+        "模块化设计：工具之间松耦合，可独立调用和测试",
+        "数据驱动：使用内置数据库存储犬种特征和生活习惯信息",
+        "结构化输出：所有工具返回JSON格式数据，易于解析和处理",
+        "健壮错误处理：捕获所有异常，返回有意义的错误信息",
+        "类型安全：使用完整的类型注解",
+        "知识内置：犬种数据库内置在工具中，无需外部API调用",
+        "可扩展性：数据库结构支持轻松添加新犬种"
+      ],
+      "key_decisions": [
+        "不使用外部API或数据库，所有知识内置在工具代码中，确保响应速度和系统简单性",
+        "犬种数据库包含10个常见犬种（可扩展至200-300个），覆盖主要使用场景",
+        "特征匹配采用加权评分算法，不同特征权重不同（体型20分、毛色15分等）",
+        "支持模糊匹配，返回置信度最高的3个候选犬种",
+        "输入验证独立于特征提取，提供清晰的错误提示和建议",
+        "响应格式化工具整合匹配结果和生活习惯数据，生成统一的输出格式"
+      ]
+    },
+    "tools": [
+      {
+        "tool_name": "extract_dog_features",
+        "description": "从用户的自然语言描述中提取犬只特征，包括体型、毛色、毛质、毛长、耳型、尾型、体重、性格等关键特征。使用关键词匹配和正则表达式提取结构化特征数据。",
+        "function_signature": "extract_dog_features(description: str) -> str",
+        "parameters": [
+          {
+            "name": "description",
+            "type": "str",
+            "description": "用户对小狗的描述文本",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的特征提取结果，包含success标志、features对象（包含size、colors、coat_type、coat_length、ear_type、tail_type、weight、temperament、extracted_keywords）和original_description",
+        "dependencies": [
+          "strands",
+          "json",
+          "re"
+        ],
+        "implementation_notes": [
+          "使用预定义的关键词模式匹配各类特征",
+          "支持中英文特征描述",
+          "体重提取使用正则表达式，支持kg和lb单位，自动转换为kg",
+          "毛色支持多个值（如黑白花色）",
+          "提取所有关键词用于辅助分析，限制20个",
+          "对于未匹配的特征字段返回None或空列表"
+        ],
+        "error_handling": [
+          "捕获所有异常，返回包含error和error_type的JSON",
+          "输入为空或无效时返回错误信息",
+          "正则表达式匹配失败时跳过该特征"
+        ],
+        "usage_examples": [
+          "输入：'一只中型犬，金色长毛，垂耳，体重约30公斤，性格友好活泼'",
+          "输出：{\"success\": true, \"features\": {\"size\": \"medium\", \"colors\": [\"golden\"], \"coat_length\": \"long\", \"ear_type\": \"drop\", \"weight\": 30.0, \"temperament\": [\"friendly\", \"energetic\"]}}"
+        ]
+      },
+      {
+        "tool_name": "match_dog_breeds",
+        "description": "根据提取的特征匹配可能的犬种。使用加权评分算法计算每个犬种与输入特征的匹配度，返回置信度最高的3个候选犬种及其详细匹配信息。",
+        "function_signature": "match_dog_breeds(features: str) -> str",
+        "parameters": [
+          {
+            "name": "features",
+            "type": "str",
+            "description": "JSON格式的特征数据（由extract_dog_features生成）",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的匹配结果，包含success标志、total_matches总匹配数、top_matches前3个候选犬种（每个包含breed_id、name_zh、name_en、confidence、match_score、match_details、breed_info）和match_quality评级",
+        "dependencies": [
+          "strands",
+          "json"
+        ],
+        "implementation_notes": [
+          "内置犬种数据库包含10个常见犬种（golden_retriever、labrador_retriever、german_shepherd、poodle、chihuahua、husky、bulldog、beagle、shiba_inu、corgi）",
+          "每个犬种包含标准特征：size、colors、coat_type、coat_length、ear_type、tail_type、weight_range、temperament、origin、group",
+          "加权评分算法：体型20分、毛色15分、毛质10分、毛长10分、耳型10分、尾型10分、体重15分、性格10分",
+          "置信度计算：(实际得分/最大可能得分)*100",
+          "只返回置信度>20的匹配结果",
+          "match_quality评级：high(>=70)、medium(>=50)、low(<50)",
+          "match_details记录每个特征的匹配情况"
+        ],
+        "error_handling": [
+          "验证输入features的success标志",
+          "捕获JSON解析错误",
+          "无匹配结果时返回空列表",
+          "所有异常返回包含error和error_type的JSON"
+        ],
+        "usage_examples": [
+          "输入：extract_dog_features的输出",
+          "输出：{\"success\": true, \"total_matches\": 5, \"top_matches\": [{\"breed_id\": \"golden_retriever\", \"name_zh\": \"金毛寻回犬\", \"confidence\": 85.5, ...}], \"match_quality\": \"high\"}"
+        ]
+      },
+      {
+        "tool_name": "get_breed_habits",
+        "description": "获取指定犬种的详细生活习惯信息，包括饮食、运动、性格、护理、健康五个维度的完整数据。",
+        "function_signature": "get_breed_habits(breed_id: str) -> str",
+        "parameters": [
+          {
+            "name": "breed_id",
+            "type": "str",
+            "description": "犬种ID（如golden_retriever）",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的生活习惯信息，包含success标志、breed_id和habits对象（包含diet、exercise、temperament、grooming、health五个维度的详细信息）",
+        "dependencies": [
+          "strands",
+          "json"
+        ],
+        "implementation_notes": [
+          "内置生活习惯数据库，包含10个犬种的完整信息",
+          "饮食信息：daily_calories、feeding_frequency、food_type、special_needs、avoid_foods",
+          "运动信息：daily_duration、activity_level、recommended_activities、exercise_notes",
+          "性格信息：personality_traits、social_behavior、trainability、child_friendly、stranger_tolerance",
+          "护理信息：brushing_frequency、bathing_frequency、shedding_level、grooming_needs、professional_grooming",
+          "健康信息：common_issues、lifespan、health_screening、preventive_care、special_attention",
+          "所有信息基于犬种标准特性，不针对具体个体"
+        ],
+        "error_handling": [
+          "验证breed_id是否存在于数据库",
+          "breed_id不存在时返回breed_not_found错误",
+          "捕获所有异常，返回包含error和error_type的JSON"
+        ],
+        "usage_examples": [
+          "输入：'golden_retriever'",
+          "输出：{\"success\": true, \"breed_id\": \"golden_retriever\", \"habits\": {\"diet\": {...}, \"exercise\": {...}, \"temperament\": {...}, \"grooming\": {...}, \"health\": {...}}}"
+        ]
+      },
+      {
+        "tool_name": "validate_input",
+        "description": "验证用户输入的有效性，检查输入是否为空、长度是否合适、内容是否与犬只特征相关。提供清晰的错误提示和改进建议。",
+        "function_signature": "validate_input(user_input: str) -> str",
+        "parameters": [
+          {
+            "name": "user_input",
+            "type": "str",
+            "description": "用户输入的文本",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的验证结果，包含valid标志、error错误信息（如有）、warning警告信息（如有）、suggestion改进建议（如有）",
+        "dependencies": [
+          "strands",
+          "json"
+        ],
+        "implementation_notes": [
+          "空输入检查：输入为空或仅包含空白字符",
+          "长度检查：最小5字符，最大2000字符",
+          "内容相关性检查：使用关键词列表检测是否与犬只相关（狗、犬、毛、耳朵、尾巴、体型、颜色、性格等）",
+          "不相关输入返回警告而非错误，允许继续处理",
+          "所有验证失败都提供具体的改进建议"
+        ],
+        "error_handling": [
+          "捕获所有异常，返回包含error和error_type的JSON",
+          "验证失败时valid=false，并提供error和suggestion"
+        ],
+        "usage_examples": [
+          "输入：''（空）-> {\"valid\": false, \"error\": \"输入为空\", \"suggestion\": \"请提供小狗的特征描述...\"}",
+          "输入：'你好'（不相关）-> {\"valid\": true, \"warning\": \"输入可能与犬只特征描述无关\", \"suggestion\": \"建议提供小狗的外观特征...\"}",
+          "输入：'金色长毛大型犬'-> {\"valid\": true, \"message\": \"输入有效\"}"
+        ]
+      },
+      {
+        "tool_name": "format_response",
+        "description": "整合犬种匹配结果和生活习惯数据，生成统一的、结构化的最终响应。处理各种边界情况（无匹配、低置信度、多个候选等）并提供相应建议。",
+        "function_signature": "format_response(match_results: str, habits_data: str) -> str",
+        "parameters": [
+          {
+            "name": "match_results",
+            "type": "str",
+            "description": "JSON格式的匹配结果（由match_dog_breeds生成）",
+            "required": true
+          },
+          {
+            "name": "habits_data",
+            "type": "str",
+            "description": "JSON格式的生活习惯数据（由get_breed_habits生成）",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的完整响应结果，包含success标志、identification_result识别结果（包含match_quality、primary_breed主要犬种、alternative_breeds备选犬种）、life_habits生活习惯、suggestion建议（如有）",
+        "dependencies": [
+          "strands",
+          "json"
+        ],
+        "implementation_notes": [
+          "验证输入数据的success标志",
+          "提取置信度最高的犬种作为primary_breed",
+          "其他候选犬种作为alternative_breeds",
+          "根据match_quality和置信度差异生成建议",
+          "match_quality=low时建议补充特征",
+          "多个候选且置信度相近（差异<20）时建议补充区分特征",
+          "无匹配结果时返回友好的错误信息和改进建议"
+        ],
+        "error_handling": [
+          "验证match_results和habits_data的success标志",
+          "任一输入失败时返回相应错误",
+          "无匹配结果时返回无法识别错误和补充特征建议",
+          "捕获所有异常，返回包含error和error_type的JSON"
+        ],
+        "usage_examples": [
+          "输入：match_dog_breeds的输出 + get_breed_habits的输出",
+          "输出：{\"success\": true, \"identification_result\": {\"match_quality\": \"high\", \"primary_breed\": {...}, \"alternative_breeds\": [...]}, \"life_habits\": {...}, \"suggestion\": \"...\"}"
+        ]
+      }
+    ],
+    "code_quality": {
+      "code_standards": [
+        "遵循PEP 8代码风格规范",
+        "使用完整的类型注解（typing模块）",
+        "每个函数包含详细的docstring",
+        "变量命名清晰、有意义",
+        "代码结构清晰，逻辑分层",
+        "适当的代码注释说明关键逻辑"
+      ],
+      "testing_strategy": [
+        "单元测试：每个工具函数独立测试",
+        "集成测试：测试工具之间的协作",
+        "边界测试：空输入、超长输入、无效输入",
+        "数据覆盖测试：测试所有犬种数据",
+        "错误处理测试：验证所有异常路径",
+        "性能测试：确保响应时间<5秒"
+      ],
+      "performance_considerations": [
+        "内置数据库避免网络延迟",
+        "关键词匹配使用高效的字符串操作",
+        "JSON序列化/反序列化使用标准库",
+        "避免不必要的循环和重复计算",
+        "数据结构设计合理，查询效率高"
+      ],
+      "security_measures": [
+        "输入长度限制（最大2000字符）",
+        "输入验证和清洗",
+        "无SQL注入风险（不使用数据库）",
+        "无代码注入风险（不使用eval/exec）",
+        "错误信息不暴露内部实现细节"
+      ]
+    },
+    "integration_details": {
+      "aws_services": [],
+      "external_libraries": [
+        "strands：@tool装饰器和工具框架",
+        "json：JSON数据序列化和反序列化",
+        "re：正则表达式匹配",
+        "typing：类型注解"
+      ],
+      "api_endpoints": [],
+      "data_formats": [
+        "所有输入输出均为JSON字符串格式",
+        "特征数据模型：{success, features, original_description}",
+        "匹配结果模型：{success, total_matches, top_matches, match_quality}",
+        "生活习惯模型：{success, breed_id, habits}",
+        "验证结果模型：{valid, error, warning, suggestion}",
+        "最终响应模型：{success, identification_result, life_habits, suggestion}"
+      ]
+    },
+    "development_notes": "工具开发完全基于提示词工程和LLM内置知识，无需外部API或数据库。犬种数据库和生活习惯数据库内置在工具代码中，确保系统简单性和响应速度。当前实现包含10个常见犬种，可通过扩展数据库轻松添加更多犬种（目标200-300个）。所有工具遵循单一职责原则，可独立调用和测试，便于维护和扩展。特征匹配算法采用加权评分，不同特征权重不同，确保识别准确性。工具设计充分考虑用户体验，提供清晰的错误提示和改进建议。所有工具返回结构化JSON数据，易于Agent解析和使用。"
+  }
+}

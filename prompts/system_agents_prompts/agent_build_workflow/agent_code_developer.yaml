@@ -106,8 +106,10 @@ agent:
            - 示例结构：
              ```python
              import os
+             import json
              from typing import Dict, Any
              from nexus_utils.agent_factory import create_agent_from_prompt_template
+             from bedrock_agentcore.runtime import BedrockAgentCoreApp
 
              os.environ["BYPASS_TOOL_CONSENT"] = "true"
 
@@ -118,48 +120,76 @@ agent:
              )
 
              # ==================== AgentCore 入口点（必须包含）====================
-             def handler(event: Dict[str, Any], context: Any = None) -> Dict[str, Any]:
+             # 创建 BedrockAgentCoreApp 实例
+             app = BedrockAgentCoreApp()
+
+             @app.entrypoint
+             async def handler(payload: Dict[str, Any]) -> str:
                  """
-                 AgentCore 标准入口点
+                 AgentCore 标准入口点（支持流式响应）
 
                  当部署到 Amazon Bedrock AgentCore 时，AgentCore 会调用此函数处理请求。
 
                  Args:
-                     event: AgentCore 传入的事件，包含:
+                     payload: AgentCore 传入的请求体，包含:
                          - prompt: 用户消息
                          - user_id: 用户ID（可选）
                          - session_id: 会话ID（可选）
-                         - 其他业务参数
-                     context: AgentCore 上下文
+                         - media: 媒体文件列表（可选）
+
+                 Yields:
+                     str: 流式响应的文本片段（自动处理流式传输）
 
                  Returns:
-                     Dict: 响应结果
+                     str: 最终响应文本（非流式模式）
                  """
-                 prompt = event.get("prompt") or event.get("message") or event.get("input", "")
+                 print(f"📥 Received payload: {json.dumps(payload, ensure_ascii=False)}")
+
+                 prompt = payload.get("prompt") or payload.get("message") or payload.get("input", "")
 
                  if not prompt:
-                     return {"success": False, "error": "Missing 'prompt' in request"}
+                     return "Error: Missing 'prompt' in request"
+
+                 print(f"🔄 Processing prompt: {prompt}")
 
                  try:
-                     result = my_agent(prompt)
-                     response_text = result.content if hasattr(result, 'content') else str(result)
-                     return {"success": True, "response": response_text}
-                 except Exception as e:
-                     return {"success": False, "error": str(e)}
+                     # 使用流式响应
+                     stream = my_agent.stream_async(prompt)
+                     async for event in stream:
+                         # 每个 event 包含流式响应的片段
+                         print(f"📤 Streaming event: {event}")
+                         yield event
 
-             # 为 AgentCore 提供别名入口点
-             invoke = handler
-             main = handler
+                 except Exception as e:
+                     print(f"❌ Error: {str(e)}")
+                     return f"Error: {str(e)}"
 
              # ==================== 本地运行入口 ====================
              if __name__ == "__main__":
                  import argparse
+
                  parser = argparse.ArgumentParser(description='Agent')
-                 parser.add_argument('-i', '--input', type=str, default="test", help='Input')
+                 parser.add_argument('-i', '--input', type=str, default=None, help='测试输入')
                  args = parser.parse_args()
-                 print(f"✅ Agent创建成功: {my_agent.name}")
-                 result = my_agent(args.input)
-                 print(f"📋 响应:\n{result}")
+
+                 # 检查是否在 Docker 容器中运行（AgentCore 部署）
+                 is_docker = os.environ.get("DOCKER_CONTAINER") == "1"
+
+                 if is_docker:
+                     # AgentCore 部署模式：启动 HTTP 服务器
+                     print("🚀 启动 AgentCore HTTP 服务器，端口: 8080")
+                     app.run()
+                 elif args.input:
+                     # 本地测试模式
+                     print(f"✅ Agent创建成功: {my_agent.name}")
+                     print(f"📝 输入: {args.input}")
+                     result = my_agent(args.input)
+                     print(f"📋 响应: {result}")
+                 else:
+                     # 默认启动服务器
+                     print("🚀 启动 AgentCore HTTP 服务器，端口: 8080")
+                     print("💡 提示: 使用 -i 参数进行本地测试")
+                     app.run()
              ```
 
         2. **AgentCore 入口点要求**：

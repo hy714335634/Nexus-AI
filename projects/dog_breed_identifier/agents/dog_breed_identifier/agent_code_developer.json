@@ -1,0 +1,213 @@
+{
+  "agent_code_development": {
+    "development_overview": {
+      "project_name": "dog_breed_identifier",
+      "version": "1.0",
+      "date": "2025-12-07",
+      "development_scope": "开发完整的犬种识别Agent代码，实现特征提取、犬种匹配、生活习惯查询和结构化输出功能。基于Strands SDK和AWS Bedrock构建，支持AgentCore部署和本地测试。",
+      "design_principles": [
+        "架构一致性：严格遵循系统架构设计和Agent设计规格",
+        "功能完整性：实现所有设计规格中定义的功能",
+        "代码质量：遵循PEP 8规范和Python最佳实践",
+        "模块化设计：清晰的模块分离和接口定义",
+        "健壮错误处理：完善的异常处理和恢复机制",
+        "可维护性：清晰的代码结构和完整的文档",
+        "AgentCore兼容：支持标准入口点和HTTP服务器模式"
+      ],
+      "key_decisions": [
+        "使用agent_factory.create_agent_from_prompt_template创建Agent实例",
+        "集成BedrockAgentCoreApp框架支持AgentCore部署",
+        "实现@app.entrypoint装饰的handler函数作为标准入口点",
+        "支持本地测试模式（-i参数）和AgentCore部署模式",
+        "使用环境变量BYPASS_TOOL_CONSENT绕过工具同意检查",
+        "实现完整的日志记录和错误处理机制",
+        "适配Strands Agent的多种返回格式（message、content、str）"
+      ]
+    },
+    "agent_implementation": {
+      "agent_name": "dog_breed_identifier",
+      "file_path": "agents/generated_agents/dog_breed_identifier/dog_breed_identifier.py",
+      "main_class": "N/A（基于agent_factory创建Agent实例）",
+      "entry_point": "handler函数（@app.entrypoint装饰）",
+      "dependencies": [
+        "os - 环境变量和系统操作",
+        "json - JSON数据处理",
+        "logging - 日志记录",
+        "typing - 类型注解",
+        "nexus_utils.agent_factory - Agent创建工厂",
+        "bedrock_agentcore.runtime - AgentCore运行时框架"
+      ],
+      "imports": [
+        "import os",
+        "import json",
+        "import logging",
+        "from typing import Dict, Any",
+        "from nexus_utils.agent_factory import create_agent_from_prompt_template",
+        "from bedrock_agentcore.runtime import BedrockAgentCoreApp"
+      ]
+    },
+    "core_functions": [
+      {
+        "function_name": "handler",
+        "purpose": "AgentCore标准入口点，处理HTTP请求并调用Agent进行犬种识别",
+        "parameters": [
+          {
+            "name": "payload",
+            "type": "Dict[str, Any]",
+            "description": "AgentCore传入的请求体，包含prompt（必填）、user_id（可选）、session_id（可选）",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "识别结果的JSON字符串或错误信息",
+        "implementation_notes": [
+          "使用@app.entrypoint装饰器注册为AgentCore入口点",
+          "提取prompt字段，支持prompt/message/input三种字段名",
+          "调用dog_breed_identifier Agent进行识别",
+          "适配Strands Agent的多种返回格式（message.content、content、str）",
+          "记录详细的日志信息（请求、处理、响应）",
+          "捕获所有异常并返回友好错误信息"
+        ]
+      },
+      {
+        "function_name": "main（__main__块）",
+        "purpose": "本地测试和AgentCore服务器启动入口",
+        "parameters": [
+          {
+            "name": "args.input",
+            "type": "str",
+            "description": "命令行参数，小狗特征描述（可选）",
+            "required": false
+          }
+        ],
+        "return_type": "void",
+        "return_description": "无返回值，直接输出结果或启动服务器",
+        "implementation_notes": [
+          "使用argparse解析命令行参数",
+          "检查DOCKER_CONTAINER环境变量判断运行模式",
+          "is_docker=1时启动AgentCore HTTP服务器（端口8080）",
+          "有-i参数时执行本地测试模式",
+          "无参数时默认启动HTTP服务器",
+          "本地测试模式输出详细的识别结果和结构化JSON"
+        ]
+      }
+    ],
+    "tool_integration": {
+      "custom_tools": [
+        "validate_input - 验证用户输入的有效性",
+        "extract_dog_features - 从描述中提取犬只特征",
+        "match_dog_breeds - 基于特征匹配犬种",
+        "get_breed_habits - 查询犬种生活习惯信息",
+        "format_response - 格式化最终响应"
+      ],
+      "system_tools": [
+        "strands_tools/current_time - 获取当前时间"
+      ],
+      "strands_tools": [
+        "所有工具通过提示词模板配置，由Agent自动调用"
+      ],
+      "integration_notes": [
+        "工具集成完全通过提示词模板实现",
+        "Agent代码不直接调用工具，由LLM根据提示词决定工具使用",
+        "所有工具路径在提示词模板的tools_dependencies中声明",
+        "工具调用结果由Agent内部处理，外部代码无需关注"
+      ]
+    },
+    "configuration": {
+      "environment_variables": [
+        "BYPASS_TOOL_CONSENT=true - 绕过工具同意检查",
+        "OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 - OpenTelemetry端点",
+        "DOCKER_CONTAINER=1 - 标识Docker容器运行模式（可选）"
+      ],
+      "model_configuration": {
+        "model_name": "global.anthropic.claude-sonnet-4-5-20250929-v1:0",
+        "max_tokens": 60000,
+        "temperature": 0.3,
+        "notes": "模型配置在提示词模板中定义，Agent代码使用model_id=default自动加载"
+      },
+      "streaming_config": {
+        "enabled": false,
+        "notes": "当前版本不支持流式响应，未来可通过修改提示词模板启用"
+      },
+      "agent_parameters": {
+        "env": "production",
+        "version": "latest",
+        "model_id": "default",
+        "enable_logging": true
+      }
+    },
+    "error_handling": {
+      "exception_types": [
+        "输入缺失异常 - payload中缺少prompt字段",
+        "Agent调用异常 - Agent执行过程中的任何错误",
+        "响应解析异常 - 无法提取Agent返回的响应内容",
+        "JSON解析异常 - 本地测试时JSON格式化失败（非致命）"
+      ],
+      "error_responses": [
+        "输入缺失：'Error: Missing 'prompt' in request'",
+        "Agent调用失败：'Error: {具体错误信息}'",
+        "所有错误都返回字符串格式，符合AgentCore规范"
+      ],
+      "recovery_strategies": [
+        "记录详细的错误日志（包含堆栈信息）",
+        "返回友好的错误信息给用户",
+        "本地测试模式输出详细的异常信息",
+        "AgentCore模式返回简洁的错误描述",
+        "不中断服务，每个请求独立处理"
+      ]
+    },
+    "testing": {
+      "test_cases": [
+        "本地测试：python dog_breed_identifier.py -i '中型犬，金色长毛，垂耳，性格温顺'",
+        "AgentCore测试：curl -X POST http://localhost:8080/invocations -d '{\"prompt\":\"中型犬，金色长毛，垂耳，性格温顺\"}'",
+        "空输入测试：curl -X POST http://localhost:8080/invocations -d '{}'",
+        "多选项测试：python dog_breed_identifier.py -i '小型犬，白色，竖耳，活泼'",
+        "特征不足测试：python dog_breed_identifier.py -i '一只狗，很可爱'"
+      ],
+      "test_scenarios": [
+        "场景1：特征明确的单一犬种识别",
+        "场景2：特征模糊的多选项推荐",
+        "场景3：特征不足的错误处理",
+        "场景4：无效输入的错误处理",
+        "场景5：AgentCore部署模式的HTTP请求处理"
+      ],
+      "validation_criteria": [
+        "响应时间<5秒",
+        "返回有效的JSON格式输出（识别成功时）",
+        "错误情况返回清晰的错误信息",
+        "日志记录完整（请求、处理、响应、错误）",
+        "本地测试模式输出可读的结果",
+        "AgentCore模式正确监听8080端口"
+      ]
+    },
+    "deployment": {
+      "deployment_requirements": [
+        "Python 3.13+运行环境",
+        "AWS Bedrock访问权限",
+        "nexus_utils包（本地路径：./nexus_utils）",
+        "strands-agents和strands-agents-tools包",
+        "bedrock-agentcore包",
+        "PyYAML包（用于提示词模板解析）",
+        "所有自定义工具文件（tools/generated_tools/dog_breed_identifier/）",
+        "提示词模板文件（prompts/generated_agents_prompts/dog_breed_identifier/dog_breed_identifier_prompt.yaml）"
+      ],
+      "runtime_dependencies": [
+        "./nexus_utils",
+        "strands-agents",
+        "strands-agents-tools",
+        "bedrock-agentcore",
+        "PyYAML",
+        "boto3（AWS SDK）",
+        "botocore（boto3核心库）"
+      ],
+      "performance_considerations": [
+        "Agent初始化在启动时完成，避免每次请求重新创建",
+        "日志记录使用合理的级别（INFO、ERROR、DEBUG）",
+        "响应内容提取适配多种格式，提高兼容性",
+        "本地测试模式避免启动HTTP服务器，提高测试速度",
+        "AgentCore模式使用Starlette异步框架，支持高并发"
+      ]
+    },
+    "development_notes": "Agent代码开发完全基于设计规格和系统架构，使用agent_factory创建Agent实例，集成BedrockAgentCoreApp框架支持AgentCore部署。实现了完整的错误处理、日志记录和多模式运行支持（本地测试、AgentCore部署）。所有工具集成通过提示词模板实现，Agent代码保持简洁。响应内容提取适配Strands Agent的多种返回格式（message.content、content、str），确保兼容性。本地测试模式提供详细的输出和JSON格式化，便于开发调试。AgentCore部署模式使用标准的@app.entrypoint装饰器和handler函数，符合AgentCore规范。代码质量高，遵循PEP 8规范，包含完整的类型注解和文档字符串。"
+  }
+}

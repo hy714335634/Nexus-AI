@@ -50,7 +50,211 @@ def _success_payload(data: Any) -> Dict[str, Any]:
 
 
 def _format_sse(event: Dict[str, Any]) -> bytes:
+    """格式化 SSE 事件，确保中文正确编码"""
     return f"data: {json.dumps(event, ensure_ascii=False)}\n\n".encode("utf-8")
+
+
+def _decode_unicode_escapes(text: str) -> str:
+    """解码 Unicode 转义序列，如 \\u767d\\u8272 -> 白色"""
+    if not text:
+        return text
+    try:
+        # 处理双重转义的情况 \\u -> \u
+        if '\\u' in text:
+            # 使用 unicode_escape 解码
+            return text.encode('utf-8').decode('unicode_escape')
+    except (UnicodeDecodeError, UnicodeEncodeError):
+        pass
+    return text
+
+
+def _parse_stream_event(data_content: str) -> Optional[Dict[str, Any]]:
+    """
+    解析流事件，提取内容并标记类型。
+
+    返回格式:
+    - {"type": "text", "content": "..."} - 普通文本内容
+    - {"type": "tool_use", "tool_name": "...", "tool_input": {...}} - 工具调用开始
+    - {"type": "tool_result", "content": "..."} - 工具调用结果
+    - {"type": "thinking", "content": "..."} - 思考过程
+    - {"type": "metadata", "usage": {...}} - 元数据（token使用等）
+    - None - 应该忽略的内部事件
+    """
+    import ast
+    import re
+
+    # 最早期检查：如果原始字符串包含 Strands SDK 内部标识符，直接跳过
+    # 这可以避免解析失败后把整个 dict 字符串当作文本返回
+    internal_markers = [
+        "'agent':", '"agent":',
+        "'event_loop_cycle_id':", '"event_loop_cycle_id":',
+        "'request_state':", '"request_state":',
+        "'event_loop_cycle_trace':", '"event_loop_cycle_trace":',
+        "'event_loop_cycle_span':", '"event_loop_cycle_span":',
+        "'model':", '"model":',
+        "'messages':", '"messages":',
+        "'system_prompt':", '"system_prompt":',
+        "'tool_config':", '"tool_config":',
+        "<strands.agent.agent.Agent object",
+        "<strands.models.bedrock.BedrockModel object",
+        "event_loop_parent_cycle_id",
+        "AgentResult(stop_reason=",
+    ]
+    for marker in internal_markers:
+        if marker in data_content:
+            return None
+
+    def _try_parse(content: str) -> Optional[dict]:
+        """尝试解析 JSON 或 Python dict 字符串"""
+        # 先尝试 JSON
+        try:
+            return json.loads(content)
+        except (json.JSONDecodeError, TypeError):
+            pass
+
+        # 尝试 Python ast.literal_eval（处理单引号 dict）
+        # 首先清理不能被 literal_eval 解析的 Python 对象引用
+        cleaned = content
+        # 移除 Python 对象引用 如 <strands.agent.agent.Agent object at 0x...>
+        cleaned = re.sub(r"<[^>]+object at 0x[0-9a-fA-F]+>", "null", cleaned)
+        # 移除 UUID 对象引用 如 UUID('...')
+        cleaned = re.sub(r"UUID\('([^']+)'\)", r"'\1'", cleaned)
+        # 移除 _Span 对象引用
+        cleaned = re.sub(r"_Span\([^)]+\)", "null", cleaned)
+        # 将 True/False/None 转为 JSON 格式（小写）
+        # 注意：只替换独立的单词，不替换字符串中的
+        cleaned = re.sub(r'\bTrue\b', 'true', cleaned)
+        cleaned = re.sub(r'\bFalse\b', 'false', cleaned)
+        cleaned = re.sub(r'\bNone\b', 'null', cleaned)
+        # 将单引号替换为双引号（简单处理）
+        # 注意：这个简单替换可能在某些边缘情况下不正确
+        cleaned = cleaned.replace("'", '"')
+
+        try:
+            return json.loads(cleaned)
+        except (json.JSONDecodeError, TypeError):
+            pass
+
+        # 最后尝试 ast.literal_eval
+        try:
+            result = ast.literal_eval(content)
+            if isinstance(result, dict):
+                return result
+        except (ValueError, SyntaxError):
+            pass
+
+        return None
+
+    parsed = _try_parse(data_content)
+
+    # 如果解析失败，检查是否是普通文本
+    if parsed is None:
+        stripped = data_content.strip()
+        if stripped:
+            return {"type": "text", "content": stripped}
+        return None
+
+    # 处理双重编码的字符串
+    if isinstance(parsed, str):
+        inner = _try_parse(parsed)
+        if inner and isinstance(inner, dict):
+            parsed = inner
+        else:
+            # 如果是普通字符串，作为文本返回
+            return {"type": "text", "content": parsed}
+
+    if not isinstance(parsed, dict):
+        return {"type": "text", "content": str(parsed)}
+
+    # 忽略内部事件
+    if parsed.get("init_event_loop") or parsed.get("start") or parsed.get("start_event_loop"):
+        return None
+
+    # 优先检查：忽略包含 agent、event_loop_cycle_id 等内部字段的事件
+    # 这些是 Strands SDK 的内部状态，不应该发送给前端
+    internal_keys = {"agent", "event_loop_cycle_id", "request_state", "event_loop_cycle_trace",
+                     "event_loop_cycle_span", "model", "messages", "system_prompt", "tool_config",
+                     "event_loop_parent_cycle_id"}
+    if internal_keys & set(parsed.keys()):
+        return None
+
+    # 处理 Strands SDK 的 tool_use_stream 事件（Python dict 格式）
+    if parsed.get("type") == "tool_use_stream":
+        current_tool = parsed.get("current_tool_use", {})
+        tool_name = current_tool.get("name")
+        tool_id = current_tool.get("toolUseId", "")
+        delta_input = parsed.get("delta", {}).get("toolUse", {}).get("input", "")
+
+        if tool_name:
+            # 这是工具调用的开始或输入更新
+            return {
+                "type": "tool_use",
+                "tool_name": tool_name,
+                "tool_id": tool_id,
+                "tool_input": delta_input,
+            }
+        return None
+
+    # 处理 Strands SDK 的 data/delta 事件（文本内容）
+    if "data" in parsed and "delta" in parsed:
+        delta = parsed.get("delta", {})
+        if "text" in delta:
+            return {"type": "text", "content": delta["text"]}
+        # 忽略其他 delta 类型
+        return None
+
+    # 处理 event 包装的事件（标准 AgentCore 格式）
+    if "event" in parsed:
+        event_data = parsed["event"]
+
+        # 文本内容: contentBlockDelta
+        if "contentBlockDelta" in event_data:
+            delta = event_data["contentBlockDelta"].get("delta", {})
+            if "text" in delta:
+                return {"type": "text", "content": delta["text"]}
+            # 工具输入
+            if "toolUse" in delta:
+                tool_input = delta["toolUse"].get("input", "")
+                return {"type": "tool_input", "content": tool_input}
+            return None
+
+        # 工具调用开始: contentBlockStart with toolUse
+        if "contentBlockStart" in event_data:
+            start_data = event_data["contentBlockStart"].get("start", {})
+            if "toolUse" in start_data:
+                tool_use = start_data["toolUse"]
+                return {
+                    "type": "tool_use",
+                    "tool_name": tool_use.get("name", "unknown"),
+                    "tool_id": tool_use.get("toolUseId", ""),
+                }
+            return None
+
+        # 内容块结束
+        if "contentBlockStop" in event_data:
+            return {"type": "block_stop"}
+
+        # 消息开始/结束
+        if "messageStart" in event_data or "messageStop" in event_data:
+            return None
+
+        # 元数据（token使用等）
+        if "metadata" in event_data:
+            metadata = event_data["metadata"]
+            if "usage" in metadata:
+                return {"type": "metadata", "usage": metadata["usage"]}
+            return None
+
+    # 处理 result 事件（最终结果）
+    if "result" in parsed:
+        return None  # 忽略最终result，内容已通过delta发送
+
+    # 处理 message 事件
+    if "message" in parsed:
+        return None  # 忽略完整message，内容已通过delta发送
+
+    # 其他情况忽略（避免显示原始 dict）
+    return None
 
 
 def _get_db() -> DynamoDBClient:
@@ -164,7 +368,7 @@ async def create_agent_session(
     created_at = _utc_now()
     session_record = AgentSessionRecord(
         agent_id=agent_id,
-        session_id=uuid.uuid4().hex,
+        session_id=str(uuid.uuid4()),  # 使用带连字符的 UUID (36字符) 以满足 AWS runtimeSessionId 最小 33 字符要求
         display_name=payload.display_name or f"会话 {created_at.strftime('%H:%M')}",
         created_at=created_at,
         last_active_at=created_at,
@@ -330,6 +534,268 @@ async def upload_files_to_session(
 # --------------------------------------------------------------------------- #
 
 
+async def _invoke_agentcore_runtime_stream(
+    *,
+    runtime_arn: str,
+    runtime_alias: Optional[str],
+    runtime_region: Optional[str],
+    session_id: str,
+    message: str,
+    user_id: Optional[str] = None,
+    files: Optional[List[Dict[str, Any]]] = None,
+):
+    """
+    使用 boto3 调用 AgentCore runtime（流式版本）
+    支持文本和多模态输入（图片、文件等）
+
+    Yields:
+        Tuple[str, Optional[Dict]]: (chunk_text, metrics_or_none)
+    """
+
+    def _stream_call():
+        try:
+            print(f"\n🚀 Invoking AgentCore (streaming):")
+            print(f"   ARN: {runtime_arn}")
+            print(f"   Session: {session_id}")
+            print(f"   Message: {message[:100]}")
+            if files:
+                print(f"   Files: {len(files)} file(s)")
+
+            # 构建 payload（AgentCore 标准格式）
+            payload = {"prompt": message}
+
+            # 如果有文件，添加到 media 字段
+            if files and len(files) > 0:
+                media_items = []
+                for file_data in files:
+                    # 提取文件信息
+                    filename = file_data.get('filename', 'unknown')
+                    content_type = file_data.get('content_type', 'application/octet-stream')
+                    data = file_data.get('data', '')  # base64编码的内容
+
+                    # 确定媒体类型
+                    if content_type.startswith('image/'):
+                        media_type = 'image'
+                        format_type = content_type.split('/')[-1]  # jpeg, png, etc.
+                    elif content_type.startswith('audio/'):
+                        media_type = 'audio'
+                        format_type = content_type.split('/')[-1]
+                    elif content_type.startswith('video/'):
+                        media_type = 'video'
+                        format_type = content_type.split('/')[-1]
+                    else:
+                        media_type = 'document'
+                        format_type = filename.split('.')[-1] if '.' in filename else 'bin'
+
+                    media_items.append({
+                        'type': media_type,
+                        'format': format_type,
+                        'data': data,
+                        'filename': filename
+                    })
+
+                payload['media'] = media_items
+                print(f"   Media items: {len(media_items)}")
+
+            print(f"   Payload keys: {list(payload.keys())}\n")
+
+            logger.info(f"Invoking AgentCore: arn={runtime_arn}, session={session_id}")
+            logger.info(f"Payload: query={message[:100]}, media_count={len(files) if files else 0}")
+
+            # 调用 invoke_agent_runtime
+            payload_str = json.dumps(payload)
+            print(f"   Calling invoke_agent_runtime...")
+            print(f"   Payload: {payload_str[:200]}")
+
+            # 添加 botocore 配置以增加超时
+            from botocore.config import Config
+            config = Config(
+                read_timeout=3000,  # 5分钟读取超时
+                connect_timeout=30,  # 30秒连接超时
+                retries={'max_attempts': 0}  # 不重试
+            )
+            client = boto3.client(
+                "bedrock-agentcore",
+                region_name=runtime_region or settings.AWS_DEFAULT_REGION,
+                config=config
+            )
+
+            try:
+                response = client.invoke_agent_runtime(
+                    agentRuntimeArn=runtime_arn,
+                    qualifier="DEFAULT",
+                    runtimeSessionId=session_id,
+                    contentType="application/json",
+                    accept="text/event-stream",  # 请求流式响应
+                    payload=payload_str
+                )
+            except Exception as e:
+                error_msg = str(e)
+                if "ReadTimeout" in error_msg or "read timeout" in error_msg.lower():
+                    logger.error(f"Agent runtime timeout after 5 minutes: {error_msg}")
+                    raise HTTPException(
+                        status_code=504,
+                        detail={
+                            "code": "AGENT_TIMEOUT",
+                            "message": "Agent 执行超时（超过5分钟）",
+                            "details": "请简化查询或优化 Agent 工具的性能"
+                        }
+                    )
+                raise
+
+            status_code = response['ResponseMetadata']['HTTPStatusCode']
+            print(f"   ✅ Response status: {status_code}")
+            logger.info(f"Response status: {status_code}")
+
+            # 检查 contentType 判断响应类型
+            content_type = response.get('contentType', '')
+            print(f"   Content-Type: {content_type}")
+
+            # 处理 text/event-stream 流式响应
+            if 'text/event-stream' in content_type:
+                print(f"   📡 Streaming response detected")
+                response_stream = response.get('response')
+                if response_stream and hasattr(response_stream, 'iter_lines'):
+                    for line in response_stream.iter_lines(chunk_size=1):
+                        if line:
+                            line_str = line.decode('utf-8') if isinstance(line, bytes) else line
+                            if line_str.startswith('data: '):
+                                data_content = line_str[6:]  # 去掉 "data: " 前缀
+                                # 尝试解析 JSON 字符串（AgentCore 可能返回 JSON 编码的字符串）
+                                try:
+                                    parsed = json.loads(data_content)
+                                    # 如果解析成功且是字符串，使用解析后的值
+                                    if isinstance(parsed, str):
+                                        data_content = parsed
+                                        # 继续尝试解析（可能是双重编码）
+                                        try:
+                                            parsed2 = json.loads(data_content)
+                                            if isinstance(parsed2, str):
+                                                data_content = parsed2
+                                        except (json.JSONDecodeError, TypeError):
+                                            pass
+                                except (json.JSONDecodeError, TypeError):
+                                    pass  # 保持原样
+                                print(f"   📤 Stream chunk: {data_content[:100]}")
+                                yield (data_content, None)
+                elif response_stream and hasattr(response_stream, 'read'):
+                    # fallback: 一次性读取
+                    raw_content = response_stream.read()
+                    completion = raw_content.decode('utf-8') if isinstance(raw_content, bytes) else raw_content
+                    # 尝试解析 JSON 字符串
+                    try:
+                        parsed = json.loads(completion)
+                        if isinstance(parsed, str):
+                            completion = parsed
+                    except (json.JSONDecodeError, TypeError):
+                        pass
+                    yield (completion, None)
+            # 处理普通响应
+            elif 'response' in response:
+                print(f"   Reading non-streaming response...")
+                response_stream = response['response']
+                if hasattr(response_stream, 'read'):
+                    raw = response_stream.read()
+                    completion = raw.decode('utf-8') if isinstance(raw, bytes) else raw
+                else:
+                    completion = str(response_stream)
+                # 尝试解析 JSON 字符串
+                try:
+                    parsed = json.loads(completion)
+                    if isinstance(parsed, str):
+                        completion = parsed
+                except (json.JSONDecodeError, TypeError):
+                    pass
+                print(f"   ✅ Got response: {len(completion)} characters")
+                yield (completion, None)
+            elif 'payload' in response:
+                # 兼容旧版本
+                print(f"   Reading payload stream...")
+                payload_stream = response['payload']
+                if hasattr(payload_stream, 'read'):
+                    raw = payload_stream.read()
+                    completion = raw.decode('utf-8') if isinstance(raw, bytes) else raw
+                else:
+                    completion = str(payload_stream)
+                # 尝试解析 JSON 字符串
+                try:
+                    parsed = json.loads(completion)
+                    if isinstance(parsed, str):
+                        completion = parsed
+                except (json.JSONDecodeError, TypeError):
+                    pass
+                print(f"   ✅ Got response: {len(completion)} characters")
+                yield (completion, None)
+            else:
+                print(f"   ⚠️ No response/payload in response")
+                print(f"   Response keys: {list(response.keys())}\n")
+
+            # 提取指标（如果有的话）
+            if 'usage' in response:
+                usage = response['usage']
+                metrics = {
+                    'input_tokens': usage.get('inputTokens', 0),
+                    'output_tokens': usage.get('outputTokens', 0),
+                }
+                yield (None, metrics)
+
+        except ClientError as e:
+            error_code = e.response.get('Error', {}).get('Code', 'Unknown')
+            error_message = e.response.get('Error', {}).get('Message', str(e))
+            print(f"\n❌ AgentCore ClientError:")
+            print(f"   Code: {error_code}")
+            print(f"   Message: {error_message}\n")
+            logger.error(f"AgentCore invocation failed: {error_code} - {error_message}")
+            raise Exception(f"AgentCore error: {error_code} - {error_message}")
+        except Exception as e:
+            print(f"\n❌ AgentCore Exception: {str(e)}\n")
+            logger.error(f"AgentCore invocation failed: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            raise
+
+    # 使用队列实现真正的流式传输
+    import asyncio
+    import queue
+    import threading
+
+    chunk_queue: queue.Queue = queue.Queue()
+    error_holder: list = []
+
+    def run_stream():
+        try:
+            for chunk in _stream_call():
+                chunk_queue.put(chunk)
+        except Exception as e:
+            error_holder.append(e)
+        finally:
+            chunk_queue.put(None)  # 结束信号
+
+    # 在后台线程中运行同步生成器
+    thread = threading.Thread(target=run_stream, daemon=True)
+    thread.start()
+
+    # 异步地从队列中读取结果
+    while True:
+        # 使用 run_in_executor 来非阻塞地等待队列
+        try:
+            chunk = await asyncio.get_event_loop().run_in_executor(
+                None, lambda: chunk_queue.get(timeout=0.1)
+            )
+            if chunk is None:  # 结束信号
+                break
+            yield chunk
+        except queue.Empty:
+            # 队列为空，继续等待
+            if not thread.is_alive() and chunk_queue.empty():
+                break
+            await asyncio.sleep(0.01)
+
+    # 检查是否有错误
+    if error_holder:
+        raise error_holder[0]
+
+
 async def _invoke_agentcore_runtime(
     *,
     runtime_arn: str,
@@ -341,7 +807,7 @@ async def _invoke_agentcore_runtime(
     files: Optional[List[Dict[str, Any]]] = None,
 ) -> Tuple[str, Dict[str, Any]]:
     """
-    使用 boto3 调用 AgentCore runtime
+    使用 boto3 调用 AgentCore runtime（非流式版本，保留用于向后兼容）
     支持文本和多模态输入（图片、文件等）
     """
 
@@ -418,6 +884,7 @@ async def _invoke_agentcore_runtime(
                 response = client.invoke_agent_runtime(
                     agentRuntimeArn=runtime_arn,
                     qualifier="DEFAULT",
+                    sessionId=session_id,  # 传递 session_id 以维护对话历史
                     payload=payload_str
                 )
             except Exception as e:
@@ -457,7 +924,7 @@ async def _invoke_agentcore_runtime(
                                 data_content = line_str[6:]  # 去掉 "data: " 前缀
                                 print(f"   Stream data: {data_content[:100]}")
                                 content_parts.append(data_content)
-                    completion = "\n".join(content_parts)
+                    completion = "".join(content_parts)
                 elif response_stream and hasattr(response_stream, 'read'):
                     # fallback: 一次性读取
                     raw_content = response_stream.read()
@@ -676,18 +1143,20 @@ async def stream_agent_response(
     async def event_stream():
         assistant_chunks: list[str] = []
         metrics_snapshot: Dict[str, Any] = {}
+        current_tool_name: Optional[str] = None
+        current_tool_input: str = ""
 
         try:
             if runtime_arn:
-                # 使用 AgentCore (boto3)
-                print(f"✅ Using AgentCore runtime: {runtime_arn}")
-                logger.info(f"✅ Using AgentCore runtime: {runtime_arn}")
+                # 使用 AgentCore (boto3) - 流式响应
+                print(f"✅ Using AgentCore runtime (streaming): {runtime_arn}")
+                logger.info(f"✅ Using AgentCore runtime (streaming): {runtime_arn}")
                 try:
                     # 从会话中获取 user_id（如果有的话）
                     user_id = session.get('user_id') if isinstance(session, dict) else None
-                    
-                    # 调用 AgentCore（支持文件）
-                    text, runtime_metrics = await _invoke_agentcore_runtime(
+
+                    # 调用 AgentCore 流式函数
+                    async for chunk_text, metrics in _invoke_agentcore_runtime_stream(
                         runtime_arn=runtime_arn,
                         runtime_alias=runtime_alias,
                         runtime_region=runtime_region,
@@ -695,50 +1164,103 @@ async def stream_agent_response(
                         message=user_message,
                         user_id=user_id,
                         files=files,
-                    )
-                    
-                    # 分块发送响应（模拟流式效果）
-                    if text:
-                        assistant_chunks.append(text)
-                        # 将响应分成小块发送
-                        chunk_size = 50
-                        for i in range(0, len(text), chunk_size):
-                            chunk = text[i:i+chunk_size]
-                            yield _format_sse({"event": "message", "data": chunk})
-                            await asyncio.sleep(0.01)  # 小延迟，模拟流式效果
-                    
-                    # 发送指标
-                    if runtime_metrics:
-                        metrics_snapshot.update(runtime_metrics)
-                        yield _format_sse({"event": "metrics", "data": runtime_metrics})
-                    
+                    ):
+                        if chunk_text:
+                            # 解析事件类型
+                            # 只打印前100字符，避免日志过长
+                            is_internal = any(m in chunk_text for m in ["'agent':", "'event_loop_cycle_id':", "AgentResult("])
+                            if is_internal:
+                                print(f"   🔇 Internal event (len={len(chunk_text)})")
+                            else:
+                                print(f"   📥 Raw chunk ({len(chunk_text)} chars): {chunk_text[:150]}")
+
+                            parsed_event = _parse_stream_event(chunk_text)
+
+                            if parsed_event is None:
+                                # 忽略内部事件
+                                if not is_internal:
+                                    print(f"   ⏭️ Skipped: {chunk_text[:80]}...")
+                                continue
+
+                            event_type = parsed_event.get("type")
+                            print(f"   ✨ Parsed event: type={event_type}, content={str(parsed_event)[:150]}")
+
+                            if event_type == "text":
+                                # 普通文本内容
+                                text_content = parsed_event.get("content", "")
+                                assistant_chunks.append(text_content)
+                                sse_payload = {
+                                    "event": "message",
+                                    "type": "text",
+                                    "data": text_content
+                                }
+                                print(f"   📤 Sending SSE: {str(sse_payload)[:100]}")
+                                yield _format_sse(sse_payload)
+
+                            elif event_type == "tool_use":
+                                # 工具调用开始
+                                current_tool_name = parsed_event.get("tool_name", "unknown")
+                                current_tool_input = ""
+                                sse_payload = {
+                                    "event": "message",
+                                    "type": "tool_use",
+                                    "tool_name": current_tool_name,
+                                    "tool_id": parsed_event.get("tool_id", "")
+                                }
+                                print(f"   📤 Sending SSE (tool_use): {current_tool_name}")
+                                yield _format_sse(sse_payload)
+
+                            elif event_type == "tool_input":
+                                # 工具输入内容（累积）
+                                input_chunk = parsed_event.get("content", "")
+                                # 解码 Unicode 转义
+                                input_chunk = _decode_unicode_escapes(input_chunk)
+                                current_tool_input += input_chunk
+                                yield _format_sse({
+                                    "event": "message",
+                                    "type": "tool_input",
+                                    "data": input_chunk
+                                })
+
+                            elif event_type == "block_stop":
+                                # 内容块结束
+                                if current_tool_name:
+                                    # 工具调用结束，发送完整工具信息
+                                    yield _format_sse({
+                                        "event": "message",
+                                        "type": "tool_end",
+                                        "tool_name": current_tool_name,
+                                        "tool_input": current_tool_input
+                                    })
+                                    current_tool_name = None
+                                    current_tool_input = ""
+
+                            elif event_type == "metadata":
+                                # 元数据（token使用等）
+                                usage = parsed_event.get("usage", {})
+                                if usage:
+                                    metrics_snapshot.update({
+                                        "input_tokens": usage.get("inputTokens", 0),
+                                        "output_tokens": usage.get("outputTokens", 0),
+                                    })
+                                    yield _format_sse({
+                                        "event": "metrics",
+                                        "data": metrics_snapshot
+                                    })
+
+                        if metrics:
+                            # 发送指标
+                            metrics_snapshot.update(metrics)
+                            yield _format_sse({"event": "metrics", "data": metrics})
+
                     # 发送完成事件
                     yield _format_sse({"event": "done"})
-                    
+
                 except Exception as exc:
                     error_msg = f"AgentCore invocation failed: {str(exc)}"
                     logger.error(error_msg)
                     yield _format_sse({"event": "error", "error": error_msg})
                     return
-            else:
-                # 使用本地 HTTP runtime
-                print(f"⚠️ No AgentCore ARN found, using local HTTP runtime")
-                print(f"   AGENT_RUNTIME_URL: {settings.AGENT_RUNTIME_URL}")
-                logger.warning(f"⚠️ No AgentCore ARN found, using local HTTP runtime")
-                logger.warning(f"   AGENT_RUNTIME_URL: {settings.AGENT_RUNTIME_URL}")
-                async for event_bytes, parsed in _proxy_http_runtime(
-                    agent_id=agent_id,
-                    session_id=session_id,
-                    message=user_message,
-                    request=request,
-                ):
-                    if parsed:
-                        event_type = parsed.get("event")
-                        if event_type == "message":
-                            assistant_chunks.append(str(parsed.get("data", "")))
-                        elif event_type == "metrics":
-                            metrics_snapshot.update(parsed.get("data") or {})
-                    yield event_bytes
         except Exception as exc:  # pragma: no cover - defensive logging
             logger.error(f"Stream error: {str(exc)}", exc_info=True)
             error_payload = {"event": "error", "error": str(exc)}

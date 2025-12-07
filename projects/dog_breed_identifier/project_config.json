@@ -1,0 +1,83 @@
+{
+  "project_name": "dog_breed_identifier",
+  "validation_timestamp": "2025-12-07T04:08:05.185107+00:00",
+  "overall_status": "success",
+  "agent_scripts": [
+    {
+      "script_path": "agents/generated_agents/dog_breed_identifier/dog_breed_identifier.py",
+      "syntax_valid": true,
+      "dependencies": [
+        "os",
+        "json",
+        "logging",
+        "typing",
+        "nexus_utils.agent_factory",
+        "bedrock_agentcore.runtime",
+        "argparse"
+      ],
+      "execution_params": [],
+      "argparse_params": [
+        {
+          "name": "-i",
+          "type": "str",
+          "description": "小狗特征描述（例如：\"中型犬，金色长毛，垂耳，性格温顺\"）",
+          "required": false,
+          "default": null,
+          "action": null
+        }
+      ],
+      "error_message": ""
+    }
+  ],
+  "prompt_files": [
+    {
+      "prompt_path": "generated_agents_prompts/dog_breed_identifier/dog_breed_identifier_prompt.yaml",
+      "tool_count": 6,
+      "valid": true,
+      "error_message": "",
+      "metadata": {
+        "tags": [
+          "dog_breed_identification",
+          "feature_extraction",
+          "knowledge_matching",
+          "json_output",
+          "structured_output",
+          "pet_care",
+          "animal_identification"
+        ],
+        "supported_models": [
+          "global.anthropic.claude-sonnet-4-5-20250929-v1:0"
+        ],
+        "tools_dependencies": [
+          "strands_tools/current_time",
+          "generated_tools/dog_breed_identifier/dog_breed_knowledge_tools/validate_input",
+          "generated_tools/dog_breed_identifier/dog_breed_knowledge_tools/extract_dog_features",
+          "generated_tools/dog_breed_identifier/dog_breed_knowledge_tools/match_dog_breeds",
+          "generated_tools/dog_breed_identifier/dog_breed_knowledge_tools/get_breed_habits",
+          "generated_tools/dog_breed_identifier/dog_breed_knowledge_tools/format_response"
+        ]
+      },
+      "agent_info": {
+        "name": "dog_breed_identifier",
+        "description": "智能犬种识别专家，根据用户输入的小狗特征描述识别犬种并提供详细的生活习惯信息",
+        "category": "knowledge_matching"
+      }
+    }
+  ],
+  "generated_tools": [
+    {
+      "tool_path": "generated_tools/dog_breed_identifier/dog_breed_knowledge_tools.py",
+      "syntax_valid": true,
+      "error_message": ""
+    }
+  ],
+  "total_tools": 6,
+  "summary": {
+    "agent_scripts_count": 1,
+    "prompt_files_count": 1,
+    "generated_tool_files_count": 1,
+    "all_scripts_valid": true,
+    "all_tools_valid": true,
+    "all_prompts_valid": true
+  }
+}

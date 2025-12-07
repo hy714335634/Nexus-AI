@@ -1,0 +1,6 @@
+project:
+  created_date: '2025-12-04T06:13:07.672417+00:00'
+  description: 小红书广告生成Agent - 根据产品信息自动生成符合小红书平台风格的广告文案
+  name: xiaohongshu_ad_generator
+  updated_date: '2025-12-04T06:13:16.368562+00:00'
+  version: 1.0.0

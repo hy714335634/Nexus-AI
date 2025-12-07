@@ -1,0 +1,6 @@
+project:
+  created_date: '2025-12-07T03:48:01.533271+00:00'
+  description: 根据用户输入的小狗特征，识别小狗品种并返回该品种的生活习惯信息
+  name: dog_breed_identifier
+  updated_date: '2025-12-07T03:48:09.835680+00:00'
+  version: 1.0.0

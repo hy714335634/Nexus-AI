@@ -401,7 +401,6 @@
   line-height: 1.6;
   font-size: 0.95rem;
   word-break: break-word;
-  white-space: pre-wrap;
 }
 
 .bubbleUser {
@@ -969,4 +968,375 @@
   100% {
     background-position: -200% 0;
   }
+}
+
+/* ==================== Markdown Content ==================== */
+.markdownContent {
+  line-height: 1.7;
+  font-size: 0.95rem;
+}
+
+.markdownContent p {
+  margin: 0 0 12px 0;
+}
+
+.markdownContent p:last-child {
+  margin-bottom: 0;
+}
+
+.markdownContent h1,
+.markdownContent h2,
+.markdownContent h3,
+.markdownContent h4,
+.markdownContent h5,
+.markdownContent h6 {
+  margin: 16px 0 8px 0;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.markdownContent h1 {
+  font-size: 1.4rem;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 8px;
+}
+
+.markdownContent h2 {
+  font-size: 1.2rem;
+}
+
+.markdownContent h3 {
+  font-size: 1.1rem;
+}
+
+.markdownContent h4,
+.markdownContent h5,
+.markdownContent h6 {
+  font-size: 1rem;
+}
+
+.markdownContent ul,
+.markdownContent ol {
+  margin: 8px 0;
+  padding-left: 24px;
+}
+
+.markdownContent li {
+  margin: 4px 0;
+}
+
+.markdownContent li > ul,
+.markdownContent li > ol {
+  margin: 4px 0;
+}
+
+.markdownContent blockquote {
+  margin: 12px 0;
+  padding: 8px 16px;
+  border-left: 4px solid var(--primary);
+  background: rgba(102, 126, 234, 0.08);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  color: var(--muted);
+}
+
+.markdownContent blockquote p {
+  margin: 0;
+}
+
+.markdownContent code {
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace;
+  font-size: 0.85em;
+  background: rgba(102, 126, 234, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--primary-dark);
+}
+
+.markdownContent pre {
+  margin: 12px 0;
+  padding: 14px 16px;
+  background: #1e1e2e;
+  border-radius: var(--radius-sm);
+  overflow-x: auto;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.markdownContent pre code {
+  background: transparent;
+  padding: 0;
+  color: #cdd6f4;
+  font-size: inherit;
+}
+
+.markdownContent pre::-webkit-scrollbar {
+  height: 6px;
+}
+
+.markdownContent pre::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+.markdownContent pre::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+}
+
+.markdownContent a {
+  color: var(--primary);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(102, 126, 234, 0.3);
+  transition: border-color 0.15s ease;
+}
+
+.markdownContent a:hover {
+  border-color: var(--primary);
+}
+
+.markdownContent table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0;
+  font-size: 0.9rem;
+}
+
+.markdownContent th,
+.markdownContent td {
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  text-align: left;
+}
+
+.markdownContent th {
+  background: rgba(102, 126, 234, 0.08);
+  font-weight: 600;
+}
+
+.markdownContent tr:nth-child(even) {
+  background: rgba(102, 126, 234, 0.03);
+}
+
+.markdownContent hr {
+  margin: 16px 0;
+  border: none;
+  border-top: 1px solid var(--border-color);
+}
+
+.markdownContent img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-sm);
+  margin: 8px 0;
+}
+
+.markdownContent strong {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.markdownContent em {
+  font-style: italic;
+}
+
+.markdownContent del {
+  text-decoration: line-through;
+  color: var(--muted);
+}
+
+/* Task list (GFM) */
+.markdownContent input[type="checkbox"] {
+  margin-right: 8px;
+  accent-color: var(--primary);
+}
+
+/* User bubble markdown - lighter code blocks */
+.bubbleUser .markdownContent code {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.bubbleUser .markdownContent pre {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.bubbleUser .markdownContent pre code {
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.bubbleUser .markdownContent a {
+  color: white;
+  border-bottom-color: rgba(255, 255, 255, 0.5);
+}
+
+.bubbleUser .markdownContent blockquote {
+  background: rgba(255, 255, 255, 0.1);
+  border-left-color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.bubbleUser .markdownContent th,
+.bubbleUser .markdownContent td {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.bubbleUser .markdownContent th {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.bubbleUser .markdownContent hr {
+  border-top-color: rgba(255, 255, 255, 0.2);
+}
+
+/* ==================== Tool Use Blocks ==================== */
+.toolBlocksContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.toolUseBlock {
+  margin: 0;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(16, 185, 129, 0.04));
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  overflow: hidden;
+}
+
+.toolUseHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: rgba(16, 185, 129, 0.1);
+  border-bottom: 1px solid rgba(16, 185, 129, 0.15);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--success);
+}
+
+.toolUseIcon {
+  font-size: 1rem;
+}
+
+.toolUseName {
+  flex: 1;
+}
+
+.toolUseStatus {
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background: rgba(16, 185, 129, 0.2);
+}
+
+.toolUseContent {
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  color: var(--muted);
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.toolUseContent::-webkit-scrollbar {
+  width: 4px;
+}
+
+.toolUseContent::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.toolUseContent::-webkit-scrollbar-thumb {
+  background: rgba(16, 185, 129, 0.3);
+  border-radius: 4px;
+}
+
+/* Tool Use Loading Animation */
+.toolUseLoading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.toolUseSpinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(16, 185, 129, 0.2);
+  border-top-color: var(--success);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* Tool Result Block */
+.toolResultBlock {
+  margin: 8px 0 12px 0;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  background: rgba(102, 126, 234, 0.06);
+  border: 1px solid rgba(102, 126, 234, 0.15);
+  font-size: 0.85rem;
+}
+
+.toolResultHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--primary);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.toolResultContent {
+  color: var(--ink);
+  line-height: 1.5;
+}
+
+/* Collapsed tool block (for completed tools) */
+.toolUseCollapsed {
+  margin: 8px 0;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background: rgba(16, 185, 129, 0.06);
+  border: 1px solid rgba(16, 185, 129, 0.15);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.toolUseCollapsed:hover {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.25);
+}
+
+.toolUseCollapsedIcon {
+  color: var(--success);
+}
+
+.toolUseCollapsedName {
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.toolUseCollapsedChevron {
+  margin-left: auto;
+  transition: transform 0.15s ease;
+}
+
+.toolUseCollapsed.expanded .toolUseCollapsedChevron {
+  transform: rotate(180deg);
 }
