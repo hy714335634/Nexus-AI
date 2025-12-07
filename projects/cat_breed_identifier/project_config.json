@@ -1,0 +1,90 @@
+{
+  "project_name": "cat_breed_identifier",
+  "validation_timestamp": "2025-12-07T14:12:53.562122+00:00",
+  "overall_status": "success",
+  "agent_scripts": [
+    {
+      "script_path": "agents/generated_agents/cat_breed_identifier/cat_breed_identifier.py",
+      "syntax_valid": true,
+      "dependencies": [
+        "os",
+        "json",
+        "logging",
+        "typing",
+        "nexus_utils.agent_factory",
+        "bedrock_agentcore.runtime",
+        "argparse"
+      ],
+      "execution_params": [],
+      "argparse_params": [
+        {
+          "name": "-i",
+          "type": "str",
+          "description": "测试输入：猫咪特征描述",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "--debug",
+          "type": "str",
+          "description": "启用调试日志",
+          "required": false,
+          "default": null,
+          "action": "store_true"
+        }
+      ],
+      "error_message": ""
+    }
+  ],
+  "prompt_files": [
+    {
+      "prompt_path": "generated_agents_prompts/cat_breed_identifier/cat_breed_identifier.yaml",
+      "tool_count": 5,
+      "valid": true,
+      "error_message": "",
+      "metadata": {
+        "tags": [
+          "pet_analysis",
+          "cat_breed_identification",
+          "cat_behavior",
+          "pet_care",
+          "conversation",
+          "feature_extraction",
+          "knowledge_based"
+        ],
+        "supported_models": [
+          "global.anthropic.claude-sonnet-4-5-20250929-v1:0"
+        ],
+        "tools_dependencies": [
+          "generated_tools/cat_breed_identifier/cat_breed_tools/validate_user_input",
+          "generated_tools/cat_breed_identifier/cat_breed_tools/extract_feature_keywords",
+          "generated_tools/cat_breed_identifier/cat_breed_tools/calculate_feature_completeness",
+          "generated_tools/cat_breed_identifier/cat_breed_tools/generate_follow_up_questions",
+          "generated_tools/cat_breed_identifier/cat_breed_tools/format_breed_response"
+        ]
+      },
+      "agent_info": {
+        "name": "cat_breed_identifier",
+        "description": "猫咪品种识别与习性分析专家，基于用户描述的猫咪外观特征准确识别品种并提供详细的生活习性信息",
+        "category": "pet_analysis"
+      }
+    }
+  ],
+  "generated_tools": [
+    {
+      "tool_path": "generated_tools/cat_breed_identifier/cat_breed_tools.py",
+      "syntax_valid": true,
+      "error_message": ""
+    }
+  ],
+  "total_tools": 5,
+  "summary": {
+    "agent_scripts_count": 1,
+    "prompt_files_count": 1,
+    "generated_tool_files_count": 1,
+    "all_scripts_valid": true,
+    "all_tools_valid": true,
+    "all_prompts_valid": true
+  }
+}

@@ -1,0 +1,212 @@
+{
+  "agent_code_development": {
+    "development_overview": {
+      "project_name": "cat_breed_identifier",
+      "version": "1.0",
+      "date": "2025-12-07",
+      "development_scope": "开发猫咪品种识别Agent的完整执行代码，包括Agent初始化、AgentCore入口点、流式响应处理、本地测试功能等核心模块。基于提示词模板和工具代码实现品种识别、置信度评估、交互式追问等功能。",
+      "design_principles": [
+        "标准化入口：遵循BedrockAgentCoreApp规范，使用@app.entrypoint装饰器",
+        "流式响应：使用agent.stream_async()实现流式输出，提升用户体验",
+        "错误处理：完整的异常捕获和错误信息返回机制",
+        "日志记录：详细的日志记录，便于监控和调试",
+        "灵活部署：支持本地测试和AgentCore部署两种模式",
+        "代码简洁：遵循单一职责原则，避免过度封装"
+      ],
+      "key_decisions": [
+        "使用BedrockAgentCoreApp模式：符合AgentCore部署规范，支持标准化部署",
+        "异步handler函数：使用async def和yield实现流式响应",
+        "agent_factory创建Agent：使用create_agent_from_prompt_template简化初始化",
+        "多字段兼容：支持prompt/message/input多种输入字段名",
+        "环境变量检测：通过DOCKER_CONTAINER判断运行模式",
+        "详细日志记录：记录请求信息、流式事件、错误详情"
+      ]
+    },
+    "agent_implementation": {
+      "agent_name": "cat_breed_identifier",
+      "file_path": "agents/generated_agents/cat_breed_identifier/cat_breed_identifier.py",
+      "main_class": "无（使用函数式编程）",
+      "entry_point": "handler (async function)",
+      "dependencies": [
+        "nexus_utils.agent_factory",
+        "bedrock_agentcore.runtime",
+        "os",
+        "json",
+        "logging",
+        "typing"
+      ],
+      "imports": [
+        "from nexus_utils.agent_factory import create_agent_from_prompt_template",
+        "from bedrock_agentcore.runtime import BedrockAgentCoreApp",
+        "import os",
+        "import json",
+        "import logging",
+        "from typing import Dict, Any"
+      ]
+    },
+    "core_functions": [
+      {
+        "function_name": "handler",
+        "purpose": "AgentCore标准入口点，处理HTTP请求并返回流式响应",
+        "parameters": [
+          {
+            "name": "payload",
+            "type": "Dict[str, Any]",
+            "description": "AgentCore传入的请求体，包含prompt、user_id、session_id、media等字段",
+            "required": true
+          }
+        ],
+        "return_type": "AsyncGenerator[str, None]",
+        "return_description": "流式响应的文本片段，通过yield逐步产生",
+        "implementation_notes": [
+          "使用@app.entrypoint装饰器标记为AgentCore入口点",
+          "函数必须是async异步函数",
+          "从payload中提取prompt字段（支持prompt/message/input多种名称）",
+          "验证prompt是否为空，为空则返回错误信息",
+          "记录请求信息（user_id、session_id、prompt）",
+          "调用cat_breed_identifier.stream_async(prompt)获取流式响应",
+          "使用async for遍历流式事件，逐个yield返回",
+          "捕获所有异常，返回友好的错误信息",
+          "使用logging记录关键步骤和错误"
+        ]
+      },
+      {
+        "function_name": "__main__",
+        "purpose": "本地运行入口，支持命令行测试和HTTP服务器启动",
+        "parameters": [
+          {
+            "name": "args.input",
+            "type": "str",
+            "description": "命令行参数：测试输入的猫咪特征描述",
+            "required": false
+          },
+          {
+            "name": "args.debug",
+            "type": "bool",
+            "description": "命令行参数：是否启用调试日志",
+            "required": false
+          }
+        ],
+        "return_type": "None",
+        "return_description": "无返回值，直接输出到控制台或启动HTTP服务器",
+        "implementation_notes": [
+          "使用argparse解析命令行参数",
+          "检查DOCKER_CONTAINER环境变量判断运行模式",
+          "Docker模式：调用app.run()启动HTTP服务器",
+          "本地测试模式（有-i参数）：同步调用agent，输出响应",
+          "默认模式（无-i参数）：启动HTTP服务器",
+          "处理agent响应的多种格式（content、text、str）",
+          "完整的异常处理和日志记录"
+        ]
+      }
+    ],
+    "tool_integration": {
+      "custom_tools": [
+        "validate_user_input",
+        "extract_feature_keywords",
+        "calculate_feature_completeness",
+        "generate_follow_up_questions",
+        "format_breed_response"
+      ],
+      "system_tools": [],
+      "strands_tools": [],
+      "integration_notes": [
+        "所有工具集成通过提示词模板实现，Agent代码中不直接调用工具",
+        "工具路径在提示词模板中定义：generated_tools/cat_breed_identifier/cat_breed_tools/*",
+        "Agent通过LLM推理决定何时调用工具",
+        "工具调用结果自动传递回Agent进行下一步处理"
+      ]
+    },
+    "configuration": {
+      "environment_variables": [
+        "BYPASS_TOOL_CONSENT=true（绕过工具调用确认）",
+        "OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318（OpenTelemetry端点）",
+        "DOCKER_CONTAINER=1（Docker容器标识，可选）"
+      ],
+      "model_configuration": {
+        "model_name": "global.anthropic.claude-sonnet-4-5-20250929-v1:0",
+        "max_tokens": 60000,
+        "temperature": 0.3,
+        "streaming": true
+      },
+      "streaming_config": {
+        "enabled": true,
+        "method": "agent.stream_async()",
+        "chunk_size": "自动（由Bedrock控制）"
+      },
+      "agent_parameters": {
+        "env": "production",
+        "version": "latest",
+        "model_id": "global.anthropic.claude-sonnet-4-5-20250929-v1:0",
+        "enable_logging": true
+      }
+    },
+    "error_handling": {
+      "exception_types": [
+        "RuntimeError: Agent初始化失败",
+        "ValueError: payload中缺少prompt字段",
+        "Exception: Agent执行过程中的任何异常"
+      ],
+      "error_responses": [
+        "Error: Missing 'prompt' in request. Please provide a valid cat description.",
+        "Error: Agent execution failed - {error_message}",
+        "Agent 初始化失败: {error_message}"
+      ],
+      "recovery_strategies": [
+        "Agent初始化失败：抛出RuntimeError，终止程序",
+        "prompt缺失：返回友好错误信息，结束本次请求",
+        "执行异常：捕获异常，记录日志，返回错误信息给用户",
+        "流式响应中断：已发送的片段仍然有效，用户可看到部分结果"
+      ]
+    },
+    "testing": {
+      "test_cases": [
+        "本地测试：python cat_breed_identifier.py -i '白色长毛猫，蓝色眼睛，扁平脸'",
+        "启动服务器：python cat_breed_identifier.py",
+        "Docker部署：DOCKER_CONTAINER=1 python cat_breed_identifier.py",
+        "调试模式：python cat_breed_identifier.py -i '橘色短毛猫' --debug"
+      ],
+      "test_scenarios": [
+        "完整特征描述：验证识别准确率和习性信息完整性",
+        "缺失特征描述：验证追问功能是否触发",
+        "多候选品种：验证是否列出候选品种和区分特征",
+        "混种猫描述：验证是否给出最接近品种和说明",
+        "空输入：验证错误处理是否返回友好提示",
+        "流式响应：验证首个片段是否在2秒内返回"
+      ],
+      "validation_criteria": [
+        "Agent初始化成功，无异常抛出",
+        "本地测试能正常输出识别结果",
+        "HTTP服务器能在8080端口启动",
+        "流式响应能正确产生多个片段",
+        "错误情况能返回友好的错误信息",
+        "日志记录完整，包含关键步骤信息"
+      ]
+    },
+    "deployment": {
+      "deployment_requirements": [
+        "Python 3.13+运行环境",
+        "安装依赖包：strands-agents、bedrock_agentcore、nexus_utils等",
+        "AWS Bedrock访问权限（调用Claude Sonnet 4.5）",
+        "网络连接：访问Bedrock API和OpenTelemetry端点",
+        "端口8080可用（HTTP服务器）"
+      ],
+      "runtime_dependencies": [
+        "nexus_utils（本地工具包，./nexus_utils）",
+        "strands-agents（Strands Agent框架）",
+        "bedrock_agentcore（AgentCore运行时）",
+        "boto3（AWS SDK，Bedrock依赖）",
+        "Python标准库：os、json、logging、typing、argparse"
+      ],
+      "performance_considerations": [
+        "首次响应时间：目标2秒内返回首个片段",
+        "完整响应时间：目标5秒内完成全部响应",
+        "流式输出：逐步产生响应，降低感知延迟",
+        "日志级别：生产环境使用INFO，调试时使用DEBUG",
+        "并发处理：AgentCore自动处理并发请求",
+        "内存占用：单次请求内存占用<500MB"
+      ]
+    },
+    "development_notes": "Agent代码开发完成，遵循BedrockAgentCoreApp标准模式。核心设计包括：\n\n1. **标准化入口点**：使用@app.entrypoint装饰器定义handler函数，符合AgentCore规范。handler函数是async异步函数，使用yield产生流式响应片段。\n\n2. **Agent初始化**：使用nexus_utils.agent_factory.create_agent_from_prompt_template创建Agent，简化初始化流程。Agent参数包括env、version、model_id、enable_logging。\n\n3. **流式响应**：调用agent.stream_async(prompt)获取流式响应，使用async for遍历事件并yield返回。这种设计显著提升用户体验，首个片段可在2秒内返回。\n\n4. **错误处理**：完整的异常捕获机制，包括Agent初始化失败、prompt缺失、执行异常等场景。所有错误都返回友好的错误信息，不会导致程序崩溃。\n\n5. **日志记录**：使用logging模块记录关键步骤和错误信息。日志包括请求信息、流式事件（调试模式）、异常堆栈等，便于监控和排查问题。\n\n6. **灵活部署**：支持三种运行模式：(1) 本地测试模式（-i参数）：同步调用Agent，输出响应；(2) Docker部署模式（DOCKER_CONTAINER=1）：启动HTTP服务器；(3) 默认模式：启动HTTP服务器。\n\n7. **输入兼容性**：支持prompt/message/input多种字段名，兼容不同的调用方式。\n\n8. **响应处理**：处理Agent响应的多种格式（content、text、str），确保能正确提取响应内容。\n\n9. **命令行参数**：支持-i（测试输入）、--debug（调试日志）参数，方便本地测试和调试。\n\n10. **文档注释**：代码包含详细的docstring和注释，说明每个模块的功能和使用方法。\n\n代码已保存到agents/generated_agents/cat_breed_identifier/cat_breed_identifier.py，通过语法验证和导入检查。下一步将更新项目状态和Agent路径。"
+  }
+}

@@ -50,7 +50,211 @@ def _success_payload(data: Any) -> Dict[str, Any]:
 
 
 def _format_sse(event: Dict[str, Any]) -> bytes:
+    """格式化 SSE 事件，确保中文正确编码"""
     return f"data: {json.dumps(event, ensure_ascii=False)}\n\n".encode("utf-8")
+
+
+def _decode_unicode_escapes(text: str) -> str:
+    """解码 Unicode 转义序列，如 \\u767d\\u8272 -> 白色"""
+    if not text:
+        return text
+    try:
+        # 处理双重转义的情况 \\u -> \u
+        if '\\u' in text:
+            # 使用 unicode_escape 解码
+            return text.encode('utf-8').decode('unicode_escape')
+    except (UnicodeDecodeError, UnicodeEncodeError):
+        pass
+    return text
+
+
+def _parse_stream_event(data_content: str) -> Optional[Dict[str, Any]]:
+    """
+    解析流事件，提取内容并标记类型。
+
+    返回格式:
+    - {"type": "text", "content": "..."} - 普通文本内容
+    - {"type": "tool_use", "tool_name": "...", "tool_input": {...}} - 工具调用开始
+    - {"type": "tool_result", "content": "..."} - 工具调用结果
+    - {"type": "thinking", "content": "..."} - 思考过程
+    - {"type": "metadata", "usage": {...}} - 元数据（token使用等）
+    - None - 应该忽略的内部事件
+    """
+    import ast
+    import re
+
+    # 最早期检查：如果原始字符串包含 Strands SDK 内部标识符，直接跳过
+    # 这可以避免解析失败后把整个 dict 字符串当作文本返回
+    internal_markers = [
+        "'agent':", '"agent":',
+        "'event_loop_cycle_id':", '"event_loop_cycle_id":',
+        "'request_state':", '"request_state":',
+        "'event_loop_cycle_trace':", '"event_loop_cycle_trace":',
+        "'event_loop_cycle_span':", '"event_loop_cycle_span":',
+        "'model':", '"model":',
+        "'messages':", '"messages":',
+        "'system_prompt':", '"system_prompt":',
+        "'tool_config':", '"tool_config":',
+        "<strands.agent.agent.Agent object",
+        "<strands.models.bedrock.BedrockModel object",
+        "event_loop_parent_cycle_id",
+        "AgentResult(stop_reason=",
+    ]
+    for marker in internal_markers:
+        if marker in data_content:
+            return None
+
+    def _try_parse(content: str) -> Optional[dict]:
+        """尝试解析 JSON 或 Python dict 字符串"""
+        # 先尝试 JSON
+        try:
+            return json.loads(content)
+        except (json.JSONDecodeError, TypeError):
+            pass
+
+        # 尝试 Python ast.literal_eval（处理单引号 dict）
+        # 首先清理不能被 literal_eval 解析的 Python 对象引用
+        cleaned = content
+        # 移除 Python 对象引用 如 <strands.agent.agent.Agent object at 0x...>
+        cleaned = re.sub(r"<[^>]+object at 0x[0-9a-fA-F]+>", "null", cleaned)
+        # 移除 UUID 对象引用 如 UUID('...')
+        cleaned = re.sub(r"UUID\('([^']+)'\)", r"'\1'", cleaned)
+        # 移除 _Span 对象引用
+        cleaned = re.sub(r"_Span\([^)]+\)", "null", cleaned)
+        # 将 True/False/None 转为 JSON 格式（小写）
+        # 注意：只替换独立的单词，不替换字符串中的
+        cleaned = re.sub(r'\bTrue\b', 'true', cleaned)
+        cleaned = re.sub(r'\bFalse\b', 'false', cleaned)
+        cleaned = re.sub(r'\bNone\b', 'null', cleaned)
+        # 将单引号替换为双引号（简单处理）
+        # 注意：这个简单替换可能在某些边缘情况下不正确
+        cleaned = cleaned.replace("'", '"')
+
+        try:
+            return json.loads(cleaned)
+        except (json.JSONDecodeError, TypeError):
+            pass
+
+        # 最后尝试 ast.literal_eval
+        try:
+            result = ast.literal_eval(content)
+            if isinstance(result, dict):
+                return result
+        except (ValueError, SyntaxError):
+            pass
+
+        return None
+
+    parsed = _try_parse(data_content)
+
+    # 如果解析失败，检查是否是普通文本
+    if parsed is None:
+        stripped = data_content.strip()
+        if stripped:
+            return {"type": "text", "content": stripped}
+        return None
+
+    # 处理双重编码的字符串
+    if isinstance(parsed, str):
+        inner = _try_parse(parsed)
+        if inner and isinstance(inner, dict):
+            parsed = inner
+        else:
+            # 如果是普通字符串，作为文本返回
+            return {"type": "text", "content": parsed}
+
+    if not isinstance(parsed, dict):
+        return {"type": "text", "content": str(parsed)}
+
+    # 忽略内部事件
+    if parsed.get("init_event_loop") or parsed.get("start") or parsed.get("start_event_loop"):
+        return None
+
+    # 优先检查：忽略包含 agent、event_loop_cycle_id 等内部字段的事件
+    # 这些是 Strands SDK 的内部状态，不应该发送给前端
+    internal_keys = {"agent", "event_loop_cycle_id", "request_state", "event_loop_cycle_trace",
+                     "event_loop_cycle_span", "model", "messages", "system_prompt", "tool_config",
+                     "event_loop_parent_cycle_id"}
+    if internal_keys & set(parsed.keys()):
+        return None
+
+    # 处理 Strands SDK 的 tool_use_stream 事件（Python dict 格式）
+    if parsed.get("type") == "tool_use_stream":
+        current_tool = parsed.get("current_tool_use", {})
+        tool_name = current_tool.get("name")
+        tool_id = current_tool.get("toolUseId", "")
+        delta_input = parsed.get("delta", {}).get("toolUse", {}).get("input", "")
+
+        if tool_name:
+            # 这是工具调用的开始或输入更新
+            return {
+                "type": "tool_use",
+                "tool_name": tool_name,
+                "tool_id": tool_id,
+                "tool_input": delta_input,
+            }
+        return None
+
+    # 处理 Strands SDK 的 data/delta 事件（文本内容）
+    if "data" in parsed and "delta" in parsed:
+        delta = parsed.get("delta", {})
+        if "text" in delta:
+            return {"type": "text", "content": delta["text"]}
+        # 忽略其他 delta 类型
+        return None
+
+    # 处理 event 包装的事件（标准 AgentCore 格式）
+    if "event" in parsed:
+        event_data = parsed["event"]
+
+        # 文本内容: contentBlockDelta
+        if "contentBlockDelta" in event_data:
+            delta = event_data["contentBlockDelta"].get("delta", {})
+            if "text" in delta:
+                return {"type": "text", "content": delta["text"]}
+            # 工具输入
+            if "toolUse" in delta:
+                tool_input = delta["toolUse"].get("input", "")
+                return {"type": "tool_input", "content": tool_input}
+            return None
+
+        # 工具调用开始: contentBlockStart with toolUse
+        if "contentBlockStart" in event_data:
+            start_data = event_data["contentBlockStart"].get("start", {})
+            if "toolUse" in start_data:
+                tool_use = start_data["toolUse"]
+                return {
+                    "type": "tool_use",
+                    "tool_name": tool_use.get("name", "unknown"),
+                    "tool_id": tool_use.get("toolUseId", ""),
+                }
+            return None
+
+        # 内容块结束
+        if "contentBlockStop" in event_data:
+            return {"type": "block_stop"}
+
+        # 消息开始/结束
+        if "messageStart" in event_data or "messageStop" in event_data:
+            return None
+
+        # 元数据（token使用等）
+        if "metadata" in event_data:
+            metadata = event_data["metadata"]
+            if "usage" in metadata:
+                return {"type": "metadata", "usage": metadata["usage"]}
+            return None
+
+    # 处理 result 事件（最终结果）
+    if "result" in parsed:
+        return None  # 忽略最终result，内容已通过delta发送
+
+    # 处理 message 事件
+    if "message" in parsed:
+        return None  # 忽略完整message，内容已通过delta发送
+
+    # 其他情况忽略（避免显示原始 dict）
+    return None
 
 
 def _get_db() -> DynamoDBClient:
@@ -939,6 +1143,8 @@ async def stream_agent_response(
     async def event_stream():
         assistant_chunks: list[str] = []
         metrics_snapshot: Dict[str, Any] = {}
+        current_tool_name: Optional[str] = None
+        current_tool_input: str = ""
 
         try:
             if runtime_arn:
@@ -960,9 +1166,87 @@ async def stream_agent_response(
                         files=files,
                     ):
                         if chunk_text:
-                            # 发送文本块
-                            assistant_chunks.append(chunk_text)
-                            yield _format_sse({"event": "message", "data": chunk_text})
+                            # 解析事件类型
+                            # 只打印前100字符，避免日志过长
+                            is_internal = any(m in chunk_text for m in ["'agent':", "'event_loop_cycle_id':", "AgentResult("])
+                            if is_internal:
+                                print(f"   🔇 Internal event (len={len(chunk_text)})")
+                            else:
+                                print(f"   📥 Raw chunk ({len(chunk_text)} chars): {chunk_text[:150]}")
+
+                            parsed_event = _parse_stream_event(chunk_text)
+
+                            if parsed_event is None:
+                                # 忽略内部事件
+                                if not is_internal:
+                                    print(f"   ⏭️ Skipped: {chunk_text[:80]}...")
+                                continue
+
+                            event_type = parsed_event.get("type")
+                            print(f"   ✨ Parsed event: type={event_type}, content={str(parsed_event)[:150]}")
+
+                            if event_type == "text":
+                                # 普通文本内容
+                                text_content = parsed_event.get("content", "")
+                                assistant_chunks.append(text_content)
+                                sse_payload = {
+                                    "event": "message",
+                                    "type": "text",
+                                    "data": text_content
+                                }
+                                print(f"   📤 Sending SSE: {str(sse_payload)[:100]}")
+                                yield _format_sse(sse_payload)
+
+                            elif event_type == "tool_use":
+                                # 工具调用开始
+                                current_tool_name = parsed_event.get("tool_name", "unknown")
+                                current_tool_input = ""
+                                sse_payload = {
+                                    "event": "message",
+                                    "type": "tool_use",
+                                    "tool_name": current_tool_name,
+                                    "tool_id": parsed_event.get("tool_id", "")
+                                }
+                                print(f"   📤 Sending SSE (tool_use): {current_tool_name}")
+                                yield _format_sse(sse_payload)
+
+                            elif event_type == "tool_input":
+                                # 工具输入内容（累积）
+                                input_chunk = parsed_event.get("content", "")
+                                # 解码 Unicode 转义
+                                input_chunk = _decode_unicode_escapes(input_chunk)
+                                current_tool_input += input_chunk
+                                yield _format_sse({
+                                    "event": "message",
+                                    "type": "tool_input",
+                                    "data": input_chunk
+                                })
+
+                            elif event_type == "block_stop":
+                                # 内容块结束
+                                if current_tool_name:
+                                    # 工具调用结束，发送完整工具信息
+                                    yield _format_sse({
+                                        "event": "message",
+                                        "type": "tool_end",
+                                        "tool_name": current_tool_name,
+                                        "tool_input": current_tool_input
+                                    })
+                                    current_tool_name = None
+                                    current_tool_input = ""
+
+                            elif event_type == "metadata":
+                                # 元数据（token使用等）
+                                usage = parsed_event.get("usage", {})
+                                if usage:
+                                    metrics_snapshot.update({
+                                        "input_tokens": usage.get("inputTokens", 0),
+                                        "output_tokens": usage.get("outputTokens", 0),
+                                    })
+                                    yield _format_sse({
+                                        "event": "metrics",
+                                        "data": metrics_snapshot
+                                    })
 
                         if metrics:
                             # 发送指标

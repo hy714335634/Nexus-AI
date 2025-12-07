@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState, useRef, useCallback } from 'react';
+import { flushSync } from 'react-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -27,6 +28,34 @@ interface StreamMetrics {
   output_tokens?: number;
   tool_calls?: number;
   [key: string]: unknown;
+}
+
+interface ToolUseBlock {
+  id: string;
+  tool_name: string;
+  tool_input: string;
+  status: 'running' | 'completed';
+}
+
+interface StreamingState {
+  textContent: string;
+  toolBlocks: ToolUseBlock[];
+  currentToolId: string | null;
+}
+
+/**
+ * 解码 Unicode 转义序列
+ */
+function decodeUnicodeEscapes(text: string): string {
+  if (!text) return text;
+  try {
+    // 处理 \uXXXX 格式的 Unicode 转义
+    return text.replace(/\\u([0-9a-fA-F]{4})/g, (_, hex) =>
+      String.fromCharCode(parseInt(hex, 16))
+    );
+  } catch {
+    return text;
+  }
 }
 
 const TOOL_TIPS = ['解释当前步骤', '重试上一步', '列出生成的工具'];
@@ -326,6 +355,15 @@ export default function AgentDialogPage() {
   const isStreamingRef = useRef(false);
   const messagesVersionRef = useRef(0);
   const lastLoadedSessionRef = useRef<string | null>(null);
+  const messageListRef = useRef<HTMLElement>(null);
+
+
+  // 自动滚动到底部
+  useEffect(() => {
+    if (messageListRef.current && isStreaming) {
+      messageListRef.current.scrollTop = messageListRef.current.scrollHeight;
+    }
+  }, [messages, isStreaming]);
 
   // Load agents list
   const agentsQuery = useQuery({
@@ -540,7 +578,47 @@ export default function AgentDialogPage() {
     const reader = response.body.getReader();
     const decoder = new TextDecoder('utf-8');
     let buffer = '';
-    let assistantContent = '';
+    // 使用 ref 风格的对象来存储可变状态，避免闭包问题
+    const streamState = {
+      assistantContent: '',
+      toolBlocks: [] as ToolUseBlock[],
+      currentToolId: null as string | null,
+      currentToolInput: '',
+      toolCallCount: 0,
+    };
+
+    // 辅助函数：更新消息状态 - 使用 flushSync 强制同步渲染
+    const updateMessage = () => {
+      const newContent = streamState.assistantContent;
+      // 创建 toolBlocks 的深拷贝，确保 React 检测到变化
+      const newToolBlocks = streamState.toolBlocks.map(t => ({ ...t }));
+
+      // 使用 flushSync 强制 React 立即渲染，绕过 React 18 的自动批处理
+      flushSync(() => {
+        setMessages((prev) => {
+          // 创建新数组
+          const updated: AgentDialogMessage[] = [];
+          for (const item of prev) {
+            if (item.message_id === assistantMessageId) {
+              // 为目标消息创建完全新的对象
+              updated.push({
+                message_id: item.message_id,
+                role: item.role,
+                content: newContent,
+                created_at: item.created_at,
+                metadata: {
+                  streaming: true,
+                  toolBlocks: newToolBlocks,
+                },
+              });
+            } else {
+              updated.push(item);
+            }
+          }
+          return updated;
+        });
+      });
+    };
 
     while (true) {
       const { value, done } = await reader.read();
@@ -572,23 +650,118 @@ export default function AgentDialogPage() {
           const eventType = payload.event;
 
           if (eventType === 'message') {
-            let chunk = String(payload.data ?? '');
-            // 处理可能的转义字符：将字面量 \n 替换为真正的换行符
-            chunk = chunk.replace(/\\n/g, '\n').replace(/\\t/g, '\t');
-            assistantContent += chunk;
-            setMessages((prev) =>
-              prev.map((item) =>
-                item.message_id === assistantMessageId
-                  ? { ...item, content: assistantContent, metadata: { ...(item.metadata ?? {}), streaming: true } }
-                  : item,
-              ),
-            );
+            const msgType = payload.type;
+
+            if (msgType === 'text') {
+              // 普通文本内容
+              let chunk = String(payload.data ?? '');
+              chunk = chunk.replace(/\\n/g, '\n').replace(/\\t/g, '\t');
+              streamState.assistantContent += chunk;
+
+              // 立即更新 UI
+              updateMessage();
+              // 给浏览器一点时间来绘制更新
+              await new Promise(r => setTimeout(r, 0));
+            } else if (msgType === 'tool_use') {
+              // 工具调用开始（可能包含初始 tool_input）
+              const toolId = payload.tool_id || `tool-${Date.now()}`;
+              const toolName = payload.tool_name || 'unknown';
+              const initialInput = decodeUnicodeEscapes(payload.tool_input || '');
+
+              // 检查是否已存在该工具（Strands SDK 可能发送多次更新）
+              const existingIndex = streamState.toolBlocks.findIndex(t => t.tool_name === toolName && t.status === 'running');
+              if (existingIndex >= 0) {
+                // 更新现有工具的输入
+                streamState.toolBlocks[existingIndex].tool_input += initialInput;
+                streamState.currentToolInput = streamState.toolBlocks[existingIndex].tool_input;
+              } else {
+                // 新工具调用
+                streamState.toolCallCount += 1;
+                streamState.currentToolId = toolId;
+                streamState.currentToolInput = initialInput;
+                const newTool: ToolUseBlock = {
+                  id: streamState.currentToolId,
+                  tool_name: toolName,
+                  tool_input: initialInput,
+                  status: 'running',
+                };
+                streamState.toolBlocks.push(newTool);
+              }
+              // 立即更新 UI
+              updateMessage();
+            } else if (msgType === 'tool_input') {
+              // 工具输入内容 - 解码 Unicode 转义
+              const decodedInput = decodeUnicodeEscapes(payload.data || '');
+              streamState.currentToolInput += decodedInput;
+
+              // 找到当前正在运行的工具（通过 currentToolId 或最后一个 running 状态的工具）
+              let toolIndex = -1;
+              if (streamState.currentToolId) {
+                toolIndex = streamState.toolBlocks.findIndex(t => t.id === streamState.currentToolId);
+              }
+              if (toolIndex < 0) {
+                // fallback: 找最后一个 running 状态的工具
+                toolIndex = streamState.toolBlocks.findLastIndex(t => t.status === 'running');
+              }
+
+              if (toolIndex >= 0) {
+                streamState.toolBlocks[toolIndex].tool_input = streamState.currentToolInput;
+              }
+
+              // 立即更新 UI
+              updateMessage();
+            } else if (msgType === 'tool_end') {
+              // 工具调用结束
+              const endToolName = payload.tool_name;
+              const endToolInput = decodeUnicodeEscapes(payload.tool_input || streamState.currentToolInput);
+
+              // 找到对应的工具（通过 currentToolId 或 tool_name）
+              let toolIndex = -1;
+              if (streamState.currentToolId) {
+                toolIndex = streamState.toolBlocks.findIndex(t => t.id === streamState.currentToolId);
+              }
+              if (toolIndex < 0 && endToolName) {
+                // fallback: 找最后一个同名且 running 状态的工具
+                toolIndex = streamState.toolBlocks.findLastIndex(t => t.tool_name === endToolName && t.status === 'running');
+              }
+              if (toolIndex < 0) {
+                // fallback: 找最后一个 running 状态的工具
+                toolIndex = streamState.toolBlocks.findLastIndex(t => t.status === 'running');
+              }
+
+              if (toolIndex >= 0) {
+                streamState.toolBlocks[toolIndex].status = 'completed';
+                streamState.toolBlocks[toolIndex].tool_input = endToolInput;
+              }
+
+              streamState.currentToolId = null;
+              streamState.currentToolInput = '';
+
+              // 立即更新 UI
+              updateMessage();
+            } else {
+              // 兼容旧格式：直接是 data 字段
+              let chunk = String(payload.data ?? '');
+              chunk = chunk.replace(/\\n/g, '\n').replace(/\\t/g, '\t');
+              streamState.assistantContent += chunk;
+              updateMessage();
+            }
           } else if (eventType === 'metrics') {
             const metricData = payload.data as StreamMetrics;
+            metricData.tool_calls = streamState.toolCallCount;
             setMetrics(metricData);
             setMessages((prev) =>
               prev.map((item) =>
-                item.message_id === assistantMessageId ? { ...item, metadata: { ...(item.metadata ?? {}), metrics: metricData } } : item,
+                item.message_id === assistantMessageId
+                  ? {
+                      ...item,
+                      metadata: {
+                        ...(item.metadata ?? {}),
+                        metrics: metricData,
+                        toolBlocks: [...streamState.toolBlocks],
+                      }
+                    }
+                  : item,
               ),
             );
           } else if (eventType === 'error') {
@@ -603,13 +776,26 @@ export default function AgentDialogPage() {
       }
     }
 
+    // 流结束后的最终更新
     setMessages((prev) =>
       prev.map((item) =>
         item.message_id === assistantMessageId
-          ? { ...item, content: assistantContent || item.content, metadata: { ...(item.metadata ?? {}), streaming: false } }
+          ? {
+              ...item,
+              content: streamState.assistantContent || item.content,
+              metadata: {
+                ...(item.metadata ?? {}),
+                streaming: false,
+                toolBlocks: [...streamState.toolBlocks],
+                tool_calls: streamState.toolCallCount,
+              }
+            }
           : item,
       ),
     );
+
+    // 更新 metrics 中的工具调用次数
+    setMetrics(prev => ({ ...prev, tool_calls: streamState.toolCallCount }));
   }, []);
 
   const handleSend = useCallback(async () => {
@@ -629,14 +815,16 @@ export default function AgentDialogPage() {
     messagesVersionRef.current += 1;
     const currentVersion = messagesVersionRef.current;
 
-    setMessages((prev) => [...prev, userMessage]);
-    setInputValue('');
-    setStreamError(null);
-    setIsStreaming(true);
+    // 使用 flushSync 确保状态更新和渲染同步完成
+    const assistantDraft = buildAssistantDraft();
     isStreamingRef.current = true;
 
-    const assistantDraft = buildAssistantDraft();
-    setMessages((prev) => [...prev, assistantDraft]);
+    flushSync(() => {
+      setMessages((prev) => [...prev, userMessage, assistantDraft]);
+      setInputValue('');
+      setStreamError(null);
+      setIsStreaming(true);
+    });
 
     try {
       await streamAgentResponse(activeAgentId, activeSessionId, userMessage.content, assistantDraft.message_id);
@@ -854,18 +1042,19 @@ export default function AgentDialogPage() {
           </div>
         </header>
 
-        <section className={styles.messageList}>
+        <section ref={messageListRef} className={styles.messageList}>
           {streamError ? <div className={styles.errorBanner}>{streamError}</div> : null}
           {messages.map((message) => {
             const isMessageStreaming = message.metadata?.streaming === true;
             const hasContent = message.content && message.content.trim().length > 0;
+            const toolBlocks = (message.metadata?.toolBlocks ?? []) as ToolUseBlock[];
 
             return (
               <div key={message.message_id} className={styles.messageRow}>
                 <div
                   className={`${styles.messageBubble} ${message.role === 'user' ? styles.bubbleUser : styles.bubbleAssistant} ${isMessageStreaming && hasContent ? styles.bubbleStreaming : ''}`}
                 >
-                  {isMessageStreaming && !hasContent ? (
+                  {isMessageStreaming && !hasContent && toolBlocks.length === 0 ? (
                     <div className={styles.streamingIndicator}>
                       <div className={styles.typingDots}>
                         <span className={styles.typingDot} />
@@ -875,19 +1064,54 @@ export default function AgentDialogPage() {
                       <span className={styles.streamingText}>Agent 正在思考...</span>
                     </div>
                   ) : (
-                    <div className={styles.markdownContent}>
-                      <ReactMarkdown
-                        remarkPlugins={[remarkGfm]}
-                        rehypePlugins={[rehypeHighlight]}
-                      >
-                        {message.role === 'assistant' ? cleanMessageContent(message.content) : message.content}
-                      </ReactMarkdown>
-                    </div>
+                    <>
+                      {/* 渲染工具调用块 */}
+                      {toolBlocks.length > 0 && (
+                        <div className={styles.toolBlocksContainer}>
+                          {toolBlocks.map((tool) => (
+                            <div key={tool.id} className={styles.toolUseBlock}>
+                              <div className={styles.toolUseHeader}>
+                                <span className={styles.toolUseIcon}>🔧</span>
+                                <span className={styles.toolUseName}>{tool.tool_name}</span>
+                                <span className={styles.toolUseStatus}>
+                                  {tool.status === 'running' ? '执行中...' : '已完成'}
+                                </span>
+                              </div>
+                              {tool.tool_input && (
+                                <div className={styles.toolUseContent}>
+                                  {tool.tool_input.length > 500
+                                    ? `${tool.tool_input.slice(0, 500)}...`
+                                    : tool.tool_input}
+                                </div>
+                              )}
+                              {tool.status === 'running' && (
+                                <div className={styles.toolUseLoading}>
+                                  <div className={styles.toolUseSpinner} />
+                                  <span>正在执行工具...</span>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {/* 渲染文本内容 */}
+                      {hasContent && (
+                        <div className={styles.markdownContent}>
+                          <ReactMarkdown
+                            remarkPlugins={[remarkGfm]}
+                            rehypePlugins={[rehypeHighlight]}
+                          >
+                            {message.role === 'assistant' ? cleanMessageContent(message.content) : message.content}
+                          </ReactMarkdown>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
                 <div className={styles.messageMeta}>
                   {message.role === 'user' ? '我' : 'Agent'} · {new Date(message.created_at).toLocaleTimeString()}
                   {isMessageStreaming ? ' · 生成中' : ''}
+                  {toolBlocks.length > 0 ? ` · ${toolBlocks.length} 次工具调用` : ''}
                 </div>
                 {message.metadata && typeof message.metadata.tool === 'string' ? (
                   <div className={styles.toolCard}>

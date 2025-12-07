@@ -1,0 +1,6 @@
+project:
+  created_date: '2025-12-07T13:54:02.249410+00:00'
+  description: 猫咪品种识别Agent - 根据用户描述的猫咪特征识别品种并提供生活习性信息
+  name: cat_breed_identifier
+  updated_date: '2025-12-07T13:54:16.355446+00:00'
+  version: 1.0.0
