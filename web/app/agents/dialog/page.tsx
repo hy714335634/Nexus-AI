@@ -649,6 +649,9 @@ export default function AgentDialogPage() {
           const payload = JSON.parse(dataLine.slice(5).trim());
           const eventType = payload.event;
 
+          // 调试日志
+          console.log('📥 SSE Event:', eventType, payload.type || '', payload);
+
           if (eventType === 'message') {
             const msgType = payload.type;
 
@@ -657,6 +660,7 @@ export default function AgentDialogPage() {
               let chunk = String(payload.data ?? '');
               chunk = chunk.replace(/\\n/g, '\n').replace(/\\t/g, '\t');
               streamState.assistantContent += chunk;
+              console.log('📝 Text content updated, length:', streamState.assistantContent.length);
 
               // 立即更新 UI
               updateMessage();

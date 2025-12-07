@@ -3,6 +3,8 @@
  *
  * Forwards all /api/v1/* requests to the backend API server
  * localhost:3000/api/v1/projects -> localhost:8000/api/v1/projects
+ *
+ * Supports streaming responses (SSE) for endpoints like /stream
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -30,12 +32,43 @@ async function proxyRequest(request: NextRequest, method: string) {
     }
 
     const response = await fetch(backendUrl, options);
+    const contentType = response.headers.get('content-type') || '';
+
+    // Check if this is a streaming response (SSE)
+    if (contentType.includes('text/event-stream')) {
+      console.log(`[Proxy] Streaming response detected for ${pathname}`);
+
+      // For streaming responses, pass through the body directly
+      if (!response.body) {
+        return new NextResponse('No response body', { status: 502 });
+      }
+
+      // Create a TransformStream to pass through the data
+      const { readable, writable } = new TransformStream();
+
+      // Pipe the response body to our transform stream
+      response.body.pipeTo(writable).catch((err) => {
+        console.error('[Proxy] Stream pipe error:', err);
+      });
+
+      return new NextResponse(readable, {
+        status: response.status,
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Connection': 'keep-alive',
+          'X-Accel-Buffering': 'no',
+        },
+      });
+    }
+
+    // For non-streaming responses, read the full body
     const data = await response.text();
 
     return new NextResponse(data, {
       status: response.status,
       headers: {
-        'Content-Type': response.headers.get('content-type') || 'application/json',
+        'Content-Type': contentType || 'application/json',
       },
     });
   } catch (error) {

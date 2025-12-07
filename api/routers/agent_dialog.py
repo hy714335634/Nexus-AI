@@ -249,9 +249,51 @@ def _parse_stream_event(data_content: str) -> Optional[Dict[str, Any]]:
     if "result" in parsed:
         return None  # 忽略最终result，内容已通过delta发送
 
-    # 处理 message 事件
+    # 处理 message 事件（完整消息格式，需要提取内容）
     if "message" in parsed:
-        return None  # 忽略完整message，内容已通过delta发送
+        message_data = parsed["message"]
+        print(f"   🔍 Processing message event: role={message_data.get('role') if isinstance(message_data, dict) else 'N/A'}")
+        if isinstance(message_data, dict):
+            role = message_data.get("role", "")
+            content = message_data.get("content", [])
+
+            # 只处理 assistant 消息
+            if role == "assistant" and isinstance(content, list):
+                extracted_parts = []
+                for item in content:
+                    if isinstance(item, dict):
+                        # 提取文本内容
+                        if "text" in item:
+                            text = item["text"]
+                            if text and isinstance(text, str):
+                                extracted_parts.append({"type": "text", "content": text})
+                        # 提取工具调用
+                        elif "toolUse" in item:
+                            tool_use = item["toolUse"]
+                            if isinstance(tool_use, dict):
+                                extracted_parts.append({
+                                    "type": "tool_use",
+                                    "tool_name": tool_use.get("name", "unknown"),
+                                    "tool_id": tool_use.get("toolUseId", ""),
+                                    "tool_input": json.dumps(tool_use.get("input", {}), ensure_ascii=False) if tool_use.get("input") else ""
+                                })
+
+                # 如果有提取的内容，返回一个特殊的多内容响应
+                if extracted_parts:
+                    print(f"   ✅ Extracted {len(extracted_parts)} parts from message")
+                    if len(extracted_parts) == 1:
+                        return extracted_parts[0]
+                    else:
+                        # 返回多个内容项的标记
+                        return {"type": "multi_content", "items": extracted_parts}
+                else:
+                    print(f"   ⚠️ No content extracted from message, content items: {len(content)}")
+            else:
+                print(f"   ⚠️ Skipping message: role={role}, content_is_list={isinstance(content, list)}")
+
+            # 忽略 user 消息（工具结果等）
+            return None
+        return None
 
     # 其他情况忽略（避免显示原始 dict）
     return None
@@ -764,18 +806,25 @@ async def _invoke_agentcore_runtime_stream(
 
     def run_stream():
         try:
+            chunk_count = 0
             for chunk in _stream_call():
+                chunk_count += 1
+                print(f"   🔄 Queue put chunk #{chunk_count}: {str(chunk)[:80]}")
                 chunk_queue.put(chunk)
+            print(f"   ✅ Stream completed with {chunk_count} chunks")
         except Exception as e:
+            print(f"   ❌ Stream error: {e}")
             error_holder.append(e)
         finally:
             chunk_queue.put(None)  # 结束信号
+            print(f"   🏁 Queue end signal sent")
 
     # 在后台线程中运行同步生成器
     thread = threading.Thread(target=run_stream, daemon=True)
     thread.start()
 
     # 异步地从队列中读取结果
+    yield_count = 0
     while True:
         # 使用 run_in_executor 来非阻塞地等待队列
         try:
@@ -783,16 +832,21 @@ async def _invoke_agentcore_runtime_stream(
                 None, lambda: chunk_queue.get(timeout=0.1)
             )
             if chunk is None:  # 结束信号
+                print(f"   🏁 Received end signal after {yield_count} yields")
                 break
+            yield_count += 1
+            print(f"   📤 Yielding chunk #{yield_count}")
             yield chunk
         except queue.Empty:
             # 队列为空，继续等待
             if not thread.is_alive() and chunk_queue.empty():
+                print(f"   ⚠️ Thread dead and queue empty after {yield_count} yields")
                 break
             await asyncio.sleep(0.01)
 
     # 检查是否有错误
     if error_holder:
+        print(f"   ❌ Re-raising error: {error_holder[0]}")
         raise error_holder[0]
 
 
@@ -1146,6 +1200,10 @@ async def stream_agent_response(
         current_tool_name: Optional[str] = None
         current_tool_input: str = ""
 
+        # 立即发送一个初始事件，确保连接建立
+        yield _format_sse({"event": "connected", "session_id": session_id})
+        print(f"   📡 SSE connection established for session {session_id}")
+
         try:
             if runtime_arn:
                 # 使用 AgentCore (boto3) - 流式响应
@@ -1235,6 +1293,49 @@ async def stream_agent_response(
                                     current_tool_name = None
                                     current_tool_input = ""
 
+                            elif event_type == "multi_content":
+                                # 处理包含多个内容项的消息（来自完整 message 格式）
+                                items = parsed_event.get("items", [])
+                                for idx, item in enumerate(items):
+                                    item_type = item.get("type")
+                                    if item_type == "text":
+                                        text_content = item.get("content", "")
+                                        assistant_chunks.append(text_content)
+                                        sse_payload = {
+                                            "event": "message",
+                                            "type": "text",
+                                            "data": text_content
+                                        }
+                                        print(f"   📤 Sending SSE (from multi_content): {str(sse_payload)[:100]}")
+                                        yield _format_sse(sse_payload)
+                                    elif item_type == "tool_use":
+                                        current_tool_name = item.get("tool_name", "unknown")
+                                        tool_input = item.get("tool_input", "")
+                                        # 确保工具 ID 唯一
+                                        tool_id = item.get("tool_id") or f"tool-{uuid.uuid4().hex[:12]}"
+                                        sse_payload = {
+                                            "event": "message",
+                                            "type": "tool_use",
+                                            "tool_name": current_tool_name,
+                                            "tool_id": tool_id,
+                                        }
+                                        print(f"   📤 Sending SSE (tool_use from multi_content): {current_tool_name}, id={tool_id}")
+                                        yield _format_sse(sse_payload)
+                                        # 如果有工具输入，也发送
+                                        if tool_input:
+                                            yield _format_sse({
+                                                "event": "message",
+                                                "type": "tool_input",
+                                                "data": tool_input
+                                            })
+                                            yield _format_sse({
+                                                "event": "message",
+                                                "type": "tool_end",
+                                                "tool_name": current_tool_name,
+                                                "tool_input": tool_input
+                                            })
+                                            current_tool_name = None
+
                             elif event_type == "metadata":
                                 # 元数据（token使用等）
                                 usage = parsed_event.get("usage", {})
@@ -1280,4 +1381,13 @@ async def stream_agent_response(
                 db.append_session_message(assistant_message)
                 db.update_agent_session_activity(agent_id, session_id, last_active_at=_utc_now())
 
-    return StreamingResponse(event_stream(), media_type="text/event-stream")
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",  # 禁用 nginx 缓冲
+            "Transfer-Encoding": "chunked",
+        }
+    )
