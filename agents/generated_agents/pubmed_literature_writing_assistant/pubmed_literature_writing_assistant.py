@@ -25,7 +25,8 @@ from datetime import datetime
 
 from nexus_utils.agent_factory import create_agent_from_prompt_template
 from strands.telemetry import StrandsTelemetry
-
+from nexus_utils.config_loader import ConfigLoader
+config = ConfigLoader()
 # ==================== 配置参数 ====================
 # 文献处理配置
 MAX_PAPER_TO_INIT = 50  # 初始版本使用的最大文献数量
@@ -57,7 +58,12 @@ logger = logging.getLogger(__name__)
 
 # 配置遥测
 os.environ["BYPASS_TOOL_CONSENT"] = "true"
-os.environ["OTEL_EXPORTER_OTLP_ENDPOINT"] = "http://localhost:4318"
+otel_endpoint = config.get_with_env_override(
+    "OTEL_EXPORTER_OTLP_ENDPOINT",
+    "nexus_ai", "OTEL_EXPORTER_OTLP_ENDPOINT",
+    default="http://localhost:4318"
+)
+os.environ.setdefault("OTEL_EXPORTER_OTLP_ENDPOINT", otel_endpoint)
 strands_telemetry = StrandsTelemetry()
 strands_telemetry.setup_otlp_exporter()
 

@@ -12,12 +12,21 @@ from tools.system_tools.agent_build_workflow.stage_tracker import (
     mark_sub_stage_completed,
     mark_sub_stage_failed,
 )
-
+from strands.telemetry import StrandsTelemetry
+from nexus_utils.config_loader import ConfigLoader
 loader = ConfigLoader()
+
 
 # 设置环境变量
 os.environ["BYPASS_TOOL_CONSENT"] = "true"
-
+otel_endpoint = loader.get_with_env_override(
+    "OTEL_EXPORTER_OTLP_ENDPOINT",
+    "nexus_ai", "OTEL_EXPORTER_OTLP_ENDPOINT",
+    default="http://localhost:4318"
+)
+os.environ.setdefault("OTEL_EXPORTER_OTLP_ENDPOINT", otel_endpoint)
+strands_telemetry = StrandsTelemetry()
+strands_telemetry.setup_otlp_exporter()
 
 def _get_project_id():
     """获取当前项目ID"""

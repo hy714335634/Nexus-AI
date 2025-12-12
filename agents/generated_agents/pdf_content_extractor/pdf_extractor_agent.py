@@ -34,7 +34,8 @@ from tools.generated_tools.pdf_content_extractor.pdf_processing_tools import (
     initialize_pdf_extraction,
     cleanup_extraction_files
 )
-
+from nexus_utils.config_loader import ConfigLoader
+config = ConfigLoader()
 # 配置日志
 logging.basicConfig(
     level=logging.INFO,
@@ -44,7 +45,12 @@ logger = logging.getLogger("pdf_extractor_agent")
 
 # 设置环境变量
 os.environ["BYPASS_TOOL_CONSENT"] = "true"
-
+otel_endpoint = config.get_with_env_override(
+    "OTEL_EXPORTER_OTLP_ENDPOINT",
+    "nexus_ai", "OTEL_EXPORTER_OTLP_ENDPOINT",
+    default="http://localhost:4318"
+)
+os.environ.setdefault("OTEL_EXPORTER_OTLP_ENDPOINT", otel_endpoint)
 class PDFExtractorAgent:
     """PDF内容提取Agent，处理PDF文件并提取文本内容"""
     

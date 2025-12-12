@@ -715,14 +715,36 @@ class DynamoDBClient:
     def get_project(self, project_id: str) -> Optional[Dict[str, Any]]:
         """Get project by ID"""
         try:
+            # 验证 project_id 不能为 None 或空字符串
+            if not project_id or not isinstance(project_id, str) or not project_id.strip():
+                error_msg = f"Invalid project_id: {repr(project_id)}. project_id must be a non-empty string."
+                logger.error(error_msg)
+                raise APIException(error_msg)
+            
+            project_id = project_id.strip()
             self._ensure_connection()
+            
+            # 记录调试信息
+            logger.debug(f"Getting project with ID: {project_id} from table: {self.projects_table.name}")
+            
             response = self.projects_table.get_item(
                 Key={'project_id': project_id}
             )
             item = response.get('Item')
             return self._deserialize_item(item) if item else None
+        except APIException:
+            # 重新抛出 APIException
+            raise
+        except ClientError as e:
+            error_code = e.response.get('Error', {}).get('Code', 'Unknown')
+            error_message = e.response.get('Error', {}).get('Message', str(e))
+            logger.error(
+                f"DynamoDB error getting project {project_id}: {error_code} - {error_message}. "
+                f"Table: {self.projects_table.name}, Key: {{'project_id': {repr(project_id)}}}"
+            )
+            raise APIException(f"Failed to get project: {error_code} - {error_message}")
         except Exception as e:
-            logger.error(f"Error getting project {project_id}: {str(e)}")
+            logger.error(f"Error getting project {project_id}: {str(e)}", exc_info=True)
             raise APIException(f"Failed to get project: {str(e)}")
     
     @retry_on_error(max_retries=3, delay=1.0, backoff=2.0)

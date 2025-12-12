@@ -13,8 +13,19 @@ from nexus_utils.agent_factory import create_agent_from_prompt_template
 from bedrock_agentcore.runtime import BedrockAgentCoreApp
 from bedrock_agentcore.runtime.context import RequestContext
 
+from strands.telemetry import StrandsTelemetry
+from nexus_utils.config_loader import ConfigLoader
+loader = ConfigLoader()
 # 设置环境变量
 os.environ["BYPASS_TOOL_CONSENT"] = "true"
+otel_endpoint = loader.get_with_env_override(
+    "OTEL_EXPORTER_OTLP_ENDPOINT",
+    "nexus_ai", "OTEL_EXPORTER_OTLP_ENDPOINT",
+    default="http://localhost:4318"
+)
+os.environ.setdefault("OTEL_EXPORTER_OTLP_ENDPOINT", otel_endpoint)
+strands_telemetry = StrandsTelemetry()
+strands_telemetry.setup_otlp_exporter()
 
 # 创建 BedrockAgentCoreApp 实例
 app = BedrockAgentCoreApp()

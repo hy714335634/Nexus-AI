@@ -6,6 +6,10 @@ default-config:
       agent_build: 'latest'
       agent_update: 'latest'
       tool_build: 'latest'
+    # OpenTelemetry OTLP 导出端点
+    # 优先级：环境变量 OTEL_EXPORTER_OTLP_ENDPOINT > 此配置值 > 默认值 http://localhost:4318
+    # Terraform 部署后会自动设置环境变量，格式：http://jaeger.{project_name}.local:4318
+    # 本地开发时如果未设置环境变量，将使用此配置值或默认值
     OTEL_EXPORTER_OTLP_ENDPOINT: 'http://localhost:4318'
   aws:
     bedrock_region_name: 'us-west-2'  # Region for Amazon Bedrock API calls

@@ -29,10 +29,16 @@ from typing import Dict, Any, List, Optional, Tuple
 from pathlib import Path
 from nexus_utils.agent_factory import create_agent_from_prompt_template
 from bedrock_agentcore.runtime import BedrockAgentCoreApp
-
+from nexus_utils.config_loader import ConfigLoader
+config = ConfigLoader()
 # ==================== 环境配置 ====================
 os.environ["BYPASS_TOOL_CONSENT"] = "true"
-
+otel_endpoint = config.get_with_env_override(
+    "OTEL_EXPORTER_OTLP_ENDPOINT",
+    "nexus_ai", "OTEL_EXPORTER_OTLP_ENDPOINT",
+    default="http://localhost:4318"
+)
+os.environ.setdefault("OTEL_EXPORTER_OTLP_ENDPOINT", otel_endpoint)
 # 创建 BedrockAgentCoreApp 实例
 app = BedrockAgentCoreApp()
 

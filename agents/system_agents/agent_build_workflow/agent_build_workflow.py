@@ -22,10 +22,16 @@ from nexus_utils.workflow_rule_extract import (
     get_base_rules,
     get_build_workflow_rules,
 )
-
+from nexus_utils.config_loader import ConfigLoader
+config = ConfigLoader()
 # 设置环境变量
 os.environ.setdefault("BYPASS_TOOL_CONSENT", "true")
-os.environ.setdefault("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4318")
+otel_endpoint = config.get_with_env_override(
+    "OTEL_EXPORTER_OTLP_ENDPOINT",
+    "nexus_ai", "OTEL_EXPORTER_OTLP_ENDPOINT",
+    default="http://localhost:4318"
+)
+os.environ.setdefault("OTEL_EXPORTER_OTLP_ENDPOINT", otel_endpoint)
 strands_telemetry = StrandsTelemetry()
 strands_telemetry.setup_otlp_exporter()
 
@@ -171,12 +177,7 @@ def _create_agents_with_session(session_manager: Optional[FileSessionManager] = 
         agent_name="system_agents_prompts/agent_build_workflow/agent_code_developer",
         **agent_kwargs
     )
-    
-    # agent_webapp_developer_agent = create_agent_from_prompt_template(
-    #     agent_name="system_agents_prompts/agent_build_workflow/agent_webapp_developer",
-    #     **agent_kwargs
-    # )
-    
+
     agent_developer_manager_agent = create_agent_from_prompt_template(
         agent_name="system_agents_prompts/agent_build_workflow/agent_developer_manager",
         **agent_kwargs
@@ -195,7 +196,6 @@ def _create_agents_with_session(session_manager: Optional[FileSessionManager] = 
         "tool_developer": tool_developer_agent,
         "prompt_engineer": prompt_engineer_agent,
         "agent_code_developer": agent_code_developer_agent,
-        # "agent_webapp_developer": agent_webapp_developer_agent,
         "agent_developer_manager": agent_developer_manager_agent,
         "agent_deployer": agent_deployer_agent,
     }
@@ -387,18 +387,6 @@ def run_workflow(user_input: str, session_id: Optional[str] = None):
         except Exception as e:
             mark_stage_failed(project_id, 'agent_code_developer', str(e))
             raise
-
-        # # 8. Streamlit Web App Developer
-        # print(f"\n{'='*60}")
-        # print(f"🔄 [8/9] 执行 agent_webapp_developer...")
-        # print(f"{'='*60}")
-        # streamlit_webapp_developer_result = _call_agent_with_stage_tracking(
-        #     agents["agent_webapp_developer"], "agent_webapp_developer", current_context
-        # )
-        # execution_results["agent_webapp_developer"] = streamlit_webapp_developer_result
-        # execution_order.append("agent_webapp_developer")
-        # streamlit_webapp_developer_content = str(streamlit_webapp_developer_result.content) if hasattr(streamlit_webapp_developer_result, 'content') else str(streamlit_webapp_developer_result)
-        # current_context = current_context + "\n===\nStreamlit Web App Developer Agent: " + streamlit_webapp_developer_content + "\n===\n"
         
         # 8. Agent Developer Manager
         print(f"\n{'='*60}")
@@ -418,7 +406,7 @@ def run_workflow(user_input: str, session_id: Optional[str] = None):
         
         # 9. Agent Deployer
         print(f"\n{'='*60}")
-        print(f"🔄 [9/9] 跳过 agent_deployer...")
+        print(f"🔄 [9/9] 执行 agent_deployer...")
         print(f"{'='*60}")
         try:
             mark_stage_running(project_id, 'agent_deployer')

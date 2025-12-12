@@ -50,6 +50,8 @@ resource "aws_launch_template" "api" {
     efs_mount_path       = "/mnt/efs"
     app_dir              = "/opt/nexus-ai-api"
     project_root         = "/opt/nexus-ai"
+    enable_jaeger        = var.enable_jaeger
+    project_name         = var.project_name
     # Uppercase variables (used directly in script commands and heredoc)
     EFS_FILE_SYSTEM_ID   = aws_efs_file_system.nexus_ai[0].id
     AWS_REGION           = var.aws_region
@@ -64,6 +66,8 @@ resource "aws_launch_template" "api" {
     EFS_MOUNT_PATH       = "/mnt/efs"
     APP_DIR              = "/opt/nexus-ai-api"
     PROJECT_ROOT         = "/opt/nexus-ai"
+    ENABLE_JAEGER        = var.enable_jaeger ? "true" : "false"
+    PROJECT_NAME         = var.project_name
   }))
 
   # Configure Instance Metadata Service v2 (IMDSv2) - Security best practice

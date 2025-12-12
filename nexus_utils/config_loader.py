@@ -120,6 +120,44 @@ class ConfigLoader:
         
         return current
     
+    def get_with_env_override(self, env_var_name: str, *config_keys: str, default: Any = None) -> Any:
+        """
+        获取配置项，支持环境变量优先覆盖
+        
+        优先级：环境变量 > 配置文件 > 默认值
+        
+        Args:
+            env_var_name (str): 环境变量名称
+            *config_keys: 配置键路径（用于从配置文件读取）
+            default (Any, optional): 默认值
+            
+        Returns:
+            Any: 配置值（优先使用环境变量，否则使用配置文件或默认值）
+            
+        Example:
+            >>> # 优先使用环境变量 OTEL_EXPORTER_OTLP_ENDPOINT
+            >>> # 如果不存在，则从配置文件 nexus_ai.OTEL_EXPORTER_OTLP_ENDPOINT 读取
+            >>> # 如果都不存在，使用默认值 "http://localhost:4318"
+            >>> config.get_with_env_override(
+            ...     "OTEL_EXPORTER_OTLP_ENDPOINT",
+            ...     "nexus_ai", "OTEL_EXPORTER_OTLP_ENDPOINT",
+            ...     default="http://localhost:4318"
+            ... )
+        """
+        # 优先检查环境变量
+        env_value = os.environ.get(env_var_name)
+        if env_value:
+            return env_value
+        
+        # 如果环境变量不存在，从配置文件读取
+        if config_keys:
+            config_value = self.get_nested(*config_keys, default=None)
+            if config_value is not None:
+                return config_value
+        
+        # 最后使用默认值
+        return default
+    
     def get_aws_config(self) -> Dict[str, Any]:
         """
         获取AWS配置

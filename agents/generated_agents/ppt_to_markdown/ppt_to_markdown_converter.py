@@ -14,10 +14,16 @@ from typing import Optional, Dict, Any, List, Union
 
 from nexus_utils.agent_factory import create_agent_from_prompt_template
 from strands.telemetry import StrandsTelemetry
-
+from nexus_utils.config_loader import ConfigLoader
+config = ConfigLoader() 
 # 设置环境变量和遥测
 os.environ["BYPASS_TOOL_CONSENT"] = "true"
-os.environ["OTEL_EXPORTER_OTLP_ENDPOINT"] = "http://localhost:4318"
+otel_endpoint = config.get_with_env_override(
+    "OTEL_EXPORTER_OTLP_ENDPOINT",
+    "nexus_ai", "OTEL_EXPORTER_OTLP_ENDPOINT",
+    default="http://localhost:4318"
+)
+os.environ.setdefault("OTEL_EXPORTER_OTLP_ENDPOINT", otel_endpoint)
 strands_telemetry = StrandsTelemetry()
 strands_telemetry.setup_otlp_exporter()
 

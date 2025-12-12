@@ -1,6 +1,0 @@
-project:
-  created_date: '2025-11-29T15:26:05.754703+00:00'
-  description: 项目用于收集网上对药物的反馈信息
-  name: drug_feedback_collector
-  updated_date: '2025-11-29T15:26:10.081065+00:00'
-  version: 1.0.0

@@ -33,27 +33,45 @@ import json
 import argparse
 from typing import Dict, Any, Optional, List
 from nexus_utils.agent_factory import create_agent_from_prompt_template
+from bedrock_agentcore.runtime import BedrockAgentCoreApp
+from bedrock_agentcore.runtime.context import RequestContext
 from strands.telemetry import StrandsTelemetry
+from nexus_utils.config_loader import ConfigLoader
+config = ConfigLoader()
 
 # 配置遥测
-os.environ["BYPASS_TOOL_CONSENT"] = "true"
-os.environ["OTEL_EXPORTER_OTLP_ENDPOINT"] = "http://localhost:4318"
+os.environ.setdefault("BYPASS_TOOL_CONSENT", "true")
+# 优先使用环境变量，其次使用配置文件，最后使用默认值
+otel_endpoint = config.get_with_env_override(
+    "OTEL_EXPORTER_OTLP_ENDPOINT",
+    "nexus_ai", "OTEL_EXPORTER_OTLP_ENDPOINT",
+    default="http://localhost:4318"
+)
+os.environ.setdefault("OTEL_EXPORTER_OTLP_ENDPOINT", otel_endpoint)
 strands_telemetry = StrandsTelemetry()
 strands_telemetry.setup_otlp_exporter()
 
-# 创建 agent 的通用参数
-agent_params = {
-    "env": "production",
-    "version": "latest", 
-    "model_id": "default",
-    "enable_logging": True
-}
+# 创建 BedrockAgentCoreApp 实例
+app = BedrockAgentCoreApp()
+
+# Agent 配置路径
+agent_config_path = "generated_agents_prompts/aws_pricing_agent/aws_pricing_agent"
+
+# 创建 agent 的通用参数生成方法
+def create_aws_pricing_agent(env: str = "production", version: str = "latest", model_id: str = "default"):
+    agent_params = {
+        "env": env,
+        "version": version,
+        "model_id": model_id,
+        "enable_logging": True
+    }
+    return create_agent_from_prompt_template(
+        agent_name=agent_config_path,
+        **agent_params
+    )
 
 # 使用 agent_factory 创建 agent
-aws_pricing_agent = create_agent_from_prompt_template(
-    agent_name="generated_agents_prompts/aws_pricing_agent/aws_pricing_agent", 
-    **agent_params
-)
+aws_pricing_agent = create_aws_pricing_agent()
 
 class AWSPricingAgentCLI:
     """AWS Pricing Agent 命令行接口类"""
@@ -201,9 +219,60 @@ class AWSPricingAgentCLI:
         return prompt
 
 
+# ==================== AgentCore 入口点（必须包含）====================
+@app.entrypoint
+async def handler(payload: Dict[str, Any], context: RequestContext):
+    """
+    AgentCore 标准入口点（支持流式响应）
+
+    Args:
+        payload: AgentCore 传入的请求体，包含:
+            - prompt: 用户消息
+            - user_id: 用户ID（可选）
+            - media: 媒体文件列表（可选）
+        context: 请求上下文，包含:
+            - session_id: 会话ID（从 runtimeSessionId header 获取）
+
+    Yields:
+        str: 流式响应的文本片段（自动处理流式传输）
+    """
+    session_id = context.session_id
+    print(f"📥 Received payload: {json.dumps(payload, ensure_ascii=False)}, session_id: {session_id}")
+
+    prompt = payload.get("prompt") or payload.get("message") or payload.get("input", "")
+
+    if not prompt:
+        yield "Error: Missing 'prompt' in request"
+        return
+
+    print(f"🔄 Processing prompt: {prompt}")
+
+    try:
+        # 使用流式响应
+        stream = aws_pricing_agent.stream_async(prompt)
+        async for event in stream:
+            # 每个 event 包含流式响应的片段
+            print(f"📤 Streaming event: {event}")
+            yield event
+
+    except Exception as e:
+        print(f"❌ Error: {str(e)}")
+        yield f"Error: {str(e)}"
+
+
+# ==================== 本地运行入口 ====================
 if __name__ == "__main__":
-    print(f"✅ AWS Pricing Agent 创建成功: {aws_pricing_agent.name}")
-    
-    # 运行命令行界面
-    cli = AWSPricingAgentCLI(aws_pricing_agent)
-    cli.run()
+    # 检查是否在 Docker 容器中运行（AgentCore 部署）
+    is_docker = os.environ.get("DOCKER_CONTAINER") == "1"
+
+    if is_docker:
+        # AgentCore 部署模式：启动 HTTP 服务器
+        print("🚀 启动 AgentCore HTTP 服务器，端口: 8080")
+        app.run()
+    else:
+        # 本地 CLI 模式
+        print(f"✅ AWS Pricing Agent 创建成功: {aws_pricing_agent.name}")
+        
+        # 运行命令行界面
+        cli = AWSPricingAgentCLI(aws_pricing_agent)
+        cli.run()

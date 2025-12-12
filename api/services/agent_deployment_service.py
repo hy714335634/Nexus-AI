@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import shutil
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -50,8 +51,8 @@ class AgentDeploymentService:
 
     def __init__(self, db_client: Optional[DynamoDBClient] = None) -> None:
         self.db = db_client or DynamoDBClient()
-        # repository root (two levels up from api/services/)
-        self.repo_root = Path(__file__).resolve().parents[2]
+        # Use REPO_ROOT env var if available (for EFS mount), otherwise calculate from file location
+        self.repo_root = Path(os.getenv("REPO_ROOT", Path(__file__).resolve().parents[2]))
 
     # ------------------------------------------------------------------
     # Public API
@@ -152,9 +153,15 @@ class AgentDeploymentService:
                 },
             )
 
-        runtime = self._initialize_runtime()
+        # Set AWS region environment variable before initializing Runtime
+        # This ensures bedrock-agentcore-starter-toolkit uses the correct region
+        original_region = os.environ.get("AWS_DEFAULT_REGION")
+        os.environ["AWS_DEFAULT_REGION"] = deployment_region
+        logger.info("Setting AWS_DEFAULT_REGION=%s for AgentCore deployment", deployment_region)
 
         try:
+            runtime = self._initialize_runtime()
+
             runtime.configure(
                 entrypoint=str(script_path),
                 agent_name=metadata.agent_name,
@@ -252,6 +259,12 @@ class AgentDeploymentService:
                 deployment_type="local",
             )
             raise AgentDeploymentError(str(exc)) from exc
+        finally:
+            # Restore original AWS region environment variable
+            if original_region is not None:
+                os.environ["AWS_DEFAULT_REGION"] = original_region
+            elif "AWS_DEFAULT_REGION" in os.environ:
+                os.environ.pop("AWS_DEFAULT_REGION")
 
     # ------------------------------------------------------------------
     # Helpers

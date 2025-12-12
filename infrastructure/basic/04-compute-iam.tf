@@ -513,3 +513,69 @@ resource "aws_iam_role_policy" "ecs_agentcore_full" {
   })
 }
 
+# Policy for X-Ray and CloudWatch Observability (for AgentCore observability features)
+resource "aws_iam_role_policy" "ecs_observability" {
+  count = var.create_vpc ? 1 : 0
+
+  name = "${var.project_name}-ecs-observability-${var.environment}"
+  role = aws_iam_role.ecs_task[0].id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        # X-Ray permissions for trace segment destination configuration
+        Effect = "Allow"
+        Action = [
+          "xray:UpdateTraceSegmentDestination",
+          "xray:GetTraceSegmentDestination",
+          "xray:PutTraceSegments",
+          "xray:PutTelemetryRecords",
+          "xray:GetSamplingRules",
+          "xray:GetSamplingTargets"
+        ]
+        Resource = "*"
+      },
+      {
+        # CloudWatch Logs permissions for observability delivery
+        Effect = "Allow"
+        Action = [
+          "logs:CreateLogDelivery",
+          "logs:GetLogDelivery",
+          "logs:UpdateLogDelivery",
+          "logs:DeleteLogDelivery",
+          "logs:ListLogDeliveries",
+          "logs:PutResourcePolicy",
+          "logs:DescribeResourcePolicies",
+          "logs:DescribeLogGroups",
+          "logs:CreateLogGroup",
+          "logs:PutRetentionPolicy"
+        ]
+        Resource = "*"
+      },
+      {
+        # CloudWatch Logs destination permissions
+        Effect = "Allow"
+        Action = [
+          "logs:PutDestination",
+          "logs:PutDestinationPolicy",
+          "logs:GetDestination",
+          "logs:DeleteDestination",
+          "logs:DescribeDestinations"
+        ]
+        Resource = "*"
+      },
+      {
+        # CloudWatch Logs subscription filter permissions
+        Effect = "Allow"
+        Action = [
+          "logs:PutSubscriptionFilter",
+          "logs:DeleteSubscriptionFilter",
+          "logs:DescribeSubscriptionFilters"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+

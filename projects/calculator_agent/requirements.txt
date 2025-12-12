@@ -1,7 +1,0 @@
-./nexus_utils
-strands-agents
-strands-agents-tools
-PyYAML
-boto3
-botocore
-bedrock-agentcore

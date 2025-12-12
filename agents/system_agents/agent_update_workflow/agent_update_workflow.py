@@ -23,7 +23,9 @@ from nexus_utils.workflow_rule_extract import (
     get_base_rules,
     get_update_workflow_rules,
 )
-
+from strands.telemetry import StrandsTelemetry
+from nexus_utils.config_loader import ConfigLoader
+loader = ConfigLoader()
 from agents.system_agents.agent_update_workflow.update_orchestrator_agent import (
     update_orchestrator,
 )
@@ -39,14 +41,16 @@ from agents.system_agents.agent_update_workflow.prompt_update_agent import (
 from agents.system_agents.agent_update_workflow.code_update_agent import (
     code_update_agent,
 )
+
+os.environ["BYPASS_TOOL_CONSENT"] = "true"
+otel_endpoint = loader.get_with_env_override(
+    "OTEL_EXPORTER_OTLP_ENDPOINT",
+    "nexus_ai", "OTEL_EXPORTER_OTLP_ENDPOINT",
+    default="http://localhost:4318"
+)
+os.environ.setdefault("OTEL_EXPORTER_OTLP_ENDPOINT", otel_endpoint)
 strands_telemetry = StrandsTelemetry()
 strands_telemetry.setup_otlp_exporter()
-
-
-def _prepare_environment() -> None:
-    """设置工作流运行所需环境变量。"""
-    os.environ.setdefault("BYPASS_TOOL_CONSENT", "true")
-    os.environ.setdefault("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4318")
 
 
 def _load_update_rules() -> Dict[str, str]:
@@ -93,7 +97,6 @@ def initialize_update_workflow(user_request: str, project_id: str) -> GraphBuild
     Returns:
         GraphBuilder: 用于后续构建Strands工作流的图构造器
     """
-    _prepare_environment()
     rules = _load_update_rules()
 
     print("🎯 初始化Update Workflow")

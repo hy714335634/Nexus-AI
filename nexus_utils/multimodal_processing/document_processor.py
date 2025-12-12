@@ -14,7 +14,10 @@ import logging
 from typing import List, Dict, Any, Optional
 import pandas as pd
 from openpyxl import load_workbook
-# from docx import Document
+try:
+    from docx import Document
+except ImportError:
+    Document = None  # Will be checked when processing docx files
 from io import StringIO
 
 from .models.interfaces import FileProcessor
@@ -365,6 +368,13 @@ class DocumentProcessor(FileProcessor):
         Returns:
             Extracted content as formatted text
         """
+        if Document is None:
+            raise FileProcessingError(
+                "python-docx library is not installed. Please install it with: pip install python-docx",
+                error_code="MISSING_DEPENDENCY",
+                context={"file_path": file_path, "required_library": "python-docx"}
+            )
+        
         content_parts = []
         
         try:
@@ -526,6 +536,9 @@ class DocumentProcessor(FileProcessor):
     
     def _get_word_metadata(self, file_path: str) -> Dict[str, Any]:
         """Extract metadata specific to Word documents."""
+        if Document is None:
+            return {'error': 'python-docx library not installed'}
+        
         try:
             doc = Document(file_path)
             

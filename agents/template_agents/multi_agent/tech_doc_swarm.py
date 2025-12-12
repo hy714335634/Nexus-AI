@@ -36,10 +36,19 @@ from tools.generated_tools.tech_doc_multi_agent_system.html_generator import (
     generate_html_with_syntax_highlighting,
     generate_responsive_html
 )
+from nexus_utils.config_loader import ConfigLoader
+loader = ConfigLoader()
 
 # 配置环境变量
 os.environ["BYPASS_TOOL_CONSENT"] = "true"
-os.environ["OTEL_EXPORTER_OTLP_ENDPOINT"] = "http://localhost:4318"
+otel_endpoint = loader.get_with_env_override(
+    "OTEL_EXPORTER_OTLP_ENDPOINT",
+    "nexus_ai", "OTEL_EXPORTER_OTLP_ENDPOINT",
+    default="http://localhost:4318"
+)
+os.environ.setdefault("OTEL_EXPORTER_OTLP_ENDPOINT", otel_endpoint)
+strands_telemetry = StrandsTelemetry()
+strands_telemetry.setup_otlp_exporter()
 
 # 配置日志
 logging.basicConfig(

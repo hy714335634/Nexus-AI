@@ -16,8 +16,12 @@ Tool Functions:
 import json
 import logging
 import os
-from typing import List, Dict, Any, Optional, Union
+import tempfile
+import urllib.parse
+from typing import List, Dict, Any, Optional, Union, Tuple
 from datetime import datetime
+from urllib.request import urlopen, Request
+from urllib.error import URLError, HTTPError
 
 from strands import tool
 from nexus_utils.multimodal_processing.models.data_models import FileMetadata, ParsedContent
@@ -516,6 +520,178 @@ def _create_error_response(message: str, error_code: str, context: Optional[Dict
     return json.dumps(response, ensure_ascii=False, indent=2)
 
 
+def _detect_path_type(path: str) -> str:
+    """
+    Detect the type of file path (local, http/https, or s3).
+    
+    Args:
+        path: File path or URL
+        
+    Returns:
+        Path type: 'local', 'http', or 's3'
+    """
+    path_lower = path.lower().strip()
+    
+    if path_lower.startswith('s3://'):
+        return 's3'
+    elif path_lower.startswith('http://') or path_lower.startswith('https://'):
+        return 'http'
+    else:
+        return 'local'
+
+
+def _download_file_from_url(url: str, timeout: int = 30) -> Tuple[bytes, Optional[str]]:
+    """
+    Download file from HTTP/HTTPS URL.
+    
+    Args:
+        url: HTTP/HTTPS URL
+        timeout: Request timeout in seconds
+        
+    Returns:
+        Tuple of (file content as bytes, optional filename from Content-Disposition header)
+        
+    Raises:
+        Exception: If download fails
+    """
+    try:
+        logger.info(f"Downloading file from URL: {url}")
+        request = Request(url)
+        request.add_header('User-Agent', 'Nexus-AI-Multimodal-Parser/1.0')
+        
+        with urlopen(request, timeout=timeout) as response:
+            file_content = response.read()
+            
+            # Try to extract filename from Content-Disposition header
+            filename = None
+            content_disposition = response.headers.get('Content-Disposition', '')
+            if content_disposition:
+                # Parse Content-Disposition header: attachment; filename="file.pdf"
+                import re
+                match = re.search(r'filename[^;=\n]*=(([\'"]).*?\2|[^;\n]*)', content_disposition)
+                if match:
+                    filename = match.group(1).strip('"\'')
+            
+            logger.info(f"Successfully downloaded {len(file_content)} bytes from {url}")
+            return file_content, filename
+            
+    except HTTPError as e:
+        error_msg = f"HTTP error {e.code} when downloading {url}: {e.reason}"
+        logger.error(error_msg)
+        raise Exception(error_msg) from e
+    except URLError as e:
+        error_msg = f"URL error when downloading {url}: {str(e)}"
+        logger.error(error_msg)
+        raise Exception(error_msg) from e
+    except Exception as e:
+        error_msg = f"Failed to download file from {url}: {str(e)}"
+        logger.error(error_msg)
+        raise Exception(error_msg) from e
+
+
+def _download_file_from_s3(s3_path: str) -> bytes:
+    """
+    Download file from S3.
+    
+    Args:
+        s3_path: S3 path in format s3://bucket-name/key
+        
+    Returns:
+        File content as bytes
+        
+    Raises:
+        Exception: If download fails
+    """
+    try:
+        if not s3_path.startswith('s3://'):
+            raise Exception(f"Invalid S3 path format: {s3_path}")
+        
+        # Parse S3 URL
+        url_parts = s3_path[5:].split('/', 1)  # Remove 's3://' prefix
+        if len(url_parts) != 2:
+            raise Exception(f"Invalid S3 path format: {s3_path}")
+        
+        bucket_name, object_key = url_parts
+        
+        logger.info(f"Downloading file from S3: {bucket_name}/{object_key}")
+        
+        # Get tool instance to access S3 service
+        tool = _get_tool_instance()
+        
+        # Use S3StorageService to download
+        from nexus_utils.multimodal_processing.s3_storage_service import S3StorageService
+        
+        # Get AWS region
+        import os
+        aws_region = (
+            os.getenv('AWS_DEFAULT_REGION') or 
+            os.getenv('AWS_REGION') or
+            tool.multimodal_config.get('aws', {}).get('bedrock_region') or
+            'us-west-2'
+        )
+        
+        s3_service = S3StorageService(
+            bucket_name=bucket_name,
+            aws_region=aws_region
+        )
+        
+        file_content = s3_service.download_file_by_key(object_key)
+        logger.info(f"Successfully downloaded {len(file_content)} bytes from S3")
+        return file_content
+        
+    except Exception as e:
+        error_msg = f"Failed to download file from S3 {s3_path}: {str(e)}"
+        logger.error(error_msg)
+        raise Exception(error_msg) from e
+
+
+def _get_filename_from_path(path: str, path_type: str) -> str:
+    """
+    Extract filename from path based on path type.
+    
+    Args:
+        path: File path or URL
+        path_type: Type of path ('local', 'http', or 's3')
+        
+    Returns:
+        Filename
+    """
+    if path_type == 'local':
+        return os.path.basename(path)
+    elif path_type == 'http':
+        # Extract filename from URL
+        parsed = urllib.parse.urlparse(path)
+        filename = os.path.basename(parsed.path)
+        # If no filename in path, try to get from Content-Disposition header or use default
+        if not filename or '.' not in filename:
+            # Try to get from query parameters or use a default name
+            filename = parsed.path.split('/')[-1] if parsed.path else 'download'
+            if not filename or '.' not in filename:
+                filename = 'file'
+        return filename
+    elif path_type == 's3':
+        # Extract filename from S3 key
+        if '/' in path:
+            key = path.split('/', 3)[-1]  # Get key part after s3://bucket/
+            return os.path.basename(key) if key else 'file'
+        return 'file'
+    return 'file'
+
+
+def _get_file_extension(filename: str) -> str:
+    """
+    Get file extension from filename.
+    
+    Args:
+        filename: Filename
+        
+    Returns:
+        File extension (without dot, lowercase)
+    """
+    ext = os.path.splitext(filename)[1].lower()
+    return ext.lstrip('.')
+
+
 @tool
 def parse_multimodal_content_from_path(
     file_paths: List[str],
@@ -524,20 +700,61 @@ def parse_multimodal_content_from_path(
     processing_options: Optional[Dict[str, Any]] = None
 ) -> str:
     """
-    Parse multiple files from file paths and generate structured Markdown output.
+    Parse multiple files from various sources and generate structured Markdown output.
     
-    This function is a convenience wrapper around parse_multimodal_content that accepts
-    file paths instead of file content bytes. It automatically reads the files and
-    converts them to the format expected by parse_multimodal_content.
+    This function supports three types of file paths:
+    1. Local file paths: /path/to/file.jpg, ./relative/path/file.docx
+    2. HTTP/HTTPS URLs: https://example.com/image.png, http://server.com/document.pdf
+    3. S3 paths: s3://bucket-name/path/to/file.xlsx
+    
+    The function automatically:
+    - Detects the path type based on the prefix
+    - Downloads files from HTTP/HTTPS URLs or S3
+    - Determines file type from file extension
+    - Selects the appropriate processor (image, document, or text)
+    - Returns structured Markdown output
     
     Args:
-        file_paths: List of file paths to process
+        file_paths: List of file paths/URLs to process. Can be:
+                   - Local paths: ["/path/to/image.jpg", "./doc.docx"]
+                   - HTTP/HTTPS URLs: ["https://example.com/file.pdf"]
+                   - S3 paths: ["s3://bucket-name/key/file.xlsx"]
         context_description: Optional context or description for the processing task
         include_metadata: Whether to include detailed metadata in the output
         processing_options: Optional processing configuration overrides
     
     Returns:
-        JSON string containing processing results with the same structure as parse_multimodal_content
+        JSON string containing processing results with the following structure:
+        {
+            "status": "success" | "partial_success" | "error",
+            "message": "Processing completion message",
+            "results": {
+                "total_files": int,
+                "successful_files": int,
+                "failed_files": int,
+                "markdown_output": "Generated Markdown content",
+                "processing_time": float,
+                "file_results": [...]
+            },
+            "timestamp": "ISO timestamp"
+        }
+    
+    Examples:
+        # Local files
+        parse_multimodal_content_from_path(["/path/to/image.jpg", "./document.docx"])
+        
+        # HTTP URLs
+        parse_multimodal_content_from_path(["https://example.com/image.png"])
+        
+        # S3 paths
+        parse_multimodal_content_from_path(["s3://my-bucket/files/data.xlsx"])
+        
+        # Mixed paths
+        parse_multimodal_content_from_path([
+            "/local/image.jpg",
+            "https://example.com/doc.pdf",
+            "s3://bucket/file.xlsx"
+        ])
     """
     start_time = datetime.utcnow()
     
@@ -558,53 +775,117 @@ def parse_multimodal_content_from_path(
         
         for i, file_path in enumerate(file_paths):
             try:
-                # Check if file exists
-                if not os.path.exists(file_path):
-                    error_msg = f"File not found: {file_path}"
+                # Detect path type
+                path_type = _detect_path_type(file_path)
+                logger.info(f"Processing file {i+1}/{len(file_paths)}: {file_path} (type: {path_type})")
+                
+                file_content = None
+                file_size = 0
+                filename = None
+                
+                # Download or read file based on path type
+                if path_type == 'local':
+                    # Local file path
+                    if not os.path.exists(file_path):
+                        error_msg = f"File not found: {file_path}"
+                        file_errors.append(error_msg)
+                        logger.error(error_msg)
+                        continue
+                    
+                    if not os.access(file_path, os.R_OK):
+                        error_msg = f"File not readable: {file_path}"
+                        file_errors.append(error_msg)
+                        logger.error(error_msg)
+                        continue
+                    
+                    file_size = os.path.getsize(file_path)
+                    filename = os.path.basename(file_path)
+                    
+                    # Check file size limit (50MB default)
+                    max_file_size = 50 * 1024 * 1024  # 50MB in bytes
+                    if file_size > max_file_size:
+                        error_msg = f"File too large: {file_path} ({file_size} bytes, max {max_file_size} bytes)"
+                        file_errors.append(error_msg)
+                        logger.error(error_msg)
+                        continue
+                    
+                    # Read file content
+                    with open(file_path, 'rb') as f:
+                        file_content = f.read()
+                        
+                elif path_type == 'http':
+                    # HTTP/HTTPS URL
+                    try:
+                        file_content, header_filename = _download_file_from_url(file_path)
+                        file_size = len(file_content)
+                        
+                        # Use filename from Content-Disposition header if available, otherwise extract from URL
+                        if header_filename:
+                            filename = header_filename
+                        else:
+                            filename = _get_filename_from_path(file_path, path_type)
+                        
+                        # Check file size limit
+                        max_file_size = 50 * 1024 * 1024  # 50MB in bytes
+                        if file_size > max_file_size:
+                            error_msg = f"File too large: {file_path} ({file_size} bytes, max {max_file_size} bytes)"
+                            file_errors.append(error_msg)
+                            logger.error(error_msg)
+                            continue
+                            
+                    except Exception as e:
+                        error_msg = f"Failed to download file from URL {file_path}: {str(e)}"
+                        file_errors.append(error_msg)
+                        logger.error(error_msg)
+                        continue
+                        
+                elif path_type == 's3':
+                    # S3 path
+                    try:
+                        file_content = _download_file_from_s3(file_path)
+                        file_size = len(file_content)
+                        filename = _get_filename_from_path(file_path, path_type)
+                        
+                        # Check file size limit
+                        max_file_size = 50 * 1024 * 1024  # 50MB in bytes
+                        if file_size > max_file_size:
+                            error_msg = f"File too large: {file_path} ({file_size} bytes, max {max_file_size} bytes)"
+                            file_errors.append(error_msg)
+                            logger.error(error_msg)
+                            continue
+                            
+                    except Exception as e:
+                        error_msg = f"Failed to download file from S3 {file_path}: {str(e)}"
+                        file_errors.append(error_msg)
+                        logger.error(error_msg)
+                        continue
+                
+                # Validate that we have file content
+                if file_content is None:
+                    error_msg = f"Failed to load file content: {file_path}"
                     file_errors.append(error_msg)
                     logger.error(error_msg)
                     continue
                 
-                # Check if file is readable
-                if not os.access(file_path, os.R_OK):
-                    error_msg = f"File not readable: {file_path}"
-                    file_errors.append(error_msg)
-                    logger.error(error_msg)
-                    continue
-                
-                # Get file size
-                file_size = os.path.getsize(file_path)
-                
-                # Check file size limit (50MB default)
-                max_file_size = 50 * 1024 * 1024  # 50MB in bytes
-                if file_size > max_file_size:
-                    error_msg = f"File too large: {file_path} ({file_size} bytes, max {max_file_size} bytes)"
-                    file_errors.append(error_msg)
-                    logger.error(error_msg)
-                    continue
-                
-                # Read file content
-                with open(file_path, 'rb') as f:
-                    file_content = f.read()
-                
-                # Get file extension and determine MIME type
-                file_ext = os.path.splitext(file_path)[1].lower()
-                mime_type = _get_mime_type_from_extension(file_ext)
+                # Get file extension from filename and determine MIME type
+                file_ext = _get_file_extension(filename)
+                mime_type = _get_mime_type_from_extension('.' + file_ext if file_ext else '')
                 
                 # Create file data structure
                 file_data = {
-                    'filename': os.path.basename(file_path),
+                    'filename': filename,
                     'content': file_content,
                     'size': file_size,
                     'mime_type': mime_type,
-                    'file_path': file_path
+                    'file_path': file_path,
+                    'path_type': path_type
                 }
                 
                 files.append(file_data)
-                logger.info(f"Successfully loaded file: {file_path} ({file_size} bytes, {mime_type})")
+                logger.info(f"Successfully loaded file: {filename} ({file_size} bytes, {mime_type}, source: {path_type})")
                 
             except Exception as e:
-                error_msg = f"Failed to read file {file_path}: {str(e)}"
+                error_msg = f"Failed to process file {file_path}: {str(e)}"
                 file_errors.append(error_msg)
                 logger.error(error_msg)
         

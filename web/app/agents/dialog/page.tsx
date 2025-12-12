@@ -684,7 +684,7 @@ export default function AgentDialogPage() {
                 streamState.currentToolId = toolId;
                 streamState.currentToolInput = initialInput;
                 const newTool: ToolUseBlock = {
-                  id: streamState.currentToolId,
+                  id: toolId,
                   tool_name: toolName,
                   tool_input: initialInput,
                   status: 'running',

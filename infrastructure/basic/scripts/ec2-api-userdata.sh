@@ -17,14 +17,23 @@ SQS_QUEUE_URL="${sqs_queue_url}"
 ENVIRONMENT="${environment}"
 GITHUB_REPO_URL="${github_repo_url}"
 GITHUB_BRANCH="${github_branch}"
+ENABLE_JAEGER="${enable_jaeger}"
+PROJECT_NAME="${project_name}"
 
 # Define path variables (from Terraform, use directly in script)
 EFS_MOUNT_PATH="${efs_mount_path}"
 APP_DIR="${app_dir}"
 PROJECT_ROOT="${project_root}"
 
+# Set OTEL_EXPORTER_OTLP_ENDPOINT based on Jaeger configuration
+if [ "${ENABLE_JAEGER}" = "true" ]; then
+  OTEL_EXPORTER_OTLP_ENDPOINT="http://jaeger.${PROJECT_NAME}.local:4318"
+else
+  OTEL_EXPORTER_OTLP_ENDPOINT=""
+fi
+
 # Export variables for use in heredoc
-export EFS_FILE_SYSTEM_ID AWS_REGION ECR_REPOSITORY_URL
+export EFS_FILE_SYSTEM_ID AWS_REGION ECR_REPOSITORY_URL OTEL_EXPORTER_OTLP_ENDPOINT
 export DYNAMODB_REGION
 export AGENT_PROJECTS_TABLE AGENT_INSTANCES_TABLE SQS_QUEUE_URL ENVIRONMENT
 export GITHUB_REPO_URL GITHUB_BRANCH
@@ -177,6 +186,7 @@ services:
       - SQS_QUEUE_URL=${SQS_QUEUE_URL}
       - EFS_MOUNT_PATH=${EFS_MOUNT_PATH}
       - DOCKER_HOST=unix:///var/run/docker.sock
+      - OTEL_EXPORTER_OTLP_ENDPOINT=$${OTEL_EXPORTER_OTLP_ENDPOINT}
     volumes:
 EOF
 
