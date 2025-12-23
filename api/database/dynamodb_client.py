@@ -200,6 +200,24 @@ class DynamoDBClient:
             logger.error(f"DynamoDB health check failed: {str(e)}")
             return False
     
+    def table_exists(self, table_name: str) -> bool:
+        """Check if a specific DynamoDB table exists and is active"""
+        try:
+            response = self.dynamodb_client.describe_table(TableName=table_name)
+            table_status = response.get('Table', {}).get('TableStatus', '')
+            return table_status == 'ACTIVE'
+        except ClientError as e:
+            error_code = e.response.get('Error', {}).get('Code', '')
+            if error_code == 'ResourceNotFoundException':
+                logger.debug(f"Table {table_name} does not exist")
+                return False
+            # For other errors, log and return False
+            logger.error(f"Error checking table {table_name}: {str(e)}")
+            return False
+        except Exception as e:
+            logger.error(f"Unexpected error checking table {table_name}: {str(e)}")
+            return False
+    
     def _ensure_connection(self):
         """Ensure DynamoDB connection is healthy"""
         if not self.health_check():

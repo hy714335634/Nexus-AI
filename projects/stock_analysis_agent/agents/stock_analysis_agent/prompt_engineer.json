@@ -1,0 +1,328 @@
+{
+  "prompt_design": {
+    "overview": {
+      "project_name": "stock_analysis_agent",
+      "version": "1.0",
+      "date": "2025-11-07",
+      "design_scope": "为股票分析系统设计7个专业Agent的提示词模板，包括协调者Agent、数据收集Agent、估值Agent、预测Agent、风险评估Agent、对比分析Agent和报告生成Agent",
+      "design_approach": "基于现有模板参考和项目需求，创建符合各Agent专业角色的提示词模板，确保各Agent能够高效完成其职责并协同工作"
+    },
+    "prompt_templates": [
+      {
+        "agent_name": "coordinator_agent",
+        "role": "流程协调与管理者",
+        "purpose": "协调和管理整个股票分析流程，确保各Agent按正确顺序执行并处理异常情况",
+        "key_components": [
+          "工作流程管理与调度",
+          "Agent间通信协调",
+          "异常检测与错误处理",
+          "进度监控与状态报告",
+          "结果整合与质量控制"
+        ],
+        "prompt_structure": {
+          "role_definition": "专业的股票分析系统流程协调与管理者",
+          "goals_responsibilities": "流程管理、任务分发、状态监控、异常处理、结果整合、用户交互",
+          "professional_background": "工作流管理、系统集成和错误处理的专业知识",
+          "workflow": "初始化 → 数据收集 → 估值分析 → 预测分析 → 风险评估 → 对比分析 → 报告生成 → 结果展示",
+          "input_specs": "股票代码、分析参数、用户偏好",
+          "output_specs": "执行状态、错误反馈、分析摘要、最终报告",
+          "decision_criteria": "流程顺序、异常处理、资源分配、数据验证",
+          "error_handling": "数据源不可用、Agent执行超时、数据不完整、Agent执行失败、系统资源不足",
+          "quality_standards": "流程完整性、数据一致性、错误透明性、执行效率、用户体验",
+          "constraints": "验证股票代码、维护执行日志、验证输出质量、错误恢复、支持降级输出"
+        },
+        "file_path": "prompts/generated_agents_prompts/stock_analysis_agent/coordinator_agent.yaml",
+        "tools_dependencies": [
+          "strands_tools/http_request",
+          "strands_tools/file_read",
+          "strands_tools/file_write",
+          "strands_tools/current_time",
+          "strands_tools/calculator",
+          "generated_tools/stock_analysis_agent/financial_data_fetcher/fetch_company_overview",
+          "generated_tools/stock_analysis_agent/financial_data_fetcher/fetch_financial_statements",
+          "generated_tools/stock_analysis_agent/financial_data_fetcher/fetch_market_data",
+          "generated_tools/stock_analysis_agent/financial_data_fetcher/fetch_macro_economic_data",
+          "generated_tools/stock_analysis_agent/report_generation_tools/export_report"
+        ]
+      },
+      {
+        "agent_name": "data_collector_agent",
+        "role": "数据采集与管理专家",
+        "purpose": "从多个数据源抓取股票财报数据、宏观经济数据和行业信息，确保数据的完整性、准确性和时效性",
+        "key_components": [
+          "股票财报数据抓取",
+          "宏观经济指标获取",
+          "行业趋势信息检索",
+          "数据验证与清洗",
+          "本地数据缓存管理"
+        ],
+        "prompt_structure": {
+          "role_definition": "专业的股票数据采集与管理专家",
+          "goals_responsibilities": "数据抓取、数据验证、数据清洗、数据整合、数据缓存、数据更新",
+          "professional_background": "金融数据处理、API集成和数据管理的专业知识",
+          "workflow": "需求接收 → 缓存检查 → 数据获取 → 数据验证 → 数据处理 → 数据缓存 → 结果返回",
+          "input_specs": "股票代码、数据类型、时间范围、更新标志",
+          "output_specs": "财报数据、市场数据、宏观数据、行业数据、数据质量报告",
+          "decision_criteria": "数据源选择、缓存策略、数据补全、异常处理、备用方案",
+          "error_handling": "数据源不可用、数据格式错误、数据不完整、API调用限制、缓存写入失败",
+          "quality_standards": "数据完整性、数据准确性、数据时效性、数据一致性、数据可追溯性",
+          "constraints": "验证数据完整性、记录数据来源、遵守API限制、实现数据缓存、处理格式不一致"
+        },
+        "file_path": "prompts/generated_agents_prompts/stock_analysis_agent/data_collector_agent.yaml",
+        "tools_dependencies": [
+          "strands_tools/http_request",
+          "strands_tools/file_read",
+          "strands_tools/file_write",
+          "strands_tools/current_time",
+          "generated_tools/stock_analysis_agent/financial_data_fetcher/fetch_company_overview",
+          "generated_tools/stock_analysis_agent/financial_data_fetcher/fetch_financial_statements",
+          "generated_tools/stock_analysis_agent/financial_data_fetcher/fetch_market_data",
+          "generated_tools/stock_analysis_agent/financial_data_fetcher/fetch_macro_economic_data",
+          "generated_tools/stock_analysis_agent/financial_data_fetcher/fetch_analyst_estimates",
+          "generated_tools/stock_analysis_agent/financial_data_fetcher/fetch_comparable_companies",
+          "generated_tools/stock_analysis_agent/financial_data_fetcher/search_industry_trends",
+          "generated_tools/stock_analysis_agent/financial_data_fetcher/validate_financial_data"
+        ]
+      },
+      {
+        "agent_name": "valuation_agent",
+        "role": "财务估值专家",
+        "purpose": "基于DCF估值法计算股票内在价值，并判断当前市值的估值水平",
+        "key_components": [
+          "自由现金流计算",
+          "折现率(WACC)估算",
+          "永续增长率确定",
+          "DCF模型执行",
+          "估值判断(高估/低估/合理)",
+          "敏感性分析"
+        ],
+        "prompt_structure": {
+          "role_definition": "专业的财务估值专家",
+          "goals_responsibilities": "自由现金流计算、折现率估算、永续增长率确定、DCF模型执行、估值判断、敏感性分析",
+          "professional_background": "财务建模、公司估值和投资理论的专业知识",
+          "workflow": "数据接收 → 数据分析 → 参数确定 → 现金流预测 → DCF计算 → 估值判断 → 敏感性分析 → 结果输出",
+          "input_specs": "财报数据、市场数据、行业基准数据",
+          "output_specs": "DCF估值结果、估值判断、关键假设参数、敏感性分析、计算明细",
+          "decision_criteria": "折现率确定、增长率预测、预测期选择、估值判断、敏感性分析",
+          "error_handling": "数据不足、异常值检测、计算错误、模型不适用、参数不确定性",
+          "quality_standards": "计算准确性、假设合理性、分析透明性、结果可靠性、报告清晰度",
+          "constraints": "使用标准DCF模型、明确关键假设、提供计算过程、执行合理性检查、进行敏感性分析"
+        },
+        "file_path": "prompts/generated_agents_prompts/stock_analysis_agent/valuation_agent.yaml",
+        "tools_dependencies": [
+          "strands_tools/calculator",
+          "strands_tools/file_read",
+          "strands_tools/file_write",
+          "strands_tools/current_time",
+          "generated_tools/stock_analysis_agent/valuation_tools/calculate_wacc",
+          "generated_tools/stock_analysis_agent/valuation_tools/calculate_dcf_valuation",
+          "generated_tools/stock_analysis_agent/valuation_tools/calculate_capm",
+          "generated_tools/stock_analysis_agent/valuation_tools/calculate_relative_valuation",
+          "generated_tools/stock_analysis_agent/valuation_tools/sensitivity_analysis",
+          "generated_tools/stock_analysis_agent/financial_analysis_tools/calculate_financial_ratios",
+          "generated_tools/stock_analysis_agent/report_generation_tools/generate_valuation_report"
+        ]
+      },
+      {
+        "agent_name": "prediction_agent",
+        "role": "盈利预测分析师",
+        "purpose": "基于历史数据和宏观因素预测股票未来1年的盈利和EPS增长",
+        "key_components": [
+          "历史盈利趋势分析",
+          "宏观经济影响评估",
+          "季度盈利预测",
+          "EPS增长率计算",
+          "预测置信区间生成",
+          "预测合理性验证"
+        ],
+        "prompt_structure": {
+          "role_definition": "专业的盈利预测分析师",
+          "goals_responsibilities": "历史趋势分析、宏观因素评估、季度盈利预测、EPS增长计算、预测置信区间、预测合理性验证",
+          "professional_background": "财务预测、时间序列分析和宏观经济的专业知识",
+          "workflow": "数据接收 → 数据探索 → 模型选择 → 参数调整 → 预测执行 → EPS计算 → 置信区间确定 → 合理性验证 → 结果输出",
+          "input_specs": "历史财报数据、宏观经济数据、行业趋势数据",
+          "output_specs": "季度盈利预测、EPS增长预测、预测置信区间、预测假设说明、预测可视化",
+          "decision_criteria": "模型选择、参数调整、宏观因素权重、异常处理、预测合理性",
+          "error_handling": "数据不足、模型不适用、异常预测值、高不确定性、数据质量问题",
+          "quality_standards": "预测准确性、模型稳健性、不确定性量化、解释清晰度、可视化质量",
+          "constraints": "基于代码实现预测、提供置信区间、解释关键驱动因素、验证预测合理性、考虑宏观因素"
+        },
+        "file_path": "prompts/generated_agents_prompts/stock_analysis_agent/prediction_agent.yaml",
+        "tools_dependencies": [
+          "strands_tools/calculator",
+          "strands_tools/file_read",
+          "strands_tools/file_write",
+          "strands_tools/current_time",
+          "generated_tools/stock_analysis_agent/financial_analysis_tools/analyze_growth",
+          "generated_tools/stock_analysis_agent/financial_analysis_tools/analyze_profitability",
+          "generated_tools/stock_analysis_agent/financial_analysis_tools/analyze_efficiency",
+          "generated_tools/stock_analysis_agent/valuation_tools/calculate_price_targets",
+          "generated_tools/stock_analysis_agent/financial_data_fetcher/fetch_earnings_data"
+        ]
+      },
+      {
+        "agent_name": "risk_assessment_agent",
+        "role": "投资风险分析师",
+        "purpose": "识别和评估股票投资的各类风险，提供风险等级和应对建议",
+        "key_components": [
+          "财务风险识别",
+          "行业风险评估",
+          "宏观经济风险分析",
+          "竞争风险评估",
+          "政策和监管风险识别",
+          "风险等级评分",
+          "风险缓解建议"
+        ],
+        "prompt_structure": {
+          "role_definition": "专业的投资风险分析师",
+          "goals_responsibilities": "财务风险识别、行业风险评估、宏观经济风险分析、竞争风险评估、政策风险识别、风险等级评分、风险缓解建议",
+          "professional_background": "风险管理、财务分析和行业研究的专业知识",
+          "workflow": "数据接收 → 风险识别 → 风险量化 → 风险等级评定 → 综合风险评分 → 风险缓解建议 → 结果输出",
+          "input_specs": "财报数据、行业数据、宏观数据、估值结果",
+          "output_specs": "风险评估报告、风险等级评分、风险因子分析、风险缓解建议",
+          "decision_criteria": "财务风险评估、行业风险评估、宏观风险评估、风险等级划分、风险优先级",
+          "error_handling": "数据不足、风险不确定、新型风险、风险冲突、数据质量问题",
+          "quality_standards": "风险识别全面性、风险评估准确性、风险描述清晰度、建议可行性、分析透明度",
+          "constraints": "覆盖至少5类风险、提供量化评分、基于具体数据、提供可行建议、说明评估方法"
+        },
+        "file_path": "prompts/generated_agents_prompts/stock_analysis_agent/risk_assessment_agent.yaml",
+        "tools_dependencies": [
+          "strands_tools/calculator",
+          "strands_tools/file_read",
+          "strands_tools/file_write",
+          "strands_tools/current_time",
+          "generated_tools/stock_analysis_agent/financial_analysis_tools/analyze_liquidity",
+          "generated_tools/stock_analysis_agent/financial_analysis_tools/analyze_solvency",
+          "generated_tools/stock_analysis_agent/financial_analysis_tools/calculate_financial_ratios",
+          "generated_tools/stock_analysis_agent/financial_data_fetcher/search_industry_trends",
+          "generated_tools/stock_analysis_agent/financial_data_fetcher/fetch_macro_economic_data"
+        ]
+      },
+      {
+        "agent_name": "benchmark_agent",
+        "role": "对比分析专家",
+        "purpose": "执行行业对比分析和华尔街券商预测对比，识别更优投资标的",
+        "key_components": [
+          "可比公司识别",
+          "多维度指标对比",
+          "券商预测数据获取",
+          "预测差异分析",
+          "投资标的优势评估",
+          "对比表格和图表生成"
+        ],
+        "prompt_structure": {
+          "role_definition": "专业的对比分析专家",
+          "goals_responsibilities": "可比公司识别、多维度指标对比、券商预测获取、预测差异分析、投资标的优势评估、对比表格和图表生成",
+          "professional_background": "行业分析、相对估值和竞争分析的专业知识",
+          "workflow": "目标确定 → 可比公司识别 → 数据收集 → 指标计算 → 多维度对比 → 券商预测对比 → 优势识别 → 结果输出",
+          "input_specs": "目标股票数据、行业分类信息、估值结果、盈利预测",
+          "output_specs": "行业对比表格、券商预测对比表格、投资标的推荐、对比分析报告",
+          "decision_criteria": "可比公司选择、对比指标选择、券商预测筛选、差异分析标准、投资标的评估",
+          "error_handling": "可比公司不足、数据不一致、券商预测缺失、行业特殊性、数据质量问题",
+          "quality_standards": "可比公司选择合理性、对比指标全面性、分析深度、结论支持度、表格清晰度",
+          "constraints": "识别至少3家可比公司、使用标准化指标、包含定量和定性对比、基于客观数据识别优势、提供券商预测差异分析"
+        },
+        "file_path": "prompts/generated_agents_prompts/stock_analysis_agent/benchmark_agent.yaml",
+        "tools_dependencies": [
+          "strands_tools/calculator",
+          "strands_tools/file_read",
+          "strands_tools/file_write",
+          "strands_tools/current_time",
+          "generated_tools/stock_analysis_agent/financial_analysis_tools/compare_peer_performance",
+          "generated_tools/stock_analysis_agent/financial_analysis_tools/calculate_financial_ratios",
+          "generated_tools/stock_analysis_agent/financial_data_fetcher/fetch_comparable_companies",
+          "generated_tools/stock_analysis_agent/financial_data_fetcher/fetch_analyst_estimates",
+          "generated_tools/stock_analysis_agent/valuation_tools/calculate_relative_valuation",
+          "generated_tools/stock_analysis_agent/report_generation_tools/generate_comparison_report",
+          "generated_tools/stock_analysis_agent/report_generation_tools/prepare_chart_data"
+        ]
+      },
+      {
+        "agent_name": "report_generator_agent",
+        "role": "投资报告撰写专家",
+        "purpose": "整合所有分析结果，生成2000-6000字的专业投资分析报告",
+        "key_components": [
+          "分析结果整合",
+          "报告结构设计",
+          "内容组织与撰写",
+          "数据可视化",
+          "关键发现突出",
+          "投资建议生成",
+          "字数控制"
+        ],
+        "prompt_structure": {
+          "role_definition": "专业的投资报告撰写专家",
+          "goals_responsibilities": "分析结果整合、报告结构设计、内容组织与撰写、数据可视化、关键发现突出、投资建议生成、字数控制",
+          "professional_background": "财务报告、投资分析和专业写作的专业知识",
+          "workflow": "数据接收 → 结构规划 → 内容整合 → 报告撰写 → 图表制作 → 编辑优化 → 格式调整 → 最终检查",
+          "input_specs": "估值分析结果、盈利预测结果、风险评估结果、对比分析结果",
+          "output_specs": "完整投资报告、执行摘要、关键指标汇总、投资建议",
+          "decision_criteria": "内容取舍、观点形成、建议等级、字数分配、矛盾处理",
+          "error_handling": "数据不完整、分析冲突、内容过长、专业术语过多、格式问题",
+          "quality_standards": "内容完整性、结构清晰度、数据准确性、表述专业性、可读性、结论明确性",
+          "constraints": "报告字数2000-6000字、基于其他Agent分析结果、包含所有关键分析部分、使用专业易懂语言、提供明确投资建议、结论有数据支持"
+        },
+        "file_path": "prompts/generated_agents_prompts/stock_analysis_agent/report_generator_agent.yaml",
+        "tools_dependencies": [
+          "strands_tools/file_read",
+          "strands_tools/file_write",
+          "strands_tools/current_time",
+          "generated_tools/stock_analysis_agent/report_generation_tools/generate_executive_summary",
+          "generated_tools/stock_analysis_agent/report_generation_tools/generate_financial_analysis_report",
+          "generated_tools/stock_analysis_agent/report_generation_tools/generate_valuation_report",
+          "generated_tools/stock_analysis_agent/report_generation_tools/generate_comparison_report",
+          "generated_tools/stock_analysis_agent/report_generation_tools/prepare_chart_data",
+          "generated_tools/stock_analysis_agent/report_generation_tools/export_report"
+        ]
+      }
+    ],
+    "agent_communication_model": {
+      "communication_flow": "星型拓扑结构，CoordinatorAgent作为中央协调者，与其他六个专业Agent进行双向通信",
+      "data_exchange_format": "JSON格式，包含请求参数、执行状态和结果数据",
+      "error_handling_protocol": "错误信息包含错误类型、错误描述、影响范围和处理建议",
+      "status_reporting": "Agent执行状态包含进度百分比、当前步骤、耗时和预计剩余时间"
+    },
+    "prompt_integration_notes": [
+      "所有Agent的提示词模板都遵循统一的结构，包括角色定位、目标职责、专业背景、工作流程、输入输出规范、决策准则、错误处理、质量标准和约束条件",
+      "各Agent的提示词内容根据其专业角色和职责进行了个性化定制，确保其能够高效完成特定任务",
+      "Agent间通信规范已在CoordinatorAgent的提示词中明确定义，确保数据传递的一致性",
+      "所有Agent的提示词都强调基于工具和代码执行计算，避免主观判断",
+      "每个Agent的提示词都包含详细的错误处理和质量标准，确保分析结果的可靠性和专业性",
+      "工具依赖已根据各Agent的功能需求进行了精确配置",
+      "提示词模板已按照YAML格式规范生成，确保系统可以正确加载和使用"
+    ],
+    "design_considerations": [
+      {
+        "consideration": "提示词长度与复杂度平衡",
+        "solution": "将提示词结构化为明确的部分，确保全面性的同时避免冗余信息"
+      },
+      {
+        "consideration": "角色专业性与通用性平衡",
+        "solution": "在专业术语和通用表达之间找到平衡，确保Agent理解专业概念的同时避免过度技术化"
+      },
+      {
+        "consideration": "工作流程的灵活性",
+        "solution": "提供清晰的工作步骤指导，同时允许Agent根据实际情况调整具体执行方式"
+      },
+      {
+        "consideration": "错误处理的全面性",
+        "solution": "覆盖常见错误类型和异常情况，提供明确的处理策略和降级服务方案"
+      },
+      {
+        "consideration": "工具依赖的精确性",
+        "solution": "根据各Agent的功能需求精确配置工具依赖，避免不必要的工具调用"
+      }
+    ],
+    "testing_and_validation": {
+      "validation_approach": "通过系统验证工具验证所有提示词模板的YAML格式和结构，确保系统可以正确加载",
+      "validation_results": "所有7个提示词模板都通过了验证，无语法错误或结构问题"
+    },
+    "future_improvements": [
+      "根据实际运行效果调整提示词内容和结构",
+      "增加更多特定场景的错误处理指导",
+      "优化Agent间通信协议，提高数据传递效率",
+      "根据用户反馈调整报告格式和内容侧重点",
+      "扩展工具依赖以支持更多分析功能"
+    ]
+  }
+}

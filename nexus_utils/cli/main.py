@@ -350,8 +350,9 @@ def project_init(ctx, name, description, dry_run):
 @click.argument('name')
 @click.option('--output', '-o', help='Custom output path for backup')
 @click.option('--dry-run', is_flag=True, help='Show what would be done without executing')
+@click.option('--source-delete', is_flag=True, help='Delete source directories after successful backup')
 @click.pass_obj
-def project_backup(ctx, name, output, dry_run):
+def project_backup(ctx, name, output, dry_run, source_delete):
     """Backup a project with all its resources
     
     Creates a complete backup of a project including:
@@ -375,6 +376,9 @@ def project_backup(ctx, name, output, dry_run):
       
       # Preview backup (dry-run)
       nexus-cli project backup my-project --dry-run
+      
+      # Backup and delete source directories
+      nexus-cli project backup my-project --source-delete
     
     \b
     FEATURES:
@@ -384,6 +388,7 @@ def project_backup(ctx, name, output, dry_run):
       ✓ Timestamped filenames
       ✓ Detailed manifest with metadata
       ✓ Dry-run mode for preview
+      ✓ Optional source deletion after backup
     """
     try:
         project = ctx.project_manager.get_project(name)
@@ -420,6 +425,18 @@ def project_backup(ctx, name, output, dry_run):
                 click.echo(f"Backup would be created at: {output}/{backup_name}")
             else:
                 click.echo(f"Backup would be created at: backups/{backup_name}")
+            
+            if source_delete:
+                click.echo()
+                click.echo("After backup, would delete source directories:")
+                click.echo(f"  • projects/{name}/")
+                if project.agents:
+                    click.echo(f"  • agents/generated_agents/{name}/")
+                if project.prompts:
+                    click.echo(f"  • prompts/generated_agents_prompts/{name}/")
+                if project.tools:
+                    click.echo(f"  • tools/generated_tools/{name}/")
+            
             click.echo()
             click.echo("Run without --dry-run to execute these operations.")
             return
@@ -455,6 +472,45 @@ def project_backup(ctx, name, output, dry_run):
         click.echo(f"  Size: {backup.size_human}")
         click.echo(f"  Files: {backup.manifest.metadata['total_files']}")
         click.echo(f"  Checksum: sha256:{backup.checksum[:16]}...")
+        
+        # Delete source directories if requested
+        if source_delete:
+            click.echo()
+            click.echo("Deleting source directories...")
+            
+            deleted_items = []
+            
+            # Delete project directory
+            project_dir = f"projects/{name}"
+            if ctx.fs_adapter.exists(project_dir):
+                ctx.fs_adapter.delete_directory(project_dir)
+                deleted_items.append(f"✓ Deleted: {project_dir}/")
+            
+            # Delete agents directory
+            agents_dir = f"agents/generated_agents/{name}"
+            if ctx.fs_adapter.exists(agents_dir):
+                ctx.fs_adapter.delete_directory(agents_dir)
+                deleted_items.append(f"✓ Deleted: {agents_dir}/")
+            
+            # Delete prompts directory
+            prompts_dir = f"prompts/generated_agents_prompts/{name}"
+            if ctx.fs_adapter.exists(prompts_dir):
+                ctx.fs_adapter.delete_directory(prompts_dir)
+                deleted_items.append(f"✓ Deleted: {prompts_dir}/")
+            
+            # Delete tools directory
+            tools_dir = f"tools/generated_tools/{name}"
+            if ctx.fs_adapter.exists(tools_dir):
+                ctx.fs_adapter.delete_directory(tools_dir)
+                deleted_items.append(f"✓ Deleted: {tools_dir}/")
+            
+            if deleted_items:
+                for item in deleted_items:
+                    click.echo(f"  {item}")
+                click.echo()
+                click.echo(f"✓ Source directories deleted successfully ({len(deleted_items)} directories removed)")
+            else:
+                click.echo("  No source directories found to delete")
     
     except Exception as e:
         click.echo(f"Error: {e}", err=True)
@@ -462,7 +518,7 @@ def project_backup(ctx, name, output, dry_run):
 
 
 @project.command('restore')
-@click.argument('name')
+@click.option('--name', '-n', help='Project name (default: inferred from backup)')
 @click.option('--from-backup', required=True, help='Path to backup file')
 @click.option('--force', '-f', is_flag=True, help='Overwrite existing project')
 @click.option('--dry-run', is_flag=True, help='Show what would be done without executing')
@@ -478,23 +534,26 @@ def project_restore(ctx, name, from_backup, force, dry_run):
     
     \b
     RESTORE OPTIONS:
-      1. Restore to original name (same as backup)
-      2. Restore to different name (project cloning)
+      1. Restore to original name (inferred from backup, default)
+      2. Restore to different name (project cloning, use --name)
       3. Force overwrite existing project (with safety backup)
     
     \b
     EXAMPLES:
-      # Restore to original name
-      nexus-cli project restore my-project --from-backup backups/my-project_20241125.tar.gz
+      # Restore to original name (inferred from backup)
+      nexus-cli project restore --from-backup backups/my-project_20241125.tar.gz
+      
+      # Restore to original name (explicit)
+      nexus-cli project restore --name my-project --from-backup backups/my-project_20241125.tar.gz
       
       # Clone project (restore to different name)
-      nexus-cli project restore dev-project --from-backup backups/prod-project_20241125.tar.gz
+      nexus-cli project restore --name dev-project --from-backup backups/prod-project_20241125.tar.gz
       
       # Force overwrite existing project
-      nexus-cli project restore my-project --from-backup backup.tar.gz --force
+      nexus-cli project restore --name my-project --from-backup backup.tar.gz --force
       
       # Preview restore (dry-run)
-      nexus-cli project restore my-project --from-backup backup.tar.gz --dry-run
+      nexus-cli project restore --from-backup backup.tar.gz --dry-run
     
     \b
     SAFETY FEATURES:
@@ -519,8 +578,13 @@ def project_restore(ctx, name, from_backup, force, dry_run):
             click.echo(f"Error: Backup file not found: {from_backup}", err=True)
             sys.exit(1)
         
-        # Get manifest
+        # Get manifest to infer project name if not provided
         manifest = ctx.project_manager.get_backup_manifest(from_backup)
+        
+        # Use provided name or infer from backup
+        name_provided = name is not None
+        if not name:
+            name = manifest.project_name
         
         # Check if project exists
         existing_project = ctx.project_manager.get_project(name)
@@ -528,6 +592,9 @@ def project_restore(ctx, name, from_backup, force, dry_run):
         if dry_run:
             click.echo("[DRY RUN] Would perform the following operations:")
             click.echo()
+            if not name_provided:
+                click.echo(f"Project name inferred from backup: {name}")
+                click.echo()
             click.echo(f"Restoring project '{name}' from backup...")
             click.echo()
             click.echo("Validating backup:")
@@ -557,6 +624,11 @@ def project_restore(ctx, name, from_backup, force, dry_run):
             click.echo()
             click.echo("Run without --dry-run to execute these operations.")
             return
+        
+        # Show inferred name if not provided by user
+        if not name_provided:
+            click.echo(f"Inferred project name from backup: {name}")
+            click.echo()
         
         click.echo(f"Restoring project '{name}' from backup...")
         click.echo()

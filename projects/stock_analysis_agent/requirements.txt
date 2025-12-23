@@ -1,0 +1,109 @@
+./nexus_utils
+strands-agents
+strands-agents-tools
+# Stock Analysis Agent - Python Dependencies
+# 项目：股票分析助手系统
+# 描述：基于实时财报数据和宏观经济分析的智能股票投资建议系统
+# Core Framework & SDK
+boto3>=1.26.0               # AWS SDK for Bedrock integration
+botocore>=1.29.0            # AWS Botocore
+# Data Processing & Analysis
+numpy>=1.24.0               # Numerical computing
+pandas>=2.0.0               # Data manipulation and analysis
+scipy>=1.10.0               # Scientific computing
+scikit-learn>=1.2.0         # Machine learning library
+# Financial Calculations
+python-dateutil>=2.8.2      # Date utilities
+pytz>=2023.3                # Timezone library
+quantlib>=1.25              # Financial library (optional)
+# API & Web Requests
+requests>=2.28.0            # HTTP library
+httpx>=0.24.0               # Async HTTP library
+aiohttp>=3.8.0              # Async HTTP client/server
+urllib3>=1.26.0             # HTTP client
+# Data Fetching & Scraping
+beautifulsoup4>=4.11.0      # HTML/XML parsing
+lxml>=4.9.0                 # XML processing
+selenium>=4.8.0             # Web browser automation (optional)
+yfinance>=0.2.0             # Yahoo Finance data fetcher
+alpha_vantage>=2.3.0        # Alpha Vantage API (optional)
+# API Integration
+serpapi>=0.1.0              # SerpAPI integration for search
+finnhub-python>=2.4.0       # Finnhub API client (optional)
+tiingo>=0.14.0              # Tiingo API client (optional)
+# Data Caching & Storage
+redis>=4.5.0                # Redis client (optional)
+diskcache>=5.4.0            # Disk-based cache
+sqlalchemy>=2.0.0           # SQL toolkit
+# Visualization & Reporting
+matplotlib>=3.7.0           # 2D plotting library
+plotly>=5.13.0              # Interactive plotting
+seaborn>=0.12.0             # Statistical data visualization
+altair>=4.2.0               # Declarative visualization
+reportlab>=4.0.0            # PDF generation
+python-docx>=0.8.11         # Word document generation
+# Frontend & UI
+streamlit>=1.20.0           # Web app framework
+streamlit-aggrid>=0.3.0     # Ag-Grid component for Streamlit
+# Data Format Processing
+pyyaml>=6.0                 # YAML parser
+json5>=0.9.0                # JSON5 parser
+toml>=0.10.0                # TOML parser
+python-dotenv>=0.21.0       # Environment variable management
+# Logging & Monitoring
+loguru>=0.7.0               # Better logging library
+sentry-sdk>=1.16.0          # Error tracking (optional)
+# Testing & Development
+pytest>=7.2.0               # Testing framework
+pytest-asyncio>=0.20.0      # Pytest plugin for asyncio
+pytest-cov>=4.0.0           # Coverage plugin
+black>=23.1.0               # Code formatter
+flake8>=6.0.0               # Code linter
+pylint>=2.16.0              # Code analysis
+mypy>=1.0.0                 # Static type checker
+# Utilities
+tqdm>=4.65.0                # Progress bar
+click>=8.1.0                # CLI framework
+pydantic>=1.10.0            # Data validation
+marshmallow>=3.17.0         # Serialization library
+python-crontab>=2.6.0       # Crontab management
+schedule>=1.1.0             # Job scheduling
+tenacity>=8.2.0             # Retry library
+# Time Series Analysis
+statsmodels>=0.13.0         # Statistical modeling
+# pmdarima>=2.0.0             # ARIMA models
+prophet>=1.1.0              # Time series forecasting
+arch>=5.3.0                 # ARCH/GARCH models
+# NLP & Text Processing (for report generation)
+nltk>=3.8.0                 # Natural language toolkit
+textblob>=0.17.0            # Simplified NLP
+spacy>=3.4.0                # Industrial NLP
+jieba>=0.42.0               # Chinese text segmentation
+# Database & ORM
+psycopg2-binary>=2.9.0      # PostgreSQL adapter (optional)
+pymongo>=4.3.0              # MongoDB driver (optional)
+elasticsearch>=8.6.0        # Elasticsearch client (optional)
+# Async & Concurrency
+asyncio-contextmanager>=1.0.0 # Async context managers
+aiofiles>=23.1.0            # Async file I/O
+# Security & Encryption
+cryptography>=39.0.0        # Cryptographic recipes
+python-jose>=3.3.0          # JSON Web Token implementation
+pyjwt>=2.6.0                # JWT implementation
+# Configuration & Environment
+python-decouple>=3.7        # Configuration management
+pydantic-settings>=2.0.0    # Pydantic settings
+# Documentation
+sphinx>=6.1.0               # Documentation generator
+sphinx-rtd-theme>=1.2.0     # ReadTheDocs theme
+# Performance & Optimization
+numba>=0.56.0               # JIT compilation
+cython>=0.29.0              # C extensions for Python
+joblib>=1.2.0               # Parallel computing
+# Version & Release Management
+packaging>=23.0             # Version parsing
+setuptools>=65.0.0          # Build tools
+wheel>=0.38.0               # Wheel distribution format
+# Additional Dependencies
+six>=1.16.0                 # Python 2 and 3 compatibility
+future>=0.18.0              # Python 2/3 compatibility

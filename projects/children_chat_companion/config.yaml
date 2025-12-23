@@ -1,0 +1,6 @@
+project:
+  created_date: '2025-12-23T06:28:26.419093+00:00'
+  description: 儿童陪伴聊天Agent - 为3-12岁儿童提供多轮对话服务，具备儿童友好的交流方式、用户画像构建和会话记忆功能
+  name: children_chat_companion
+  updated_date: '2025-12-23T06:28:34.455334+00:00'
+  version: 1.0.0

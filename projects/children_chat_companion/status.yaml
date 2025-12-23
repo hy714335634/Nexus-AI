@@ -1,0 +1,61 @@
+agents: {}
+created_at: '2025-12-23T06:28:26.420389+00:00'
+last_updated: '2025-12-23T06:28:26.420396+00:00'
+project: children_chat_companion
+project_info:
+- agents:
+  - created_date: '2025-12-23T06:30:53.345612+00:00'
+    description: 智能体：children_chat_companion
+    last_updated: '2025-12-23T06:52:27.703212+00:00'
+    name: children_chat_companion
+    pipeline:
+    - description: 需求分析阶段 - 分析用户需求，定义功能规格
+      doc_path: projects/children_chat_companion/agents/children_chat_companion/requirements_analyzer.json
+      stage: requirements_analyzer
+      status: true
+      updated_date: '2025-12-23T06:30:53.345626+00:00'
+    - description: 系统架构设计阶段 - 设计系统架构和技术方案
+      doc_path: projects/children_chat_companion/agents/children_chat_companion/system_architect.json
+      stage: system_architect
+      status: true
+      updated_date: '2025-12-23T06:36:08.629502+00:00'
+    - description: Agent设计阶段 - 设计智能体结构和交互模式
+      doc_path: projects/children_chat_companion/agents/children_chat_companion/agent_designer.json
+      stage: agent_designer
+      status: true
+      updated_date: '2025-12-23T06:38:22.977252+00:00'
+    - agent_artifact_path:
+      - prompts/generated_agents_prompts/children_chat_companion/children_chat_companion.yaml
+      description: 提示词工程阶段 - 设计和优化提示词模板
+      doc_path: projects/children_chat_companion/agents/children_chat_companion/prompt_engineer.json
+      stage: prompt_engineer
+      status: true
+      updated_date: '2025-12-23T06:47:38.164860+00:00'
+    - agent_artifact_path:
+      - tools/generated_tools/children_chat_companion/profile_manager.py
+      - tools/generated_tools/children_chat_companion/session_manager.py
+      description: 工具开发阶段 - 开发必要的工具和函数
+      doc_path: projects/children_chat_companion/agents/children_chat_companion/tools_developer.json
+      stage: tools_developer
+      status: true
+      updated_date: '2025-12-23T06:42:59.207826+00:00'
+    - agent_artifact_path:
+      - generated_agents/children_chat_companion/children_chat_companion.py
+      description: Agent代码开发阶段 - 实现智能体代码
+      doc_path: projects/children_chat_companion/agents/children_chat_companion/agent_code_developer.json
+      stage: agent_code_developer
+      status: true
+      updated_date: '2025-12-23T06:50:22.878836+00:00'
+    - description: Agent开发管理阶段 - 管理和协调开发流程
+      doc_path: projects/children_chat_companion/README.md
+      stage: agent_developer_manager
+      status: true
+      updated_date: '2025-12-23T06:52:27.703215+00:00'
+  description: 儿童陪伴聊天Agent - 为3-12岁儿童提供多轮对话服务，具备儿童友好的交流方式、用户画像构建和会话记忆功能
+  last_updated: '2025-12-23T06:52:27.703202+00:00'
+  name: children_chat_companion
+  progress:
+  - completed: 7
+    total: 7
+  version: 1.0.0
+status: initialized

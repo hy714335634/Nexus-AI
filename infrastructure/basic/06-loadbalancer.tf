@@ -151,7 +151,7 @@ resource "aws_lb_target_group" "jaeger" {
     unhealthy_threshold = 3
     timeout             = 5
     interval            = 30
-    path                = "/"
+    path                = "/jaeger"
     protocol            = "HTTP"
     matcher             = "200"
   }

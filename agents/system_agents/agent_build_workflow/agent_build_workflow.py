@@ -8,15 +8,20 @@ import time
 import uuid
 import json
 import re
+import logging
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 from nexus_utils.agent_factory import create_agent_from_prompt_template
 from nexus_utils.structured_output_model.project_intent_recognition import IntentRecognitionResult
 from strands.session.file_session_manager import FileSessionManager
 from tools.system_tools.agent_build_workflow.stage_tracker import (
+    initialize_project_record,
     mark_stage_running,
     mark_stage_completed,
     mark_stage_failed,
 )
+from api.database.dynamodb_client import DynamoDBClient
 from strands.telemetry import StrandsTelemetry
 from nexus_utils.workflow_rule_extract import (
     get_base_rules,
@@ -46,6 +51,8 @@ agent_params = {
 
 def _get_project_id():
     """获取当前项目ID"""
+    if os.environ.get("NEXUS_STAGE_TRACKER_PROJECT_ID") is None:
+        return str(uuid.uuid4())
     return os.environ.get("NEXUS_STAGE_TRACKER_PROJECT_ID")
 
 
@@ -276,20 +283,49 @@ def run_workflow(user_input: str, session_id: Optional[str] = None):
         execution_results = {}  # 存储AgentResult对象
         execution_order = []
         project_id = _get_project_id()
+        
+        mode = "remote"
+
+        db_client = DynamoDBClient()
+        # 检查 AgentProjects 表是否存在，而不是仅检查连接
+        if not db_client.table_exists('AgentProjects'):
+            logger.warning(f"AgentProjects表不存在，当前模式为local")
+            print(f"ℹ️ AgentProjects表不存在，当前模式为local", flush=True)
+            mode = "local"
+        else:
+            logger.info(f"AgentProjects表存在，当前模式为remote")
+            print(f"ℹ️ AgentProjects表存在，当前模式为remote", flush=True)
+            existing_project = db_client.get_project(project_id)
+            
+            if existing_project:
+                logger.info(f"项目记录已存在，跳过初始化: {project_id}")
+                print(f"ℹ️ 项目记录已存在，跳过初始化: {project_id}", flush=True)
+            else:
+                try:
+                    initialize_project_record(
+                        project_id,
+                        requirement=user_input,
+                        project_name=intent_structured_result.project_name if hasattr(intent_structured_result, 'project_name') else None,
+                    )
+                    print(f"✅ 项目记录已初始化: {project_id}", flush=True)
+                except Exception as e:
+                    logger.error(f"初始化项目记录失败: {str(e)}")
+                    print(f"⚠️ 项目记录初始化警告: {str(e)}", flush=True)
+        
         # 1. Orchestrator
         print(f"\n{'='*60}")
         print(f"🔄 [1/9] 执行 orchestrator...")
         print(f"{'='*60}")
         try:
-            mark_stage_running(project_id, 'orchestrator')
+            mark_stage_running(project_id, 'orchestrator') if mode == "remote" else None
             orchestrator_result = agents["orchestrator"](current_context)
             execution_results["orchestrator"] = orchestrator_result
             execution_order.append("orchestrator")
             orchestrator_content = str(orchestrator_result.content) if hasattr(orchestrator_result, 'content') else str(orchestrator_result)
             current_context = base_context + "\n===\nOrchestrator Agent: " + orchestrator_content + "\n===\n"
-            mark_stage_completed(project_id, 'orchestrator')
+            mark_stage_completed(project_id, 'orchestrator') if mode == "remote" else None
         except Exception as e:
-            mark_stage_failed(project_id, 'orchestrator', str(e))
+            mark_stage_failed(project_id, 'orchestrator', str(e)) if mode == "remote" else None
             raise
 
         # 2. Requirements Analyzer
@@ -297,15 +333,15 @@ def run_workflow(user_input: str, session_id: Optional[str] = None):
         print(f"🔄 [2/9] 执行 requirements_analyzer...")
         print(f"{'='*60}")
         try:
-            mark_stage_running(project_id, 'requirements_analysis')
+            mark_stage_running(project_id, 'requirements_analysis') if mode == "remote" else None
             requirements_result = agents["requirements_analyzer"](current_context)
             execution_results["requirements_analyzer"] = requirements_result
             execution_order.append("requirements_analyzer")
             requirements_content = str(requirements_result.content) if hasattr(requirements_result, 'content') else str(requirements_result)
             current_context = base_context + "\n===\nRequirements Analyzer Agent: " + requirements_content + "\n===\n"
-            mark_stage_completed(project_id, 'requirements_analysis')
+            mark_stage_completed(project_id, 'requirements_analysis') if mode == "remote" else None
         except Exception as e:
-            mark_stage_failed(project_id, 'requirements_analysis', str(e))
+            mark_stage_failed(project_id, 'requirements_analysis', str(e)) if mode == "remote" else None
             raise
         
         # 3. System Architect
@@ -313,15 +349,15 @@ def run_workflow(user_input: str, session_id: Optional[str] = None):
         print(f"🔄 [3/9] 执行 system_architect...")
         print(f"{'='*60}")
         try:
-            mark_stage_running(project_id, 'system_architecture')
+            mark_stage_running(project_id, 'system_architecture') if mode == "remote" else None
             architect_result = agents["system_architect"](current_context)
             execution_results["system_architect"] = architect_result
             execution_order.append("system_architect")
             architect_content = str(architect_result.content) if hasattr(architect_result, 'content') else str(architect_result)
             current_context = base_context + "\n===\nSystem Architect Agent: " + architect_content + "\n===\n"
-            mark_stage_completed(project_id, 'system_architecture')
+            mark_stage_completed(project_id, 'system_architecture') if mode == "remote" else None
         except Exception as e:
-            mark_stage_failed(project_id, 'system_architecture', str(e))
+            mark_stage_failed(project_id, 'system_architecture', str(e)) if mode == "remote" else None
             raise
         
         # 4. Agent Designer
@@ -329,15 +365,15 @@ def run_workflow(user_input: str, session_id: Optional[str] = None):
         print(f"🔄 [4/9] 执行 agent_designer...")
         print(f"{'='*60}")
         try:
-            mark_stage_running(project_id, 'agent_design')
+            mark_stage_running(project_id, 'agent_design') if mode == "remote" else None
             designer_result = agents["agent_designer"](current_context)
             execution_results["agent_designer"] = designer_result
             execution_order.append("agent_designer")
             designer_content = str(designer_result.content) if hasattr(designer_result, 'content') else str(designer_result)
             current_context = base_context + "\n===\nAgent Designer Agent: " + designer_content + "\n===\n"
-            mark_stage_completed(project_id, 'agent_design')
+            mark_stage_completed(project_id, 'agent_design') if mode == "remote" else None
         except Exception as e:
-            mark_stage_failed(project_id, 'agent_design', str(e))
+            mark_stage_failed(project_id, 'agent_design', str(e)) if mode == "remote" else None
             raise
         
         # 5. Tool Developer
@@ -345,15 +381,15 @@ def run_workflow(user_input: str, session_id: Optional[str] = None):
         print(f"🔄 [5/9] 执行 tool_developer...")
         print(f"{'='*60}")
         try:
-            mark_stage_running(project_id, 'tools_developer')
+            mark_stage_running(project_id, 'tools_developer') if mode == "remote" else None
             tool_developer_result = agents["tool_developer"](current_context)
             execution_results["tool_developer"] = tool_developer_result
             execution_order.append("tool_developer")
             tool_developer_content = str(tool_developer_result.content) if hasattr(tool_developer_result, 'content') else str(tool_developer_result)
             current_context = current_context + "\n===\nTool Developer Agent: " + tool_developer_content + "\n===\n"
-            mark_stage_completed(project_id, 'tools_developer')
+            mark_stage_completed(project_id, 'tools_developer') if mode == "remote" else None
         except Exception as e:
-            mark_stage_failed(project_id, 'tools_developer', str(e))
+            mark_stage_failed(project_id, 'tools_developer', str(e)) if mode == "remote" else None
             raise
         
         # 6. Prompt Engineer
@@ -361,15 +397,15 @@ def run_workflow(user_input: str, session_id: Optional[str] = None):
         print(f"🔄 [6/9] 执行 prompt_engineer...")
         print(f"{'='*60}")
         try:
-            mark_stage_running(project_id, 'prompt_engineer')
+            mark_stage_running(project_id, 'prompt_engineer') if mode == "remote" else None
             prompt_engineer_result = agents["prompt_engineer"](current_context)
             execution_results["prompt_engineer"] = prompt_engineer_result
             execution_order.append("prompt_engineer")
             prompt_engineer_content = str(prompt_engineer_result.content) if hasattr(prompt_engineer_result, 'content') else str(prompt_engineer_result)
             current_context = current_context + "\n===\nPrompt Engineer Agent: " + prompt_engineer_content + "\n===\n"
-            mark_stage_completed(project_id, 'prompt_engineer')
+            mark_stage_completed(project_id, 'prompt_engineer') if mode == "remote" else None
         except Exception as e:
-            mark_stage_failed(project_id, 'prompt_engineer', str(e))
+            mark_stage_failed(project_id, 'prompt_engineer', str(e)) if mode == "remote" else None
             raise
         
         # 7. Agent Code Developer
@@ -377,15 +413,15 @@ def run_workflow(user_input: str, session_id: Optional[str] = None):
         print(f"🔄 [7/9] 执行 agent_code_developer...")
         print(f"{'='*60}")
         try:
-            mark_stage_running(project_id, 'agent_code_developer')
+            mark_stage_running(project_id, 'agent_code_developer') if mode == "remote" else None
             agent_code_developer_result = agents["agent_code_developer"](current_context)
             execution_results["agent_code_developer"] = agent_code_developer_result
             execution_order.append("agent_code_developer")
             agent_code_developer_content = str(agent_code_developer_result.content) if hasattr(agent_code_developer_result, 'content') else str(agent_code_developer_result)
             current_context = current_context + "\n===\nAgent Code Developer Agent: " + agent_code_developer_content + "\n===\n"
-            mark_stage_completed(project_id, 'agent_code_developer')
+            mark_stage_completed(project_id, 'agent_code_developer') if mode == "remote" else None
         except Exception as e:
-            mark_stage_failed(project_id, 'agent_code_developer', str(e))
+            mark_stage_failed(project_id, 'agent_code_developer', str(e)) if mode == "remote" else None
             raise
         
         # 8. Agent Developer Manager
@@ -393,30 +429,33 @@ def run_workflow(user_input: str, session_id: Optional[str] = None):
         print(f"🔄 [8/9] 执行 agent_developer_manager...")
         print(f"{'='*60}")
         try:
-            mark_stage_running(project_id, 'agent_developer_manager')
+            mark_stage_running(project_id, 'agent_developer_manager') if mode == "remote" else None
             developer_manager_result = agents["agent_developer_manager"](current_context)
             execution_results["agent_developer_manager"] = developer_manager_result
             execution_order.append("agent_developer_manager")
             developer_manager_content = str(developer_manager_result.content) if hasattr(developer_manager_result, 'content') else str(developer_manager_result)
             current_context = base_context + "\n===\nAgent Developer Manager Agent: " + developer_manager_content + "\n===\n"
-            mark_stage_completed(project_id, 'agent_developer_manager')
+            mark_stage_completed(project_id, 'agent_developer_manager') if mode == "remote" else None
         except Exception as e:
-            mark_stage_failed(project_id, 'agent_developer_manager', str(e))
+            mark_stage_failed(project_id, 'agent_developer_manager', str(e)) if mode == "remote" else None
             raise
         
         # 9. Agent Deployer
         print(f"\n{'='*60}")
         print(f"🔄 [9/9] 执行 agent_deployer...")
         print(f"{'='*60}")
-        try:
-            mark_stage_running(project_id, 'agent_deployer')
-            deployer_result = agents["agent_deployer"](current_context)
-            execution_results["agent_deployer"] = deployer_result
-            execution_order.append("agent_deployer")
-            mark_stage_completed(project_id, 'agent_deployer')
-        except Exception as e:
-            mark_stage_failed(project_id, 'agent_deployer', str(e))
-            raise
+        if mode == "remote":
+            try:
+                mark_stage_running(project_id, 'agent_deployer')
+                deployer_result = agents["agent_deployer"](current_context)
+                execution_results["agent_deployer"] = deployer_result
+                execution_order.append("agent_deployer")
+                mark_stage_completed(project_id, 'agent_deployer')
+            except Exception as e:
+                mark_stage_failed(project_id, 'agent_deployer', str(e))
+                raise
+        else:
+            print(f"ℹ️ [LOCAL模式] 跳过agent_deployer执行", flush=True)
 
         end_time = time.time()
         execution_duration = end_time - start_time
@@ -425,17 +464,16 @@ def run_workflow(user_input: str, session_id: Optional[str] = None):
         print("✅ 工作流执行完成")
 
         # 更新项目状态为 COMPLETED
-        from api.database.dynamodb_client import DynamoDBClient
-        from api.models.schemas import ProjectStatus
-        from datetime import datetime, timezone
-        db_client = DynamoDBClient()
-        now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
-        db_client.update_project_status(
-            project_id,
-            ProjectStatus.COMPLETED,
-            completed_at=now
-        )
-        print(f"✅ 项目状态已更新为 COMPLETED")
+        if mode == "remote":
+            from api.models.schemas import ProjectStatus
+            from datetime import datetime, timezone
+            now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+            db_client.update_project_status(
+                project_id,
+                ProjectStatus.COMPLETED,
+                completed_at=now
+            )
+            print(f"✅ 项目状态已更新为 COMPLETED")
 
         # 生成工作流总结报告
         print(f"\n{'='*80}")
@@ -490,7 +528,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='工作流编排器 Agent 测试')
     parser.add_argument('-i', '--input', type=str, 
                        default="""
-
 请创建一个用于AWS产品报价的Agent，我需要他帮我完成AWS产品报价工作，我会提供自然语言描述的资源和配置要求，请分析并推荐合理AWS服务和配置，然后进行实时的报价并生成报告。
 具体要求如下：
 1.至少需要支持EC2、EBS、S3、网络流量、ELB、RDS、ElastiCache、Opensearch这几个产品，能够获取实时且真实的按需和预留实例价格

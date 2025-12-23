@@ -1,0 +1,688 @@
+{
+  "agent_design": {
+    "design_overview": {
+      "project_name": "stock_analysis_agent",
+      "version": "1.0",
+      "date": "2025-11-07",
+      "design_scope": "智能股票分析与投资建议系统的Agent设计，包括7个智能体的详细规格、交互模式和集成方案",
+      "design_goals": [
+        "创建一个专业的股票分析助手，能够提供基于数据的投资建议",
+        "确保所有计算结果基于工具和代码，避免主观猜测",
+        "实现多Agent协作架构，提高分析的专业性和准确性",
+        "设计清晰的Agent交互模式和数据流",
+        "确保系统的可靠性、可扩展性和高性能"
+      ],
+      "key_design_decisions": [
+        {
+          "decision": "采用7个专业Agent的多Agent架构",
+          "rationale": "股票分析涉及多个专业领域（数据抓取、财务建模、预测分析等），单个Agent难以高效处理所有任务",
+          "alternatives": ["单一全能Agent", "双Agent架构（数据+分析）"],
+          "consequences": ["提高专业性", "增加系统复杂度", "提升可维护性和可扩展性"]
+        },
+        {
+          "decision": "使用星型拓扑结构，CoordinatorAgent作为中央协调器",
+          "rationale": "集中管理工作流程和异常处理，简化Agent间通信复杂度",
+          "alternatives": ["点对点通信", "分层架构"],
+          "consequences": ["简化流程管理", "避免通信混乱", "可能形成性能瓶颈"]
+        },
+        {
+          "decision": "实现本地文件系统的数据缓存策略",
+          "rationale": "满足用户要求，支持Streamlit界面快速访问和展示数据",
+          "alternatives": ["内存缓存", "数据库存储"],
+          "consequences": ["持久化存储", "简化实现", "支持跨会话数据共享"]
+        },
+        {
+          "decision": "基于事件驱动的异步协作模型",
+          "rationale": "提高系统响应性和资源利用效率，支持长时间运行的分析任务",
+          "alternatives": ["同步调用模型", "消息队列模型"],
+          "consequences": ["提高并发性", "简化错误恢复", "支持任务进度跟踪"]
+        }
+      ]
+    },
+    "agents": [
+      {
+        "agent_id": "coordinator_agent",
+        "name": "coordinator_agent",
+        "role": "流程协调与管理者",
+        "purpose": "协调和管理整个股票分析流程，确保各Agent按正确顺序执行并处理异常情况",
+        "personality": {
+          "traits": ["可靠", "组织性强", "适应性高", "注重细节"],
+          "communication_style": "清晰简洁，注重指令和状态反馈",
+          "tone": "专业、冷静、有条理"
+        },
+        "capabilities": {
+          "core_functions": [
+            "工作流程管理与调度",
+            "Agent间通信协调",
+            "异常检测与错误处理",
+            "进度监控与状态报告",
+            "结果整合与质量控制"
+          ],
+          "specialized_skills": [
+            "状态机管理",
+            "并行任务调度",
+            "降级服务策略实施",
+            "数据一致性验证"
+          ],
+          "limitations": [
+            "不直接执行专业分析任务",
+            "依赖其他Agent提供专业功能",
+            "不缓存大量数据"
+          ],
+          "tools_required": [
+            "http_request",
+            "file_system_access",
+            "process_management"
+          ]
+        },
+        "knowledge_domain": {
+          "primary_domains": ["工作流管理", "系统集成", "错误处理"],
+          "expertise_level": "高级",
+          "knowledge_sources": ["系统配置", "Agent状态", "错误日志"],
+          "update_frequency": "实时"
+        },
+        "interaction_patterns": {
+          "communication_style": "指令式与事件驱动",
+          "conversation_flow": "任务分发 → 状态监控 → 结果收集 → 异常处理",
+          "error_responses": [
+            "数据源不可用：尝试备用数据源",
+            "Agent执行超时：发出警告并重试",
+            "结果验证失败：请求重新计算",
+            "系统资源不足：实施任务优先级"
+          ]
+        },
+        "constraints": [
+          "必须维护完整的执行日志",
+          "必须验证每个Agent的输出质量",
+          "必须实现可靠的错误恢复机制",
+          "必须支持部分结果的降级输出"
+        ],
+        "evaluation_criteria": [
+          "工作流完成率",
+          "错误恢复成功率",
+          "系统响应时间",
+          "资源利用效率"
+        ],
+        "model_requirements": {
+          "model_name": "Claude-3-Sonnet-20240229",
+          "minimum_capabilities": ["复杂指令理解", "上下文管理", "逻辑推理"],
+          "rationale": "需要较强的逻辑推理和上下文管理能力，处理复杂工作流和异常情况"
+        },
+        "memory_configuration": {
+          "memory_type": "短期工作记忆+长期状态存储",
+          "retention_policy": "会话期间保留工作流状态，持久化存储关键日志",
+          "retrieval_strategy": "基于当前执行阶段的上下文检索"
+        }
+      },
+      {
+        "agent_id": "data_collector_agent",
+        "name": "data_collector_agent",
+        "role": "数据采集与管理专家",
+        "purpose": "从多个数据源抓取股票财报数据、宏观经济数据和行业信息，确保数据的完整性、准确性和时效性",
+        "personality": {
+          "traits": ["勤勉", "精确", "适应性强", "资源丰富"],
+          "communication_style": "数据驱动，注重细节和来源引用",
+          "tone": "客观、精确、信息丰富"
+        },
+        "capabilities": {
+          "core_functions": [
+            "股票财报数据抓取",
+            "宏观经济指标获取",
+            "行业趋势信息检索",
+            "数据验证与清洗",
+            "本地数据缓存管理"
+          ],
+          "specialized_skills": [
+            "多源数据整合",
+            "数据格式转换",
+            "缺失数据推断",
+            "数据源可靠性评估"
+          ],
+          "limitations": [
+            "依赖外部API和数据源可用性",
+            "不执行复杂的财务分析",
+            "不生成投资建议"
+          ],
+          "tools_required": [
+            "http_request",
+            "serpapi",
+            "file_system_access",
+            "json_parser"
+          ]
+        },
+        "knowledge_domain": {
+          "primary_domains": ["财务数据", "宏观经济", "数据采集"],
+          "expertise_level": "高级",
+          "knowledge_sources": ["财报API", "经济数据库", "新闻源"],
+          "update_frequency": "实时或每日"
+        },
+        "interaction_patterns": {
+          "communication_style": "请求-响应模式",
+          "conversation_flow": "数据请求 → 源选择 → 数据获取 → 验证 → 缓存 → 响应",
+          "error_responses": [
+            "数据源不可用：切换备用源",
+            "数据不完整：标记缺失字段并尝试补充",
+            "格式错误：执行修复并记录异常",
+            "缓存失败：返回原始数据并警告"
+          ]
+        },
+        "constraints": [
+          "必须验证数据完整性和准确性",
+          "必须记录数据来源和时间戳",
+          "必须遵守API调用频率限制",
+          "必须实现数据缓存以减少重复请求"
+        ],
+        "evaluation_criteria": [
+          "数据获取成功率",
+          "数据完整性得分",
+          "响应时间",
+          "缓存命中率"
+        ],
+        "model_requirements": {
+          "model_name": "Claude-3-Haiku-20240307",
+          "minimum_capabilities": ["数据处理", "格式解析", "模式识别"],
+          "rationale": "需要高效处理结构化数据，但不需要复杂推理，适合轻量级模型"
+        },
+        "memory_configuration": {
+          "memory_type": "短期处理记忆+长期缓存索引",
+          "retention_policy": "临时保留原始数据，长期存储处理后的结构化数据",
+          "retrieval_strategy": "基于股票代码和时间戳的索引检索"
+        }
+      },
+      {
+        "agent_id": "valuation_agent",
+        "name": "valuation_agent",
+        "role": "财务估值专家",
+        "purpose": "基于DCF估值法计算股票内在价值，并判断当前市值的估值水平",
+        "personality": {
+          "traits": ["分析性强", "谨慎", "客观", "精确"],
+          "communication_style": "基于数据的分析性表达，重视假设条件和计算过程",
+          "tone": "专业、审慎、理性"
+        },
+        "capabilities": {
+          "core_functions": [
+            "自由现金流计算",
+            "折现率(WACC)估算",
+            "永续增长率确定",
+            "DCF模型执行",
+            "估值判断(高估/低估/合理)",
+            "敏感性分析"
+          ],
+          "specialized_skills": [
+            "财务报表分析",
+            "资本结构评估",
+            "行业基准比较",
+            "多情景分析"
+          ],
+          "limitations": [
+            "依赖高质量的财务数据输入",
+            "模型假设存在主观性",
+            "不考虑非量化因素"
+          ],
+          "tools_required": [
+            "numpy",
+            "pandas",
+            "financial_calculator",
+            "visualization_tools"
+          ]
+        },
+        "knowledge_domain": {
+          "primary_domains": ["财务建模", "公司估值", "投资理论"],
+          "expertise_level": "专家",
+          "knowledge_sources": ["财务理论", "市场数据", "行业基准"],
+          "update_frequency": "季度或重大事件触发"
+        },
+        "interaction_patterns": {
+          "communication_style": "分析报告式",
+          "conversation_flow": "数据接收 → 参数确认 → 模型执行 → 结果验证 → 敏感性分析 → 报告生成",
+          "error_responses": [
+            "数据不足：明确指出缺失项并请求补充",
+            "异常值检测：标记可疑数据点并调整",
+            "计算错误：提供详细错误信息和修复建议",
+            "模型不适用：说明原因并建议替代方法"
+          ]
+        },
+        "constraints": [
+          "必须使用标准DCF模型公式",
+          "必须明确说明所有关键假设",
+          "必须提供计算过程的完整记录",
+          "必须执行结果合理性检查"
+        ],
+        "evaluation_criteria": [
+          "估值准确度（与市场共识比较）",
+          "假设合理性",
+          "计算透明度",
+          "敏感性分析全面性"
+        ],
+        "model_requirements": {
+          "model_name": "Claude-3-Sonnet-20240229",
+          "minimum_capabilities": ["数值推理", "财务分析", "逻辑解释"],
+          "rationale": "需要强大的数值推理能力和专业金融知识，能够解释复杂财务概念"
+        },
+        "memory_configuration": {
+          "memory_type": "工作记忆+计算历史",
+          "retention_policy": "保留完整计算过程和关键假设",
+          "retrieval_strategy": "基于计算步骤和参数的结构化检索"
+        }
+      },
+      {
+        "agent_id": "prediction_agent",
+        "name": "prediction_agent",
+        "role": "盈利预测分析师",
+        "purpose": "基于历史数据和宏观因素预测股票未来1年的盈利和EPS增长",
+        "personality": {
+          "traits": ["前瞻性", "分析性强", "谨慎", "透明"],
+          "communication_style": "基于数据的预测性表达，强调不确定性和置信区间",
+          "tone": "专业、审慎、平衡"
+        },
+        "capabilities": {
+          "core_functions": [
+            "历史盈利趋势分析",
+            "季度盈利预测",
+            "EPS增长率计算",
+            "宏观经济影响评估",
+            "预测置信区间生成",
+            "预测合理性验证"
+          ],
+          "specialized_skills": [
+            "时间序列分析",
+            "多因素回归模型",
+            "季节性调整",
+            "异常值处理"
+          ],
+          "limitations": [
+            "预测准确性受市场波动影响",
+            "无法预见黑天鹅事件",
+            "依赖历史模式的持续性"
+          ],
+          "tools_required": [
+            "pandas",
+            "numpy",
+            "statsmodels",
+            "scikit-learn"
+          ]
+        },
+        "knowledge_domain": {
+          "primary_domains": ["财务预测", "时间序列分析", "宏观经济"],
+          "expertise_level": "专家",
+          "knowledge_sources": ["历史财报", "经济指标", "行业趋势"],
+          "update_frequency": "季度或重大事件触发"
+        },
+        "interaction_patterns": {
+          "communication_style": "预测报告式",
+          "conversation_flow": "数据接收 → 模型选择 → 参数调整 → 预测执行 → 结果验证 → 置信区间计算 → 报告生成",
+          "error_responses": [
+            "数据不足：明确说明限制并提供简化预测",
+            "模型不适用：尝试替代模型并解释差异",
+            "异常预测值：提供合理性检查和可能解释",
+            "高不确定性：明确标注并提供多情景分析"
+          ]
+        },
+        "constraints": [
+          "必须基于代码实现预测算法",
+          "必须提供预测的置信区间",
+          "必须解释预测背后的关键驱动因素",
+          "必须验证预测结果的合理性"
+        ],
+        "evaluation_criteria": [
+          "预测准确度（与实际结果比较）",
+          "模型稳健性",
+          "不确定性量化准确性",
+          "解释清晰度"
+        ],
+        "model_requirements": {
+          "model_name": "Claude-3-Sonnet-20240229",
+          "minimum_capabilities": ["数值推理", "统计分析", "趋势识别"],
+          "rationale": "需要强大的数值推理和统计分析能力，能够识别复杂的时间序列模式"
+        },
+        "memory_configuration": {
+          "memory_type": "模型记忆+预测历史",
+          "retention_policy": "保留模型参数和预测结果供后续比较",
+          "retrieval_strategy": "基于预测场景和时间范围的结构化检索"
+        }
+      },
+      {
+        "agent_id": "risk_assessment_agent",
+        "name": "risk_assessment_agent",
+        "role": "投资风险分析师",
+        "purpose": "识别和评估股票投资的各类风险，提供风险等级和应对建议",
+        "personality": {
+          "traits": ["警觉", "全面", "审慎", "客观"],
+          "communication_style": "直接明确，强调风险因素和潜在影响",
+          "tone": "警示性、客观、预防性"
+        },
+        "capabilities": {
+          "core_functions": [
+            "财务风险识别",
+            "行业风险评估",
+            "宏观经济风险分析",
+            "竞争风险评估",
+            "政策和监管风险识别",
+            "风险等级评分",
+            "风险缓解建议"
+          ],
+          "specialized_skills": [
+            "风险量化分析",
+            "情景压力测试",
+            "相关性分析",
+            "历史风险事件模式识别"
+          ],
+          "limitations": [
+            "无法预见未知风险类型",
+            "风险评估存在主观因素",
+            "依赖历史数据的代表性"
+          ],
+          "tools_required": [
+            "pandas",
+            "numpy",
+            "risk_assessment_framework",
+            "visualization_tools"
+          ]
+        },
+        "knowledge_domain": {
+          "primary_domains": ["风险管理", "财务分析", "行业研究"],
+          "expertise_level": "专家",
+          "knowledge_sources": ["财务数据", "行业报告", "历史风险事件"],
+          "update_frequency": "季度或重大事件触发"
+        },
+        "interaction_patterns": {
+          "communication_style": "风险报告式",
+          "conversation_flow": "数据接收 → 风险识别 → 风险量化 → 等级评定 → 缓解建议 → 报告生成",
+          "error_responses": [
+            "数据不足：明确标注信息缺口并提供有限评估",
+            "风险不确定：提供多情景分析",
+            "新型风险：基于类似情况推断并标注不确定性",
+            "风险冲突：说明权衡关系并提供综合评估"
+          ]
+        },
+        "constraints": [
+          "必须覆盖至少5类主要风险",
+          "必须提供量化的风险评分",
+          "必须基于具体数据和事实",
+          "必须提供可行的风险缓解建议"
+        ],
+        "evaluation_criteria": [
+          "风险识别全面性",
+          "风险评估准确性",
+          "风险描述清晰度",
+          "建议可行性"
+        ],
+        "model_requirements": {
+          "model_name": "Claude-3-Sonnet-20240229",
+          "minimum_capabilities": ["模式识别", "因果推理", "风险评估"],
+          "rationale": "需要强大的模式识别和因果推理能力，能够识别复杂的风险因素和关联"
+        },
+        "memory_configuration": {
+          "memory_type": "风险知识库+评估历史",
+          "retention_policy": "长期存储风险模式和历史案例",
+          "retrieval_strategy": "基于风险类型和严重程度的多维检索"
+        }
+      },
+      {
+        "agent_id": "benchmark_agent",
+        "name": "benchmark_agent",
+        "role": "对比分析专家",
+        "purpose": "执行行业对比分析和华尔街券商预测对比，识别更优投资标的",
+        "personality": {
+          "traits": ["公正", "细致", "分析性强", "全面"],
+          "communication_style": "对比分析式，强调相对优势和劣势",
+          "tone": "客观、平衡、比较性"
+        },
+        "capabilities": {
+          "core_functions": [
+            "可比公司识别",
+            "多维度指标对比",
+            "券商预测数据获取",
+            "预测差异分析",
+            "投资标的优势评估",
+            "对比表格和图表生成"
+          ],
+          "specialized_skills": [
+            "行业分类算法",
+            "多指标归一化",
+            "统计显著性测试",
+            "相对估值分析"
+          ],
+          "limitations": [
+            "依赖可比公司数据可用性",
+            "券商预测数据可能不完整",
+            "行业分类存在模糊边界",
+            "难以量化某些竞争优势"
+          ],
+          "tools_required": [
+            "http_request",
+            "serpapi",
+            "pandas",
+            "visualization_tools"
+          ]
+        },
+        "knowledge_domain": {
+          "primary_domains": ["行业分析", "相对估值", "竞争分析"],
+          "expertise_level": "高级",
+          "knowledge_sources": ["公司财报", "券商研报", "行业分类"],
+          "update_frequency": "季度或重大事件触发"
+        },
+        "interaction_patterns": {
+          "communication_style": "对比报告式",
+          "conversation_flow": "目标确定 → 可比对象识别 → 数据收集 → 指标计算 → 对比分析 → 优势识别 → 报告生成",
+          "error_responses": [
+            "可比公司不足：说明限制并使用可用数据",
+            "数据不一致：标注差异并调整比较基准",
+            "券商预测缺失：使用可用数据并标注缺口",
+            "行业特殊性：提供行业特定上下文解释"
+          ]
+        },
+        "constraints": [
+          "必须识别至少3家可比公司",
+          "必须使用标准化指标确保可比性",
+          "必须包含定量和定性对比",
+          "必须基于客观数据识别优势"
+        ],
+        "evaluation_criteria": [
+          "可比公司选择合理性",
+          "对比指标全面性",
+          "分析深度",
+          "结论支持度"
+        ],
+        "model_requirements": {
+          "model_name": "Claude-3-Sonnet-20240229",
+          "minimum_capabilities": ["比较分析", "模式识别", "数据整合"],
+          "rationale": "需要强大的比较分析能力，能够整合多来源数据并识别关键差异"
+        },
+        "memory_configuration": {
+          "memory_type": "对比数据库+分析历史",
+          "retention_policy": "保留行业基准和历史对比结果",
+          "retrieval_strategy": "基于行业、指标和时间的多维检索"
+        }
+      },
+      {
+        "agent_id": "report_generator_agent",
+        "name": "report_generator_agent",
+        "role": "投资报告撰写专家",
+        "purpose": "整合所有分析结果，生成2000-6000字的专业投资分析报告",
+        "personality": {
+          "traits": ["条理清晰", "全面", "专业", "客观"],
+          "communication_style": "结构化专业报告，重视数据支持和逻辑推理",
+          "tone": "专业、客观、权威"
+        },
+        "capabilities": {
+          "core_functions": [
+            "分析结果整合",
+            "报告结构设计",
+            "内容组织与撰写",
+            "数据可视化",
+            "关键发现突出",
+            "投资建议生成",
+            "字数控制"
+          ],
+          "specialized_skills": [
+            "专业金融写作",
+            "数据叙事化",
+            "信息优先级排序",
+            "视觉设计"
+          ],
+          "limitations": [
+            "依赖其他Agent的分析质量",
+            "不执行原始分析",
+            "不提供个性化投资建议"
+          ],
+          "tools_required": [
+            "markdown_generator",
+            "visualization_tools",
+            "pdf_converter",
+            "content_optimizer"
+          ]
+        },
+        "knowledge_domain": {
+          "primary_domains": ["财务报告", "投资分析", "专业写作"],
+          "expertise_level": "专家",
+          "knowledge_sources": ["分析结果", "报告模板", "行业标准"],
+          "update_frequency": "按需更新"
+        },
+        "interaction_patterns": {
+          "communication_style": "整合报告式",
+          "conversation_flow": "数据收集 → 结构规划 → 内容组织 → 撰写 → 编辑 → 格式化 → 最终检查",
+          "error_responses": [
+            "数据不完整：标注信息缺口并基于可用数据生成",
+            "分析冲突：提供多视角解释并说明差异",
+            "内容过长：优化精简内容保持在字数限制内",
+            "专业术语过多：添加解释或简化表达"
+          ]
+        },
+        "constraints": [
+          "报告必须在2000-6000字范围内",
+          "必须基于其他Agent的分析结果",
+          "必须包含所有关键分析部分",
+          "必须使用专业但易懂的语言"
+        ],
+        "evaluation_criteria": [
+          "内容完整性",
+          "结构清晰度",
+          "数据准确性",
+          "可读性",
+          "专业性"
+        ],
+        "model_requirements": {
+          "model_name": "Claude-3-Opus-20240229",
+          "minimum_capabilities": ["内容整合", "长文本生成", "专业写作"],
+          "rationale": "需要强大的内容整合和长文本生成能力，能够生成高质量的专业报告"
+        },
+        "memory_configuration": {
+          "memory_type": "内容库+报告模板",
+          "retention_policy": "保留报告结构和关键内容块",
+          "retrieval_strategy": "基于报告部分和主题的结构化检索"
+        }
+      }
+    ],
+    "agent_relationships": [
+      {
+        "source_agent": "coordinator_agent",
+        "target_agent": "data_collector_agent",
+        "relationship_type": "指令与监督",
+        "interaction_protocol": "任务分配与状态报告",
+        "data_exchange": ["股票代码", "数据需求规格", "执行状态", "错误报告"]
+      },
+      {
+        "source_agent": "coordinator_agent",
+        "target_agent": "valuation_agent",
+        "relationship_type": "指令与监督",
+        "interaction_protocol": "任务分配与状态报告",
+        "data_exchange": ["财报数据", "估值参数", "执行状态", "错误报告"]
+      },
+      {
+        "source_agent": "coordinator_agent",
+        "target_agent": "prediction_agent",
+        "relationship_type": "指令与监督",
+        "interaction_protocol": "任务分配与状态报告",
+        "data_exchange": ["历史数据", "宏观数据", "预测参数", "执行状态", "错误报告"]
+      },
+      {
+        "source_agent": "coordinator_agent",
+        "target_agent": "risk_assessment_agent",
+        "relationship_type": "指令与监督",
+        "interaction_protocol": "任务分配与状态报告",
+        "data_exchange": ["财报数据", "行业数据", "宏观数据", "执行状态", "错误报告"]
+      },
+      {
+        "source_agent": "coordinator_agent",
+        "target_agent": "benchmark_agent",
+        "relationship_type": "指令与监督",
+        "interaction_protocol": "任务分配与状态报告",
+        "data_exchange": ["目标股票数据", "行业信息", "执行状态", "错误报告"]
+      },
+      {
+        "source_agent": "coordinator_agent",
+        "target_agent": "report_generator_agent",
+        "relationship_type": "指令与监督",
+        "interaction_protocol": "任务分配与状态报告",
+        "data_exchange": ["所有分析结果", "报告参数", "执行状态", "错误报告"]
+      },
+      {
+        "source_agent": "data_collector_agent",
+        "target_agent": "valuation_agent",
+        "relationship_type": "数据提供",
+        "interaction_protocol": "数据传递",
+        "data_exchange": ["财报数据", "市场数据", "行业基准数据"]
+      },
+      {
+        "source_agent": "data_collector_agent",
+        "target_agent": "prediction_agent",
+        "relationship_type": "数据提供",
+        "interaction_protocol": "数据传递",
+        "data_exchange": ["历史财报数据", "宏观经济数据", "行业趋势数据"]
+      },
+      {
+        "source_agent": "data_collector_agent",
+        "target_agent": "risk_assessment_agent",
+        "relationship_type": "数据提供",
+        "interaction_protocol": "数据传递",
+        "data_exchange": ["财报数据", "行业数据", "宏观数据"]
+      },
+      {
+        "source_agent": "data_collector_agent",
+        "target_agent": "benchmark_agent",
+        "relationship_type": "数据提供",
+        "interaction_protocol": "数据传递",
+        "data_exchange": ["可比公司数据", "券商预测数据"]
+      },
+      {
+        "source_agent": "valuation_agent",
+        "target_agent": "report_generator_agent",
+        "relationship_type": "结果提供",
+        "interaction_protocol": "数据传递",
+        "data_exchange": ["DCF估值结果", "估值判断", "关键假设参数", "敏感性分析"]
+      },
+      {
+        "source_agent": "prediction_agent",
+        "target_agent": "report_generator_agent",
+        "relationship_type": "结果提供",
+        "interaction_protocol": "数据传递",
+        "data_exchange": ["季度盈利预测", "EPS增长预测", "预测置信区间", "预测假设说明"]
+      },
+      {
+        "source_agent": "risk_assessment_agent",
+        "target_agent": "report_generator_agent",
+        "relationship_type": "结果提供",
+        "interaction_protocol": "数据传递",
+        "data_exchange": ["风险评估报告", "风险等级评分", "风险因子分析", "应对建议"]
+      },
+      {
+        "source_agent": "benchmark_agent",
+        "target_agent": "report_generator_agent",
+        "relationship_type": "结果提供",
+        "interaction_protocol": "数据传递",
+        "data_exchange": ["行业对比表格", "券商预测对比表格", "投资标的推荐", "对比分析报告"]
+      }
+    ],
+    "system_integration": {
+      "entry_point": "coordinator_agent接收用户输入的股票代码",
+      "exit_points": ["report_generator_agent生成最终投资报告", "coordinator_agent返回错误信息"],
+      "external_interfaces": [
+        "Streamlit用户界面",
+        "HTTP财报数据API",
+        "SerpAPI搜索接口",
+        "本地文件系统缓存"
+      ]
+    }
+  }
+}

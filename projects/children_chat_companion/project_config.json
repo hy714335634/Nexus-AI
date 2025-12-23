@@ -1,0 +1,114 @@
+{
+  "project_name": "children_chat_companion",
+  "validation_timestamp": "2025-12-23T06:51:03.585785+00:00",
+  "overall_status": "success",
+  "agent_scripts": [
+    {
+      "script_path": "agents/generated_agents/children_chat_companion/children_chat_companion.py",
+      "syntax_valid": true,
+      "dependencies": [
+        "os",
+        "json",
+        "uuid",
+        "logging",
+        "typing",
+        "datetime",
+        "bedrock_agentcore.runtime",
+        "nexus_utils.agent_factory",
+        "nexus_utils.config_loader",
+        "strands.telemetry",
+        "argparse"
+      ],
+      "execution_params": [],
+      "argparse_params": [
+        {
+          "name": "-i",
+          "type": "str",
+          "description": "测试输入（本地测试模式）",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "-u",
+          "type": "str",
+          "description": "测试用户ID（默认: test_child_001）",
+          "required": false,
+          "default": "test_child_001",
+          "action": null
+        }
+      ],
+      "error_message": ""
+    }
+  ],
+  "prompt_files": [
+    {
+      "prompt_path": "generated_agents_prompts/children_chat_companion/children_chat_companion.yaml",
+      "tool_count": 19,
+      "valid": true,
+      "error_message": "",
+      "metadata": {
+        "tags": [
+          "children_education",
+          "companion_chat",
+          "multi_turn_dialogue",
+          "user_profile",
+          "session_memory",
+          "age_adaptation",
+          "content_safety",
+          "educational_guidance"
+        ],
+        "supported_models": [
+          "global.anthropic.claude-sonnet-4-5-20250929-v1:0"
+        ],
+        "tools_dependencies": [
+          "strands_tools/current_time",
+          "generated_tools/children_chat_companion/profile_manager/add_interest",
+          "generated_tools/children_chat_companion/profile_manager/create_default_profile",
+          "generated_tools/children_chat_companion/profile_manager/get_profile_summary",
+          "generated_tools/children_chat_companion/profile_manager/load_user_profile",
+          "generated_tools/children_chat_companion/profile_manager/save_user_profile",
+          "generated_tools/children_chat_companion/profile_manager/update_conversation_stats",
+          "generated_tools/children_chat_companion/profile_manager/update_profile_field",
+          "generated_tools/children_chat_companion/session_manager/append_conversation_turn",
+          "generated_tools/children_chat_companion/session_manager/archive_old_sessions",
+          "generated_tools/children_chat_companion/session_manager/close_session",
+          "generated_tools/children_chat_companion/session_manager/create_new_session",
+          "generated_tools/children_chat_companion/session_manager/delete_session",
+          "generated_tools/children_chat_companion/session_manager/get_recent_context",
+          "generated_tools/children_chat_companion/session_manager/get_session_summary",
+          "generated_tools/children_chat_companion/session_manager/list_user_sessions",
+          "generated_tools/children_chat_companion/session_manager/load_session_history",
+          "generated_tools/children_chat_companion/session_manager/save_session_history",
+          "generated_tools/children_chat_companion/session_manager/update_session_topics"
+        ]
+      },
+      "agent_info": {
+        "name": "children_chat_companion",
+        "description": "儿童陪伴聊天助手 - 为3-12岁儿童提供安全、有趣、富有教育意义的陪伴聊天服务，通过年龄适配的对话方式与儿童进行多轮交流，在对话中自然地构建用户画像，记录儿童的特征、兴趣和喜好，并在跨会话时加载历史记忆，实现连续性的个性化互动体验",
+        "category": "children_education"
+      }
+    }
+  ],
+  "generated_tools": [
+    {
+      "tool_path": "generated_tools/children_chat_companion/profile_manager.py",
+      "syntax_valid": true,
+      "error_message": ""
+    },
+    {
+      "tool_path": "generated_tools/children_chat_companion/session_manager.py",
+      "syntax_valid": true,
+      "error_message": ""
+    }
+  ],
+  "total_tools": 19,
+  "summary": {
+    "agent_scripts_count": 1,
+    "prompt_files_count": 1,
+    "generated_tool_files_count": 2,
+    "all_scripts_valid": true,
+    "all_tools_valid": true,
+    "all_prompts_valid": true
+  }
+}

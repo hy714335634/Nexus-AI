@@ -432,6 +432,18 @@ resource "aws_ecs_task_definition" "jaeger" {
         {
           containerPort = 4318
           protocol      = "tcp"
+        },
+        {
+          containerPort = 14250
+          protocol      = "tcp"
+        },
+        {
+          containerPort = 14268
+          protocol      = "tcp"
+        },
+        {
+          containerPort = 9411
+          protocol      = "tcp"
         }
       ]
 
@@ -443,6 +455,10 @@ resource "aws_ecs_task_definition" "jaeger" {
         {
           name  = "COLLECTOR_OTLP_ENABLED"
           value = "true"
+        },
+        {
+          name  = "QUERY_BASE_PATH"
+          value = "/jaeger"
         }
       ]
 
@@ -456,7 +472,7 @@ resource "aws_ecs_task_definition" "jaeger" {
       }
 
       healthCheck = {
-        command     = ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:16686 || exit 1"]
+        command     = ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:16686/jaeger || exit 1"]
         interval    = 30
         timeout     = 5
         retries     = 3
