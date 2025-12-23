@@ -1,0 +1,527 @@
+{
+  "tool_development": {
+    "development_overview": {
+      "project_name": "drug_feedback_collector",
+      "version": "1.0",
+      "date": "2025-12-17",
+      "development_scope": "开发药物反馈收集Agent所需的核心工具，包括药物名称验证、网络搜索、网页抓取、AI内容分析、报告生成和缓存管理等功能。基于DuckDuckGo搜索引擎、BeautifulSoup网页解析和AWS Bedrock Claude模型实现。",
+      "design_principles": [
+        "模块化设计：每个工具函数职责单一，接口清晰",
+        "错误处理：所有工具都包含完整的异常处理，返回JSON格式的错误信息",
+        "性能优化：实现缓存机制，避免重复搜索和分析",
+        "可扩展性：工具函数设计支持参数扩展和功能增强",
+        "合规性：遵守网络爬虫规范，控制访问频率",
+        "真实调用：使用真实的API和服务，不使用模拟数据"
+      ],
+      "key_decisions": [
+        "使用DuckDuckGo替代Tavily Search API：DuckDuckGo免费且稳定，适合原型开发",
+        "使用Claude Sonnet进行AI分析：准确率高，支持长文本，医疗文本理解能力强",
+        "实现两层缓存策略：搜索结果和最终报告分别缓存，优化响应速度",
+        "使用BeautifulSoup进行网页解析：成熟稳定，支持多种解析器",
+        "所有工具返回JSON格式：便于Agent解析和处理",
+        "实现批量处理函数：提高处理效率，减少API调用次数"
+      ]
+    },
+    "tools": [
+      {
+        "tool_name": "validate_drug_name",
+        "description": "验证和标准化药物名称，生成搜索变体",
+        "function_signature": "validate_drug_name(drug_name: str) -> str",
+        "parameters": [
+          {
+            "name": "drug_name",
+            "type": "str",
+            "description": "用户输入的药物名称",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的验证结果，包含标准化名称和搜索变体列表",
+        "dependencies": ["re", "json", "datetime"],
+        "implementation_notes": [
+          "清理输入，去除空格和特殊字符",
+          "生成常见后缀变体（片、胶囊、注射液等）",
+          "识别中英文名称，生成翻译提示",
+          "去重搜索变体列表"
+        ],
+        "error_handling": [
+          "空输入或无效输入返回错误提示",
+          "异常情况返回JSON格式的错误信息"
+        ],
+        "usage_examples": [
+          "validate_drug_name('阿司匹林') -> 返回标准化名称和变体",
+          "validate_drug_name('Aspirin') -> 返回标准化名称和中文翻译提示"
+        ]
+      },
+      {
+        "tool_name": "search_drug_feedback",
+        "description": "使用DuckDuckGo搜索药物反馈信息",
+        "function_signature": "search_drug_feedback(drug_name: str, search_keywords: List[str] = None, max_results_per_keyword: int = 10) -> str",
+        "parameters": [
+          {
+            "name": "drug_name",
+            "type": "str",
+            "description": "药物名称",
+            "required": true
+          },
+          {
+            "name": "search_keywords",
+            "type": "List[str]",
+            "description": "搜索关键词列表，默认为['评价', '副作用', '体验', '反馈', '效果']",
+            "required": false
+          },
+          {
+            "name": "max_results_per_keyword",
+            "type": "int",
+            "description": "每个关键词的最大结果数，默认10",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的搜索结果，包含标题、URL、摘要和来源",
+        "dependencies": ["duckduckgo-search", "json", "time", "urllib"],
+        "implementation_notes": [
+          "使用DDGS库执行搜索",
+          "为每个关键词构建查询",
+          "提取结果的标题、URL、摘要和来源域名",
+          "添加0.5秒延迟避免速率限制",
+          "记录成功和失败的查询次数"
+        ],
+        "error_handling": [
+          "检查DDGS库是否安装",
+          "捕获搜索异常，记录失败查询",
+          "返回部分结果即使某些查询失败"
+        ],
+        "usage_examples": [
+          "search_drug_feedback('阿司匹林') -> 搜索默认关键词",
+          "search_drug_feedback('布洛芬', ['副作用', '禁忌'], 5) -> 自定义关键词"
+        ]
+      },
+      {
+        "tool_name": "extract_webpage_content",
+        "description": "抓取单个网页内容并提取正文",
+        "function_signature": "extract_webpage_content(url: str, max_content_length: int = 10240, timeout: int = 10) -> str",
+        "parameters": [
+          {
+            "name": "url",
+            "type": "str",
+            "description": "网页URL",
+            "required": true
+          },
+          {
+            "name": "max_content_length",
+            "type": "int",
+            "description": "最大内容长度（字节），默认10KB",
+            "required": false
+          },
+          {
+            "name": "timeout",
+            "type": "int",
+            "description": "请求超时时间（秒），默认10秒",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的抓取结果，包含URL、标题、正文内容和元数据",
+        "dependencies": ["requests", "beautifulsoup4", "lxml", "json"],
+        "implementation_notes": [
+          "设置User-Agent模拟浏览器",
+          "使用lxml解析器提高速度",
+          "移除script、style、nav、footer等无关标签",
+          "优先提取article、main等主要内容区域",
+          "清理多余空行和空格",
+          "限制内容长度避免内存溢出"
+        ],
+        "error_handling": [
+          "检查requests和BeautifulSoup是否安装",
+          "处理超时、网络错误、HTTP错误",
+          "处理HTML解析异常",
+          "所有错误返回JSON格式信息"
+        ],
+        "usage_examples": [
+          "extract_webpage_content('https://example.com/drug-review') -> 提取网页正文"
+        ]
+      },
+      {
+        "tool_name": "batch_extract_webpages",
+        "description": "批量抓取多个网页内容",
+        "function_signature": "batch_extract_webpages(urls: List[str], max_content_length: int = 10240, timeout: int = 10, max_concurrent: int = 5) -> str",
+        "parameters": [
+          {
+            "name": "urls",
+            "type": "List[str]",
+            "description": "网页URL列表",
+            "required": true
+          },
+          {
+            "name": "max_content_length",
+            "type": "int",
+            "description": "每个网页的最大内容长度",
+            "required": false
+          },
+          {
+            "name": "timeout",
+            "type": "int",
+            "description": "请求超时时间",
+            "required": false
+          },
+          {
+            "name": "max_concurrent",
+            "type": "int",
+            "description": "最大并发数（当前版本顺序执行），默认5",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的批量抓取结果，包含成功和失败统计",
+        "dependencies": ["requests", "beautifulsoup4", "json", "time"],
+        "implementation_notes": [
+          "循环调用extract_webpage_content",
+          "限制处理的URL数量",
+          "统计成功和失败次数",
+          "添加1秒延迟避免速率限制",
+          "收集所有结果到列表"
+        ],
+        "error_handling": [
+          "单个URL失败不影响其他URL",
+          "返回部分结果和错误统计",
+          "记录失败的URL"
+        ],
+        "usage_examples": [
+          "batch_extract_webpages(['url1', 'url2', 'url3']) -> 批量抓取"
+        ]
+      },
+      {
+        "tool_name": "analyze_feedback_with_claude",
+        "description": "使用Claude模型分析药物反馈内容",
+        "function_signature": "analyze_feedback_with_claude(content: str, drug_name: str, analysis_type: str = 'comprehensive') -> str",
+        "parameters": [
+          {
+            "name": "content",
+            "type": "str",
+            "description": "要分析的文本内容",
+            "required": true
+          },
+          {
+            "name": "drug_name",
+            "type": "str",
+            "description": "药物名称",
+            "required": true
+          },
+          {
+            "name": "analysis_type",
+            "type": "str",
+            "description": "分析类型（basic/comprehensive/detailed），默认comprehensive",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的分析结果，包含反馈类型、情感倾向、关键信息等",
+        "dependencies": ["boto3", "json", "re"],
+        "implementation_notes": [
+          "使用boto3调用AWS Bedrock Claude模型",
+          "限制输入内容为8000字符避免超过token限制",
+          "构建结构化的分析提示词",
+          "要求模型返回JSON格式结果",
+          "提取疗效、副作用、使用体验、价格等关键信息",
+          "评估反馈的可信度",
+          "使用temperature=0.3提高输出一致性"
+        ],
+        "error_handling": [
+          "检查boto3是否安装",
+          "处理API调用异常",
+          "处理JSON解析失败，返回原始分析文本",
+          "记录错误堆栈信息"
+        ],
+        "usage_examples": [
+          "analyze_feedback_with_claude('阿司匹林效果很好...', '阿司匹林') -> 分析反馈"
+        ]
+      },
+      {
+        "tool_name": "batch_analyze_feedback",
+        "description": "批量分析多个反馈内容",
+        "function_signature": "batch_analyze_feedback(contents: List[Dict[str, str]], drug_name: str) -> str",
+        "parameters": [
+          {
+            "name": "contents",
+            "type": "List[Dict[str, str]]",
+            "description": "内容列表，每个元素包含url和content字段",
+            "required": true
+          },
+          {
+            "name": "drug_name",
+            "type": "str",
+            "description": "药物名称",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的批量分析结果，包含成功和失败统计",
+        "dependencies": ["boto3", "json", "time"],
+        "implementation_notes": [
+          "循环调用analyze_feedback_with_claude",
+          "统计成功和失败次数",
+          "添加source_url到分析结果",
+          "添加1秒延迟避免API速率限制",
+          "收集所有分析结果"
+        ],
+        "error_handling": [
+          "单个内容分析失败不影响其他内容",
+          "返回部分结果和错误统计",
+          "跳过空内容"
+        ],
+        "usage_examples": [
+          "batch_analyze_feedback([{'url': 'url1', 'content': 'text1'}, ...], '阿司匹林')"
+        ]
+      },
+      {
+        "tool_name": "generate_feedback_report",
+        "description": "生成药物反馈报告",
+        "function_signature": "generate_feedback_report(drug_name: str, analyzed_feedbacks: List[Dict[str, Any]], include_sources: bool = True) -> str",
+        "parameters": [
+          {
+            "name": "drug_name",
+            "type": "str",
+            "description": "药物名称",
+            "required": true
+          },
+          {
+            "name": "analyzed_feedbacks",
+            "type": "List[Dict[str, Any]]",
+            "description": "已分析的反馈列表",
+            "required": true
+          },
+          {
+            "name": "include_sources",
+            "type": "bool",
+            "description": "是否包含来源信息，默认True",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的反馈报告，包含摘要、统计、分类反馈和来源",
+        "dependencies": ["json"],
+        "implementation_notes": [
+          "统计总反馈数",
+          "按情感分类（正面、负面、中性）",
+          "按反馈类型分类（疗效、副作用、体验、价格）",
+          "收集具体反馈描述",
+          "计算统计百分比",
+          "提取来源信息",
+          "生成关键洞察",
+          "添加免责声明"
+        ],
+        "error_handling": [
+          "处理空反馈列表",
+          "处理缺失字段",
+          "返回JSON格式的错误信息"
+        ],
+        "usage_examples": [
+          "generate_feedback_report('阿司匹林', analyzed_results) -> 生成完整报告"
+        ]
+      },
+      {
+        "tool_name": "check_cache",
+        "description": "检查缓存是否存在且有效",
+        "function_signature": "check_cache(drug_name: str, cache_type: str = 'report', max_age_days: int = 7) -> str",
+        "parameters": [
+          {
+            "name": "drug_name",
+            "type": "str",
+            "description": "药物名称",
+            "required": true
+          },
+          {
+            "name": "cache_type",
+            "type": "str",
+            "description": "缓存类型（search_results/report），默认report",
+            "required": false
+          },
+          {
+            "name": "max_age_days",
+            "type": "int",
+            "description": "最大缓存天数，默认7天",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的缓存检查结果，包含缓存状态和数据",
+        "dependencies": ["hashlib", "pathlib", "json", "datetime"],
+        "implementation_notes": [
+          "使用SHA256哈希生成缓存键",
+          "缓存目录：.cache/drug_feedback_collector/<hash>/",
+          "检查缓存文件是否存在",
+          "检查缓存是否过期",
+          "读取并返回缓存数据"
+        ],
+        "error_handling": [
+          "缓存不存在返回not_found状态",
+          "缓存过期返回expired状态",
+          "文件读取失败返回错误信息"
+        ],
+        "usage_examples": [
+          "check_cache('阿司匹林', 'report', 7) -> 检查报告缓存"
+        ]
+      },
+      {
+        "tool_name": "save_to_cache",
+        "description": "保存数据到缓存",
+        "function_signature": "save_to_cache(drug_name: str, data: Dict[str, Any], cache_type: str = 'report') -> str",
+        "parameters": [
+          {
+            "name": "drug_name",
+            "type": "str",
+            "description": "药物名称",
+            "required": true
+          },
+          {
+            "name": "data",
+            "type": "Dict[str, Any]",
+            "description": "要缓存的数据",
+            "required": true
+          },
+          {
+            "name": "cache_type",
+            "type": "str",
+            "description": "缓存类型（search_results/report），默认report",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的保存结果，包含缓存路径和大小",
+        "dependencies": ["hashlib", "pathlib", "json"],
+        "implementation_notes": [
+          "使用SHA256哈希生成缓存键",
+          "创建缓存目录",
+          "添加元数据（药物名称、缓存时间等）",
+          "保存为JSON文件",
+          "返回缓存路径和文件大小"
+        ],
+        "error_handling": [
+          "处理目录创建失败",
+          "处理文件写入失败",
+          "返回JSON格式的错误信息"
+        ],
+        "usage_examples": [
+          "save_to_cache('阿司匹林', report_data, 'report') -> 保存报告到缓存"
+        ]
+      },
+      {
+        "tool_name": "clear_cache",
+        "description": "清理缓存",
+        "function_signature": "clear_cache(drug_name: str = None, older_than_days: int = None) -> str",
+        "parameters": [
+          {
+            "name": "drug_name",
+            "type": "str",
+            "description": "特定药物名称，如果不提供则清理所有缓存",
+            "required": false
+          },
+          {
+            "name": "older_than_days",
+            "type": "int",
+            "description": "清理指定天数之前的缓存",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的清理结果，包含删除数量和项目列表",
+        "dependencies": ["hashlib", "pathlib", "shutil", "json", "datetime"],
+        "implementation_notes": [
+          "如果指定drug_name，清理特定药物缓存",
+          "如果指定older_than_days，清理过期缓存",
+          "如果都不指定，清理所有缓存",
+          "使用shutil.rmtree删除目录",
+          "统计删除数量和项目"
+        ],
+        "error_handling": [
+          "缓存目录不存在返回成功（无需清理）",
+          "处理文件删除失败",
+          "返回JSON格式的错误信息"
+        ],
+        "usage_examples": [
+          "clear_cache('阿司匹林') -> 清理特定药物缓存",
+          "clear_cache(older_than_days=30) -> 清理30天前的缓存",
+          "clear_cache() -> 清理所有缓存"
+        ]
+      },
+      {
+        "tool_name": "get_cache_statistics",
+        "description": "获取缓存统计信息",
+        "function_signature": "get_cache_statistics() -> str",
+        "parameters": [],
+        "return_type": "str",
+        "return_description": "JSON格式的缓存统计，包含总数、大小和详细列表",
+        "dependencies": ["pathlib", "json"],
+        "implementation_notes": [
+          "遍历缓存目录",
+          "统计缓存药物数量",
+          "计算总缓存大小",
+          "读取每个缓存的元数据",
+          "收集药物名称、缓存时间、大小等信息"
+        ],
+        "error_handling": [
+          "缓存目录不存在返回空统计",
+          "文件读取失败跳过该项",
+          "返回JSON格式的错误信息"
+        ],
+        "usage_examples": [
+          "get_cache_statistics() -> 获取缓存统计"
+        ]
+      }
+    ],
+    "code_quality": {
+      "code_standards": [
+        "遵循PEP 8代码规范",
+        "使用类型注解（部分函数）",
+        "函数文档字符串完整",
+        "变量命名清晰有意义",
+        "代码结构清晰，逻辑分层",
+        "使用常量定义魔法数字"
+      ],
+      "testing_strategy": [
+        "每个工具函数都可独立测试",
+        "提供__main__测试代码",
+        "使用真实数据测试",
+        "测试错误处理路径",
+        "测试边界条件"
+      ],
+      "performance_considerations": [
+        "实现缓存机制减少重复请求",
+        "限制内容长度避免内存溢出",
+        "添加延迟避免速率限制",
+        "批量处理减少API调用",
+        "使用lxml解析器提高速度"
+      ],
+      "security_measures": [
+        "输入验证和清理",
+        "使用HTTPS请求",
+        "限制文件大小",
+        "不存储敏感信息",
+        "遵守robots.txt规则"
+      ]
+    },
+    "integration_details": {
+      "aws_services": [
+        "AWS Bedrock Runtime - Claude 3 Sonnet模型用于文本分析"
+      ],
+      "external_libraries": [
+        "duckduckgo-search - 网络搜索",
+        "requests - HTTP请求",
+        "beautifulsoup4 - HTML解析",
+        "lxml - 快速HTML解析器",
+        "boto3 - AWS SDK"
+      ],
+      "api_endpoints": [
+        "DuckDuckGo搜索API（通过duckduckgo-search库）",
+        "AWS Bedrock Runtime API（通过boto3）"
+      ],
+      "data_formats": [
+        "所有工具输入输出都使用JSON格式",
+        "网页内容使用UTF-8编码",
+        "缓存文件使用JSON格式存储"
+      ]
+    },
+    "development_notes": "工具开发完成，实现了药物反馈收集的完整工具链。使用DuckDuckGo替代Tavily实现免费搜索，使用Claude进行高质量文本分析。所有工具都经过错误处理设计，返回统一的JSON格式。实现了两层缓存策略优化性能。工具函数设计遵循单一职责原则，便于测试和维护。已添加依赖检查，确保运行时库可用。建议在Agent脚本中按顺序调用工具：验证药物名称 -> 检查缓存 -> 搜索 -> 抓取 -> 分析 -> 生成报告 -> 保存缓存。"
+  }
+}

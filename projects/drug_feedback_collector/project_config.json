@@ -1,0 +1,129 @@
+{
+  "project_name": "drug_feedback_collector",
+  "validation_timestamp": "2025-12-17T14:53:48.665804+00:00",
+  "overall_status": "success",
+  "agent_scripts": [
+    {
+      "script_path": "agents/generated_agents/drug_feedback_collector/drug_feedback_collector.py",
+      "syntax_valid": true,
+      "dependencies": [
+        "os",
+        "json",
+        "logging",
+        "typing",
+        "nexus_utils.agent_factory",
+        "bedrock_agentcore.runtime",
+        "nexus_utils.config_loader",
+        "argparse"
+      ],
+      "execution_params": [],
+      "argparse_params": [
+        {
+          "name": "-i",
+          "type": "str",
+          "description": "测试输入内容（完整的prompt）",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "-d",
+          "type": "str",
+          "description": "药物名称",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "--depth",
+          "type": "str",
+          "description": "搜索深度（basic: 基础, standard: 标准, comprehensive: 全面）",
+          "required": false,
+          "default": "standard",
+          "action": null
+        },
+        {
+          "name": "--language",
+          "type": "str",
+          "description": "语言偏好（zh: 中文, en: 英文, both: 中英文）",
+          "required": false,
+          "default": "both",
+          "action": null
+        },
+        {
+          "name": "-e",
+          "type": "str",
+          "description": "运行环境（production/development/testing）",
+          "required": false,
+          "default": "production",
+          "action": null
+        },
+        {
+          "name": "-v",
+          "type": "str",
+          "description": "Agent版本",
+          "required": false,
+          "default": "latest",
+          "action": null
+        }
+      ],
+      "error_message": ""
+    }
+  ],
+  "prompt_files": [
+    {
+      "prompt_path": "generated_agents_prompts/drug_feedback_collector/drug_feedback_collector.yaml",
+      "tool_count": 12,
+      "valid": true,
+      "error_message": "",
+      "metadata": {
+        "tags": [
+          "data_collection",
+          "web_search",
+          "feedback_analysis",
+          "report_generation",
+          "drug_information",
+          "healthcare"
+        ],
+        "supported_models": [
+          "global.anthropic.claude-sonnet-4-5-20250929-v1:0"
+        ],
+        "tools_dependencies": [
+          "strands_tools/current_time",
+          "generated_tools/drug_feedback_collector/drug_feedback_tools/validate_drug_name",
+          "generated_tools/drug_feedback_collector/drug_feedback_tools/check_cache",
+          "generated_tools/drug_feedback_collector/drug_feedback_tools/search_drug_feedback",
+          "generated_tools/drug_feedback_collector/drug_feedback_tools/batch_extract_webpages",
+          "generated_tools/drug_feedback_collector/drug_feedback_tools/extract_webpage_content",
+          "generated_tools/drug_feedback_collector/drug_feedback_tools/batch_analyze_feedback",
+          "generated_tools/drug_feedback_collector/drug_feedback_tools/analyze_feedback_with_claude",
+          "generated_tools/drug_feedback_collector/drug_feedback_tools/generate_feedback_report",
+          "generated_tools/drug_feedback_collector/drug_feedback_tools/save_to_cache",
+          "generated_tools/drug_feedback_collector/drug_feedback_tools/get_cache_statistics",
+          "generated_tools/drug_feedback_collector/drug_feedback_tools/clear_cache"
+        ]
+      },
+      "agent_info": {
+        "name": "drug_feedback_collector",
+        "description": "药物反馈收集专家 - 接收用户提供的药物名称，自动从互联网搜索、抓取、分析和整理该药物的用户反馈信息，生成结构化的反馈报告",
+        "category": "data_collection"
+      }
+    }
+  ],
+  "generated_tools": [
+    {
+      "tool_path": "generated_tools/drug_feedback_collector/drug_feedback_tools.py",
+      "syntax_valid": true,
+      "error_message": ""
+    }
+  ],
+  "total_tools": 12,
+  "summary": {
+    "agent_scripts_count": 1,
+    "prompt_files_count": 1,
+    "generated_tool_files_count": 1,
+    "all_scripts_valid": true,
+    "all_tools_valid": true,
+    "all_prompts_valid": true
+  }
+}
