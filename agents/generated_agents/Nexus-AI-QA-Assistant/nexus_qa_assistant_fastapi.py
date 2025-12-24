@@ -19,8 +19,6 @@ from pydantic import BaseModel, Field
 
 from nexus_utils.agent_factory import create_agent_from_prompt_template
 from strands.telemetry import StrandsTelemetry
-from nexus_utils.config_loader import ConfigLoader
-config = ConfigLoader()
 
 # =============================================================================
 # 环境变量与常量配置
@@ -28,12 +26,7 @@ config = ConfigLoader()
 
 os.environ.setdefault("BYPASS_TOOL_CONSENT", "true")
 os.environ.setdefault("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4318")
-otel_endpoint = config.get_with_env_override(
-    "OTEL_EXPORTER_OTLP_ENDPOINT",
-    "nexus_ai", "OTEL_EXPORTER_OTLP_ENDPOINT",
-    default="http://localhost:4318"
-)
-os.environ.setdefault("OTEL_EXPORTER_OTLP_ENDPOINT", otel_endpoint)
+
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 WORKSHOP_HTML_PATH = PROJECT_ROOT / "agents/generated_agents/Nexus-AI-QA-Assistant/workshop.html"
 WORKSHOP_STATIC_DIR = WORKSHOP_HTML_PATH.parent

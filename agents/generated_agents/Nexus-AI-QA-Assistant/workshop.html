@@ -1580,7 +1580,7 @@
           </p>
           <div class="badge-stack">
             <span class="badge">时长 · 2～3 小时</span>
-            <span class="badge">角色 · 工程师 / 产品</span>
+            <span class="badge">角色 · 工程师 / 开发者</span>
             <span class="badge">技能 · Linux · Python · AWS</span>
           </div>
         </header>
@@ -1596,14 +1596,23 @@
             <ul>
               <li>AMI：<code>Amazon Linux 2023 (kernel 6.1)</code></li>
               <li>
-                实例规格：<code>m7i.large</code> 或
-                <code>m6a.large</code>（≥2 vCPU / 4 GB RAM）
+                实例规格：<code>m8i.large</code> 或
+                <code>t3.large</code>（≥2 vCPU / 4 GB RAM）
               </li>
               <li>存储：50 GB gp3</li>
-              <li>区域：<code>us-west-2</code>（可根据需求调整）</li>
-              <li>IAM：绑定具备 Amazon Bedrock、ECR、CloudWatch 读写权限的角色</li>
-              <li>安全组：开放 SSH 22 端口；如需访问 Jaeger UI，请通过端口转发代理16686</li>
+              <li>区域：<code>us-west-2</code></li>
+              <li>IAM：绑定具备 Amazon Bedrock、ECR、CloudWatch 读写权限的角色（为简化操作，可临时附加Admin权限）</li>
+              <li>安全组：开放 SSH 22，3000,8000,16686 端口；</li>
             </ul>
+            <div class="img-container">
+              <img src="/assets/01.create-ec2-ami.png" alt="创建EC2-基本配置选择">
+            </div>
+            <div class="img-container">
+              <img src="/assets/01.create-ec2-sg.png" alt="创建EC2-安全组及存储配置">
+            </div>
+            <div class="img-container">
+              <img src="/assets/01.create-ec2-iam.png" alt="创建EC2-权限配置">
+            </div>
             <blockquote>
               <strong>检查点</strong> SSH 登录后执行以下命令，确保凭证有效。
               <pre><button class="copy">复制</button><code class="language-bash">aws configure set region us-west-2 
@@ -1616,9 +1625,9 @@ aws sts get-caller-identity
               <div class="timeline-item">
                 <h4>1. 安装系统依赖</h4>
                 <pre><button class="copy">复制</button><code class="language-bash">sudo yum install -y git wget htop
-sudo dnf install -y python3.11</code></pre>
+sudo dnf install -y python3.12 nodejs</code></pre>
                 <p>验证命令：</p>
-                <pre><button class="copy">复制</button><code class="language-bash">python3.11 --version
+                <pre><button class="copy">复制</button><code class="language-bash">python3.12 --version
 git --version</code></pre>
               </div>
 
@@ -1631,7 +1640,15 @@ source ~/.bashrc</code></pre>
               </div>
 
               <div class="timeline-item">
-                <h4>3. 安装 Docker（可选，但推荐）</h4>
+                <h4>3. 安装 terraform</h4>
+                <pre><button class="copy">复制</button><code class="language-bash">sudo dnf install -y dnf-plugins-core
+sudo dnf config-manager --add-repo https://rpm.releases.hashicorp.com/AmazonLinux/hashicorp.repo
+sudo dnf install terraform -y</code></pre>
+                <p>验证：<code>terraform --version</code></p>
+              </div>
+
+              <div class="timeline-item">
+                <h4>4. 安装 Docker（可选，但推荐）</h4>
                 <pre><button class="copy">复制</button><code class="language-bash">sudo dnf update -y
 sudo dnf install -y docker
 sudo systemctl enable docker
@@ -1645,7 +1662,7 @@ docker run --rm hello-world
               </div>
 
               <div class="timeline-item">
-                <h4>4. 运行 Jaeger（诊断工具，可选）</h4>
+                <h4>5. 运行 Jaeger（诊断工具，可选）</h4>
                 <pre><button class="copy">复制</button><code class="language-bash">docker run -d --name jaeger
   -e COLLECTOR_ZIPKIN_HOST_PORT=:9411
   -e COLLECTOR_OTLP_ENABLED=true
@@ -1682,16 +1699,17 @@ docker run --rm hello-world
 cd Nexus-AI</code></pre>
 
           <h3>二、初始化虚拟环境</h3>
-          <pre><button class="copy">复制</button><code class="language-bash">python3.11 -m venv .nexus-ai
+          <pre><button class="copy">复制</button><code class="language-bash">python3.12 -m venv .nexus-ai
 source .nexus-ai/bin/activate
 echo 'source $HOME/Nexus-AI/.nexus-ai/bin/activate' >> ~/.bashrc
 echo 'cd $HOME/Nexus-AI/' >> ~/.bashrc
 source ~/.bashrc</code></pre>
-          <p>验证：<code>python --version</code> 显示 3.11.x</p>
+          <p>验证：<code>python --version</code> 显示 3.12.x</p>
 
           <h3>三、安装 Python 依赖</h3>
           <pre><button class="copy">复制</button><code class="language-bash">uv pip install --upgrade pip
 uv pip install -r requirements.txt
+uv pip install strands-agents[otel]
 uv pip install -e .</code></pre>
           <ul>
             <li>国内网络可添加 <code>--index-url https://pypi.tuna.tsinghua.edu.cn/simple</code></li>
@@ -1712,7 +1730,7 @@ uv pip install -e .</code></pre>
           </div>
           
           <h3>示例命令</h3>
-          <pre><button class="copy">复制</button><code class="language-bash">python agents/system_agents/magician.py -i "aws美东一的m8g.xlarge什么价格"</code></pre>
+          <pre><button class="copy">复制</button><code class="language-bash">python agents/system_agents/magician.py -i "aws美东一的m8g.xlarge什么价格" -a "prompts/generated_agents_prompts/aws_pricing_agent/aws_pricing_agent.yaml"</code></pre>
           
           <pre><button class="copy">复制</button><code class="language-bash">python agents/system_agents/magician.py -i "最近OpenAI有哪些新闻"</code></pre>
           

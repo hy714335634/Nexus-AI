@@ -1,12 +1,11 @@
-strands-agents[otel]
 strands-agents-tools
 bedrock-agentcore
 bedrock-agentcore-starter-toolkit
-.
+strands-agents[otel]
 boto3
 botocore
 neo4j
-
+html2text
 fastapi
 uvicorn[standard]
 requests
@@ -17,7 +16,6 @@ pydantic-settings
 python-dotenv
 dataclasses
 typing
-
 PyYAML
 duckduckgo-search
 feedparser
@@ -35,14 +33,10 @@ beautifulsoup4
 xmltodict
 jsonschema
 nltk
-
 matplotlib
 plotly
 graphviz
 networkx
 streamlit
-
 setuptools
-
 tabulate
-opentelemetry

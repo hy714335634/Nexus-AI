@@ -1,6 +1,0 @@
-project:
-  created_date: '2025-10-10T09:33:11.205645+00:00'
-  description: 临床医学专家智能体，能够回答用户专业的生命科学和临床医学问题，尤其是药物研发领域相关问题。基于给定工具和数据库收集证据，提供严谨的回答和完整的思考过程。
-  name: clinical_medicine_expert_agent
-  updated_date: '2025-10-10T09:33:15.398126+00:00'
-  version: 1.0.0
