@@ -334,6 +334,6 @@ if __name__ == "__main__":
     import uvicorn
     # uvicorn agents.generated_agents.Nexus-AI-QA-Assistant.nexus_qa_assistant_fastapi:app --host 0.0.0.0 --port 8000 --workers 7 --reload
     host = os.getenv("NEXUS_QA_API_HOST", "0.0.0.0")
-    port = int(os.getenv("NEXUS_QA_API_PORT", "8000"))
+    port = int(os.getenv("NEXUS_QA_API_PORT", "8888"))
     uvicorn.run("agents.generated_agents.Nexus-AI-QA-Assistant.nexus_qa_assistant_fastapi:app", host=host, port=port, reload=True)
 
