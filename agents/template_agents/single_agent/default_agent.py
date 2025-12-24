@@ -101,6 +101,7 @@ if __name__ == "__main__":
     parser.add_argument('-i', '--input', type=str, default=None, help='测试输入内容')
     parser.add_argument('-e', '--env', type=str, default="production", help='指定Agent运行环境')
     parser.add_argument('-v', '--version', type=str, default="latest", help='指定Agent版本')
+    parser.add_argument('-it', '--interactive', action='store_true', help='启动交互式多轮对话模式')
     args = parser.parse_args()
 
     # 检查是否在 Docker 容器中运行（AgentCore 部署）
@@ -110,6 +111,30 @@ if __name__ == "__main__":
         # AgentCore 部署模式：启动 HTTP 服务器
         print("🚀 启动 AgentCore HTTP 服务器，端口: 8080")
         app.run()
+    elif args.interactive:
+        # 交互式对话模式
+        default_agent = create_default_agent(env=args.env, version=args.version)
+        print(f"✅ Default Agent 创建成功: {default_agent.name}")
+        print("💬 进入交互式对话模式（输入 'quit' 或 'exit' 退出）\n")
+        
+        while True:
+            try:
+                user_input = input("You: ")
+                user_input = user_input.encode('utf-8', errors='ignore').decode('utf-8').strip()
+                
+                if user_input.lower() in ['quit', 'exit']:
+                    print("👋 退出交互式对话")
+                    break
+                if not user_input:
+                    continue
+                
+                default_agent(user_input)
+                print()
+            except KeyboardInterrupt:
+                print("\n👋 退出交互式对话")
+                break
+            except Exception as e:
+                print(f"❌ 错误: {e}\n")
     elif args.input:
         # 本地测试模式
         default_agent = create_default_agent(env=args.env, version=args.version)

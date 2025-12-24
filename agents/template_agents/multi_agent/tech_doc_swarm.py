@@ -1130,6 +1130,11 @@ if __name__ == "__main__":
         type=str,
         help='输出完整结果JSON文件路径（可选）'
     )
+    parser.add_argument(
+        '-it', '--interactive',
+        action='store_true',
+        help='启动交互式多轮对话模式'
+    )
     
     args = parser.parse_args()
     
@@ -1140,6 +1145,44 @@ if __name__ == "__main__":
         version=args.version,
         max_review_iterations=args.max_iterations
     )
+    
+    # 交互式模式
+    if args.interactive:
+        print("✅ 技术文档Swarm系统创建成功")
+        print("💬 进入交互式对话模式（输入 'quit' 或 'exit' 退出）\n")
+        
+        while True:
+            try:
+                user_input = input("You: ")
+                user_input = user_input.encode('utf-8', errors='ignore').decode('utf-8').strip()
+                if user_input.lower() in ['quit', 'exit']:
+                    print("👋 退出交互式对话")
+                    break
+                if not user_input:
+                    continue
+                
+                style_config = {"theme": args.theme, "language": "zh-CN", "include_toc": True}
+                result = system.process_user_requirement(
+                    user_requirement=user_input,
+                    style_config=style_config,
+                    pass_threshold=args.threshold
+                )
+                
+                if result["status"] == "success":
+                    print(f"\nAgent: ✅ 文档生成成功")
+                    summary = result["workflow_summary"]
+                    print(f"标题: {summary['document_title']}")
+                    print(f"迭代: {summary['total_iterations']}次")
+                    print(f"HTML大小: {summary['html_size']}字节\n")
+                else:
+                    print(f"\nAgent: ❌ 失败 - {result.get('error_message', '未知错误')}\n")
+                    
+            except KeyboardInterrupt:
+                print("\n👋 退出交互式对话")
+                break
+            except Exception as e:
+                print(f"❌ 错误: {e}\n")
+        exit(0)
     
     # 配置HTML样式
     style_config = {

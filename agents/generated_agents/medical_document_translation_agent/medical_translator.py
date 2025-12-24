@@ -271,7 +271,7 @@ if __name__ == "__main__":
     
     # 解析命令行参数
     parser = argparse.ArgumentParser(description='医学文档翻译Agent')
-    parser.add_argument('--mode', type=str, required=True, 
+    parser.add_argument('--mode', type=str, 
                       choices=['translate', 'batch', 'glossary', 'report', 'progress'],
                       help='操作模式: translate(单文档翻译), batch(批量翻译), glossary(词库管理), report(质量报告), progress(任务进度)')
     
@@ -309,9 +309,40 @@ if __name__ == "__main__":
     # 任务进度参数
     parser.add_argument('--task_id', type=str, help='任务ID')
     
+    # 交互式模式
+    parser.add_argument('-it', '--interactive', action='store_true', help='启动交互式多轮对话模式')
+    
     args = parser.parse_args()
     
     print(f"✅ Medical Document Translation Agent 创建成功")
+    
+    # 交互式模式
+    if args.interactive:
+        print("💬 进入交互式对话模式（输入 'quit' 或 'exit' 退出）\n")
+        
+        while True:
+            try:
+                user_input = input("You: ")
+                user_input = user_input.encode('utf-8', errors='ignore').decode('utf-8').strip()
+                if user_input.lower() in ['quit', 'exit']:
+                    print("👋 退出交互式对话")
+                    break
+                if not user_input:
+                    continue
+                
+                response = medical_translator(user_input)
+            except KeyboardInterrupt:
+                print("\n👋 退出交互式对话")
+                break
+            except Exception as e:
+                print(f"❌ 错误: {e}\n")
+        exit(0)
+    
+    # 检查是否提供了mode参数
+    if not args.mode:
+        print("❌ 非交互式模式需要提供 --mode 参数")
+        parser.print_help()
+        exit(1)
     
     # 根据操作模式执行相应功能
     if args.mode == 'translate':

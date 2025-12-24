@@ -111,9 +111,9 @@ class AWSPricingAgentCLI:
             help='AWS区域代码，默认为us-east-1'
         )
         parser.add_argument(
-            '--interactive', 
+            '-it', '--interactive', 
             action='store_true',
-            help='启用交互模式，允许多轮对话'
+            help='启动交互式多轮对话模式'
         )
         return parser
     
@@ -171,34 +171,32 @@ class AWSPricingAgentCLI:
         Args:
             initial_requirement (str): 初始需求描述
         """
-        print("🔄 进入交互模式 (输入'exit'或'quit'退出)\n")
-        
-        conversation_history = [
-            {"role": "user", "content": initial_requirement}
-        ]
+        print("💬 进入交互式对话模式（输入 'quit' 或 'exit' 退出）\n")
         
         # 首次响应
-        response = self.agent(initial_requirement)
-        print(f"📋 AWS Pricing Agent:\n{response}\n")
-        
-        conversation_history.append({"role": "assistant", "content": response})
+        if initial_requirement:
+            self.agent(initial_requirement)
+            print()
         
         # 继续对话
         while True:
-            user_input = input("您的回复 (exit/quit 退出): ")
-            if user_input.lower() in ['exit', 'quit']:
-                print("👋 感谢使用AWS Pricing Agent!")
+            try:
+                user_input = input("You: ")
+                user_input = user_input.encode('utf-8', errors='ignore').decode('utf-8').strip()
+                
+                if user_input.lower() in ['quit', 'exit']:
+                    print("👋 退出交互式对话")
+                    break
+                if not user_input:
+                    continue
+                
+                self.agent(user_input)
+                print()
+            except KeyboardInterrupt:
+                print("\n👋 退出交互式对话")
                 break
-            
-            conversation_history.append({"role": "user", "content": user_input})
-            
-            # 构建完整对话历史
-            full_prompt = self._build_conversation_prompt(conversation_history)
-            
-            response = self.agent(full_prompt)
-            print(f"\n📋 AWS Pricing Agent:\n{response}\n")
-            
-            conversation_history.append({"role": "assistant", "content": response})
+            except Exception as e:
+                print(f"❌ 错误: {e}\n")
     
     def _build_conversation_prompt(self, history: List[Dict[str, str]]) -> str:
         """构建包含对话历史的完整提示

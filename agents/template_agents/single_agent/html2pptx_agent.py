@@ -330,6 +330,10 @@ def main():
     # 子命令
     subparsers = parser.add_subparsers(dest='command', help='可用命令')
     
+    # interactive命令
+    interactive_parser = subparsers.add_parser('interactive', help='启动交互式多轮对话模式')
+    interactive_parser.add_argument('-v', '--verbose', action='store_true', help='输出详细信息')
+    
     # convert命令
     convert_parser = subparsers.add_parser('convert', help='转换HTML文档为PPTX')
     convert_parser.add_argument('-i', '--input', required=True, help='输入HTML文件路径')
@@ -367,7 +371,30 @@ def main():
     
     # 执行相应的命令
     try:
-        if args.command == 'convert':
+        if args.command == 'interactive':
+            print(f"✅ HTML2PPTX Agent 创建成功: {html2pptx_agent.name}")
+            print("💬 进入交互式对话模式（输入 'quit' 或 'exit' 退出）\n")
+            
+            while True:
+                try:
+                    user_input = input("You: ")
+                    user_input = user_input.encode('utf-8', errors='ignore').decode('utf-8').strip()
+                    
+                    if user_input.lower() in ['quit', 'exit']:
+                        print("👋 退出交互式对话")
+                        break
+                    if not user_input:
+                        continue
+                    
+                    html2pptx_agent(user_input)
+                    print()
+                except KeyboardInterrupt:
+                    print("\n👋 退出交互式对话")
+                    break
+                except Exception as e:
+                    print(f"❌ 错误: {e}\n")
+        
+        elif args.command == 'convert':
             output_path = convert_html_to_pptx(
                 html_path=args.input,
                 output_path=args.output,

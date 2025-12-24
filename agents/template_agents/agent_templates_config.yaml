@@ -3,26 +3,6 @@
 # 所有单Agent模板脚本均支持命令行参数 -e/--env 与 -v/--version，用于指定Agent运行环境与版本（默认production/latest）
 
 templates:
-  # 需求分析师模板 - 文档处理专家
-  requirements_analyzer:
-    name: "需求分析文档生成器"
-    description: "单Agent模板，专业的需求分析师，将自然语言需求转换为标准化JSON格式需求文档。集成文件读取、时间获取、AWS服务等系统工具，支持业务需求分析、用户故事生成、验收标准定义。输出结构化需求文档，适用于软件开发、产品设计、项目管理等场景"
-    agent_dependencies: []
-    tools_dependencies:
-      - "strands_tools/file_read"
-      - "strands_tools/current_time"
-      - "strands_tools/use_aws"
-    path: "agents/template_agents/single_agent/requirements_analyzer.py"
-    prompt_template: "prompts/template_prompts/requirements_analyzer"
-    tags:
-      - "single_agent"
-      - "system_tools"
-      - "document_processing"
-      - "requirements_analysis"
-      - "json_output"
-      - "aws_integration"
-      - "structured_output"
-
   # 文档处理Agent模板 - 文本分析专家
   document_processor_agent:
     name: "智能文档处理器"
@@ -138,57 +118,6 @@ templates:
       - "real_data"
       - "web_search"
 
-  # 多模态内容分析Agent模板 - 多模态分析专家
-  multimodal_analyzer_agent:
-    name: "多模态内容分析专家"
-    description: "单Agent模板，专业的多模态内容分析专家，能够处理各种类型的文件（图片、文档、文本等）并进行智能分析和问答。集成multimodal_content_parser工具、文件读取、时间获取等系统工具，支持多格式文件解析、智能内容识别、多轮对话交互、问题导向分析等功能。适用于文档分析、图片识别、内容理解、智能问答等场景"
-    agent_dependencies: []
-    tools_dependencies:
-      - "system_tools/multimodal_content_parser/parse_multimodal_content_from_path"
-      - "system_tools/multimodal_content_parser/get_supported_formats"
-      - "strands_tools/file_read"
-      - "strands_tools/current_time"
-    path: "agents/system_agents/multimodal_analysis/multimodal_analyzer_agent.py"
-    prompt_template: "prompts/system_agents_prompts/multimodal_analysis/multimodal_analyzer_agent"
-    tags:
-      - "single_agent"
-      - "multimodal_analysis"
-      - "content_analysis"
-      - "file_processing"
-      - "conversation"
-      - "question_answering"
-      - "image_analysis"
-      - "document_analysis"
-      - "intelligent_qa"
-      - "multimodal_processing"
-
-  # PDF内容提取Agent模板 - PDF处理专家
-  pdf_extractor_agent:
-    name: "PDF内容提取专家"
-    description: "单Agent模板，专业的PDF内容提取专家，能够处理PDF文件，将其转换为图片，调用多模态Agent提取文本内容，并生成TXT文件，支持断点续传功能。集成PDF处理工具、多模态分析、状态管理等工具，支持PDF转图片、文本提取、内容合并、断点续传等功能。适用于文档处理、内容提取、格式转换等场景"
-    agent_dependencies: []
-    tools_dependencies:
-      - "generated_tools/pdf_content_extractor/pdf_processing_tools/pdf_to_images"
-      - "generated_tools/pdf_content_extractor/pdf_processing_tools/manage_processing_state"
-      - "generated_tools/pdf_content_extractor/pdf_processing_tools/merge_text_content"
-      - "generated_tools/pdf_content_extractor/pdf_processing_tools/initialize_pdf_extraction"
-      - "generated_tools/pdf_content_extractor/pdf_processing_tools/cleanup_extraction_files"
-      - "strands_tools/file_read"
-      - "strands_tools/file_write"
-      - "strands_tools/current_time"
-    path: "agents/template_agents/single_agent/pdf_extractor_agent.py"
-    prompt_template: "prompts/generated_agents_prompts/pdf_content_extractor/pdf_extractor_agent"
-    tags:
-      - "single_agent"
-      - "pdf_processing"
-      - "content_extraction"
-      - "multimodal_analysis"
-      - "text_extraction"
-      - "document_processing"
-      - "checkpoint_resume"
-      - "file_conversion"
-      - "batch_processing"
-
   # HTML2PPTX转换Agent模板 - 文档转换专家
   html2pptx_agent:
     name: "HTML2PPTX转换专家"
@@ -293,137 +222,6 @@ templates:
       - "price_analysis"
       - "budget_planning"
       - "aws_services"
-
-  # 新闻检索Agent模板 - 信息聚合专家
-  news_retrieval_agent:
-    name: "新闻检索专家"
-    description: "单Agent模板，专业的新闻检索与聚合专家，能够根据用户关注话题从多个主流媒体平台检索热门新闻，进行热度排序和摘要生成，为用户提供最新、最热门的新闻信息。集成新闻获取、热度计算、摘要生成、话题管理等工具，支持多平台新闻检索、热度排序、内容摘要、话题管理等功能。适用于新闻聚合、信息监控、话题跟踪等场景"
-    agent_dependencies: []
-    tools_dependencies:
-      - "strands_tools/current_time"
-      - "generated_tools/news_retrieval_agent/news_fetcher/fetch_news"
-      - "generated_tools/news_retrieval_agent/news_processor/calculate_news_heat"
-      - "generated_tools/news_retrieval_agent/news_processor/generate_news_summary"
-      - "generated_tools/news_retrieval_agent/topic_manager/add_topic"
-      - "generated_tools/news_retrieval_agent/topic_manager/delete_topic"
-      - "generated_tools/news_retrieval_agent/topic_manager/get_recent_topics"
-      - "generated_tools/news_retrieval_agent/topic_manager/update_topic_usage"
-      - "generated_tools/news_retrieval_agent/topic_manager/view_topics"
-    path: "agents/generated_agents/news_retrieval_agent/news_agent.py"
-    prompt_template: "prompts/generated_agents_prompts/news_retrieval_agent/news_agent_prompt"
-    tags:
-      - "single_agent"
-      - "news_retrieval"
-      - "information_aggregation"
-      - "topic_management"
-      - "content_analysis"
-      - "heat_calculation"
-      - "summary_generation"
-      - "multi_platform"
-
-  # PPT到Markdown转换Agent模板 - 演示文稿处理专家
-  ppt_to_markdown_agent:
-    name: "PPT到Markdown转换专家"
-    description: "单Agent模板，专业的PPT内容提取和Markdown转换专家，能够解析PPT文件、提取每页内容并生成完整Markdown格式总结报告。集成PPT验证、内容提取、格式转换、文档管理等工具，支持PPT结构解析、内容提取、格式转换、Markdown生成等功能。适用于文档转换、内容提取、格式标准化等场景"
-    agent_dependencies: []
-    tools_dependencies:
-      - "strands_tools/file_read"
-      - "strands_tools/current_time"
-      - "generated_tools/ppt_to_markdown/file_manager/create_output_directory"
-      - "generated_tools/ppt_to_markdown/file_manager/find_ppt_files"
-      - "generated_tools/ppt_to_markdown/file_manager/save_markdown_file"
-      - "generated_tools/ppt_to_markdown/file_manager/validate_ppt_file"
-      - "generated_tools/ppt_to_markdown/markdown_formatter/customize_markdown_styling"
-      - "generated_tools/ppt_to_markdown/markdown_formatter/extract_markdown_sections"
-      - "generated_tools/ppt_to_markdown/markdown_formatter/format_markdown_document"
-      - "generated_tools/ppt_to_markdown/ppt_converter/batch_convert_ppt_to_markdown"
-      - "generated_tools/ppt_to_markdown/ppt_converter/extract_ppt_structure"
-      - "generated_tools/ppt_to_markdown/ppt_converter/ppt_to_markdown_converter"
-    path: "agents/generated_agents/ppt_to_markdown/ppt_to_markdown_converter.py"
-    prompt_template: "prompts/generated_agents_prompts/ppt_to_markdown/ppt_to_markdown_converter"
-    tags:
-      - "single_agent"
-      - "ppt_processing"
-      - "markdown_conversion"
-      - "document_conversion"
-      - "content_extraction"
-      - "format_conversion"
-      - "structure_analysis"
-      - "batch_processing"
-
-  # PubMed文献搜索Agent模板 - 医学研究专家
-  pubmed_literature_agent:
-    name: "PubMed文献搜索专家"
-    description: "单Agent模板，专业的医学文献研究专家，能够检索、分析和呈现来自PubMed的相关医学文献。基于PubMed Central (PMC)开放数据，通过AWS S3访问PMC数据，支持关键词搜索、多维度筛选、相关性排序和结构化报告生成。集成PubMed API工具、文献分析、摘要生成等工具，支持自然语言查询处理、文献检索、内容提取、摘要生成、相关性排序等功能。适用于医学研究、文献综述、学术分析等场景"
-    agent_dependencies: []
-    tools_dependencies:
-      - "strands_tools/http_request"
-      - "strands_tools/current_time"
-      - "strands_tools/calculator"
-      - "strands_tools/think"
-      - "strands_tools/file_read"
-      - "strands_tools/file_write"
-      - "strands_tools/use_aws"
-      - "generated_tools/pubmed_literature_search_agent/pmc_s3_connector/pmc_s3_connect"
-      - "generated_tools/pubmed_literature_search_agent/pmc_s3_connector/pmc_get_filelist_csv"
-      - "generated_tools/pubmed_literature_search_agent/pmc_s3_connector/pmc_download_file"
-      - "generated_tools/pubmed_literature_search_agent/pmc_s3_connector/pmc_search_files"
-      - "generated_tools/pubmed_literature_search_agent/pmc_s3_connector/pmc_quick_search"
-      - "generated_tools/pubmed_literature_search_agent/pmc_s3_connector/pmc_get_article_by_id"
-      - "generated_tools/pubmed_literature_search_agent/pmc_s3_connector/pmc_get_metadata_by_pmcid"
-      - "generated_tools/pubmed_literature_search_agent/pmc_s3_connector/pmc_cache_status"
-      - "generated_tools/pubmed_literature_search_agent/pmc_metadata_parser/parse_pmc_xml"
-      - "generated_tools/pubmed_literature_search_agent/pmc_metadata_parser/parse_pmc_txt"
-      - "generated_tools/pubmed_literature_search_agent/pmc_metadata_parser/extract_pmc_metadata_from_file"
-      - "generated_tools/pubmed_literature_search_agent/pmc_metadata_parser/extract_pmc_sections"
-      - "generated_tools/pubmed_literature_search_agent/pmc_metadata_parser/extract_pmc_keywords"
-      - "generated_tools/pubmed_literature_search_agent/pmc_metadata_parser/extract_pmc_citations"
-      - "generated_tools/pubmed_literature_search_agent/literature_searcher/search_literature"
-      - "generated_tools/pubmed_literature_search_agent/literature_searcher/advanced_search"
-      - "generated_tools/pubmed_literature_search_agent/literature_searcher/search_by_topic"
-      - "generated_tools/pubmed_literature_search_agent/literature_searcher/search_by_pmcid"
-      - "generated_tools/pubmed_literature_search_agent/literature_searcher/batch_search"
-      - "generated_tools/pubmed_literature_search_agent/pubmed_api_client/search_pubmed"
-      - "generated_tools/pubmed_literature_search_agent/pubmed_api_client/fetch_pubmed_summaries"
-      - "generated_tools/pubmed_literature_search_agent/pubmed_api_client/link_pmc_from_pmid"
-      - "generated_tools/pubmed_literature_search_agent/literature_filter/filter_by_time_range"
-      - "generated_tools/pubmed_literature_search_agent/literature_filter/filter_by_journal_type"
-      - "generated_tools/pubmed_literature_search_agent/literature_filter/filter_by_impact_factor"
-      - "generated_tools/pubmed_literature_search_agent/literature_filter/filter_by_retraction_status"
-      - "generated_tools/pubmed_literature_search_agent/literature_filter/combined_filter"
-      - "generated_tools/pubmed_literature_search_agent/relevance_ranker/calculate_relevance_score"
-      - "generated_tools/pubmed_literature_search_agent/relevance_ranker/rank_literature_by_relevance"
-      - "generated_tools/pubmed_literature_search_agent/relevance_ranker/get_top_ranked_literature"
-      - "generated_tools/pubmed_literature_search_agent/relevance_ranker/rank_by_custom_criteria"
-      - "generated_tools/pubmed_literature_search_agent/relevance_ranker/cluster_by_topic"
-      - "generated_tools/pubmed_literature_search_agent/citation_generator/generate_citation_apa"
-      - "generated_tools/pubmed_literature_search_agent/citation_generator/generate_citation_mla"
-      - "generated_tools/pubmed_literature_search_agent/citation_generator/generate_citation_chicago"
-      - "generated_tools/pubmed_literature_search_agent/citation_generator/generate_citation_harvard"
-      - "generated_tools/pubmed_literature_search_agent/citation_generator/generate_citation_vancouver"
-      - "generated_tools/pubmed_literature_search_agent/citation_generator/generate_all_citations"
-      - "generated_tools/pubmed_literature_search_agent/citation_generator/batch_generate_citations"
-      - "generated_tools/pubmed_literature_search_agent/report_generator/generate_structured_report"
-      - "generated_tools/pubmed_literature_search_agent/report_generator/generate_literature_review"
-      - "generated_tools/pubmed_literature_search_agent/report_generator/generate_comprehensive_literature_review"
-      - "generated_tools/pubmed_literature_search_agent/report_generator/generate_executive_summary"
-      - "generated_tools/pubmed_literature_search_agent/report_generator/generate_topic_summary"
-      - "generated_tools/pubmed_literature_search_agent/report_generator/generate_comparison_table"
-    path: "agents/template_agents/single_agent/pubmed_literature_agent.py"
-    prompt_template: "prompts/generated_agents_prompts/pubmed_literature_search_agent/pubmed_literature_agent"
-    tags:
-      - "single_agent"
-      - "medical_research"
-      - "pubmed_search"
-      - "literature_analysis"
-      - "academic_research"
-      - "content_extraction"
-      - "summary_generation"
-      - "relevance_ranking"
-      - "pmc_data_access"
-      - "aws_s3_integration"
-      - "structured_reports"
-      - "citation_management"
 
   # 医学文档翻译Agent模板 - 医学翻译专家
   medical_document_translation_agent:
@@ -531,3 +329,52 @@ templates:
       - "api_documentation"
       - "user_manual"
       - "system_architecture"
+
+  # 股票分析多Agent系统模板 - 智能投资分析专家
+  stock_analysis_agent:
+    name: "股票分析多Agent系统"
+    description: "多Agent模板，智能股票分析系统，包含7个专业Agent协同工作：CoordinatorAgent（流程协调）、DataCollectorAgent（数据采集）、ValuationAgent（DCF估值）、PredictionAgent（盈利预测）、RiskAssessmentAgent（风险评估）、BenchmarkAgent（对比分析）、ReportGeneratorAgent（报告生成）。支持全面的股票分析、估值计算、风险评估、对比分析等功能。适用于股票投资分析、投资决策支持、风险评估、投资组合管理等场景"
+    agent_dependencies: []
+    tools_dependencies:
+      - "strands_tools/current_time"
+      - "strands_tools/calculator"
+      - "strands_tools/http_request"
+      - "generated_tools/stock_analysis_agent/data_collector/fetch_stock_data"
+      - "generated_tools/stock_analysis_agent/data_collector/fetch_financial_statements"
+      - "generated_tools/stock_analysis_agent/data_collector/fetch_market_data"
+      - "generated_tools/stock_analysis_agent/valuation/calculate_dcf"
+      - "generated_tools/stock_analysis_agent/valuation/calculate_wacc"
+      - "generated_tools/stock_analysis_agent/valuation/calculate_terminal_value"
+      - "generated_tools/stock_analysis_agent/prediction/predict_earnings"
+      - "generated_tools/stock_analysis_agent/prediction/predict_revenue"
+      - "generated_tools/stock_analysis_agent/prediction/predict_growth_rate"
+      - "generated_tools/stock_analysis_agent/risk_assessment/calculate_volatility"
+      - "generated_tools/stock_analysis_agent/risk_assessment/calculate_beta"
+      - "generated_tools/stock_analysis_agent/risk_assessment/assess_financial_risk"
+      - "generated_tools/stock_analysis_agent/benchmark/compare_with_peers"
+      - "generated_tools/stock_analysis_agent/benchmark/compare_with_index"
+      - "generated_tools/stock_analysis_agent/benchmark/calculate_relative_performance"
+      - "generated_tools/stock_analysis_agent/report/generate_analysis_report"
+      - "generated_tools/stock_analysis_agent/report/generate_summary"
+      - "generated_tools/stock_analysis_agent/report/format_report"
+    path: "agents/generated_agents/stock_analysis_agent/stock_analysis_agent.py"
+    prompt_templates:
+      - "prompts/generated_agents_prompts/stock_analysis_agent/coordinator_agent"
+      - "prompts/generated_agents_prompts/stock_analysis_agent/data_collector_agent"
+      - "prompts/generated_agents_prompts/stock_analysis_agent/valuation_agent"
+      - "prompts/generated_agents_prompts/stock_analysis_agent/prediction_agent"
+      - "prompts/generated_agents_prompts/stock_analysis_agent/risk_assessment_agent"
+      - "prompts/generated_agents_prompts/stock_analysis_agent/benchmark_agent"
+      - "prompts/generated_agents_prompts/stock_analysis_agent/report_generator_agent"
+    tags:
+      - "multi_agent"
+      - "stock_analysis"
+      - "investment_analysis"
+      - "financial_analysis"
+      - "dcf_valuation"
+      - "risk_assessment"
+      - "earnings_prediction"
+      - "benchmark_comparison"
+      - "report_generation"
+      - "data_collection"
+      - "financial_modeling"
