@@ -43,6 +43,7 @@ networkx
 streamlit
 
 setuptools
-
+fastapi
 tabulate
-opentelemetry
+opentelemetry-api
+opentelemetry-sdk

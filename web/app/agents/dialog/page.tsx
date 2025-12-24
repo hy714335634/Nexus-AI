@@ -620,12 +620,19 @@ export default function AgentDialogPage() {
       });
     };
 
+    console.log('🚀 Starting stream read loop...');
+    let chunkCount = 0;
+
     while (true) {
       const { value, done } = await reader.read();
       if (done) {
+        console.log(`✅ Stream finished after ${chunkCount} chunks`);
         break;
       }
-      buffer += decoder.decode(value, { stream: true });
+      chunkCount++;
+      const decoded = decoder.decode(value, { stream: true });
+      console.log(`📦 Received chunk #${chunkCount} (${value.length} bytes):`, decoded.slice(0, 200));
+      buffer += decoded;
 
       let boundary = buffer.indexOf('\n\n');
       while (boundary >= 0) {
@@ -651,6 +658,24 @@ export default function AgentDialogPage() {
 
           // 调试日志
           console.log('📥 SSE Event:', eventType, payload.type || '', payload);
+
+          // 处理连接确认事件
+          if (eventType === 'connected') {
+            console.log('✅ SSE connection established');
+            continue;
+          }
+
+          // 处理心跳事件（保持连接活跃）
+          if (eventType === 'heartbeat') {
+            console.log('💓 Heartbeat received');
+            continue;
+          }
+
+          // 处理完成事件
+          if (eventType === 'done') {
+            console.log('✅ Stream completed');
+            break;
+          }
 
           if (eventType === 'message') {
             const msgType = payload.type;

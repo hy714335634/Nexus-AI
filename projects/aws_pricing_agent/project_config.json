@@ -1,6 +1,6 @@
 {
   "project_name": "aws_pricing_agent",
-  "validation_timestamp": "2025-09-19T03:35:46.288494+00:00",
+  "validation_timestamp": "2025-12-24T07:07:17.549992+00:00",
   "overall_status": "success",
   "agent_scripts": [
     {
@@ -11,8 +11,11 @@
         "json",
         "argparse",
         "typing",
-        "utils.agent_factory",
-        "strands.telemetry"
+        "nexus_utils.agent_factory",
+        "bedrock_agentcore.runtime",
+        "bedrock_agentcore.runtime.context",
+        "strands.telemetry",
+        "nexus_utils.config_loader"
       ],
       "execution_params": [],
       "argparse_params": [
@@ -66,6 +69,7 @@
           "cost_optimization"
         ],
         "supported_models": [
+          "global.anthropic.claude-sonnet-4-5-20250929-v1:0",
           "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
         ],
         "tools_dependencies": [

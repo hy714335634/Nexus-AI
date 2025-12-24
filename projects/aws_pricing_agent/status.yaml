@@ -2,7 +2,7 @@ project_info:
 - agents:
   - created_date: '2025-09-14T03:59:11.926435+00:00'
     description: 智能体：requirements_analyzer
-    last_updated: '2025-09-14T04:20:03.666425+00:00'
+    last_updated: '2025-12-24T07:08:21.259012+00:00'
     name: requirements_analyzer
     pipeline:
     - description: 需求分析阶段 - 分析用户需求，定义功能规格
@@ -42,12 +42,12 @@ project_info:
       status: true
       updated_date: '2025-09-14T04:19:42.513693+00:00'
     - description: Agent开发管理阶段 - 管理和协调开发流程
-      doc_path: projects/aws_pricing_agent/agents/requirements_analyzer/agent_developer_manager.json
+      doc_path: ''
       stage: agent_developer_manager
       status: true
-      updated_date: '2025-09-14T04:20:03.666430+00:00'
+      updated_date: '2025-12-24T07:08:21.259014+00:00'
   description: AWS产品报价智能体，能够根据自然语言描述的资源需求，分析并推荐合理的AWS服务和配置，提供实时报价并生成专业的报价方案。支持EC2、EBS、S3、网络流量、ELB、RDS、ElastiCache、Opensearch等多种AWS产品的价格查询。
-  last_updated: '2025-09-14T04:20:03.666413+00:00'
+  last_updated: '2025-12-24T07:08:21.259008+00:00'
   name: aws_pricing_agent
   progress:
   - completed: 7

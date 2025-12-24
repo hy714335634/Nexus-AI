@@ -43,21 +43,44 @@ async function proxyRequest(request: NextRequest, method: string) {
         return new NextResponse('No response body', { status: 502 });
       }
 
-      // Create a TransformStream to pass through the data
-      const { readable, writable } = new TransformStream();
+      // Use ReadableStream with manual chunk forwarding for better streaming
+      const reader = response.body.getReader();
 
-      // Pipe the response body to our transform stream
-      response.body.pipeTo(writable).catch((err) => {
-        console.error('[Proxy] Stream pipe error:', err);
+      const stream = new ReadableStream({
+        async start(controller) {
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) {
+                console.log('[Proxy] Stream completed');
+                controller.close();
+                break;
+              }
+              // Forward each chunk immediately
+              controller.enqueue(value);
+              // Log chunk for debugging (first 100 bytes)
+              const preview = new TextDecoder().decode(value.slice(0, 100));
+              console.log(`[Proxy] Forwarding chunk (${value.length} bytes): ${preview}...`);
+            }
+          } catch (error) {
+            console.error('[Proxy] Stream read error:', error);
+            controller.error(error);
+          }
+        },
+        cancel() {
+          console.log('[Proxy] Stream cancelled by client');
+          reader.cancel();
+        }
       });
 
-      return new NextResponse(readable, {
+      return new NextResponse(stream, {
         status: response.status,
         headers: {
           'Content-Type': 'text/event-stream',
           'Cache-Control': 'no-cache, no-store, must-revalidate',
           'Connection': 'keep-alive',
           'X-Accel-Buffering': 'no',
+          'Transfer-Encoding': 'chunked',
         },
       });
     }
