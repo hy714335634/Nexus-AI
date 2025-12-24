@@ -1,0 +1,243 @@
+{
+  "agent_code_development": {
+    "development_overview": {
+      "project_name": "drug_feedback_collector",
+      "version": "1.0",
+      "date": "2025-12-17",
+      "development_scope": "开发药物反馈收集Agent的完整代码实现，包括Agent初始化、工具集成、流式响应处理、错误处理、本地测试和AgentCore部署支持",
+      "design_principles": [
+        "基于deep_research_agent模板进行定制开发",
+        "使用BedrockAgentCoreApp模式支持流式响应",
+        "实现完整的错误处理和日志记录",
+        "支持本地测试和AgentCore部署两种模式",
+        "遵循Python 3.13+最佳实践",
+        "使用类型注解提高代码可维护性",
+        "模块化设计，职责清晰",
+        "配置外部化，便于环境管理"
+      ],
+      "key_decisions": [
+        "采用BedrockAgentCoreApp的async handler + stream_async + yield模式实现流式响应",
+        "使用create_agent_from_prompt_template创建Agent，遵循平台规范",
+        "集成11个自定义工具，覆盖完整的药物反馈收集流程",
+        "使用ConfigLoader统一管理配置",
+        "实现详细的日志记录，支持调试和监控",
+        "提供丰富的命令行参数，便于本地测试",
+        "使用环境变量控制工具授权和遥测配置"
+      ]
+    },
+    "agent_implementation": {
+      "agent_name": "drug_feedback_collector",
+      "file_path": "agents/generated_agents/drug_feedback_collector/drug_feedback_collector.py",
+      "main_class": "无（函数式编程）",
+      "entry_point": "handler (AgentCore部署) / __main__ (本地测试)",
+      "dependencies": [
+        "os",
+        "json",
+        "logging",
+        "typing.Dict",
+        "typing.Any",
+        "typing.Optional",
+        "nexus_utils.agent_factory.create_agent_from_prompt_template",
+        "bedrock_agentcore.runtime.BedrockAgentCoreApp",
+        "bedrock_agentcore.runtime.context.RequestContext",
+        "strands.telemetry.StrandsTelemetry",
+        "nexus_utils.config_loader.ConfigLoader"
+      ],
+      "imports": [
+        "os",
+        "json",
+        "logging",
+        "typing",
+        "nexus_utils.agent_factory",
+        "bedrock_agentcore.runtime",
+        "strands.telemetry",
+        "nexus_utils.config_loader"
+      ]
+    },
+    "core_functions": [
+      {
+        "function_name": "create_drug_feedback_collector_agent",
+        "purpose": "创建药物反馈收集Agent实例",
+        "parameters": [
+          {
+            "name": "env",
+            "type": "str",
+            "description": "运行环境（production/development/testing）",
+            "required": false,
+            "default": "production"
+          },
+          {
+            "name": "version",
+            "type": "str",
+            "description": "Agent版本",
+            "required": false,
+            "default": "latest"
+          },
+          {
+            "name": "model_id",
+            "type": "str",
+            "description": "使用的AI模型ID",
+            "required": false,
+            "default": "global.anthropic.claude-sonnet-4-5-20250929-v1:0"
+          }
+        ],
+        "return_type": "Any (Agent实例)",
+        "return_description": "创建的Agent实例",
+        "implementation_notes": [
+          "使用create_agent_from_prompt_template创建Agent",
+          "Agent配置路径为generated_agents_prompts/drug_feedback_collector/drug_feedback_collector",
+          "启用日志记录",
+          "捕获并记录创建过程中的异常"
+        ]
+      },
+      {
+        "function_name": "handler",
+        "purpose": "AgentCore标准入口点，处理HTTP请求并返回流式响应",
+        "parameters": [
+          {
+            "name": "payload",
+            "type": "Dict[str, Any]",
+            "description": "请求体，包含prompt、force_refresh、max_results、include_sources等参数",
+            "required": true
+          },
+          {
+            "name": "context",
+            "type": "RequestContext",
+            "description": "请求上下文，包含session_id等信息",
+            "required": true
+          }
+        ],
+        "return_type": "AsyncGenerator[str, None]",
+        "return_description": "流式响应的文本片段",
+        "implementation_notes": [
+          "使用@app.entrypoint装饰器标记为AgentCore入口",
+          "支持异步流式响应（async def + yield）",
+          "从payload中提取prompt、force_refresh、max_results、include_sources参数",
+          "验证输入，确保prompt不为空",
+          "构建完整的查询指令，包含所有参数",
+          "使用agent.stream_async()获取流式响应",
+          "逐个yield事件片段",
+          "捕获并处理所有异常，返回友好的错误信息"
+        ]
+      }
+    ],
+    "tool_integration": {
+      "custom_tools": [
+        "validate_drug_name - 验证和标准化药物名称",
+        "search_drug_feedback - 使用DuckDuckGo搜索药物反馈",
+        "extract_webpage_content - 抓取单个网页内容",
+        "batch_extract_webpages - 批量抓取多个网页",
+        "analyze_feedback_with_claude - 使用Claude分析反馈",
+        "batch_analyze_feedback - 批量分析反馈",
+        "generate_feedback_report - 生成结构化报告",
+        "check_cache - 检查缓存",
+        "save_to_cache - 保存到缓存",
+        "clear_cache - 清理缓存",
+        "get_cache_statistics - 获取缓存统计"
+      ],
+      "system_tools": [],
+      "strands_tools": [],
+      "integration_notes": [
+        "所有工具通过Agent的提示词模板自动集成",
+        "工具调用由Agent内部管理，代码层面无需显式调用",
+        "工具返回JSON格式结果，Agent负责解析和处理",
+        "工具调用失败由Agent的错误处理机制捕获"
+      ]
+    },
+    "configuration": {
+      "environment_variables": [
+        "BYPASS_TOOL_CONSENT=true - 绕过工具授权确认",
+        "OTEL_EXPORTER_OTLP_ENDPOINT - OTLP遥测端点",
+        "DOCKER_CONTAINER - 标识是否在Docker容器中运行"
+      ],
+      "model_configuration": {
+        "model_name": "global.anthropic.claude-sonnet-4-5-20250929-v1:0",
+        "max_tokens": 60000,
+        "temperature": 0.3,
+        "streaming": true
+      },
+      "streaming_config": {
+        "enabled": true,
+        "mode": "async_generator",
+        "chunk_handling": "yield_per_event"
+      }
+    },
+    "error_handling": {
+      "exception_types": [
+        "ValueError - 输入验证失败",
+        "RuntimeError - Agent创建失败",
+        "Exception - 通用异常捕获"
+      ],
+      "error_responses": [
+        "输入为空：Error: Missing 'prompt' (drug name) in request. Please provide a drug name.",
+        "处理异常：Error during processing: {error_message} + 建议列表",
+        "Agent创建失败：记录错误日志并抛出异常"
+      ],
+      "recovery_strategies": [
+        "输入验证失败：返回错误提示，要求提供有效输入",
+        "网络错误：在错误信息中提供重试建议",
+        "Agent调用失败：记录详细错误日志，返回友好错误信息",
+        "流式响应中断：捕获异常，返回错误信息片段"
+      ]
+    },
+    "testing": {
+      "test_cases": [
+        "基本使用：python drug_feedback_collector.py -i '阿司匹林'",
+        "强制刷新缓存：python drug_feedback_collector.py -i '布洛芬' --force-refresh",
+        "限制搜索结果：python drug_feedback_collector.py -i '头孢' --max-results 10",
+        "不包含来源：python drug_feedback_collector.py -i '感冒灵' --no-sources",
+        "指定环境：python drug_feedback_collector.py -i '阿莫西林' --env development",
+        "调试模式：python drug_feedback_collector.py -i '阿司匹林' --debug"
+      ],
+      "test_scenarios": [
+        "正常场景：输入常见药物名称，验证完整流程",
+        "缓存场景：第二次查询相同药物，验证缓存命中",
+        "无效输入：输入空字符串或无效药物名称",
+        "网络异常：断开网络连接测试错误处理",
+        "大数据量：搜索热门药物，验证性能",
+        "英文药物：输入英文药物名称，验证多语言支持"
+      ],
+      "validation_criteria": [
+        "Agent创建成功，无异常",
+        "输入验证正确，拒绝无效输入",
+        "流式响应正常，实时反馈进度",
+        "错误处理完善，返回友好提示",
+        "日志记录完整，便于调试",
+        "缓存机制有效，提升性能",
+        "命令行参数解析正确",
+        "AgentCore部署模式启动HTTP服务器"
+      ]
+    },
+    "deployment": {
+      "deployment_requirements": [
+        "Python 3.13+运行环境",
+        "安装依赖：pip install -r requirements.txt",
+        "配置AWS凭证（用于Bedrock API）",
+        "设置环境变量（BYPASS_TOOL_CONSENT、OTEL_EXPORTER_OTLP_ENDPOINT）",
+        "确保网络连接（用于搜索和抓取）",
+        "创建缓存目录（.cache/drug_feedback_collector/）"
+      ],
+      "runtime_dependencies": [
+        "./nexus_utils - 本地工具包",
+        "strands-agents - Strands Agent框架",
+        "strands-agents-tools - Strands工具框架",
+        "boto3 - AWS SDK",
+        "duckduckgo-search - 搜索引擎",
+        "requests - HTTP客户端",
+        "beautifulsoup4 - HTML解析",
+        "lxml - XML/HTML解析器",
+        "PyYAML - YAML配置解析"
+      ],
+      "performance_considerations": [
+        "使用异步流式响应，提升用户体验",
+        "实现两层缓存（搜索结果7天，报告30天）",
+        "批量处理网页抓取和分析，减少API调用",
+        "限制网页内容长度（10KB），避免内存溢出",
+        "并发抓取网页（限制5个并发），提升速度",
+        "添加请求延迟，避免触发反爬虫机制",
+        "记录性能指标到OTLP遥测系统"
+      ]
+    },
+    "development_notes": "Agent代码开发已完成，基于deep_research_agent模板进行定制。代码结构清晰，遵循平台规范。实现了完整的流式响应机制，用户可实时看到处理进度。错误处理完善，包含输入验证、异常捕获、日志记录和友好提示。支持本地测试和AgentCore部署两种模式。提供丰富的命令行参数，便于开发和测试。集成了11个自定义工具，覆盖药物反馈收集的完整流程。使用ConfigLoader统一管理配置，支持多环境部署。实现了详细的日志记录，便于调试和监控。代码已通过基本测试，可以正常运行。建议进行以下后续工作：1）完善单元测试 2）性能优化 3）增加更多错误场景的处理 4）完善文档和使用示例。"
+  }
+}

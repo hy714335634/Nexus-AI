@@ -1223,6 +1223,11 @@ async def stream_agent_response(
                         user_id=user_id,
                         files=files,
                     ):
+                        # 处理心跳
+                        if chunk_text == "__heartbeat__":
+                            yield _format_sse({"event": "heartbeat"})
+                            continue
+
                         if chunk_text:
                             # 解析事件类型
                             # 只打印前100字符，避免日志过长

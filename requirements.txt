@@ -40,3 +40,5 @@ networkx
 streamlit
 setuptools
 tabulate
+opentelemetry-api
+opentelemetry-sdk

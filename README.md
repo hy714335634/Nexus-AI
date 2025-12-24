@@ -107,7 +107,7 @@ graph TD
 | 模块 | 状态 | 描述 |
 |------|------|------|
 | **Agent Build** | ✅ 已完成 | 多Agent协作构建系统，支持7阶段自动化开发流程 |
-| **会话模块** | 🔄 开发中 | 基于Streamlit的Web Demo界面，后续会进行重构 |
+| **会话模块** | 🔄 开发中 | 基于Next.js的Web控制台界面 |
 | **Agent Management** | 🔄 开发中 | Agent生命周期管理，包括版本控制和更新 |
 | **Tools & MCP** | 🔄 开发中 | 工具库管理和MCP协议支持 |
 | **Debug & Troubleshooting** | 📋 规划中 | 智能问题诊断和自动修复 |
@@ -244,11 +244,10 @@ Nexus-AI/
 │       ├── config.yaml              # 项目配置
 │       ├── status.yaml              # 项目状态
 │       └── README.md                # 项目说明
-├── web/                             # Web前端界面
+├── web/                             # Web前端界面 (Next.js)
+│   ├── app/                         # Next.js App Router
 │   ├── components/                  # React组件
-│   ├── pages/                       # 页面组件
-│   ├── services/                    # 服务层
-│   └── streamlit_app.py             # Streamlit应用入口
+│   └── src/                         # 源代码
 ├── utils/                           # 共享工具
 ├── config/                          # 配置文件
 ├── mcp/                             # MCP服务器配置
@@ -263,50 +262,73 @@ Nexus-AI/
 
 ## 🚀 快速开始
 
-### 1. 拉取代码并进入项目目录
+### 1. 安装 uv (Python 包管理器)
+
+如果尚未安装 uv，请先安装：
+```bash
+# macOS / Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# 或使用 Homebrew (macOS)
+brew install uv
+```
+
+### 2. 拉取代码并进入项目目录
 ```bash
 git clone https://github.com/hy714335634/Nexus-AI.git
 cd Nexus-AI
 ```
 
-### 2. 初始化 Python 环境
+### 3. 初始化 Python 环境
 ```bash
-python3.11 -m venv .nexus-ai
-source .nexus-ai/bin/activate
-echo 'source $HOME/Nexus-AI/.nexus-ai/bin/activate' >> ~/.bashrc
-echo 'cd $HOME/Nexus-AI/' >> ~/.bashrc
-source ~/.bashrc
-python --version  # 应显示 3.11.x
+# 使用 uv 创建虚拟环境 (自动使用合适的 Python 版本)
+uv venv .venv
+
+# 激活虚拟环境
+source .venv/bin/activate  # Linux/macOS
+# .venv\Scripts\activate   # Windows
+
+# 验证 Python 版本
+python --version  # 应显示 3.11+
 ```
 
-> 如需保持 Python 3.12+，也可在本地环境直接创建 `.venv` 并激活。
-
-### 3. 安装依赖
+### 4. 安装依赖
 ```bash
-uv pip install --upgrade pip
 uv pip install -r requirements.txt
-uv pip list | head
 ```
 > 国内网络环境可追加 `--index-url https://pypi.tuna.tsinghua.edu.cn/simple`
 
-### 4. 配置 AWS 凭证
+### 5. 配置 AWS 凭证
 ```bash
 aws configure
 ```
 
-### 5. 启动 Web 界面（可选）
+### 6. 启动服务
+
+**启动 FastAPI 后端 API**
+```bash
+uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
+```
+访问 API 文档：http://localhost:8000/docs
+
+**启动 Next.js 前端**
 ```bash
 cd web
-streamlit run streamlit_app.py
+npm install    # 首次运行需要安装依赖
+npm run dev    # 开发模式
 ```
+访问：http://localhost:3000
+
+> 生产环境使用 `npm run build && npm run start`
 
 ### 首次使用
 
-1. 打开浏览器访问 `http://localhost:8501`
-2. 在首页输入你的需求描述
-3. 点击"开始构建"按钮
-4. 观察实时构建进度
-5. 构建完成后测试你的Agent
+1. 确保后端 API 和前端都已启动
+2. 打开浏览器访问 `http://localhost:3000`
+3. 在首页输入你的需求描述
+4. 点击"开始构建"按钮
+5. 观察实时构建进度
+6. 构建完成后测试你的Agent
 
 ## 🔍 功能与构建验证
 

@@ -1,0 +1,381 @@
+{
+  "system_design": {
+    "design_overview": {
+      "project_name": "drug_feedback_collector",
+      "version": "1.0",
+      "date": "2025-12-17",
+      "design_scope": "设计一个单Agent系统，用于从互联网收集特定药物的用户反馈信息，包括网络搜索、网页内容抓取、信息提取分类、数据分析和结构化报告生成。系统基于Strands SDK和AWS Bedrock构建，遵循Nexus-AI平台的架构规范。",
+      "design_principles": [
+        "单一职责：Agent专注于药物反馈收集这一核心功能",
+        "模块化设计：将搜索、抓取、分析、报告生成分解为独立工具",
+        "容错优先：网络操作具备完善的错误处理和降级策略",
+        "可观测性：全流程日志记录，支持调试和监控",
+        "合规性：严格遵守网络爬虫法律法规和robots.txt规则",
+        "性能优化：通过缓存和并发处理提升响应速度",
+        "用户友好：简单输入、清晰输出、实时进度反馈"
+      ],
+      "key_decisions": [
+        "采用单Agent架构：功能可通过一个Agent的内部工具编排完成，无需多Agent协作",
+        "基于deep_research_agent模板：该模板提供完整的搜索、分析、报告生成能力，匹配度92%",
+        "集成Tavily Search API：作为主要的网络搜索工具，提供高质量的搜索结果",
+        "使用LLM进行信息提取：利用Claude的文本理解能力进行反馈分类和情感分析",
+        "实现两层缓存策略：搜索结果缓存（7天）和最终报告缓存（30天）",
+        "采用BedrockAgentCoreApp模式：支持部署到Amazon Bedrock AgentCore，实现流式响应",
+        "使用异步流式处理：通过stream_async提供实时反馈，改善用户体验"
+      ],
+      "workflow_type": "single_agent",
+      "recommended_templates": [
+        "deep_research_agent - 深度研究专家模板（评分92/100，强烈推荐）",
+        "api_integration_agent - API集成专家模板（评分78/100，备选方案）"
+      ]
+    },
+    "architecture": {
+      "system_context": "药物反馈收集Agent是一个独立的信息收集和分析系统，运行在Nexus-AI平台上。用户通过简单的文本输入提供药物名称，Agent自动执行多步骤的信息收集流程：1）验证药物名称 2）执行多关键词网络搜索 3）抓取和解析相关网页内容 4）使用LLM提取和分类用户反馈 5）去重和质量过滤 6）生成结构化的反馈报告。系统依赖外部的Tavily Search API进行网络搜索，使用AWS Bedrock Claude模型进行文本理解和分析，所有数据处理在本地完成，不涉及外部数据库。",
+      "agent_topology": "单Agent拓扑结构：\n\n[用户] <---> [Drug Feedback Collector Agent]\n                    |\n                    +---> [Tavily Search Tool] ---> [互联网搜索引擎]\n                    +---> [Web Page Extractor Tool] ---> [目标网站]\n                    +---> [Content Analyzer Tool] ---> [AWS Bedrock Claude]\n                    +---> [Report Generator Tool]\n                    +---> [Cache Manager Tool] ---> [本地文件系统]\n\n工具依赖关系：\n1. Tavily Search Tool：独立工具，无依赖\n2. Web Page Extractor Tool：依赖Tavily返回的URL列表\n3. Content Analyzer Tool：依赖提取的网页内容\n4. Report Generator Tool：依赖分析后的结构化数据\n5. Cache Manager Tool：为所有工具提供缓存服务",
+      "interaction_model": "同步流式交互模型：\n\n1. **用户输入阶段**：\n   - 用户通过HTTP请求发送药物名称\n   - Agent验证输入并返回确认消息（流式输出第一条）\n\n2. **信息收集阶段**（并行执行）：\n   - 检查缓存，如存在且未过期则直接返回\n   - 构建多个搜索查询（药物名+评价、药物名+副作用、药物名+体验）\n   - 调用Tavily Search API并发执行搜索\n   - 流式输出搜索进度：\"正在搜索...已找到X个结果\"\n\n3. **内容抓取阶段**（批量异步）：\n   - 从搜索结果中提取URL列表\n   - 并发抓取网页内容（限制并发数为5）\n   - 流式输出抓取进度：\"正在抓取第X/Y个网页\"\n   - 错误处理：单个网页失败不影响整体流程\n\n4. **信息分析阶段**（LLM处理）：\n   - 将抓取的内容分批发送给Claude进行分析\n   - LLM提取用户反馈、识别情感倾向、分类信息类型\n   - 流式输出分析进度：\"正在分析反馈信息...\"\n   - 执行去重和质量过滤\n\n5. **报告生成阶段**：\n   - 汇总分析结果，生成结构化报告\n   - 流式输出报告各部分内容\n   - 将结果写入缓存\n\n6. **错误处理机制**：\n   - 网络超时：自动重试3次，失败后跳过\n   - API配额耗尽：返回部分结果并提示用户\n   - 无搜索结果：提示用户检查药物名称\n   - LLM错误：使用规则提取作为降级方案",
+      "technology_stack": {
+        "sdk": "Strands SDK",
+        "runtime": "Local Python 3.13+",
+        "ai_inference": "AWS Bedrock Claude (claude-sonnet-4-5-20250929-v1:0)",
+        "deployment_mode": "BedrockAgentCoreApp with streaming support",
+        "integrations": [
+          "Tavily Search API - 网络搜索服务",
+          "AWS Bedrock - AI推理引擎",
+          "HTTP客户端 - 网页内容抓取",
+          "本地文件系统 - 缓存存储",
+          "OTLP Exporter - 可观测性遥测"
+        ]
+      }
+    },
+    "agents": [
+      {
+        "name": "drug_feedback_collector",
+        "purpose": "接收药物名称输入，从互联网收集该药物的用户反馈信息，进行分析和整理，生成结构化的反馈报告",
+        "responsibilities": [
+          "验证和标准化用户输入的药物名称",
+          "构建多维度的搜索查询策略（评价、副作用、体验等）",
+          "调用Tavily Search API执行网络搜索",
+          "抓取和解析搜索结果中的网页内容",
+          "使用LLM提取用户反馈并进行分类（疗效、副作用、体验等）",
+          "执行信息去重和质量过滤",
+          "生成包含统计信息和来源追溯的结构化报告",
+          "管理缓存以提升性能",
+          "处理各类异常并提供友好的错误提示",
+          "通过流式响应提供实时进度反馈"
+        ],
+        "interfaces": {
+          "inputs": [
+            "drug_name: str - 药物名称（必需，支持中英文）",
+            "force_refresh: bool - 是否强制刷新缓存（可选，默认False）",
+            "max_results: int - 最大搜索结果数（可选，默认20）",
+            "include_sources: bool - 是否包含详细来源信息（可选，默认True）"
+          ],
+          "outputs": [
+            "report: dict - 结构化的反馈报告，包含以下字段：",
+            "  - drug_name: str - 药物名称",
+            "  - search_date: str - 搜索日期",
+            "  - total_feedbacks: int - 收集到的反馈总数",
+            "  - summary: str - 整体评价概述",
+            "  - positive_feedbacks: list[dict] - 正面反馈列表",
+            "  - negative_feedbacks: list[dict] - 负面反馈列表",
+            "  - side_effects: list[dict] - 副作用报告列表",
+            "  - efficacy_reviews: list[dict] - 疗效评价列表",
+            "  - usage_tips: list[str] - 使用建议汇总",
+            "  - statistics: dict - 统计信息（正面占比、负面占比等）",
+            "  - sources: list[dict] - 信息来源列表（URL、网站名、时间）",
+            "  - limitations: list[str] - 数据局限性说明",
+            "  - disclaimer: str - 免责声明"
+          ]
+        },
+        "dependencies": [
+          "Tavily Search API - 外部服务，需要API密钥",
+          "AWS Bedrock Claude - AWS服务，需要IAM权限",
+          "本地文件系统 - 缓存存储，需要读写权限",
+          "HTTP客户端库 - 网页抓取，需要网络连接"
+        ],
+        "implementation_notes": [
+          "基于deep_research_agent模板进行定制开发",
+          "使用BedrockAgentCoreApp模式，支持部署到AgentCore",
+          "实现async handler函数，支持流式响应（yield模式）",
+          "使用agent.stream_async()获取流式输出",
+          "Agent初始化参数：{env: 'production', version: 'latest', model_id: 'global.anthropic.claude-sonnet-4-5-20250929-v1:0', enable_logging: True}",
+          "工具调用采用异步并发模式，提升性能",
+          "缓存路径：.cache/drug_feedback_collector/<drug_name_hash>/",
+          "搜索查询策略：[药物名+用户评价, 药物名+副作用, 药物名+使用体验, 药物名+真实反馈]",
+          "网页抓取并发限制：5个并发请求",
+          "LLM提示词策略：使用专门的信息提取和分类提示词",
+          "错误重试策略：网络请求失败重试3次，指数退避",
+          "遵守robots.txt规则，设置User-Agent标识",
+          "所有敏感操作记录详细日志，便于调试",
+          "使用OTLP遥测收集性能指标"
+        ],
+        "recommended_template": "deep_research_agent"
+      }
+    ],
+    "data_models": [
+      {
+        "name": "FeedbackItem",
+        "schema": "{\n  \"content\": \"string - 反馈内容文本\",\n  \"sentiment\": \"string - 情感倾向 (positive|negative|neutral)\",\n  \"category\": \"string - 反馈类别 (efficacy|side_effect|experience|price)\",\n  \"source_url\": \"string - 来源URL\",\n  \"source_name\": \"string - 来源网站名称\",\n  \"publish_date\": \"string|null - 发布时间 (ISO 8601格式)\",\n  \"confidence\": \"float - 分类置信度 (0-1)\",\n  \"keywords\": \"list[string] - 关键词列表\"\n}",
+        "validation_rules": [
+          "content字段不能为空且长度至少10个字符",
+          "sentiment必须是三个枚举值之一",
+          "category必须是四个枚举值之一",
+          "source_url必须是有效的URL格式",
+          "confidence必须在0到1之间",
+          "publish_date如果存在必须是ISO 8601格式"
+        ],
+        "relationships": [
+          "多个FeedbackItem组成FeedbackReport的feedbacks列表",
+          "FeedbackItem.source_url对应SourceInfo.url"
+        ]
+      },
+      {
+        "name": "SourceInfo",
+        "schema": "{\n  \"url\": \"string - 网页URL\",\n  \"domain\": \"string - 域名\",\n  \"title\": \"string - 网页标题\",\n  \"access_date\": \"string - 访问日期 (ISO 8601格式)\",\n  \"status\": \"string - 访问状态 (success|failed|timeout)\",\n  \"credibility_score\": \"float - 可信度评分 (0-1)\"\n}",
+        "validation_rules": [
+          "url必须是有效的HTTP/HTTPS URL",
+          "domain从url自动提取",
+          "access_date必须是ISO 8601格式",
+          "status必须是三个枚举值之一",
+          "credibility_score必须在0到1之间"
+        ],
+        "relationships": [
+          "多个SourceInfo组成FeedbackReport的sources列表"
+        ]
+      },
+      {
+        "name": "FeedbackReport",
+        "schema": "{\n  \"drug_name\": \"string - 药物名称\",\n  \"search_date\": \"string - 搜索日期 (ISO 8601格式)\",\n  \"total_feedbacks\": \"integer - 反馈总数\",\n  \"summary\": \"string - 整体评价概述\",\n  \"feedbacks\": \"list[FeedbackItem] - 反馈列表\",\n  \"statistics\": {\n    \"positive_count\": \"integer - 正面反馈数\",\n    \"negative_count\": \"integer - 负面反馈数\",\n    \"neutral_count\": \"integer - 中性反馈数\",\n    \"positive_ratio\": \"float - 正面占比\",\n    \"negative_ratio\": \"float - 负面占比\",\n    \"common_side_effects\": \"list[string] - 常见副作用\",\n    \"efficacy_keywords\": \"list[string] - 疗效关键词\"\n  },\n  \"sources\": \"list[SourceInfo] - 信息来源列表\",\n  \"limitations\": \"list[string] - 数据局限性说明\",\n  \"disclaimer\": \"string - 免责声明\",\n  \"cache_info\": {\n    \"is_cached\": \"boolean - 是否来自缓存\",\n    \"cache_date\": \"string|null - 缓存日期\",\n    \"expires_at\": \"string|null - 过期时间\"\n  }\n}",
+        "validation_rules": [
+          "drug_name不能为空",
+          "search_date必须是ISO 8601格式",
+          "total_feedbacks必须等于feedbacks列表长度",
+          "statistics中的count总和必须等于total_feedbacks",
+          "positive_ratio + negative_ratio不能超过1.0",
+          "sources列表不能为空"
+        ],
+        "relationships": [
+          "FeedbackReport包含多个FeedbackItem",
+          "FeedbackReport包含多个SourceInfo",
+          "FeedbackReport是系统的最终输出数据模型"
+        ]
+      },
+      {
+        "name": "SearchQuery",
+        "schema": "{\n  \"base_drug_name\": \"string - 基础药物名称\",\n  \"query_variants\": \"list[string] - 查询变体列表\",\n  \"search_type\": \"string - 搜索类型 (general|news|forum)\",\n  \"max_results\": \"integer - 最大结果数\",\n  \"language\": \"string - 语言 (zh|en|auto)\"\n}",
+        "validation_rules": [
+          "base_drug_name不能为空",
+          "query_variants至少包含一个查询",
+          "search_type必须是三个枚举值之一",
+          "max_results必须大于0且不超过100",
+          "language必须是三个枚举值之一"
+        ],
+        "relationships": [
+          "SearchQuery用于生成Tavily Search API的请求参数"
+        ]
+      }
+    ],
+    "interaction_flows": [
+      {
+        "name": "主流程：药物反馈收集",
+        "description": "用户输入药物名称后，系统执行完整的信息收集、分析和报告生成流程",
+        "steps": [
+          {
+            "step": "1. 接收用户输入",
+            "agent": "drug_feedback_collector",
+            "action": "接收并验证药物名称输入",
+            "data": "输入：drug_name, force_refresh, max_results；输出：验证结果消息（流式）"
+          },
+          {
+            "step": "2. 检查缓存",
+            "agent": "drug_feedback_collector",
+            "action": "调用Cache Manager Tool检查是否存在有效缓存",
+            "data": "输入：drug_name；输出：缓存状态和缓存数据（如果存在）"
+          },
+          {
+            "step": "3. 构建搜索查询",
+            "agent": "drug_feedback_collector",
+            "action": "生成多个搜索查询变体",
+            "data": "输入：drug_name；输出：SearchQuery对象列表"
+          },
+          {
+            "step": "4. 执行网络搜索",
+            "agent": "drug_feedback_collector",
+            "action": "调用Tavily Search Tool并发执行多个搜索查询",
+            "data": "输入：SearchQuery列表；输出：搜索结果URL列表，流式输出进度"
+          },
+          {
+            "step": "5. 抓取网页内容",
+            "agent": "drug_feedback_collector",
+            "action": "调用Web Page Extractor Tool批量抓取网页",
+            "data": "输入：URL列表；输出：网页内容列表，流式输出进度"
+          },
+          {
+            "step": "6. 提取和分类反馈",
+            "agent": "drug_feedback_collector",
+            "action": "调用Content Analyzer Tool使用LLM分析内容",
+            "data": "输入：网页内容列表；输出：FeedbackItem列表，流式输出进度"
+          },
+          {
+            "step": "7. 去重和过滤",
+            "agent": "drug_feedback_collector",
+            "action": "执行信息去重和质量过滤",
+            "data": "输入：FeedbackItem列表；输出：过滤后的FeedbackItem列表"
+          },
+          {
+            "step": "8. 生成统计信息",
+            "agent": "drug_feedback_collector",
+            "action": "计算统计数据（正负面占比、常见副作用等）",
+            "data": "输入：FeedbackItem列表；输出：Statistics对象"
+          },
+          {
+            "step": "9. 生成报告",
+            "agent": "drug_feedback_collector",
+            "action": "调用Report Generator Tool生成结构化报告",
+            "data": "输入：FeedbackItem列表、Statistics、SourceInfo列表；输出：FeedbackReport，流式输出报告内容"
+          },
+          {
+            "step": "10. 写入缓存",
+            "agent": "drug_feedback_collector",
+            "action": "调用Cache Manager Tool保存报告到缓存",
+            "data": "输入：FeedbackReport；输出：缓存成功确认"
+          },
+          {
+            "step": "11. 返回结果",
+            "agent": "drug_feedback_collector",
+            "action": "将FeedbackReport流式返回给用户",
+            "data": "输出：完整的FeedbackReport JSON（流式输出）"
+          }
+        ]
+      },
+      {
+        "name": "异常流程：搜索无结果",
+        "description": "当网络搜索未找到相关结果时的处理流程",
+        "steps": [
+          {
+            "step": "1. 检测无结果",
+            "agent": "drug_feedback_collector",
+            "action": "判断搜索结果为空",
+            "data": "输入：搜索结果；输出：无结果标志"
+          },
+          {
+            "step": "2. 尝试替代查询",
+            "agent": "drug_feedback_collector",
+            "action": "使用药物通用名或商品名的替代形式重新搜索",
+            "data": "输入：药物名称变体；输出：新的搜索结果"
+          },
+          {
+            "step": "3. 返回提示信息",
+            "agent": "drug_feedback_collector",
+            "action": "如果仍无结果，返回友好的提示信息",
+            "data": "输出：错误报告，包含建议（检查拼写、尝试其他名称等）"
+          }
+        ]
+      },
+      {
+        "name": "异常流程：网络错误处理",
+        "description": "当网络请求失败时的重试和降级策略",
+        "steps": [
+          {
+            "step": "1. 检测网络错误",
+            "agent": "drug_feedback_collector",
+            "action": "捕获HTTP请求异常",
+            "data": "输入：异常对象；输出：错误类型"
+          },
+          {
+            "step": "2. 执行重试",
+            "agent": "drug_feedback_collector",
+            "action": "使用指数退避策略重试（最多3次）",
+            "data": "输入：请求参数；输出：重试结果"
+          },
+          {
+            "step": "3. 降级处理",
+            "agent": "drug_feedback_collector",
+            "action": "如果重试失败，跳过该请求并继续处理其他内容",
+            "data": "输出：部分结果报告，标注数据不完整"
+          },
+          {
+            "step": "4. 记录日志",
+            "agent": "drug_feedback_collector",
+            "action": "记录详细的错误日志",
+            "data": "输出：日志记录到文件和OTLP"
+          }
+        ]
+      },
+      {
+        "name": "异常流程：LLM分析失败",
+        "description": "当LLM无法正确分析内容时的降级策略",
+        "steps": [
+          {
+            "step": "1. 检测LLM错误",
+            "agent": "drug_feedback_collector",
+            "action": "捕获Bedrock API异常或响应格式错误",
+            "data": "输入：异常对象；输出：错误类型"
+          },
+          {
+            "step": "2. 降级到规则提取",
+            "agent": "drug_feedback_collector",
+            "action": "使用基于规则的关键词匹配进行信息提取",
+            "data": "输入：网页内容；输出：基础的FeedbackItem（置信度较低）"
+          },
+          {
+            "step": "3. 标注数据质量",
+            "agent": "drug_feedback_collector",
+            "action": "在报告中标注使用了降级方案，数据质量可能较低",
+            "data": "输出：包含质量警告的报告"
+          }
+        ]
+      }
+    ],
+    "security_considerations": [
+      "API密钥安全：Tavily API密钥通过环境变量或AWS Secrets Manager管理，不硬编码在代码中",
+      "IAM权限最小化：AWS Bedrock访问权限仅授予必要的模型调用权限",
+      "输入验证：对用户输入的药物名称进行严格验证，防止注入攻击",
+      "robots.txt遵守：在抓取网页前检查并遵守robots.txt规则",
+      "访问频率限制：设置合理的请求间隔，避免对目标网站造成负担",
+      "数据隐私：不收集或存储用户个人信息，仅处理公开的药物反馈",
+      "HTTPS通信：所有外部API调用使用HTTPS加密",
+      "缓存数据安全：缓存文件设置适当的文件权限，防止未授权访问",
+      "错误信息脱敏：错误日志中不包含敏感信息（如API密钥、用户数据）",
+      "免责声明：明确告知用户系统不提供医疗建议，仅收集公开反馈"
+    ],
+    "error_handling": [
+      "网络超时：设置30秒超时，失败后自动重试3次，使用指数退避（1s, 2s, 4s）",
+      "API配额耗尽：捕获Tavily API的配额错误，返回部分结果并提示用户稍后重试",
+      "网页无法访问：单个网页失败不影响整体流程，记录失败URL并继续处理其他页面",
+      "内容解析失败：使用try-except包裹解析逻辑，失败时跳过该内容",
+      "LLM响应异常：实现降级策略，使用规则提取替代LLM分析",
+      "缓存读写失败：缓存操作失败不影响主流程，记录警告日志",
+      "无搜索结果：提示用户检查药物名称，建议尝试通用名或商品名",
+      "数据质量过低：当过滤后反馈数量少于3条时，警告用户数据可能不全面",
+      "并发控制：使用信号量限制并发请求数，防止资源耗尽",
+      "全局异常处理：在handler函数最外层捕获所有异常，确保返回友好的错误信息而不是崩溃"
+    ],
+    "performance_considerations": [
+      "并发搜索：多个搜索查询并发执行，减少总等待时间",
+      "批量抓取：网页抓取使用异步并发（限制5个并发），提升吞吐量",
+      "两层缓存策略：搜索结果缓存7天，最终报告缓存30天",
+      "流式响应：使用stream_async()和yield模式，用户可实时看到进度",
+      "内容截断：网页内容只保留前10KB，避免内存溢出",
+      "LLM批处理：将多个网页内容合并为一个LLM请求，减少API调用次数",
+      "智能过滤：在抓取阶段就过滤明显不相关的URL，减少无效请求",
+      "连接池：使用HTTP连接池复用连接，减少握手开销",
+      "超时控制：所有网络请求设置合理的超时时间，避免长时间阻塞",
+      "资源释放：及时释放大对象（如网页内容），避免内存泄漏",
+      "目标响应时间：缓存命中时<10秒，完整搜索流程<5分钟"
+    ],
+    "monitoring_strategy": [
+      "OTLP遥测：使用Strands Telemetry收集性能指标（请求延迟、成功率等）",
+      "结构化日志：记录关键步骤的开始、结束、耗时和结果",
+      "错误追踪：记录所有异常的堆栈信息和上下文",
+      "性能指标：监控搜索耗时、抓取耗时、LLM调用耗时、总处理时间",
+      "业务指标：监控搜索成功率、抓取成功率、缓存命中率、平均反馈数量",
+      "资源监控：监控内存使用、CPU使用、网络带宽",
+      "API配额监控：跟踪Tavily API和Bedrock API的使用量",
+      "告警机制：当错误率超过20%或响应时间超过10分钟时触发告警",
+      "日志分级：DEBUG级别记录详细信息，INFO级别记录关键步骤，ERROR级别记录异常",
+      "追踪ID：为每个请求生成唯一的trace_id，便于跨组件追踪"
+    ]
+  },
+  "design_rationale": "本系统设计基于以下核心考虑：\n\n**1. 架构选择理由**：选择单Agent架构而非多Agent架构，因为药物反馈收集虽然包含多个步骤（搜索、抓取、分析、报告），但这些步骤是线性依赖的，可以通过一个Agent的内部工具编排完成。多Agent架构会增加不必要的通信开销和复杂度。\n\n**2. 模板选择理由**：选择deep_research_agent作为基础模板（评分92/100），因为它提供了完整的网络搜索、内容分析和报告生成能力，与需求高度匹配。相比从零开发，基于模板可节省60%的开发时间，且模板已经过生产验证，稳定性更高。\n\n**3. 技术栈决策**：\n   - 使用Tavily Search API而非自建爬虫：Tavily提供高质量的搜索结果和合规的数据访问，避免法律风险\n   - 使用Claude进行文本分析：Claude在医疗文本理解方面表现优秀，能准确识别副作用、疗效等关键信息\n   - 采用BedrockAgentCoreApp模式：支持部署到AgentCore，实现流式响应，改善用户体验\n   - 使用本地文件缓存：简单可靠，无需额外的数据库服务\n\n**4. 流式响应设计**：采用async handler + stream_async + yield模式，用户可实时看到搜索进度、抓取进度、分析进度，而不是等待5分钟后才看到结果。这大幅改善了用户体验，尤其是在网络较慢的情况下。\n\n**5. 并发策略**：\n   - 搜索查询并发执行：4个查询变体同时发送，节省2-3倍时间\n   - 网页抓取限制并发数为5：平衡速度和资源消耗，避免触发反爬虫机制\n   - LLM调用批处理：将多个内容合并分析，减少API调用次数和成本\n\n**6. 缓存策略**：\n   - 两层缓存：搜索结果缓存7天（药物反馈短期内变化不大），最终报告缓存30天（完整报告生成成本高）\n   - 缓存失效策略：用户可通过force_refresh参数强制刷新\n   - 缓存键设计：使用drug_name的哈希值作为目录名，避免特殊字符问题\n\n**7. 容错设计**：\n   - 多层降级：网络失败→重试→跳过；LLM失败→规则提取\n   - 部分成功策略：即使某些网页无法访问，也能返回部分结果\n   - 友好错误提示：所有错误都转换为用户可理解的提示信息\n\n**8. 合规性考虑**：\n   - 严格遵守robots.txt：使用robotparser检查爬取权限\n   - 合理的访问频率：单个域名每秒最多1个请求\n   - 明确的免责声明：告知用户系统不提供医疗建议\n   - 数据来源追溯：每条反馈都标注来源，便于用户验证\n\n**9. 可观测性设计**：\n   - OTLP遥测：自动收集性能指标，无需手动埋点\n   - 结构化日志：使用JSON格式，便于日志分析工具处理\n   - 追踪ID：每个请求生成唯一ID，便于跨组件追踪问题\n\n**10. 扩展性考虑**：\n   - 工具模块化：每个工具独立实现，便于替换和升级\n   - 配置外部化：API密钥、超时时间等通过配置文件管理\n   - 接口标准化：使用明确的数据模型，便于未来集成其他系统\n\n**11. 性能目标**：\n   - 缓存命中：<10秒（直接返回缓存结果）\n   - 完整流程：<5分钟（搜索20个结果，抓取15个网页，分析生成报告）\n   - 并发能力：支持10个并发用户同时查询不同药物\n\n**12. 成本优化**：\n   - 缓存减少重复搜索：预计缓存命中率40%，节省60%的API调用成本\n   - LLM批处理：减少50%的Bedrock API调用次数\n   - 智能过滤：在抓取前过滤不相关URL，减少30%的网络请求\n\n**总结**：本设计在功能完整性、用户体验、系统稳定性、开发效率之间取得了良好的平衡。通过基于成熟模板、采用流式响应、实施多层容错、优化并发性能，可以快速交付一个生产级别的药物反馈收集Agent。"
+}
