@@ -1,0 +1,496 @@
+{
+  "tool_development": {
+    "development_overview": {
+      "project_name": "html_courseware_generator",
+      "version": "1.0",
+      "date": "2025-12-25",
+      "development_scope": "为HTML课件与教案生成系统开发完整的工具集，支持课件生成Agent的所有核心功能。包含HTML结构生成、CSS样式生成、JavaScript交互代码生成、数学公式渲染、化学方程式生成、物理图表生成、交互元素构建、代码验证、XSS安全扫描和学科模板选择等10个核心工具。",
+      "design_principles": [
+        "功能完整性：覆盖课件生成的所有需求，从HTML结构到交互元素",
+        "模块化设计：每个工具函数职责单一，接口清晰，便于组合使用",
+        "安全优先：内置XSS扫描和代码验证，确保生成的课件安全可靠",
+        "学科适配：支持多学科特定功能（数学公式、化学方程式、物理图表）",
+        "响应式设计：生成的CSS样式支持不同屏幕尺寸，适配移动设备",
+        "标准化输出：所有工具返回JSON格式的结构化数据，便于解析和处理",
+        "错误处理：完善的异常捕获和错误信息返回，提高系统健壮性"
+      ],
+      "key_decisions": [
+        "使用@tool装饰器定义所有工具函数，符合Strands框架规范",
+        "所有工具返回JSON格式字符串，包含status、数据和错误信息",
+        "CSS样式采用内联方式，确保HTML自包含",
+        "数学公式支持MathJax和KaTeX两种渲染库",
+        "化学方程式使用HTML上下标标签，无需外部库",
+        "物理图表使用Chart.js库，支持多种图表类型",
+        "代码验证包含XSS检查、语法检查和文件大小检查",
+        "学科模板预定义5种常见学科配置，支持通用模板",
+        "交互元素支持选择题、输入题、图表三种类型",
+        "所有生成的代码避免使用eval等危险函数"
+      ]
+    },
+    "tools": [
+      {
+        "tool_name": "html_structure_generator",
+        "description": "生成HTML课件的基础结构，包括HTML头部、导航栏、章节容器等。支持自定义章节数量和内容类型，可选择是否包含导航栏。",
+        "function_signature": "html_structure_generator(subject: str, topic: str, sections: List[Dict[str, Any]], include_navigation: bool = True) -> str",
+        "parameters": [
+          {
+            "name": "subject",
+            "type": "str",
+            "description": "学科名称，如'数学'、'化学'、'物理'等",
+            "required": true
+          },
+          {
+            "name": "topic",
+            "type": "str",
+            "description": "课件主题，如'二次函数'、'化学平衡'等",
+            "required": true
+          },
+          {
+            "name": "sections",
+            "type": "List[Dict[str, Any]]",
+            "description": "章节列表，每个章节包含title和content_type字段",
+            "required": true
+          },
+          {
+            "name": "include_navigation",
+            "type": "bool",
+            "description": "是否包含导航栏，默认为True",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式字符串，包含status、html_structure、section_count、has_navigation和metadata字段",
+        "dependencies": ["json", "strands"],
+        "implementation_notes": [
+          "生成的HTML包含完整的DOCTYPE和meta标签",
+          "导航栏包含章节链接，支持平滑滚动",
+          "每个章节包含id和data-type属性，便于JavaScript操作",
+          "预留CSS和JavaScript占位符（style和script标签）",
+          "使用语义化HTML5标签（nav、main、section）"
+        ],
+        "error_handling": [
+          "捕获所有异常，返回error状态和详细错误信息",
+          "验证sections参数是否为空或格式错误",
+          "处理特殊字符，避免HTML注入"
+        ],
+        "usage_examples": [
+          "生成包含5个章节的数学课件结构",
+          "生成不带导航栏的简单课件结构",
+          "为化学课件生成包含实验演示章节的结构"
+        ]
+      },
+      {
+        "tool_name": "css_style_generator",
+        "description": "生成CSS样式代码，支持多种主题（modern、classic、minimal）和自定义色彩方案。生成的样式包含全局样式、容器样式、导航栏样式、章节样式、交互元素样式、按钮样式、反馈消息样式、数学公式样式、化学方程式样式、图表容器样式和响应式样式。",
+        "function_signature": "css_style_generator(theme: str = 'modern', color_scheme: Optional[Dict[str, str]] = None, responsive: bool = True) -> str",
+        "parameters": [
+          {
+            "name": "theme",
+            "type": "str",
+            "description": "主题样式，可选值：modern、classic、minimal，默认为modern",
+            "required": false
+          },
+          {
+            "name": "color_scheme",
+            "type": "Optional[Dict[str, str]]",
+            "description": "自定义色彩方案，包含primary、secondary、background、text、accent等颜色",
+            "required": false
+          },
+          {
+            "name": "responsive",
+            "type": "bool",
+            "description": "是否生成响应式样式，默认为True",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式字符串，包含status、css_content、theme、responsive和color_scheme字段",
+        "dependencies": ["json", "strands"],
+        "implementation_notes": [
+          "预定义三种主题的默认色彩方案",
+          "支持自定义色彩方案覆盖默认配置",
+          "响应式样式支持768px和480px两个断点",
+          "使用flexbox布局，支持现代浏览器",
+          "交互元素样式包含hover和selected状态",
+          "反馈消息样式区分success和error两种类型",
+          "数学公式和化学方程式样式美观清晰"
+        ],
+        "error_handling": [
+          "捕获所有异常，返回error状态和详细错误信息",
+          "验证theme参数是否为有效值",
+          "处理color_scheme参数缺失字段，使用默认值"
+        ],
+        "usage_examples": [
+          "生成modern主题的响应式样式",
+          "使用自定义色彩方案生成样式",
+          "生成不带响应式的classic主题样式"
+        ]
+      },
+      {
+        "tool_name": "javascript_code_generator",
+        "description": "生成JavaScript交互代码，支持选择题、输入题、图表等多种交互元素。生成的代码包含工具函数、导航功能、交互元素功能和初始化代码。可选择是否包含学习分析代码。",
+        "function_signature": "javascript_code_generator(interactive_elements: List[Dict[str, Any]], include_analytics: bool = False) -> str",
+        "parameters": [
+          {
+            "name": "interactive_elements",
+            "type": "List[Dict[str, Any]]",
+            "description": "交互元素列表，每个元素包含type和config字段",
+            "required": true
+          },
+          {
+            "name": "include_analytics",
+            "type": "bool",
+            "description": "是否包含学习分析代码，默认为False",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式字符串，包含status、javascript_content、interactive_element_count和includes_analytics字段",
+        "dependencies": ["json", "strands"],
+        "implementation_notes": [
+          "使用IIFE包装代码，避免全局变量污染",
+          "实现工具函数集合（获取元素、显示反馈、平滑滚动）",
+          "导航功能支持平滑滚动到目标章节",
+          "选择题功能支持单选、提交验证、正确答案显示",
+          "输入题功能支持大小写敏感配置",
+          "图表功能使用Chart.js库进行渲染",
+          "学习分析代码记录用户交互事件"
+        ],
+        "error_handling": [
+          "捕获所有异常，返回error状态和详细错误信息",
+          "验证interactive_elements参数格式",
+          "处理元素类型不支持的情况"
+        ],
+        "usage_examples": [
+          "生成包含选择题和输入题的交互代码",
+          "生成包含图表的交互代码",
+          "生成包含学习分析的交互代码"
+        ]
+      },
+      {
+        "tool_name": "math_formula_renderer",
+        "description": "生成数学公式渲染代码，支持MathJax和KaTeX两种渲染库。生成的代码包含库配置脚本和公式HTML。",
+        "function_signature": "math_formula_renderer(formulas: List[Dict[str, str]], library: str = 'mathjax') -> str",
+        "parameters": [
+          {
+            "name": "formulas",
+            "type": "List[Dict[str, str]]",
+            "description": "公式列表，每个公式包含id、latex和description字段",
+            "required": true
+          },
+          {
+            "name": "library",
+            "type": "str",
+            "description": "渲染库，可选值：mathjax、katex，默认为mathjax",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式字符串，包含status、config_script、formulas_html、formula_count和library字段",
+        "dependencies": ["json", "strands"],
+        "implementation_notes": [
+          "MathJax配置支持行内和块级公式",
+          "KaTeX配置使用auto-render扩展",
+          "公式HTML包含描述和LaTeX内容",
+          "使用$$符号标记块级公式",
+          "公式容器使用.math-formula类"
+        ],
+        "error_handling": [
+          "捕获所有异常，返回error状态和详细错误信息",
+          "验证library参数是否为有效值",
+          "处理公式列表为空的情况"
+        ],
+        "usage_examples": [
+          "生成使用MathJax渲染的数学公式",
+          "生成使用KaTeX渲染的数学公式",
+          "生成包含多个公式的渲染代码"
+        ]
+      },
+      {
+        "tool_name": "chemistry_equation_generator",
+        "description": "生成化学方程式展示HTML，使用HTML上下标标签格式化化学方程式。生成的HTML包含方程式容器和样式。",
+        "function_signature": "chemistry_equation_generator(equations: List[Dict[str, str]]) -> str",
+        "parameters": [
+          {
+            "name": "equations",
+            "type": "List[Dict[str, str]]",
+            "description": "化学方程式列表，每个方程式包含id、equation和description字段",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式字符串，包含status、equations_html、style_html和equation_count字段",
+        "dependencies": ["json", "re", "strands"],
+        "implementation_notes": [
+          "使用正则表达式自动处理下标（如H2O）",
+          "使用正则表达式自动处理上标（如2+）",
+          "方程式容器使用浅蓝色背景和边框",
+          "样式包含描述和方程式内容",
+          "使用Courier New等宽字体"
+        ],
+        "error_handling": [
+          "捕获所有异常，返回error状态和详细错误信息",
+          "处理方程式列表为空的情况",
+          "处理正则表达式匹配失败的情况"
+        ],
+        "usage_examples": [
+          "生成包含多个化学方程式的HTML",
+          "生成包含复杂离子的化学方程式",
+          "生成包含描述的化学方程式"
+        ]
+      },
+      {
+        "tool_name": "interactive_element_builder",
+        "description": "构建交互元素HTML，支持选择题（quiz）、输入题（input）、图表（chart）三种类型。生成的HTML包含完整的交互功能。",
+        "function_signature": "interactive_element_builder(element_type: str, element_config: Dict[str, Any]) -> str",
+        "parameters": [
+          {
+            "name": "element_type",
+            "type": "str",
+            "description": "元素类型，可选值：quiz、input、chart",
+            "required": true
+          },
+          {
+            "name": "element_config",
+            "type": "Dict[str, Any]",
+            "description": "元素配置，根据类型包含不同字段",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式字符串，包含status、element_html和element_type字段",
+        "dependencies": ["json", "strands"],
+        "implementation_notes": [
+          "选择题包含问题、选项列表、提交按钮和解释",
+          "输入题包含问题、输入框、提交按钮和大小写敏感配置",
+          "图表包含canvas元素和Chart.js配置",
+          "所有交互元素使用.interactive-element类",
+          "使用data-*属性存储配置信息"
+        ],
+        "error_handling": [
+          "捕获所有异常，返回error状态和详细错误信息",
+          "验证element_type参数是否为有效值",
+          "处理element_config参数缺失字段"
+        ],
+        "usage_examples": [
+          "构建包含4个选项的选择题",
+          "构建支持大小写敏感的输入题",
+          "构建折线图图表元素"
+        ]
+      },
+      {
+        "tool_name": "code_validator",
+        "description": "验证HTML、CSS、JavaScript代码，检查XSS安全问题、语法错误和文件大小。返回验证结果和警告信息。",
+        "function_signature": "code_validator(html_content: str, check_xss: bool = True, check_syntax: bool = True) -> str",
+        "parameters": [
+          {
+            "name": "html_content",
+            "type": "str",
+            "description": "完整的HTML内容",
+            "required": true
+          },
+          {
+            "name": "check_xss",
+            "type": "bool",
+            "description": "是否检查XSS安全问题，默认为True",
+            "required": false
+          },
+          {
+            "name": "check_syntax",
+            "type": "bool",
+            "description": "是否检查语法错误，默认为True",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式字符串，包含status、validation_results和file_size_kb字段",
+        "dependencies": ["json", "re", "strands"],
+        "implementation_notes": [
+          "XSS检查包含危险模式匹配（eval、javascript:、onerror等）",
+          "语法检查包含HTML标签闭合检查和基本结构检查",
+          "文件大小检查警告超过500KB的文件",
+          "验证结果包含is_valid、warnings、errors和security_issues",
+          "使用正则表达式进行模式匹配"
+        ],
+        "error_handling": [
+          "捕获所有异常，返回error状态和详细错误信息",
+          "处理HTML内容为空的情况",
+          "处理正则表达式匹配失败的情况"
+        ],
+        "usage_examples": [
+          "验证完整的HTML课件代码",
+          "只进行XSS安全检查",
+          "只进行语法检查"
+        ]
+      },
+      {
+        "tool_name": "xss_scanner",
+        "description": "扫描XSS安全漏洞，检测危险模式并可选择自动修复。返回详细的安全问题列表和修复后的内容。",
+        "function_signature": "xss_scanner(html_content: str, auto_fix: bool = False) -> str",
+        "parameters": [
+          {
+            "name": "html_content",
+            "type": "str",
+            "description": "HTML内容",
+            "required": true
+          },
+          {
+            "name": "auto_fix",
+            "type": "bool",
+            "description": "是否自动修复安全问题，默认为False",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式字符串，包含status、is_safe、issues、total_issues、fixed_content和auto_fix_applied字段",
+        "dependencies": ["json", "re", "strands"],
+        "implementation_notes": [
+          "定义多种危险模式（eval函数、javascript:协议、内联事件处理器、document.write）",
+          "每种模式包含严重级别（critical、high、medium、low）",
+          "自动修复支持简单替换（如javascript:替换为#）",
+          "复杂问题不支持自动修复，需要手动处理",
+          "检查未编码的特殊字符",
+          "is_safe标志表示是否存在critical或high级别问题"
+        ],
+        "error_handling": [
+          "捕获所有异常，返回error状态和详细错误信息",
+          "处理HTML内容为空的情况",
+          "处理正则表达式匹配失败的情况"
+        ],
+        "usage_examples": [
+          "扫描HTML内容的XSS漏洞",
+          "扫描并自动修复简单的XSS问题",
+          "获取详细的安全问题列表"
+        ]
+      },
+      {
+        "tool_name": "subject_template_selector",
+        "description": "选择学科对应的模板配置，预定义5种常见学科（数学、化学、物理、语文、英语）的模板，支持自定义学科使用通用模板。",
+        "function_signature": "subject_template_selector(subject: str) -> str",
+        "parameters": [
+          {
+            "name": "subject",
+            "type": "str",
+            "description": "学科名称",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式字符串，包含status、subject、template和is_custom_subject字段",
+        "dependencies": ["json", "strands"],
+        "implementation_notes": [
+          "数学模板包含数学公式和图表功能，需要MathJax库",
+          "化学模板包含化学方程式和图表功能",
+          "物理模板包含数学公式和图表功能，需要MathJax和Chart.js库",
+          "语文模板包含选择题和输入题功能",
+          "英语模板包含选择题、输入题和音频功能",
+          "通用模板只包含选择题功能",
+          "模板包含features、required_libraries、color_scheme和section_templates字段"
+        ],
+        "error_handling": [
+          "捕获所有异常，返回error状态和详细错误信息",
+          "处理学科名称为空的情况",
+          "未知学科使用通用模板"
+        ],
+        "usage_examples": [
+          "选择数学学科模板",
+          "选择化学学科模板",
+          "选择自定义学科模板"
+        ]
+      },
+      {
+        "tool_name": "physics_chart_generator",
+        "description": "生成物理图表代码，使用Chart.js库渲染图表。生成的代码包含图表容器、canvas元素和Chart.js配置脚本。",
+        "function_signature": "physics_chart_generator(chart_config: Dict[str, Any]) -> str",
+        "parameters": [
+          {
+            "name": "chart_config",
+            "type": "Dict[str, Any]",
+            "description": "图表配置，包含id、type、title、data等字段",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式字符串，包含status、chart_html、cdn_link、chart_id和chart_type字段",
+        "dependencies": ["json", "strands"],
+        "implementation_notes": [
+          "支持多种图表类型（line、bar、pie等）",
+          "使用IIFE包装初始化代码",
+          "图表配置包含响应式选项",
+          "图表包含标题和图例",
+          "Y轴从0开始",
+          "提供Chart.js CDN链接"
+        ],
+        "error_handling": [
+          "捕获所有异常，返回error状态和详细错误信息",
+          "处理chart_config参数缺失字段",
+          "处理图表类型不支持的情况"
+        ],
+        "usage_examples": [
+          "生成折线图展示物理实验数据",
+          "生成柱状图比较不同条件下的结果",
+          "生成饼图展示能量分布"
+        ]
+      }
+    ],
+    "code_quality": {
+      "code_standards": [
+        "使用Python 3.13+语法和特性",
+        "遵循PEP 8代码风格规范",
+        "使用完整的类型注解（typing模块）",
+        "使用@tool装饰器定义所有工具函数",
+        "所有函数包含详细的docstring",
+        "使用有意义的变量名和函数名",
+        "代码结构清晰，逻辑易于理解",
+        "避免使用魔法数字，使用常量或配置"
+      ],
+      "testing_strategy": [
+        "单元测试：测试每个工具函数的核心功能",
+        "集成测试：测试工具函数的组合使用",
+        "边界测试：测试空输入、超长输入、特殊字符等边界情况",
+        "安全测试：测试XSS扫描和代码验证功能",
+        "性能测试：测试大文件生成和处理速度",
+        "学科模板测试：测试所有预定义学科模板",
+        "响应式样式测试：测试不同屏幕尺寸的样式适配"
+      ],
+      "performance_considerations": [
+        "避免在循环中进行重复的字符串拼接，使用列表join",
+        "使用正则表达式编译对象，提高匹配速度",
+        "控制生成的HTML文件大小在500KB以内",
+        "CSS和JavaScript代码内联，减少HTTP请求",
+        "使用CDN加载外部库（MathJax、KaTeX、Chart.js）",
+        "避免生成过多的交互元素，控制在合理范围",
+        "使用懒加载或按需加载优化页面加载速度"
+      ],
+      "security_measures": [
+        "所有生成的代码必须通过XSS扫描",
+        "使用正则表达式检测危险模式（eval、javascript:等）",
+        "避免使用eval()等危险函数",
+        "对用户输入进行验证和清洗",
+        "HTML实体编码特殊字符",
+        "限制文件大小，防止DoS攻击",
+        "使用Content Security Policy（CSP）头部",
+        "提供自动修复功能，修复简单的安全问题"
+      ]
+    },
+    "integration_details": {
+      "aws_services": [],
+      "external_libraries": [
+        "strands - Strands框架，用于@tool装饰器",
+        "MathJax - 数学公式渲染库（CDN加载）",
+        "KaTeX - 数学公式渲染库（CDN加载）",
+        "Chart.js - 图表可视化库（CDN加载）"
+      ],
+      "api_endpoints": [],
+      "data_formats": [
+        "JSON - 所有工具函数返回JSON格式字符串",
+        "HTML5 - 生成的课件使用HTML5标准",
+        "CSS3 - 生成的样式使用CSS3特性",
+        "JavaScript ES6+ - 生成的交互代码使用现代JavaScript语法",
+        "LaTeX - 数学公式使用LaTeX语法",
+        "Markdown - 教案支持Markdown格式"
+      ]
+    },
+    "development_notes": "工具开发过程严格遵循设计文档中的工具需求，实现了课件生成Agent所需的所有10个核心工具。每个工具都经过仔细设计，确保功能完整、接口清晰、错误处理完善。特别注意了安全性，内置XSS扫描和代码验证功能，确保生成的课件安全可靠。工具支持多学科特定功能（数学公式、化学方程式、物理图表），适配不同学科的教学需求。所有工具返回JSON格式的结构化数据，便于课件生成Agent解析和处理。代码质量高，遵循Python最佳实践，使用完整的类型注解和详细的文档字符串。工具集已准备就绪，可供课件生成Agent使用。"
+  }
+}

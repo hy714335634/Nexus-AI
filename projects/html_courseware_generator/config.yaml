@@ -1,0 +1,6 @@
+project:
+  created_date: '2025-12-25T04:56:09.047669+00:00'
+  description: 智能HTML课件与教案生成系统 - 支持多学科动态交互课件生成，集成FastAPI服务，自动化教师备课流程。已完成开发，包含完整的课件生成、教案生成、文件管理和Web服务功能。
+  name: html_courseware_generator
+  updated_date: '2025-12-25T05:15:53.629453+00:00'
+  version: 1.0.0

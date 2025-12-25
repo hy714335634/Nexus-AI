@@ -1,0 +1,126 @@
+{
+  "project_name": "html_courseware_generator",
+  "validation_timestamp": "2025-12-25T05:15:00.182779+00:00",
+  "overall_status": "success",
+  "agent_scripts": [
+    {
+      "script_path": "agents/generated_agents/html_courseware_generator/html_courseware_generator.py",
+      "syntax_valid": true,
+      "dependencies": [
+        "os",
+        "sys",
+        "json",
+        "asyncio",
+        "logging",
+        "pathlib",
+        "typing",
+        "datetime",
+        "nexus_utils.agent_factory",
+        "nexus_utils.config_loader",
+        "bedrock_agentcore.runtime",
+        "bedrock_agentcore.runtime.context",
+        "strands.telemetry",
+        "fastapi",
+        "fastapi.staticfiles",
+        "fastapi.middleware.cors",
+        "pydantic",
+        "uvicorn",
+        "tools.generated_tools.html_courseware_generator.courseware_generation_tools",
+        "re",
+        "argparse"
+      ],
+      "execution_params": [],
+      "argparse_params": [
+        {
+          "name": "-i",
+          "type": "str",
+          "description": "测试输入",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "--subject",
+          "type": "str",
+          "description": "学科",
+          "required": false,
+          "default": "数学",
+          "action": null
+        },
+        {
+          "name": "--topic",
+          "type": "str",
+          "description": "主题",
+          "required": false,
+          "default": "二次函数",
+          "action": null
+        },
+        {
+          "name": "--port",
+          "type": "int",
+          "description": "FastAPI服务端口",
+          "required": false,
+          "default": 8000,
+          "action": null
+        }
+      ],
+      "error_message": ""
+    }
+  ],
+  "prompt_files": [
+    {
+      "prompt_path": "generated_agents_prompts/html_courseware_generator/html_courseware_generator.yaml",
+      "tool_count": 12,
+      "valid": true,
+      "error_message": "",
+      "metadata": {
+        "tags": [
+          "education_technology",
+          "courseware_generation",
+          "lesson_plan",
+          "html_generation",
+          "multi_agent",
+          "fastapi"
+        ],
+        "supported_models": [
+          "global.anthropic.claude-sonnet-4-5-20250929-v1:0"
+        ],
+        "tools_dependencies": [
+          "strands_tools/current_time",
+          "strands_tools/file_write",
+          "generated_tools/html_courseware_generator/courseware_generation_tools/html_structure_generator",
+          "generated_tools/html_courseware_generator/courseware_generation_tools/css_style_generator",
+          "generated_tools/html_courseware_generator/courseware_generation_tools/javascript_code_generator",
+          "generated_tools/html_courseware_generator/courseware_generation_tools/math_formula_renderer",
+          "generated_tools/html_courseware_generator/courseware_generation_tools/chemistry_equation_generator",
+          "generated_tools/html_courseware_generator/courseware_generation_tools/physics_chart_generator",
+          "generated_tools/html_courseware_generator/courseware_generation_tools/interactive_element_builder",
+          "generated_tools/html_courseware_generator/courseware_generation_tools/subject_template_selector",
+          "generated_tools/html_courseware_generator/courseware_generation_tools/code_validator",
+          "generated_tools/html_courseware_generator/courseware_generation_tools/xss_scanner"
+        ]
+      },
+      "agent_info": {
+        "name": "html_courseware_generator",
+        "description": "智能HTML课件与教案生成系统 - 支持多学科动态交互课件生成，集成FastAPI服务，自动化教师备课流程",
+        "category": "education_technology"
+      }
+    }
+  ],
+  "generated_tools": [
+    {
+      "tool_path": "generated_tools/html_courseware_generator/courseware_generation_tools.py",
+      "syntax_valid": true,
+      "error_message": ""
+    }
+  ],
+  "total_tools": 12,
+  "summary": {
+    "agent_scripts_count": 1,
+    "prompt_files_count": 1,
+    "generated_tool_files_count": 1,
+    "all_scripts_valid": true,
+    "all_tools_valid": true,
+    "all_prompts_valid": true
+  }
+}

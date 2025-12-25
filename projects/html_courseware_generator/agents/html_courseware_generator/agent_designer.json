@@ -1,0 +1,710 @@
+{
+  "agent_design": {
+    "design_overview": {
+      "project_name": "html_courseware_generator",
+      "version": "1.0",
+      "date": "2025-12-25",
+      "design_scope": "设计智能HTML课件与教案生成系统的Agent架构，包含4个协作Agent：主控Agent、课件生成Agent、教案生成Agent和文件管理Agent。每个Agent具有明确的角色、能力和交互模式，通过Swarm框架进行编排协调，实现多学科动态交互课件生成、教案自动生成、FastAPI Web服务集成和文件管理功能。",
+      "design_goals": [
+        "设计清晰的Agent角色分工，确保每个Agent职责单一、功能明确",
+        "定义高效的Agent协作模式，支持并行处理和异步通信",
+        "设计灵活的知识领域架构，支持多学科内容生成和扩展",
+        "建立标准化的交互协议，确保Agent间通信可靠高效",
+        "设计完善的错误处理和降级机制，提高系统可靠性",
+        "确保设计符合Nexus-AI平台规范和AgentCore部署要求"
+      ],
+      "key_design_decisions": [
+        {
+          "decision": "采用主从式多Agent拓扑结构，包含1个主控Agent和3个专业Agent",
+          "rationale": "主从式架构清晰简单，主控Agent负责任务协调和结果整合，专业Agent专注各自领域。相比平等式架构，主从式避免了复杂的协商机制，降低了通信开销。相比单Agent架构，多Agent架构允许并行处理和专业分工，显著提高效率和质量。",
+          "alternatives": [
+            "单Agent架构 - 简单但无法并行处理，生成时间长",
+            "平等式多Agent架构 - 灵活但协调复杂，通信开销大",
+            "层级式多Agent架构 - 可扩展但过度设计，当前需求不需要"
+          ],
+          "consequences": [
+            "主控Agent成为单点，需要确保其稳定性和容错能力",
+            "专业Agent相对独立，便于单独测试和优化",
+            "新增Agent需要修改主控Agent的协调逻辑",
+            "Agent间通信通过主控Agent中转，增加了一定延迟"
+          ]
+        },
+        {
+          "decision": "课件生成Agent和教案生成Agent并行执行，共享上下文",
+          "rationale": "课件和教案内容相关但生成过程独立，可以并行处理。通过共享上下文（学科、主题、详细要求），确保两者内容一致。并行执行将总耗时从60秒降至30秒，显著提升用户体验。",
+          "alternatives": [
+            "串行执行 - 简单但耗时长，用户等待时间倍增",
+            "完全独立生成 - 快速但可能导致内容不一致",
+            "教案依赖课件 - 确保一致但无法并行，效率低"
+          ],
+          "consequences": [
+            "需要实现异步并行调用机制（asyncio.gather）",
+            "需要设计共享上下文数据结构，确保信息传递完整",
+            "需要处理部分失败场景（如课件成功但教案失败）",
+            "资源消耗增加，需要确保系统有足够的计算资源"
+          ]
+        },
+        {
+          "decision": "使用Swarm框架进行Agent编排，而非自定义协调机制",
+          "rationale": "Swarm是成熟的多Agent编排框架，提供Agent间消息传递、上下文共享、任务切换等功能。使用Swarm降低开发复杂度，提高系统稳定性。参考技术文档多Agent系统模板，该模板已在生产环境验证。",
+          "alternatives": [
+            "自定义协调机制 - 灵活但开发成本高，稳定性难保证",
+            "LangGraph框架 - 功能强大但学习曲线陡峭，过度设计",
+            "简单函数调用 - 简单但缺乏上下文管理和错误处理"
+          ],
+          "consequences": [
+            "依赖Swarm框架，需要学习其API和最佳实践",
+            "Agent设计需要符合Swarm的规范和约束",
+            "受益于Swarm的成熟功能，如上下文管理、错误恢复",
+            "可以参考Swarm社区的最佳实践和示例"
+          ]
+        },
+        {
+          "decision": "主控Agent集成FastAPI服务，提供统一的Web接口",
+          "rationale": "将FastAPI服务集成到主控Agent中，简化架构，避免额外的服务层。主控Agent既是任务协调者，也是Web服务提供者。这种设计减少了组件数量，降低了部署复杂度。",
+          "alternatives": [
+            "独立Web服务层 - 解耦但增加了部署复杂度和通信延迟",
+            "每个Agent独立提供接口 - 灵活但客户端调用复杂",
+            "无Web接口，仅命令行 - 简单但用户体验差"
+          ],
+          "consequences": [
+            "主控Agent职责增加，需要管理Web服务生命周期",
+            "主控Agent故障会导致整个Web服务不可用",
+            "简化了部署，只需启动一个进程",
+            "便于实现统一的认证、日志、监控"
+          ]
+        },
+        {
+          "decision": "使用Claude Sonnet 4.5模型作为所有Agent的底层模型",
+          "rationale": "Claude Sonnet 4.5在内容生成质量、代码生成能力、多语言支持方面表现优异。统一使用一个模型简化了配置和管理，降低了成本。Claude在教育内容生成方面专业，适合本项目需求。",
+          "alternatives": [
+            "不同Agent使用不同模型 - 灵活但管理复杂，成本高",
+            "使用开源模型 - 成本低但质量难保证",
+            "使用GPT-4 - 性能强但成本高，教育内容生成不如Claude专业"
+          ],
+          "consequences": [
+            "依赖AWS Bedrock服务，需要确保网络连接稳定",
+            "模型调用成本取决于生成的token数量，需要优化提示词",
+            "所有Agent共享模型配置，便于统一管理和监控",
+            "模型升级时需要同步测试所有Agent的表现"
+          ]
+        },
+        {
+          "decision": "文件管理Agent使用Python标准库，不依赖外部存储服务",
+          "rationale": "课件和教案是静态文件，使用本地文件系统存储简单高效。Python标准库（os、pathlib、json）提供了足够的文件操作能力。避免依赖外部存储服务（如S3、数据库），降低了架构复杂度和运维成本。",
+          "alternatives": [
+            "使用AWS S3存储 - 可扩展但增加成本和延迟",
+            "使用数据库存储 - 结构化但文件访问不便",
+            "使用分布式文件系统 - 高可用但过度设计"
+          ],
+          "consequences": [
+            "文件存储受限于本地磁盘容量，需要定期清理",
+            "无法实现多实例间的文件共享，限制了水平扩展",
+            "文件访问速度快，延迟低",
+            "备份和恢复需要文件系统级别的操作"
+          ]
+        }
+      ]
+    },
+    "agents": [
+      {
+        "agent_id": "coordinator_agent",
+        "name": "主控Agent",
+        "role": "任务协调者和Web服务提供者",
+        "purpose": "接收课件生成请求，协调课件生成Agent和教案生成Agent并行工作，整合结果，管理FastAPI Web服务，提供RESTful API接口和静态文件服务。",
+        "personality": {
+          "traits": [
+            "高效协调：快速分发任务，并行处理，减少等待时间",
+            "可靠稳定：完善的错误处理，支持部分成功和降级",
+            "用户友好：清晰的API接口，详细的错误信息，良好的反馈",
+            "专业严谨：遵循RESTful规范，标准化的响应格式",
+            "积极主动：主动记录日志，监控性能，发现问题"
+          ],
+          "communication_style": "专业、清晰、结构化。使用标准的HTTP状态码和JSON响应格式，错误信息详细明确，包含错误类型、详细信息和建议操作。日志记录完整，便于追踪和调试。",
+          "tone": "正式、友好、有帮助。成功时提供清晰的结果和访问URL，失败时提供详细的错误信息和解决建议，不使用技术术语困扰用户。"
+        },
+        "capabilities": {
+          "core_functions": [
+            "接收和验证课件生成请求（POST /api/generate）",
+            "并行协调课件生成Agent和教案生成Agent",
+            "收集和整合生成结果",
+            "调用文件管理Agent存储文件",
+            "返回课件和教案的访问URL",
+            "提供课件列表查询接口（GET /api/courseware/list）",
+            "提供课件详情查询接口（GET /api/courseware/{id}）",
+            "提供健康检查接口（GET /health）",
+            "管理FastAPI Web服务生命周期",
+            "挂载静态文件目录，提供课件预览服务",
+            "记录请求日志、执行日志、性能指标",
+            "实现流式响应，支持AgentCore部署"
+          ],
+          "specialized_skills": [
+            "异步并行任务调度（asyncio.gather）",
+            "Swarm框架Agent编排和上下文管理",
+            "FastAPI路由注册和中间件配置",
+            "RESTful API设计和实现",
+            "HTTP状态码和响应头管理",
+            "CORS跨域配置",
+            "静态文件服务配置和安全检查",
+            "错误分类和降级处理",
+            "日志记录和性能监控",
+            "流式响应实现（yield event）"
+          ],
+          "limitations": [
+            "不直接生成课件内容，依赖课件生成Agent",
+            "不直接生成教案内容，依赖教案生成Agent",
+            "不直接操作文件系统，依赖文件管理Agent",
+            "不具备学科专业知识，依赖专业Agent",
+            "并发处理能力受限于系统资源（最多5个并发请求）",
+            "无法处理超大文件（超过10MB的课件）",
+            "不支持实时协作编辑功能"
+          ],
+          "tools_required": [
+            "fastapi (Web框架)",
+            "uvicorn (ASGI服务器)",
+            "asyncio (异步编程)",
+            "swarm (Agent编排)",
+            "nexus_utils.agent_factory (Agent创建)",
+            "nexus_utils.config_loader (配置加载)",
+            "strands_telemetry (遥测监控)",
+            "boto3 (AWS SDK)",
+            "pydantic (数据验证)",
+            "python标准库 (json, logging, datetime)"
+          ]
+        },
+        "knowledge_domain": {
+          "primary_domains": [
+            "Web服务架构和RESTful API设计",
+            "多Agent协作和任务编排",
+            "异步编程和并发控制",
+            "HTTP协议和Web标准",
+            "错误处理和系统可靠性",
+            "日志记录和性能监控",
+            "AgentCore部署规范和流式响应"
+          ],
+          "expertise_level": "专家级 - 精通Web服务开发、多Agent协作、异步编程和系统可靠性设计",
+          "knowledge_sources": [
+            "FastAPI官方文档和最佳实践",
+            "Swarm框架文档和示例",
+            "RESTful API设计规范",
+            "Python asyncio官方文档",
+            "AWS Bedrock AgentCore部署指南",
+            "技术文档多Agent系统模板",
+            "Nexus-AI平台规范和约束"
+          ],
+          "update_frequency": "实时更新 - 根据API调用结果、错误日志、性能指标持续优化协调策略"
+        },
+        "interaction_patterns": {
+          "communication_style": "请求-响应模式与外部交互，任务委托模式与专业Agent协作",
+          "conversation_flow": "1. 接收HTTP请求 -> 2. 验证参数 -> 3. 并行委托任务给专业Agent -> 4. 收集结果 -> 5. 调用文件管理Agent存储 -> 6. 返回HTTP响应。错误时立即返回错误响应，部分成功时返回partial状态。",
+          "error_responses": [
+            "400 Bad Request：参数验证失败，返回详细的验证错误",
+            "500 Internal Server Error：Agent执行失败，返回错误类型和详细信息",
+            "504 Gateway Timeout：任务执行超时（60秒），返回超时提示",
+            "507 Insufficient Storage：磁盘空间不足，提示管理员清理",
+            "部分成功：返回status='partial'，包含成功和失败的详细信息"
+          ]
+        },
+        "constraints": [
+          "必须遵守AgentCore部署规范，实现@app.entrypoint装饰的handler函数",
+          "必须支持流式响应，使用yield产生响应片段",
+          "必须使用nexus_utils.agent_factory.create_agent_from_prompt_template创建Agent",
+          "并发请求数量限制为5个，超过则返回429 Too Many Requests",
+          "单个请求超时时间为60秒，超时则取消任务",
+          "生成的课件文件大小限制为10MB",
+          "API响应时间（不包含生成时间）必须小于100ms",
+          "必须记录所有请求日志和错误日志",
+          "必须实现健康检查接口，返回系统状态",
+          "静态文件服务必须限制访问范围在courseware目录内"
+        ],
+        "evaluation_criteria": [
+          "API接口功能完整性：所有端点正常工作，返回正确的响应",
+          "任务协调效率：并行处理减少总耗时，达到预期的性能提升",
+          "错误处理完善性：各类错误场景有相应的处理逻辑，错误信息清晰",
+          "系统可靠性：部分Agent失败不影响整体，支持降级和恢复",
+          "日志记录完整性：关键操作有日志记录，便于追踪和调试",
+          "性能指标达标：响应时间、并发能力、资源消耗符合要求",
+          "用户体验：API接口易用，错误信息有帮助，流式响应流畅",
+          "安全性：输入验证、路径检查、CORS配置正确有效"
+        ],
+        "model_requirements": {
+          "model_name": "global.anthropic.claude-sonnet-4-5-20250929-v1:0",
+          "minimum_capabilities": [
+            "理解课件生成请求的意图和参数",
+            "协调多个Agent的任务分配和结果整合",
+            "生成清晰的错误信息和建议操作",
+            "记录结构化的日志信息"
+          ],
+          "rationale": "主控Agent主要负责任务协调，对模型的内容生成能力要求不高，但需要良好的理解和推理能力。Claude Sonnet 4.5平衡了性能和成本，适合协调任务。"
+        },
+        "memory_configuration": {
+          "memory_type": "短期上下文记忆 + 持久化日志",
+          "retention_policy": "会话期间保留上下文，会话结束后清理。日志持久化存储，定期归档。",
+          "retrieval_strategy": "从上下文中获取当前请求信息，从日志中检索历史请求记录。"
+        }
+      },
+      {
+        "agent_id": "courseware_generator_agent",
+        "name": "课件生成Agent",
+        "role": "HTML课件内容生成专家",
+        "purpose": "根据学科和主题生成高质量的HTML课件，包含完整的教学内容、响应式CSS样式和动态交互JavaScript代码。支持多学科内容生成，包括数学公式渲染、化学方程式展示、物理图表可视化等学科特定功能。",
+        "personality": {
+          "traits": [
+            "专业严谨：生成的内容准确、完整、符合教学规范",
+            "创意丰富：设计多样化的交互方式，提升学习体验",
+            "注重细节：HTML结构清晰，CSS样式美观，JavaScript代码健壮",
+            "学科敏感：理解不同学科的特点，生成针对性的内容",
+            "安全意识：生成的代码安全可靠，避免XSS等安全风险"
+          ],
+          "communication_style": "专业、详细、结构化。生成的HTML代码清晰易读，注释完整，便于理解和维护。",
+          "tone": "教育性、友好、启发式。课件内容深入浅出，循序渐进，引导学生主动思考和探索。"
+        },
+        "capabilities": {
+          "core_functions": [
+            "根据学科和主题生成HTML课件结构",
+            "生成课程标题、学习目标、知识点讲解模块",
+            "生成示例演示和练习题模块",
+            "生成响应式CSS样式，支持不同屏幕尺寸",
+            "生成JavaScript交互代码（选择题、输入题、图表等）",
+            "学科特定内容生成（数学公式、化学方程式、物理图表）",
+            "代码安全性验证，防止XSS攻击",
+            "HTML自包含设计，所有资源内联",
+            "生成课件元数据（标题、学科、交互元素列表）"
+          ],
+          "specialized_skills": [
+            "HTML5语义化标签使用",
+            "CSS3响应式设计和动画效果",
+            "JavaScript事件处理和DOM操作",
+            "数学公式渲染（MathJax或KaTeX集成）",
+            "化学方程式和分子结构展示（Canvas或SVG）",
+            "物理图表可视化（Chart.js或D3.js集成）",
+            "交互式题目设计（选择题、填空题、拖拽题）",
+            "代码压缩和优化",
+            "XSS防护和代码安全扫描",
+            "学科模板选择和定制"
+          ],
+          "limitations": [
+            "不生成教案内容，专注于课件生成",
+            "不直接存储文件，返回HTML内容字符串",
+            "不处理多媒体资源上传（视频、音频）",
+            "不支持实时协作编辑功能",
+            "生成的HTML文件大小限制为500KB",
+            "不支持复杂的3D可视化（如分子动力学模拟）",
+            "不支持后端API调用（所有交互在浏览器端完成）"
+          ],
+          "tools_required": [
+            "html_structure_generator (HTML结构生成工具)",
+            "css_style_generator (CSS样式生成工具)",
+            "javascript_code_generator (JavaScript代码生成工具)",
+            "math_formula_renderer (数学公式渲染工具)",
+            "chemistry_equation_generator (化学方程式生成工具)",
+            "physics_chart_generator (物理图表生成工具)",
+            "interactive_element_builder (交互元素构建工具)",
+            "code_validator (代码验证工具)",
+            "xss_scanner (XSS安全扫描工具)",
+            "subject_template_selector (学科模板选择工具)"
+          ]
+        },
+        "knowledge_domain": {
+          "primary_domains": [
+            "Web前端开发（HTML、CSS、JavaScript）",
+            "多学科教学内容（语文、数学、化学、物理、生物等）",
+            "教育技术和教学设计理论",
+            "交互式学习体验设计",
+            "数学公式渲染技术",
+            "化学可视化技术",
+            "物理图表和数据可视化",
+            "Web安全和XSS防护"
+          ],
+          "expertise_level": "专家级 - 精通Web前端开发、教学内容设计、学科知识和交互体验设计",
+          "knowledge_sources": [
+            "多学科教材和教学大纲",
+            "HTML5/CSS3/JavaScript官方规范",
+            "MathJax/KaTeX文档",
+            "Chart.js/D3.js文档",
+            "教育技术和教学设计理论",
+            "Web安全最佳实践",
+            "响应式设计规范",
+            "交互式学习体验设计案例"
+          ],
+          "update_frequency": "定期更新 - 根据教师反馈、学生使用数据、新的教学理论持续优化课件生成策略和模板"
+        },
+        "interaction_patterns": {
+          "communication_style": "任务接收-内容生成-结果返回模式",
+          "conversation_flow": "1. 接收课件生成请求（学科、主题、详细要求） -> 2. 分析学科特点，选择模板 -> 3. 生成HTML结构 -> 4. 生成CSS样式 -> 5. 生成JavaScript交互代码 -> 6. 整合内容，验证安全性 -> 7. 返回HTML内容和元数据。",
+          "error_responses": [
+            "学科不支持：返回支持的学科列表，建议使用通用模板",
+            "主题过于复杂：返回简化建议，或分解为多个课件",
+            "代码生成失败：返回错误信息，建议检查输入参数",
+            "安全验证失败：返回具体的安全问题，自动修复或拒绝生成"
+          ]
+        },
+        "constraints": [
+          "生成的HTML必须是自包含的，所有CSS和JavaScript内联",
+          "生成的HTML文件大小必须控制在500KB以内",
+          "必须支持现代浏览器（Chrome、Firefox、Safari、Edge）",
+          "数学公式必须正确渲染，支持LaTeX语法",
+          "化学方程式必须符合化学规范",
+          "JavaScript代码必须通过XSS安全扫描",
+          "不得使用eval()等危险函数",
+          "交互元素必须提供键盘访问支持（无障碍设计）",
+          "生成时间必须控制在30秒以内",
+          "必须生成课件元数据，包含交互元素列表"
+        ],
+        "evaluation_criteria": [
+          "内容准确性：课件内容准确、完整、符合教学大纲",
+          "交互功能：交互元素正常工作，提供即时反馈",
+          "视觉设计：样式美观、布局合理、响应式适配",
+          "代码质量：HTML结构清晰、CSS规范、JavaScript健壮",
+          "学科适配性：针对不同学科生成特定内容和交互",
+          "安全性：通过XSS扫描，无安全漏洞",
+          "性能：HTML文件大小合理，加载和渲染速度快",
+          "教师反馈：获得教师的正面评价，认为课件有助于教学"
+        ],
+        "model_requirements": {
+          "model_name": "global.anthropic.claude-sonnet-4-5-20250929-v1:0",
+          "minimum_capabilities": [
+            "理解多学科教学内容和知识点",
+            "生成结构化的HTML代码",
+            "生成功能完整的JavaScript交互代码",
+            "理解教学设计理论，设计合理的内容结构",
+            "生成符合教育规范的教学内容"
+          ],
+          "rationale": "课件生成Agent是系统的核心，需要强大的内容生成能力和代码生成能力。Claude Sonnet 4.5在教育内容生成和代码生成方面表现优异，适合本任务。"
+        },
+        "memory_configuration": {
+          "memory_type": "学科模板库 + 短期上下文记忆",
+          "retention_policy": "学科模板持久化存储，会话期间保留上下文，会话结束后清理。",
+          "retrieval_strategy": "根据学科类型检索对应的模板，从上下文中获取主题和详细要求。"
+        }
+      },
+      {
+        "agent_id": "lesson_plan_generator_agent",
+        "name": "教案生成Agent",
+        "role": "教学设计和教案文档生成专家",
+        "purpose": "根据学科和主题生成完整的教学教案，包含教学目标、教学重点难点、教学步骤、教学方法、板书设计、作业布置和教学反思。确保教案与课件内容一致，符合教育行业规范。",
+        "personality": {
+          "traits": [
+            "教育专业：深刻理解教学设计理论和教学法",
+            "结构清晰：教案结构完整、逻辑清晰、层次分明",
+            "实用导向：提供可操作的教学步骤和时间分配",
+            "反思意识：提供教学反思建议，促进教师专业发展",
+            "学生中心：关注学生学习体验和能力培养"
+          ],
+          "communication_style": "专业、详细、系统化。使用教育术语，符合教案编写规范，便于教师理解和使用。",
+          "tone": "专业、建设性、启发式。不仅提供教学步骤，还提供教学建议和反思问题，帮助教师提升教学质量。"
+        },
+        "capabilities": {
+          "core_functions": [
+            "生成教学目标（知识、能力、情感三维目标）",
+            "分析教学重点和难点",
+            "设计教学步骤（导入、讲授、练习、小结）",
+            "推荐教学方法和教学手段",
+            "设计板书结构",
+            "布置作业和练习题",
+            "提供教学反思建议",
+            "生成时间分配建议",
+            "生成Markdown或HTML格式的教案文档",
+            "确保教案与课件内容一致"
+          ],
+          "specialized_skills": [
+            "教学设计理论应用（ADDIE模型、布鲁姆分类法）",
+            "教学目标分类和表述",
+            "教学重难点分析",
+            "教学方法选择和组合",
+            "课堂活动设计",
+            "时间管理和节奏控制",
+            "评估和反馈设计",
+            "Markdown文档格式化",
+            "HTML文档生成",
+            "教案模板选择和定制"
+          ],
+          "limitations": [
+            "不生成课件内容，专注于教案生成",
+            "不直接存储文件，返回教案内容字符串",
+            "不提供实时课堂管理建议",
+            "不支持个性化学生评估",
+            "不包含多媒体资源（视频、音频）的使用建议",
+            "不支持跨课时的教学计划设计",
+            "教案长度限制为10000字"
+          ],
+          "tools_required": [
+            "teaching_objective_generator (教学目标生成工具)",
+            "teaching_method_recommender (教学方法推荐工具)",
+            "teaching_step_designer (教学步骤设计工具)",
+            "time_allocation_calculator (时间分配计算工具)",
+            "blackboard_design_generator (板书设计生成工具)",
+            "homework_assignment_generator (作业布置生成工具)",
+            "reflection_question_generator (反思问题生成工具)",
+            "markdown_formatter (Markdown格式化工具)",
+            "lesson_plan_template_selector (教案模板选择工具)",
+            "content_consistency_checker (内容一致性检查工具)"
+          ]
+        },
+        "knowledge_domain": {
+          "primary_domains": [
+            "教学设计理论和教学法",
+            "多学科教学内容和大纲",
+            "课堂管理和教学组织",
+            "教学评估和反馈",
+            "教师专业发展",
+            "教育心理学",
+            "学习理论（建构主义、认知主义等）",
+            "教案编写规范"
+          ],
+          "expertise_level": "专家级 - 精通教学设计、教学法、课堂组织和教案编写",
+          "knowledge_sources": [
+            "教学设计理论（ADDIE、布鲁姆分类法、加涅九事件）",
+            "多学科教学大纲和课程标准",
+            "教案编写规范和示例",
+            "教育心理学理论",
+            "学习理论和教学法",
+            "教师培训材料",
+            "优秀教案案例库",
+            "教育研究文献"
+          ],
+          "update_frequency": "定期更新 - 根据教师反馈、教学效果数据、新的教学理论持续优化教案生成策略和模板"
+        },
+        "interaction_patterns": {
+          "communication_style": "任务接收-教学设计-教案生成-结果返回模式",
+          "conversation_flow": "1. 接收教案生成请求（学科、主题、课件内容摘要） -> 2. 分析学科特点和教学目标 -> 3. 设计教学步骤和方法 -> 4. 生成教学重难点分析 -> 5. 设计板书和作业 -> 6. 生成教学反思建议 -> 7. 整合内容，格式化为Markdown或HTML -> 8. 返回教案内容和元数据。",
+          "error_responses": [
+            "学科不支持：返回支持的学科列表，建议使用通用教案模板",
+            "主题信息不足：返回补充信息建议，或生成基础教案",
+            "教案生成失败：返回错误信息，建议检查输入参数",
+            "内容一致性检查失败：返回不一致的地方，建议调整"
+          ]
+        },
+        "constraints": [
+          "教案必须包含所有必需模块（目标、重难点、步骤、方法、板书、作业、反思）",
+          "教学目标必须包含知识、能力、情感三维目标",
+          "教学步骤必须详细，包含每个环节的时间分配",
+          "教案内容必须与课件内容一致",
+          "教案格式必须符合教育行业规范",
+          "教案长度必须控制在10000字以内",
+          "生成时间必须控制在30秒以内",
+          "必须生成教案元数据（标题、课时、目标年级）",
+          "支持Markdown和HTML两种格式输出",
+          "时间分配必须合理（总计45分钟）"
+        ],
+        "evaluation_criteria": [
+          "内容完整性：教案包含所有必需模块，结构完整",
+          "教学设计合理性：教学目标明确、步骤清晰、方法适当",
+          "内容一致性：教案与课件内容一致，相互呼应",
+          "实用性：教学步骤可操作，时间分配合理",
+          "专业性：符合教学设计理论和教案编写规范",
+          "反思深度：提供有价值的反思问题和改进建议",
+          "格式规范：Markdown或HTML格式正确，易于阅读",
+          "教师反馈：获得教师的正面评价，认为教案有助于备课"
+        ],
+        "model_requirements": {
+          "model_name": "global.anthropic.claude-sonnet-4-5-20250929-v1:0",
+          "minimum_capabilities": [
+            "理解多学科教学内容和教学目标",
+            "应用教学设计理论设计教学步骤",
+            "生成符合教育规范的教案文档",
+            "分析教学重难点，提供教学建议",
+            "生成结构化的Markdown或HTML文档"
+          ],
+          "rationale": "教案生成Agent需要深刻的教育专业知识和教学设计能力。Claude Sonnet 4.5在教育内容理解和文档生成方面表现优异，适合本任务。"
+        },
+        "memory_configuration": {
+          "memory_type": "教案模板库 + 短期上下文记忆",
+          "retention_policy": "教案模板持久化存储，会话期间保留上下文，会话结束后清理。",
+          "retrieval_strategy": "根据学科类型检索对应的教案模板，从上下文中获取主题和课件内容摘要。"
+        }
+      },
+      {
+        "agent_id": "file_manager_agent",
+        "name": "文件管理Agent",
+        "role": "文件系统操作和元数据管理专家",
+        "purpose": "根据学科和主题创建文件夹结构，存储HTML课件和教案文档，生成元数据文件，维护课件列表索引，生成访问URL。确保文件组织清晰、命名规范、元数据完整。",
+        "personality": {
+          "traits": [
+            "组织有序：文件夹结构清晰，命名规范，易于管理",
+            "细致严谨：元数据完整准确，文件路径正确无误",
+            "安全意识：路径检查严格，防止目录遍历攻击",
+            "高效可靠：文件操作快速，原子性写入，避免损坏",
+            "主动维护：自动处理冲突，维护全局索引，便于检索"
+          ],
+          "communication_style": "简洁、明确、结构化。返回清晰的文件路径和URL，错误信息具体明确。",
+          "tone": "专业、可靠、有条理。确保文件操作成功，提供准确的访问路径。"
+        },
+        "capabilities": {
+          "core_functions": [
+            "根据学科和主题创建文件夹结构",
+            "存储HTML课件文件（index.html）",
+            "存储教案文档文件（lesson_plan.md或lesson_plan.html）",
+            "生成元数据文件（metadata.json）",
+            "处理文件名冲突（添加时间戳或序号）",
+            "生成访问URL（课件URL和教案URL）",
+            "维护全局课件列表索引（/courseware/index.json）",
+            "提供课件列表查询功能",
+            "提供课件详情查询功能",
+            "实现原子性文件写入"
+          ],
+          "specialized_skills": [
+            "跨平台路径处理（pathlib）",
+            "文件名清洗和规范化",
+            "冲突检测和解决",
+            "JSON序列化和反序列化",
+            "文件系统权限检查",
+            "路径安全验证（防止目录遍历）",
+            "原子性文件写入（临时文件+重命名）",
+            "索引维护和更新",
+            "URL生成和编码",
+            "元数据schema验证"
+          ],
+          "limitations": [
+            "不生成课件或教案内容，只负责存储",
+            "不提供文件编辑功能",
+            "不支持版本控制",
+            "不支持分布式文件系统",
+            "存储容量受限于本地磁盘",
+            "不支持文件加密",
+            "不支持多实例间的文件同步",
+            "不提供文件搜索功能（仅支持列表和详情查询）"
+          ],
+          "tools_required": [
+            "pathlib (路径处理)",
+            "os (文件系统操作)",
+            "json (JSON序列化)",
+            "shutil (文件复制和移动)",
+            "datetime (时间戳生成)",
+            "uuid (唯一ID生成)",
+            "re (正则表达式，用于文件名清洗)",
+            "urllib.parse (URL编码)"
+          ]
+        },
+        "knowledge_domain": {
+          "primary_domains": [
+            "文件系统操作和管理",
+            "路径处理和URL生成",
+            "JSON数据格式和schema",
+            "文件命名规范",
+            "元数据设计",
+            "索引维护和查询",
+            "文件系统安全",
+            "原子性操作和并发控制"
+          ],
+          "expertise_level": "专家级 - 精通文件系统操作、路径处理、元数据管理和文件安全",
+          "knowledge_sources": [
+            "Python pathlib官方文档",
+            "文件系统安全最佳实践",
+            "JSON schema规范",
+            "文件命名规范",
+            "原子性操作设计模式",
+            "索引设计和维护策略",
+            "URL编码规范"
+          ],
+          "update_frequency": "实时更新 - 根据文件操作结果、错误日志持续优化文件管理策略"
+        },
+        "interaction_patterns": {
+          "communication_style": "任务接收-文件操作-结果返回模式",
+          "conversation_flow": "1. 接收文件存储请求（学科、主题、课件内容、教案内容） -> 2. 创建文件夹结构 -> 3. 清洗文件名，检测冲突 -> 4. 原子性写入课件和教案文件 -> 5. 生成元数据文件 -> 6. 更新全局索引 -> 7. 生成访问URL -> 8. 返回存储结果。",
+          "error_responses": [
+            "磁盘空间不足：返回507错误，提示管理员清理空间",
+            "文件写入失败：返回500错误，包含详细的文件系统错误信息",
+            "路径不安全：返回403错误，拒绝访问",
+            "文件名无效：返回400错误，提示正确的命名规范",
+            "索引更新失败：记录警告日志，但不影响文件存储"
+          ]
+        },
+        "constraints": [
+          "文件夹结构必须为/courseware/{subject}/{topic}/",
+          "课件文件名必须为index.html",
+          "教案文件名必须为lesson_plan.md或lesson_plan.html",
+          "元数据文件名必须为metadata.json",
+          "文件名必须清洗，去除特殊字符，使用下划线分隔",
+          "主题名称过长时必须截断为前50个字符",
+          "文件名冲突时必须添加时间戳后缀",
+          "路径必须进行安全检查，限制在courseware目录内",
+          "文件写入必须使用原子性操作",
+          "全局索引必须在文件存储后立即更新"
+        ],
+        "evaluation_criteria": [
+          "文件组织清晰性：文件夹结构清晰，命名规范，易于管理",
+          "元数据完整性：metadata.json包含所有必需字段，格式正确",
+          "路径安全性：通过路径安全检查，无安全漏洞",
+          "操作可靠性：文件写入成功率高，原子性操作避免损坏",
+          "冲突处理：文件名冲突正确处理，不覆盖已有文件",
+          "索引准确性：全局索引准确反映文件系统状态",
+          "URL正确性：生成的URL可访问，指向正确的文件",
+          "性能：文件操作快速，延迟低"
+        ],
+        "model_requirements": {
+          "model_name": "global.anthropic.claude-sonnet-4-5-20250929-v1:0",
+          "minimum_capabilities": [
+            "理解文件存储请求的参数和意图",
+            "生成规范的文件名和路径",
+            "构建完整的元数据JSON",
+            "生成清晰的错误信息和建议"
+          ],
+          "rationale": "文件管理Agent主要负责文件系统操作，对模型的要求相对较低。Claude Sonnet 4.5提供足够的理解和生成能力，适合本任务。"
+        },
+        "memory_configuration": {
+          "memory_type": "全局索引文件 + 短期上下文记忆",
+          "retention_policy": "全局索引持久化存储，会话期间保留上下文，会话结束后清理。",
+          "retrieval_strategy": "从全局索引文件中检索课件列表，从上下文中获取存储请求信息。"
+        }
+      }
+    ],
+    "agent_relationships": [
+      {
+        "source_agent": "coordinator_agent",
+        "target_agent": "courseware_generator_agent",
+        "relationship_type": "任务委托",
+        "interaction_protocol": "主控Agent通过Swarm框架调用课件生成Agent，传递课件生成请求（学科、主题、详细要求、共享上下文），接收HTML内容和元数据。使用asyncio实现异步调用，支持并行处理。",
+        "data_exchange": [
+          "请求：{subject: string, topic: string, requirements: string, context: object}",
+          "响应：{html_content: string, metadata: {title: string, subject: string, topic: string, interactive_elements: array}}"
+        ]
+      },
+      {
+        "source_agent": "coordinator_agent",
+        "target_agent": "lesson_plan_generator_agent",
+        "relationship_type": "任务委托",
+        "interaction_protocol": "主控Agent通过Swarm框架调用教案生成Agent，传递教案生成请求（学科、主题、课件内容摘要、共享上下文），接收教案内容和元数据。使用asyncio实现异步调用，支持并行处理。",
+        "data_exchange": [
+          "请求：{subject: string, topic: string, courseware_content_summary: string, context: object}",
+          "响应：{lesson_plan_content: string, format: string, metadata: {title: string, duration: int, target_grade: string}}"
+        ]
+      },
+      {
+        "source_agent": "coordinator_agent",
+        "target_agent": "file_manager_agent",
+        "relationship_type": "任务委托",
+        "interaction_protocol": "主控Agent通过Swarm框架调用文件管理Agent，传递文件存储请求（学科、主题、课件内容、教案内容、元数据），接收存储结果（文件路径、访问URL）。串行调用，在课件和教案生成完成后执行。",
+        "data_exchange": [
+          "请求：{subject: string, topic: string, courseware_content: string, lesson_plan_content: string, metadata: object}",
+          "响应：{success: boolean, courseware_path: string, lesson_plan_path: string, courseware_url: string, lesson_plan_url: string, metadata_path: string}"
+        ]
+      },
+      {
+        "source_agent": "courseware_generator_agent",
+        "target_agent": "lesson_plan_generator_agent",
+        "relationship_type": "上下文共享",
+        "interaction_protocol": "通过Swarm框架的上下文共享机制，课件生成Agent和教案生成Agent共享学科、主题、详细要求等信息，确保内容一致性。不直接通信，通过主控Agent协调。",
+        "data_exchange": [
+          "共享上下文：{subject: string, topic: string, requirements: string, target_grade: string, duration: int}"
+        ]
+      }
+    ],
+    "system_integration": {
+      "entry_point": "主控Agent的FastAPI服务，监听HTTP请求（POST /api/generate、GET /api/courseware/list、GET /api/courseware/{id}、GET /health）。AgentCore部署时，通过@app.entrypoint装饰的handler函数接收请求。",
+      "exit_points": [
+        "HTTP响应：返回课件生成结果（CoursewareGenerationResult）",
+        "静态文件服务：教师通过浏览器访问课件URL，获取HTML文件",
+        "日志输出：记录到日志文件或日志聚合系统",
+        "遥测数据：通过OpenTelemetry发送到监控系统"
+      ],
+      "external_interfaces": [
+        "AWS Bedrock Claude模型API：所有Agent调用Claude进行内容生成",
+        "文件系统：文件管理Agent读写本地文件系统",
+        "FastAPI静态文件服务：提供课件和教案的HTTP访问",
+        "OpenTelemetry Collector：接收遥测数据，用于监控和追踪",
+        "环境变量：读取配置信息（AWS凭证、模型ID、服务端口等）"
+      ]
+    }
+  }
+}

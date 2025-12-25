@@ -1,0 +1,13 @@
+./nexus_utils
+strands-agents
+strands-agents-tools
+PyYAML
+bedrock-agentcore
+pyyaml
+boto3
+botocore
+fastapi
+uvicorn
+pydantic
+python-multipart
+aiofiles

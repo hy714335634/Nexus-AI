@@ -156,7 +156,6 @@ agent:
           - "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
         tools_dependencies:
           - "strands_tools/file_read"
-          - "strands_tools/file_write"
           - "strands_tools/current_time"
           - "generated_tools/stock_analysis_agent/report_generation_tools/generate_executive_summary"
           - "generated_tools/stock_analysis_agent/report_generation_tools/generate_financial_analysis_report"

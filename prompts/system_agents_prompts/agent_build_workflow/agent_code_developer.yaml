@@ -170,6 +170,7 @@ agent:
 
                  parser = argparse.ArgumentParser(description='Agent')
                  parser.add_argument('-i', '--input', type=str, default=None, help='测试输入')
+                 parser.add_argument('-it', '--interactive', action='store_true', default=False, help='启动交互式多轮对话模式')
                  args = parser.parse_args()
 
                  # 检查是否在 Docker 容器中运行（AgentCore 部署）
@@ -183,8 +184,17 @@ agent:
                      # 本地测试模式
                      print(f"✅ Agent创建成功: {my_agent.name}")
                      print(f"📝 输入: {args.input}")
+                     print(f"📋 响应: ")
                      result = my_agent(args.input)
-                     print(f"📋 响应: {result}")
+                 elif args.interactive:
+                     # 交互式对话模式
+                     print(f"✅ Agent创建成功: {my_agent.name}")
+                     print("进入交互式对话模式（输入 'quit' 或 'exit' 退出）")
+                     while True:
+                         user_input = input("You: ")
+                         result = my_agent(user_input)
+                         if user_input.lower() in ['quit', 'exit']:
+                             break
                  else:
                      # 默认启动服务器
                      print("🚀 启动 AgentCore HTTP 服务器，端口: 8080")

@@ -163,7 +163,6 @@ agent:
         tools_dependencies:
           - "strands_tools/http_request"
           - "strands_tools/file_read"
-          - "strands_tools/file_write"
           - "strands_tools/current_time"
           - "generated_tools/stock_analysis_agent/financial_data_fetcher/fetch_company_overview"
           - "generated_tools/stock_analysis_agent/financial_data_fetcher/fetch_financial_statements"

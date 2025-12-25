@@ -119,7 +119,6 @@ agent:
         tools_dependencies:
           - "strands_tools/calculator"
           - "strands_tools/file_read"
-          - "strands_tools/file_write"
           - "strands_tools/current_time"
           - "generated_tools/stock_analysis_agent/financial_analysis_tools/analyze_growth"
           - "generated_tools/stock_analysis_agent/financial_analysis_tools/analyze_profitability"

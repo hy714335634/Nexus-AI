@@ -88,48 +88,6 @@ class StockAnalysisSystem:
             )
             logger.info("✅ CoordinatorAgent创建成功")
             
-            # 2. 数据采集Agent
-            self.data_collector_agent = create_agent_from_prompt_template(
-                agent_name="generated_agents_prompts/stock_analysis_agent/data_collector_agent",
-                **self.agent_params
-            )
-            logger.info("✅ DataCollectorAgent创建成功")
-            
-            # 3. 估值Agent
-            self.valuation_agent = create_agent_from_prompt_template(
-                agent_name="generated_agents_prompts/stock_analysis_agent/valuation_agent",
-                **self.agent_params
-            )
-            logger.info("✅ ValuationAgent创建成功")
-            
-            # 4. 预测Agent
-            self.prediction_agent = create_agent_from_prompt_template(
-                agent_name="generated_agents_prompts/stock_analysis_agent/prediction_agent",
-                **self.agent_params
-            )
-            logger.info("✅ PredictionAgent创建成功")
-            
-            # 5. 风险评估Agent
-            self.risk_assessment_agent = create_agent_from_prompt_template(
-                agent_name="generated_agents_prompts/stock_analysis_agent/risk_assessment_agent",
-                **self.agent_params
-            )
-            logger.info("✅ RiskAssessmentAgent创建成功")
-            
-            # 6. 对比分析Agent
-            self.benchmark_agent = create_agent_from_prompt_template(
-                agent_name="generated_agents_prompts/stock_analysis_agent/benchmark_agent",
-                **self.agent_params
-            )
-            logger.info("✅ BenchmarkAgent创建成功")
-            
-            # 7. 报告生成Agent
-            self.report_generator_agent = create_agent_from_prompt_template(
-                agent_name="generated_agents_prompts/stock_analysis_agent/report_generator_agent",
-                **self.agent_params
-            )
-            logger.info("✅ ReportGeneratorAgent创建成功")
-            
         except Exception as e:
             logger.error(f"❌ Agent初始化失败: {str(e)}")
             raise RuntimeError(f"Agent初始化失败: {str(e)}")
@@ -253,13 +211,7 @@ class StockAnalysisSystem:
         return {
             "status": "healthy",
             "agents": {
-                "coordinator": "ready" if self.coordinator_agent else "not_ready",
-                "data_collector": "ready" if self.data_collector_agent else "not_ready",
-                "valuation": "ready" if self.valuation_agent else "not_ready",
-                "prediction": "ready" if self.prediction_agent else "not_ready",
-                "risk_assessment": "ready" if self.risk_assessment_agent else "not_ready",
-                "benchmark": "ready" if self.benchmark_agent else "not_ready",
-                "report_generator": "ready" if self.report_generator_agent else "not_ready"
+                "coordinator": "ready" if self.coordinator_agent else "not_ready"
             },
             "environment": self.env,
             "version": self.version,

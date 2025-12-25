@@ -1,0 +1,480 @@
+{
+  "system_design": {
+    "design_overview": {
+      "project_name": "html_courseware_generator",
+      "version": "1.0",
+      "date": "2025-12-25",
+      "design_scope": "设计一个智能HTML课件与教案生成系统，支持多学科动态交互课件生成、教案自动生成、FastAPI Web服务集成，以及基于主题的文件管理和自动reload机制。系统采用多Agent协作架构，包含主控Agent、课件生成Agent、教案生成Agent和文件管理Agent，通过Swarm框架进行编排和协调。",
+      "design_principles": [
+        "模块化设计：每个Agent职责单一，接口清晰，便于维护和扩展",
+        "可扩展性：支持未来增加新的学科、新的交互类型、新的功能模块",
+        "容错性：具备完善的错误处理和降级方案，确保单个Agent失败不影响整体系统",
+        "可观测性：全流程日志记录，支持监控、调试和性能分析",
+        "安全性：输入验证、路径检查、XSS防护，遵循安全最佳实践",
+        "高性能：异步处理、并行生成、缓存机制，确保响应时间满足要求",
+        "用户友好：清晰的API接口、详细的错误信息、良好的文档支持"
+      ],
+      "key_decisions": [
+        "采用Swarm框架进行多Agent编排，而非自定义协调机制，降低开发复杂度",
+        "课件生成和教案生成并行执行，而非串行，提高生成效率",
+        "使用FastAPI作为Web服务框架，支持异步处理和高并发",
+        "采用文件系统存储课件和教案，而非数据库，简化架构并支持静态文件服务",
+        "生成的HTML课件采用自包含设计，所有资源内联，支持离线使用",
+        "使用Claude Sonnet 4.5模型，平衡生成质量和成本",
+        "遵守AgentCore部署规范，支持流式响应和Docker容器化部署",
+        "基于技术文档多Agent系统模板进行定制，而非从零开发，加快开发进度"
+      ],
+      "workflow_type": "multi_agent",
+      "recommended_templates": [
+        "tech_doc_multi_agent_system (评分: 82/100) - 主要参考模板，提供多Agent协作框架和HTML生成能力",
+        "content_generator_agent (评分: 75/100) - 备选方案，提供内容生成和模板管理能力",
+        "stock_analysis_agent (评分: 68/100) - 架构参考，学习多Agent协调和流程管理机制"
+      ]
+    },
+    "architecture": {
+      "system_context": "系统部署在本地或云端服务器，通过FastAPI提供RESTful API接口。教师通过Web前端或API客户端提交课件生成请求，系统内部由主控Agent协调课件生成Agent和教案生成Agent并行工作，生成的HTML课件和教案文档按学科和主题分类存储在文件系统中。FastAPI静态文件服务允许教师通过浏览器直接访问和预览生成的课件。系统集成AWS Bedrock Claude模型进行内容生成，使用Strands SDK构建Agent系统，支持Docker容器化部署到AgentCore环境。",
+      "agent_topology": "主从式多Agent拓扑结构，包含1个主控Agent和3个专业Agent：\n1. 主控Agent (Coordinator Agent) - 接收请求、任务分发、结果整合、FastAPI服务管理\n2. 课件生成Agent (Courseware Generator Agent) - HTML结构生成、JavaScript交互代码生成、样式设计\n3. 教案生成Agent (Lesson Plan Generator Agent) - 教学目标设计、教学步骤规划、教案文档生成\n4. 文件管理Agent (File Manager Agent) - 文件夹创建、文件存储、元数据管理、路径生成\n\nAgent之间通过Swarm框架进行消息传递和任务切换，支持上下文共享和状态传递。",
+      "interaction_model": "主控Agent采用请求-响应模式与外部交互，内部采用任务委托模式与专业Agent协作。具体流程：\n1. 教师通过API提交课件生成请求（学科、主题、详细要求）\n2. 主控Agent接收请求并进行参数验证和预处理\n3. 主控Agent并行委托任务：课件生成Agent生成HTML课件，教案生成Agent生成教案文档\n4. 课件生成Agent和教案生成Agent独立工作，通过共享上下文保持一致性\n5. 文件管理Agent接收生成结果，创建文件夹、存储文件、生成元数据\n6. 主控Agent整合结果，生成访问URL，返回给教师\n7. 教师通过静态文件服务访问和预览课件\n\n错误处理：任何Agent失败时，主控Agent记录错误并返回详细错误信息，支持部分成功场景（如课件生成成功但教案生成失败）。",
+      "technology_stack": {
+        "sdk": "Strands SDK",
+        "runtime": "Local / Docker / AgentCore",
+        "integrations": [
+          "AWS Bedrock (Claude Sonnet 4.5模型)",
+          "FastAPI (Web服务框架)",
+          "Uvicorn (ASGI服务器)",
+          "Swarm (多Agent编排框架)",
+          "Python标准库 (文件操作、JSON处理)",
+          "nexus_utils (Agent工厂、配置加载)",
+          "boto3 (AWS SDK，用于Bedrock集成)"
+        ]
+      }
+    },
+    "agents": [
+      {
+        "name": "coordinator_agent",
+        "purpose": "主控Agent，负责接收请求、任务分发、结果整合、FastAPI服务管理",
+        "responsibilities": [
+          "接收和验证课件生成请求（学科、主题、详细要求）",
+          "任务分发：并行调用课件生成Agent和教案生成Agent",
+          "结果整合：收集课件和教案生成结果，调用文件管理Agent存储",
+          "FastAPI服务管理：启动Web服务、注册API端点、挂载静态文件目录",
+          "错误处理：捕获和处理Agent执行异常，返回详细错误信息",
+          "日志记录：记录请求日志、执行日志、性能指标",
+          "流式响应：支持AgentCore流式响应模式，逐步返回生成进度"
+        ],
+        "interfaces": {
+          "inputs": [
+            "POST /api/generate - 课件生成请求 {subject: string, topic: string, requirements: string, options: object}",
+            "GET /api/courseware/list - 课件列表请求 {subject?: string, limit?: int, offset?: int}",
+            "GET /api/courseware/{id} - 课件详情请求",
+            "GET /health - 健康检查请求"
+          ],
+          "outputs": [
+            "课件生成响应 {status: string, courseware_url: string, lesson_plan_url: string, metadata: object, message: string}",
+            "课件列表响应 {total: int, items: array, page_info: object}",
+            "课件详情响应 {id: string, subject: string, topic: string, created_at: string, files: array}",
+            "健康检查响应 {status: string, version: string, uptime: int}",
+            "错误响应 {error: string, details: string, code: int}"
+          ]
+        },
+        "dependencies": [
+          "courseware_generator_agent (课件生成Agent)",
+          "lesson_plan_generator_agent (教案生成Agent)",
+          "file_manager_agent (文件管理Agent)",
+          "FastAPI框架",
+          "Swarm编排框架"
+        ],
+        "implementation_notes": [
+          "使用FastAPI的BackgroundTasks实现异步任务处理",
+          "使用Swarm的run()方法进行Agent切换和任务委托",
+          "实现@app.entrypoint装饰的handler函数，支持AgentCore部署",
+          "使用asyncio.gather()并行执行课件和教案生成任务",
+          "实现超时控制机制（60秒），防止长时间阻塞",
+          "使用nexus_utils.agent_factory.create_agent_from_prompt_template创建Agent实例",
+          "集成StrandsTelemetry进行遥测和监控"
+        ],
+        "recommended_template": "tech_doc_multi_agent_system - 参考其主控Agent的实现和Swarm编排逻辑"
+      },
+      {
+        "name": "courseware_generator_agent",
+        "purpose": "课件生成Agent，专注于HTML课件生成，包含动态交互JavaScript代码",
+        "responsibilities": [
+          "根据学科和主题生成HTML课件结构（header、main、footer）",
+          "生成响应式CSS样式，支持不同屏幕尺寸",
+          "生成JavaScript交互代码（选择题、输入题、图表展示等）",
+          "学科特定内容生成：数学公式渲染（MathJax）、化学方程式、物理图表等",
+          "内容模块生成：课程标题、学习目标、知识点讲解、示例演示、练习题",
+          "代码安全性验证：防止XSS攻击，确保JavaScript代码安全",
+          "HTML自包含设计：所有CSS和JavaScript内联，支持离线使用"
+        ],
+        "interfaces": {
+          "inputs": [
+            "课件生成请求 {subject: string, topic: string, requirements: string, context: object}"
+          ],
+          "outputs": [
+            "HTML课件内容 {html_content: string, metadata: {title: string, subject: string, topic: string, interactive_elements: array}}"
+          ]
+        },
+        "dependencies": [
+          "Claude Sonnet 4.5模型 (内容生成)",
+          "HTML生成工具 (结构生成)",
+          "JavaScript代码生成工具 (交互逻辑)",
+          "学科模板库 (学科特定内容)"
+        ],
+        "implementation_notes": [
+          "使用结构化提示词，明确HTML结构要求和交互功能规范",
+          "实现学科检测逻辑，根据学科选择不同的内容模板和生成策略",
+          "数学学科：集成MathJax CDN或内联LaTeX渲染库",
+          "化学学科：使用HTML5 Canvas或SVG绘制分子结构",
+          "物理学科：集成图表库（如Chart.js）进行数据可视化",
+          "实现代码验证工具：检查JavaScript语法、检测潜在的XSS风险",
+          "使用模板变量替换技术，确保内容一致性和可维护性",
+          "支持流式生成，逐步返回HTML内容片段"
+        ],
+        "recommended_template": "tech_doc_multi_agent_system - 参考其文档编写Agent的内容生成和HTML转换能力"
+      },
+      {
+        "name": "lesson_plan_generator_agent",
+        "purpose": "教案生成Agent，专注于教学设计和教案文档生成",
+        "responsibilities": [
+          "生成教学目标（知识目标、能力目标、情感目标）",
+          "设计教学步骤（导入、新课讲授、巩固练习、课堂小结）",
+          "分析教学重点和难点",
+          "推荐教学方法和教学手段",
+          "设计板书结构",
+          "布置作业和练习题",
+          "提供教学反思建议",
+          "生成Markdown或HTML格式的教案文档"
+        ],
+        "interfaces": {
+          "inputs": [
+            "教案生成请求 {subject: string, topic: string, courseware_content_summary: string, context: object}"
+          ],
+          "outputs": [
+            "教案文档内容 {lesson_plan_content: string, format: string, metadata: {title: string, duration: int, target_grade: string}}"
+          ]
+        },
+        "dependencies": [
+          "Claude Sonnet 4.5模型 (教学设计)",
+          "教案模板库 (标准教案结构)",
+          "教学法知识库 (教学理论和方法)",
+          "课件内容摘要 (确保教案与课件一致)"
+        ],
+        "implementation_notes": [
+          "使用教学设计理论（如ADDIE模型、布鲁姆分类法）指导教案生成",
+          "实现教案模板系统，支持不同学科和年级的教案格式",
+          "根据课件内容自动提取知识点，确保教案与课件一致",
+          "生成时间分配建议：导入5分钟、讲授25分钟、练习10分钟、小结5分钟",
+          "支持Markdown格式输出，便于教师编辑和打印",
+          "支持HTML格式输出，与课件保持一致的视觉风格",
+          "实现教案质量检查：检查是否包含所有必需模块，检查逻辑一致性"
+        ],
+        "recommended_template": "content_generator_agent - 参考其内容生成和模板管理能力，定制为教案生成专用Agent"
+      },
+      {
+        "name": "file_manager_agent",
+        "purpose": "文件管理Agent，负责文件夹创建、文件存储、元数据管理",
+        "responsibilities": [
+          "根据学科和主题创建文件夹结构 (/courseware/{subject}/{topic}/)",
+          "存储HTML课件文件 (index.html)",
+          "存储教案文档文件 (lesson_plan.md 或 lesson_plan.html)",
+          "生成元数据文件 (metadata.json)，记录课件信息",
+          "处理文件名冲突：添加时间戳或序号",
+          "生成访问URL：返回课件和教案的Web访问路径",
+          "维护课件列表索引：支持快速查询和检索"
+        ],
+        "interfaces": {
+          "inputs": [
+            "文件存储请求 {subject: string, topic: string, courseware_content: string, lesson_plan_content: string, metadata: object}"
+          ],
+          "outputs": [
+            "存储结果 {success: boolean, courseware_path: string, lesson_plan_path: string, courseware_url: string, lesson_plan_url: string, metadata_path: string}"
+          ]
+        },
+        "dependencies": [
+          "Python标准库 (os, pathlib, shutil)",
+          "JSON序列化库 (json)",
+          "文件系统访问权限"
+        ],
+        "implementation_notes": [
+          "使用pathlib进行跨平台路径处理",
+          "实现文件名清洗函数：去除特殊字符、限制长度、使用下划线分隔",
+          "实现冲突检测：检查文件是否存在，存在则添加时间戳后缀",
+          "元数据格式：{id: string, subject: string, topic: string, created_at: timestamp, files: {courseware: string, lesson_plan: string}, metadata: object}",
+          "维护全局索引文件：/courseware/index.json，记录所有课件信息",
+          "实现原子性写入：先写入临时文件，成功后重命名，避免写入中断导致文件损坏",
+          "实现路径安全检查：防止目录遍历攻击，限制访问范围在courseware目录内"
+        ],
+        "recommended_template": "无直接对应模板，基于Python标准库实现，参考tech_doc_multi_agent_system的文件操作工具"
+      }
+    ],
+    "data_models": [
+      {
+        "name": "CoursewareGenerationRequest",
+        "schema": "{\n  \"subject\": \"string (required) - 学科类型，如'数学'、'化学'、'物理'\",\n  \"topic\": \"string (required) - 课件主题，如'二次函数'、'氧化还原反应'\",\n  \"requirements\": \"string (optional) - 详细要求，如'适合高中一年级'、'包含5道练习题'\",\n  \"options\": {\n    \"target_grade\": \"string (optional) - 目标年级，如'高中一年级'\",\n    \"duration\": \"int (optional) - 课时长度（分钟），默认45\",\n    \"interactive_level\": \"string (optional) - 交互程度，'low'|'medium'|'high'，默认'medium'\",\n    \"include_exercises\": \"boolean (optional) - 是否包含练习题，默认true\",\n    \"exercise_count\": \"int (optional) - 练习题数量，默认5\"\n  }\n}",
+        "validation_rules": [
+          "subject字段必填，长度1-50字符",
+          "topic字段必填，长度1-200字符",
+          "requirements字段可选，最大长度1000字符",
+          "target_grade必须为有效的年级值（小学、初中、高中）",
+          "duration必须在10-120分钟之间",
+          "interactive_level必须为'low'、'medium'或'high'之一",
+          "exercise_count必须在1-20之间"
+        ],
+        "relationships": [
+          "生成CoursewareGenerationResult",
+          "关联LessonPlanGenerationRequest（共享subject和topic）"
+        ]
+      },
+      {
+        "name": "CoursewareGenerationResult",
+        "schema": "{\n  \"status\": \"string (required) - 生成状态，'success'|'partial'|'failed'\",\n  \"courseware_url\": \"string (optional) - 课件访问URL\",\n  \"lesson_plan_url\": \"string (optional) - 教案访问URL\",\n  \"metadata\": {\n    \"id\": \"string - 课件唯一标识\",\n    \"subject\": \"string - 学科\",\n    \"topic\": \"string - 主题\",\n    \"created_at\": \"string (ISO 8601) - 创建时间\",\n    \"file_size\": {\n      \"courseware\": \"int - 课件文件大小（字节）\",\n      \"lesson_plan\": \"int - 教案文件大小（字节）\"\n    },\n    \"interactive_elements\": \"array - 交互元素列表\"\n  },\n  \"message\": \"string - 结果消息\",\n  \"error\": \"string (optional) - 错误信息\"\n}",
+        "validation_rules": [
+          "status必须为'success'、'partial'或'failed'之一",
+          "成功时courseware_url和lesson_plan_url必须存在",
+          "失败时error字段必须存在",
+          "metadata.id必须唯一",
+          "created_at必须为有效的ISO 8601格式时间戳"
+        ],
+        "relationships": [
+          "由CoursewareGenerationRequest生成",
+          "关联CoursewareMetadata（存储在文件系统）"
+        ]
+      },
+      {
+        "name": "CoursewareMetadata",
+        "schema": "{\n  \"id\": \"string (required) - 课件唯一标识\",\n  \"subject\": \"string (required) - 学科\",\n  \"topic\": \"string (required) - 主题\",\n  \"created_at\": \"string (required, ISO 8601) - 创建时间\",\n  \"files\": {\n    \"courseware\": \"string (required) - 课件文件相对路径\",\n    \"lesson_plan\": \"string (required) - 教案文件相对路径\"\n  },\n  \"metadata\": {\n    \"target_grade\": \"string - 目标年级\",\n    \"duration\": \"int - 课时长度\",\n    \"interactive_level\": \"string - 交互程度\",\n    \"exercise_count\": \"int - 练习题数量\",\n    \"file_size\": \"object - 文件大小信息\",\n    \"interactive_elements\": \"array - 交互元素列表\"\n  }\n}",
+        "validation_rules": [
+          "id必须唯一，建议使用UUID",
+          "created_at必须为有效的ISO 8601格式时间戳",
+          "files.courseware和files.lesson_plan必须为有效的相对路径",
+          "metadata字段可选，但如果存在则必须符合schema"
+        ],
+        "relationships": [
+          "存储在/courseware/{subject}/{topic}/metadata.json",
+          "全局索引存储在/courseware/index.json"
+        ]
+      },
+      {
+        "name": "CoursewareListResponse",
+        "schema": "{\n  \"total\": \"int (required) - 总课件数量\",\n  \"items\": \"array (required) - 课件列表，元素为CoursewareMetadata\",\n  \"page_info\": {\n    \"limit\": \"int - 每页数量\",\n    \"offset\": \"int - 偏移量\",\n    \"has_more\": \"boolean - 是否有更多数据\"\n  }\n}",
+        "validation_rules": [
+          "total必须为非负整数",
+          "items必须为数组，可以为空",
+          "limit和offset必须为非负整数"
+        ],
+        "relationships": [
+          "由GET /api/courseware/list接口返回",
+          "items元素为CoursewareMetadata"
+        ]
+      }
+    ],
+    "interaction_flows": [
+      {
+        "name": "课件生成主流程",
+        "description": "教师提交课件生成请求，系统并行生成课件和教案，存储文件并返回访问URL",
+        "steps": [
+          {
+            "step": "1. 接收请求",
+            "agent": "coordinator_agent",
+            "action": "接收POST /api/generate请求，解析JSON参数",
+            "data": "CoursewareGenerationRequest"
+          },
+          {
+            "step": "2. 参数验证",
+            "agent": "coordinator_agent",
+            "action": "验证subject、topic等必填字段，检查参数有效性",
+            "data": "验证结果 {valid: boolean, errors: array}"
+          },
+          {
+            "step": "3. 任务分发",
+            "agent": "coordinator_agent",
+            "action": "使用asyncio.gather()并行调用courseware_generator_agent和lesson_plan_generator_agent",
+            "data": "任务上下文 {subject: string, topic: string, requirements: string}"
+          },
+          {
+            "step": "4a. 生成课件",
+            "agent": "courseware_generator_agent",
+            "action": "根据学科和主题生成HTML课件，包含交互JavaScript代码",
+            "data": "HTML内容 {html_content: string, metadata: object}"
+          },
+          {
+            "step": "4b. 生成教案",
+            "agent": "lesson_plan_generator_agent",
+            "action": "根据学科和主题生成教案文档，包含教学目标、步骤等",
+            "data": "教案内容 {lesson_plan_content: string, format: string}"
+          },
+          {
+            "step": "5. 收集结果",
+            "agent": "coordinator_agent",
+            "action": "等待课件和教案生成完成，收集结果",
+            "data": "生成结果 {courseware: object, lesson_plan: object}"
+          },
+          {
+            "step": "6. 存储文件",
+            "agent": "file_manager_agent",
+            "action": "创建文件夹，存储HTML课件和教案文档，生成元数据",
+            "data": "存储结果 {paths: object, urls: object}"
+          },
+          {
+            "step": "7. 返回响应",
+            "agent": "coordinator_agent",
+            "action": "整合结果，生成CoursewareGenerationResult，返回给教师",
+            "data": "CoursewareGenerationResult"
+          }
+        ]
+      },
+      {
+        "name": "课件列表查询流程",
+        "description": "教师查询已生成的课件列表",
+        "steps": [
+          {
+            "step": "1. 接收请求",
+            "agent": "coordinator_agent",
+            "action": "接收GET /api/courseware/list请求，解析查询参数",
+            "data": "查询参数 {subject?: string, limit?: int, offset?: int}"
+          },
+          {
+            "step": "2. 读取索引",
+            "agent": "file_manager_agent",
+            "action": "读取/courseware/index.json，获取课件列表",
+            "data": "课件索引 {items: array}"
+          },
+          {
+            "step": "3. 过滤和分页",
+            "agent": "coordinator_agent",
+            "action": "根据subject过滤，应用limit和offset分页",
+            "data": "过滤后的课件列表 {items: array, total: int}"
+          },
+          {
+            "step": "4. 返回响应",
+            "agent": "coordinator_agent",
+            "action": "生成CoursewareListResponse，返回给教师",
+            "data": "CoursewareListResponse"
+          }
+        ]
+      },
+      {
+        "name": "课件预览流程",
+        "description": "教师通过浏览器预览生成的课件",
+        "steps": [
+          {
+            "step": "1. 访问URL",
+            "agent": "FastAPI静态文件服务",
+            "action": "教师在浏览器中访问课件URL，如/courseware/数学/二次函数/index.html",
+            "data": "HTTP GET请求"
+          },
+          {
+            "step": "2. 文件读取",
+            "agent": "FastAPI静态文件服务",
+            "action": "读取文件系统中的HTML文件",
+            "data": "HTML文件内容"
+          },
+          {
+            "step": "3. 返回响应",
+            "agent": "FastAPI静态文件服务",
+            "action": "返回HTML内容，设置Content-Type为text/html",
+            "data": "HTTP响应 {status: 200, content: HTML}"
+          },
+          {
+            "step": "4. 浏览器渲染",
+            "agent": "浏览器",
+            "action": "解析HTML，加载CSS和JavaScript，渲染页面",
+            "data": "渲染后的课件页面"
+          },
+          {
+            "step": "5. 交互测试",
+            "agent": "浏览器",
+            "action": "教师点击交互元素，JavaScript响应事件并提供反馈",
+            "data": "交互反馈"
+          }
+        ]
+      },
+      {
+        "name": "错误处理流程",
+        "description": "处理课件生成过程中的错误",
+        "steps": [
+          {
+            "step": "1. 检测错误",
+            "agent": "任意Agent",
+            "action": "执行过程中捕获异常（如模型调用失败、文件写入失败）",
+            "data": "异常对象 {type: string, message: string, traceback: string}"
+          },
+          {
+            "step": "2. 记录日志",
+            "agent": "coordinator_agent",
+            "action": "记录错误日志，包含完整堆栈信息",
+            "data": "日志条目 {timestamp: string, level: 'ERROR', message: string}"
+          },
+          {
+            "step": "3. 错误分类",
+            "agent": "coordinator_agent",
+            "action": "判断错误类型（参数错误、模型错误、文件错误、超时错误）",
+            "data": "错误类型 {category: string, recoverable: boolean}"
+          },
+          {
+            "step": "4. 降级处理",
+            "agent": "coordinator_agent",
+            "action": "如果部分成功（如课件生成成功但教案失败），返回partial状态",
+            "data": "降级结果 {status: 'partial', available: array, failed: array}"
+          },
+          {
+            "step": "5. 返回错误响应",
+            "agent": "coordinator_agent",
+            "action": "生成错误响应，包含错误类型、详细信息、建议操作",
+            "data": "错误响应 {error: string, details: string, code: int, suggestion: string}"
+          }
+        ]
+      }
+    ],
+    "security_considerations": [
+      "输入验证：所有API输入进行严格验证，防止SQL注入、命令注入等攻击",
+      "路径检查：文件路径进行安全检查，防止目录遍历攻击（如../../../etc/passwd）",
+      "XSS防护：生成的JavaScript代码进行安全扫描，避免XSS风险，限制eval()等危险函数使用",
+      "CORS配置：FastAPI配置CORS策略，限制允许的来源域名",
+      "访问控制：静态文件服务限制访问范围在courseware目录内，禁止访问其他系统文件",
+      "敏感信息保护：AWS凭证、API密钥等通过环境变量管理，不硬编码在代码中",
+      "日志脱敏：日志记录时对敏感信息（如用户输入的详细要求）进行脱敏处理",
+      "速率限制：API接口实现速率限制，防止滥用和DDoS攻击",
+      "HTTPS支持：生产环境强制使用HTTPS，保护数据传输安全",
+      "依赖安全：定期更新依赖库，修复已知安全漏洞"
+    ],
+    "error_handling": [
+      "参数验证错误：返回400 Bad Request，包含详细的验证错误信息（如'subject字段不能为空'）",
+      "模型调用失败：捕获AWS Bedrock异常，重试3次，失败后返回500 Internal Server Error",
+      "文件写入失败：捕获文件系统异常，检查磁盘空间，记录错误日志，返回500错误",
+      "超时错误：设置60秒超时，超时后取消任务，返回504 Gateway Timeout",
+      "Agent执行失败：单个Agent失败不影响其他Agent，支持部分成功返回partial状态",
+      "并发冲突：文件名冲突时自动添加时间戳后缀，避免覆盖",
+      "资源不足：磁盘空间不足时返回507 Insufficient Storage，提示管理员清理空间",
+      "网络错误：AWS Bedrock连接失败时提供降级方案，如使用缓存模板",
+      "JSON解析错误：请求体格式错误时返回400错误，提示正确的JSON格式",
+      "路径安全错误：检测到不安全路径时返回403 Forbidden，拒绝访问"
+    ],
+    "performance_considerations": [
+      "异步处理：使用asyncio和FastAPI的异步特性，提高并发处理能力",
+      "并行生成：课件和教案并行生成，减少总耗时（从60秒降至30秒）",
+      "流式响应：支持AgentCore流式响应，逐步返回生成进度，改善用户体验",
+      "缓存机制：缓存常用的学科模板和交互组件，减少重复生成时间",
+      "文件索引：维护课件列表索引，避免每次查询时扫描文件系统",
+      "资源限制：限制并发请求数量（最多5个），避免资源耗尽",
+      "超时控制：设置合理的超时时间（60秒），避免长时间阻塞",
+      "内容压缩：生成的HTML内容进行压缩，减少文件大小和传输时间",
+      "CDN加速：静态资源（如MathJax、Chart.js）可选使用CDN加速",
+      "性能监控：记录每个Agent的执行时间，识别性能瓶颈并优化"
+    ],
+    "monitoring_strategy": [
+      "日志记录：使用Python logging模块，记录INFO、WARNING、ERROR级别日志",
+      "结构化日志：日志采用JSON格式，便于日志聚合和分析",
+      "关键指标：记录请求数量、成功率、失败率、平均响应时间、P95响应时间",
+      "Agent性能：记录每个Agent的执行时间、成功率、错误类型",
+      "资源监控：监控CPU使用率、内存使用率、磁盘使用率",
+      "健康检查：提供/health端点，返回系统状态、版本、运行时间",
+      "遥测集成：使用StrandsTelemetry集成OpenTelemetry，支持分布式追踪",
+      "告警机制：错误率超过阈值（如5%）时触发告警，通知管理员",
+      "性能分析：定期生成性能报告，识别优化机会",
+      "用户反馈：收集教师对生成课件的评分和反馈，持续改进"
+    ]
+  },
+  "design_rationale": "本系统设计采用多Agent协作架构，基于以下技术决策和理由：\n\n1. **多Agent架构选择**：需求涉及HTML课件生成、教案生成、文件管理三个不同领域，单个Agent难以覆盖所有专业知识。多Agent架构允许每个Agent专注于自己的领域，提高输出质量。同时，课件和教案可以并行生成，显著提高效率（从60秒降至30秒）。\n\n2. **Swarm框架选择**：Swarm提供了成熟的多Agent编排能力，支持Agent间的消息传递、上下文共享、任务切换。相比自定义协调机制，Swarm降低了开发复杂度，提高了系统稳定性。参考技术文档多Agent系统模板，该模板已在生产环境验证，可靠性高。\n\n3. **FastAPI框架选择**：FastAPI是现代Python Web框架，支持异步处理、自动文档生成、类型检查。其ASGI架构天然支持高并发，满足多用户同时生成课件的需求。静态文件服务功能简化了课件预览的实现。\n\n4. **文件系统存储选择**：课件和教案是静态文件，使用文件系统存储比数据库更简单高效。文件系统天然支持FastAPI静态文件服务，教师可以直接通过URL访问课件。按学科和主题组织的文件夹结构清晰易懂，便于管理和备份。\n\n5. **自包含HTML设计**：将CSS和JavaScript内联到HTML中，确保课件可以离线使用，不依赖外部CDN。这对教育场景尤其重要，因为部分学校网络环境不稳定。同时，自包含设计简化了部署和分发。\n\n6. **并行生成策略**：课件生成和教案生成相互独立，可以并行执行。使用asyncio.gather()并行调用两个Agent，总耗时取决于最慢的Agent，而非两者之和。这是性能优化的关键决策。\n\n7. **Claude Sonnet 4.5模型选择**：Claude Sonnet 4.5在内容生成质量、代码生成能力、多语言支持方面表现优异。相比GPT-4，Claude在教育内容生成方面更专业，生成的课件和教案更符合教学规范。同时，成本相对合理，适合大规模使用。\n\n8. **AgentCore部署规范**：遵守AgentCore部署规范，实现@app.entrypoint装饰的handler函数和流式响应，确保系统可以无缝部署到Amazon Bedrock AgentCore环境。流式响应改善了用户体验，教师可以实时看到生成进度。\n\n9. **错误处理和降级**：教育场景对可靠性要求高，系统必须能够处理各种异常情况。设计了完善的错误处理机制，支持部分成功（如课件生成成功但教案失败），避免全盘失败。降级方案确保即使部分功能不可用，核心功能仍然可用。\n\n10. **安全性优先**：教育系统面向教师和学生，安全性至关重要。设计了多层安全防护：输入验证防止注入攻击，路径检查防止目录遍历，XSS防护确保生成的JavaScript安全，CORS配置限制访问来源。这些措施确保系统在开放网络环境中的安全性。\n\n11. **可扩展性设计**：系统设计支持未来扩展：新增学科只需添加学科模板，新增交互类型只需扩展JavaScript生成工具，新增Agent只需在Swarm中注册。模块化设计确保每个组件可以独立升级和替换。\n\n12. **监控和可观测性**：教育系统需要持续改进，监控和可观测性是关键。集成OpenTelemetry进行分布式追踪，记录每个Agent的执行时间和性能指标，收集教师反馈，持续优化生成质量。\n\n总结：本设计平衡了功能需求、性能要求、安全性、可扩展性和开发效率，采用成熟的技术栈和架构模式，降低了开发风险，确保系统可以快速交付并持续演进。"
+}

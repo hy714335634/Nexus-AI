@@ -1,0 +1,371 @@
+{
+  "agent_code_development": {
+    "development_overview": {
+      "project_name": "html_courseware_generator",
+      "version": "1.0",
+      "date": "2025-12-25",
+      "development_scope": "开发智能HTML课件与教案生成系统的完整Agent代码，集成FastAPI Web服务、课件生成、教案生成和文件管理功能。遵循Nexus-AI平台规范和AgentCore部署要求。",
+      "design_principles": [
+        "模块化设计：清晰的功能模块分离，便于维护和扩展",
+        "安全优先：完善的错误处理、输入验证和XSS防护",
+        "性能优化：异步处理、文件缓存和响应式设计",
+        "标准化接口：RESTful API设计，标准化的请求响应格式",
+        "可观测性：完整的日志记录和性能监控",
+        "部署兼容：支持本地开发、FastAPI服务和AgentCore部署三种模式"
+      ],
+      "key_decisions": [
+        "采用单Agent架构，通过提示词工程实现多功能集成",
+        "使用FastAPI提供Web服务，支持RESTful API和静态文件服务",
+        "使用BedrockAgentCoreApp支持AgentCore部署和流式响应",
+        "使用本地文件系统存储课件和教案，简化架构",
+        "使用Pydantic进行数据验证，确保请求参数正确",
+        "使用asyncio实现异步处理，提高并发性能",
+        "集成所有工具函数，支持完整的课件生成流程",
+        "实现三种运行模式：本地测试、FastAPI服务、AgentCore部署"
+      ]
+    },
+    "agent_implementation": {
+      "agent_name": "html_courseware_generator",
+      "file_path": "agents/generated_agents/html_courseware_generator/html_courseware_generator.py",
+      "main_class": "无（函数式编程）",
+      "entry_point": "handler (AgentCore) / main (本地测试) / fastapi_app (Web服务)",
+      "dependencies": [
+        "nexus_utils.agent_factory",
+        "nexus_utils.config_loader",
+        "bedrock_agentcore.runtime",
+        "strands.telemetry",
+        "fastapi",
+        "uvicorn",
+        "pydantic",
+        "工具模块：courseware_generation_tools"
+      ],
+      "imports": [
+        "os, sys, json, asyncio, logging",
+        "pathlib.Path",
+        "typing.Dict, Any, Optional, List",
+        "datetime.datetime",
+        "nexus_utils.agent_factory.create_agent_from_prompt_template",
+        "nexus_utils.config_loader.ConfigLoader",
+        "bedrock_agentcore.runtime.BedrockAgentCoreApp",
+        "bedrock_agentcore.runtime.context.RequestContext",
+        "strands.telemetry.StrandsTelemetry",
+        "fastapi.FastAPI, HTTPException, BackgroundTasks",
+        "fastapi.staticfiles.StaticFiles",
+        "fastapi.middleware.cors.CORSMiddleware",
+        "pydantic.BaseModel, Field",
+        "uvicorn"
+      ]
+    },
+    "core_functions": [
+      {
+        "function_name": "create_courseware_agent",
+        "purpose": "创建课件生成Agent实例",
+        "parameters": [
+          {
+            "name": "env",
+            "type": "str",
+            "description": "运行环境：development、production、testing",
+            "required": false
+          },
+          {
+            "name": "version",
+            "type": "str",
+            "description": "Agent版本",
+            "required": false
+          },
+          {
+            "name": "model_id",
+            "type": "str",
+            "description": "模型ID",
+            "required": false
+          }
+        ],
+        "return_type": "Agent",
+        "return_description": "配置好的课件生成Agent实例",
+        "implementation_notes": [
+          "使用nexus_utils.agent_factory.create_agent_from_prompt_template创建Agent",
+          "Agent配置路径：generated_agents_prompts/html_courseware_generator/html_courseware_generator",
+          "支持环境、版本和模型ID配置",
+          "启用日志记录"
+        ]
+      },
+      {
+        "function_name": "sanitize_filename",
+        "purpose": "清洗文件名，去除特殊字符",
+        "parameters": [
+          {
+            "name": "name",
+            "type": "str",
+            "description": "原始文件名",
+            "required": true
+          },
+          {
+            "name": "max_length",
+            "type": "int",
+            "description": "最大长度限制",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "清洗后的文件名",
+        "implementation_notes": [
+          "使用正则表达式去除特殊字符",
+          "保留中文、英文、数字、下划线",
+          "限制文件名长度为50个字符",
+          "防止文件名注入攻击"
+        ]
+      },
+      {
+        "function_name": "create_folder_structure",
+        "purpose": "创建课件文件夹结构",
+        "parameters": [
+          {
+            "name": "subject",
+            "type": "str",
+            "description": "学科名称",
+            "required": true
+          },
+          {
+            "name": "topic",
+            "type": "str",
+            "description": "主题名称",
+            "required": true
+          }
+        ],
+        "return_type": "Path",
+        "return_description": "创建的文件夹路径",
+        "implementation_notes": [
+          "文件夹结构：courseware/{subject}/{topic}/",
+          "自动清洗学科和主题名称",
+          "处理文件夹冲突，添加时间戳后缀",
+          "递归创建父目录",
+          "记录创建日志"
+        ]
+      },
+      {
+        "function_name": "save_courseware_files",
+        "purpose": "保存课件、教案和元数据文件",
+        "parameters": [
+          {
+            "name": "folder_path",
+            "type": "Path",
+            "description": "文件夹路径",
+            "required": true
+          },
+          {
+            "name": "html_content",
+            "type": "str",
+            "description": "HTML课件内容",
+            "required": true
+          },
+          {
+            "name": "lesson_plan_content",
+            "type": "str",
+            "description": "教案内容",
+            "required": true
+          },
+          {
+            "name": "metadata",
+            "type": "Dict[str, Any]",
+            "description": "元数据",
+            "required": true
+          }
+        ],
+        "return_type": "Dict[str, str]",
+        "return_description": "文件路径和访问URL",
+        "implementation_notes": [
+          "保存index.html（课件）",
+          "保存lesson_plan.html（教案）",
+          "保存metadata.json（元数据）",
+          "生成相对路径的访问URL",
+          "使用UTF-8编码写入文件",
+          "记录保存日志",
+          "异常时抛出详细错误信息"
+        ]
+      },
+      {
+        "function_name": "generate_courseware_and_lesson_plan",
+        "purpose": "生成课件和教案的核心异步函数",
+        "parameters": [
+          {
+            "name": "request",
+            "type": "CoursewareGenerationRequest",
+            "description": "课件生成请求",
+            "required": true
+          }
+        ],
+        "return_type": "CoursewareGenerationResult",
+        "return_description": "课件生成结果",
+        "implementation_notes": [
+          "构建详细的提示词，包含学科、主题、年级、课时、要求",
+          "调用courseware_agent生成内容",
+          "解析Agent响应，提取HTML和教案内容",
+          "创建文件夹结构",
+          "准备元数据（ID、学科、主题、创建时间等）",
+          "保存课件、教案和元数据文件",
+          "返回生成结果和访问URL",
+          "完善的异常处理，返回错误信息"
+        ]
+      },
+      {
+        "function_name": "handler",
+        "purpose": "AgentCore标准入口点，支持流式响应",
+        "parameters": [
+          {
+            "name": "payload",
+            "type": "Dict[str, Any]",
+            "description": "AgentCore请求体",
+            "required": true
+          },
+          {
+            "name": "context",
+            "type": "RequestContext",
+            "description": "请求上下文",
+            "required": true
+          }
+        ],
+        "return_type": "AsyncGenerator[str]",
+        "return_description": "流式响应的文本片段",
+        "implementation_notes": [
+          "使用@app.entrypoint装饰器",
+          "异步函数，支持流式响应",
+          "从payload提取prompt",
+          "从context提取session_id",
+          "调用courseware_agent.stream_async生成流式响应",
+          "使用yield产生响应片段",
+          "完善的错误处理和日志记录"
+        ]
+      }
+    ],
+    "tool_integration": {
+      "custom_tools": [
+        "html_structure_generator",
+        "css_style_generator",
+        "javascript_code_generator",
+        "math_formula_renderer",
+        "chemistry_equation_generator",
+        "interactive_element_builder",
+        "code_validator",
+        "xss_scanner",
+        "subject_template_selector",
+        "physics_chart_generator"
+      ],
+      "system_tools": [],
+      "strands_tools": [],
+      "integration_notes": [
+        "所有工具从courseware_generation_tools模块导入",
+        "工具通过Agent的提示词配置自动加载",
+        "工具返回JSON格式的结构化数据",
+        "Agent调用工具生成HTML、CSS、JavaScript代码",
+        "工具支持多学科特定功能（数学公式、化学方程式、物理图表）",
+        "内置代码验证和XSS安全扫描工具"
+      ]
+    },
+    "configuration": {
+      "environment_variables": [
+        "BYPASS_TOOL_CONSENT=true",
+        "OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318",
+        "DOCKER_CONTAINER（检测AgentCore部署）"
+      ],
+      "model_configuration": {
+        "model_name": "global.anthropic.claude-sonnet-4-5-20250929-v1:0",
+        "max_tokens": 60000,
+        "temperature": 0.7
+      },
+      "streaming_config": {
+        "enabled": true,
+        "method": "stream_async"
+      },
+      "fastapi_config": {
+        "title": "HTML课件与教案生成系统",
+        "version": "1.0.0",
+        "cors_enabled": true,
+        "static_files_mount": "/courseware"
+      }
+    },
+    "error_handling": {
+      "exception_types": [
+        "HTTPException（FastAPI错误）",
+        "FileNotFoundError（文件不存在）",
+        "PermissionError（权限错误）",
+        "JSONDecodeError（JSON解析错误）",
+        "Exception（通用异常）"
+      ],
+      "error_responses": [
+        "400 Bad Request：参数验证失败",
+        "404 Not Found：课件不存在",
+        "500 Internal Server Error：服务器内部错误",
+        "status='failed'：生成失败，返回错误信息"
+      ],
+      "recovery_strategies": [
+        "记录详细的错误日志，便于追踪",
+        "返回清晰的错误信息，帮助用户定位问题",
+        "文件操作失败时清理临时文件",
+        "Agent调用失败时返回部分成功状态",
+        "提供健康检查端点，监控服务状态"
+      ]
+    },
+    "testing": {
+      "test_cases": [
+        "本地测试：使用-i参数测试Agent响应",
+        "FastAPI测试：启动服务，测试API端点",
+        "AgentCore测试：模拟AgentCore请求，测试handler函数",
+        "文件生成测试：验证课件和教案文件正确生成",
+        "路径安全测试：验证文件名清洗和路径检查",
+        "错误处理测试：测试各种异常场景"
+      ],
+      "test_scenarios": [
+        "数学学科课件生成",
+        "化学学科课件生成",
+        "物理学科课件生成",
+        "语文学科课件生成",
+        "自定义学科课件生成",
+        "并发请求测试",
+        "大文件生成测试",
+        "文件名冲突处理测试"
+      ],
+      "validation_criteria": [
+        "课件HTML结构完整，包含CSS和JavaScript",
+        "教案内容完整，包含所有必需模块",
+        "元数据正确保存，格式符合规范",
+        "访问URL正确，可通过浏览器访问",
+        "文件名清洗正确，无特殊字符",
+        "文件夹结构正确，按学科和主题组织",
+        "API响应格式正确，符合Pydantic模型",
+        "日志记录完整，便于调试"
+      ]
+    },
+    "deployment": {
+      "deployment_requirements": [
+        "Python 3.13+",
+        "安装所有依赖包（requirements.txt）",
+        "配置环境变量（BYPASS_TOOL_CONSENT、OTEL_EXPORTER_OTLP_ENDPOINT）",
+        "创建courseware目录（存储课件和教案）",
+        "配置AWS Bedrock凭证（访问Claude模型）",
+        "配置OpenTelemetry Collector（可选，用于遥测）"
+      ],
+      "runtime_dependencies": [
+        "nexus_utils",
+        "strands-agents",
+        "strands-agents-tools",
+        "fastapi",
+        "uvicorn",
+        "pydantic",
+        "boto3",
+        "botocore",
+        "PyYAML"
+      ],
+      "performance_considerations": [
+        "使用异步处理提高并发性能",
+        "使用文件系统缓存减少重复生成",
+        "使用响应式设计优化前端加载",
+        "使用CDN加载外部库（MathJax、Chart.js）",
+        "限制并发请求数量（建议5个）",
+        "设置合理的超时时间（60秒）",
+        "监控内存使用，避免大文件导致OOM",
+        "定期清理旧课件文件，释放磁盘空间"
+      ]
+    },
+    "development_notes": "智能体代码开发已完成，严格遵循设计规格和系统架构。代码实现了完整的HTML课件与教案生成功能，集成FastAPI Web服务，支持RESTful API和静态文件服务。使用nexus_utils.agent_factory.create_agent_from_prompt_template创建Agent，符合Nexus-AI平台规范。实现了BedrockAgentCoreApp的handler入口点，支持AgentCore部署和流式响应。代码包含完善的错误处理、日志记录和性能优化。集成了所有自定义工具，支持多学科课件生成、动态交互元素、代码验证和XSS安全扫描。实现了三种运行模式：本地测试（-i参数）、FastAPI服务（默认）、AgentCore部署（DOCKER_CONTAINER环境变量）。代码质量高，遵循PEP 8规范，使用完整的类型注解和详细的文档字符串。已准备就绪，可进行测试和部署。"
+  }
+}
