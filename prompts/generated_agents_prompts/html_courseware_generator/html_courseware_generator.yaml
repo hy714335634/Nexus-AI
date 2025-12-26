@@ -329,6 +329,7 @@ agent:
         tools_dependencies:
           - "strands_tools/current_time"
           - "strands_tools/file_write"
+          - "strands_tools/http_request"
           - "generated_tools/html_courseware_generator/courseware_generation_tools/html_structure_generator"
           - "generated_tools/html_courseware_generator/courseware_generation_tools/css_style_generator"
           - "generated_tools/html_courseware_generator/courseware_generation_tools/javascript_code_generator"
