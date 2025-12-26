@@ -1665,6 +1665,7 @@ docker run --rm hello-world
                 <h4>5. 运行 Jaeger（诊断工具，可选）</h4>
                 <pre><button class="copy">复制</button><code class="language-bash">docker run -d --name jaeger -e COLLECTOR_ZIPKIN_HOST_PORT=:9411 -e COLLECTOR_OTLP_ENABLED=true -p 6831:6831/udp -p 6832:6832/udp -p 5778:5778 -p 16686:16686 -p 4317:4317 -p 4318:4318 -p 14250:14250 -p 14268:14268 -p 14269:14269 -p 9411:9411 jaegertracing/all-in-one:latest</code></pre>
               </div>
+
               <div class="callout">
                 <strong>端口转发配置</strong>
                 <p>后续实验需要访问 Jaeger UI (16686) 和 Neo4j (7474, 7687)，建议通过 SSH 隧道将远程端口转发到本地：</p>
@@ -1752,7 +1753,7 @@ cd ..</code></pre>
               <h4>1. 访问首页</h4>
               <p>打开浏览器访问 <code>http://&lt;EC2公网IP&gt;:3000</code>，进入 Nexus-AI 主界面。</p>
               <div class="img-container">
-                <img src="nexus-ai_homepage.png" alt="Nexus-AI 首页">
+                <img src="/assets/nexus-ai_homepage.png" alt="Nexus-AI 首页">
               </div>
             </div>
 
@@ -1760,7 +1761,7 @@ cd ..</code></pre>
               <h4>2. 创建 Agent</h4>
               <p>点击创建按钮，输入 Agent 需求描述，开始构建自定义 Agent。</p>
               <div class="img-container">
-                <img src="start-create-agent.png" alt="开始创建 Agent">
+                <img src="/assets/start-create-agent.png" alt="开始创建 Agent">
               </div>
             </div>
 
@@ -1768,7 +1769,7 @@ cd ..</code></pre>
               <h4>3. 与 Agent 对话</h4>
               <p>Agent 构建完成后，即可在对话界面与其交互，体验智能问答功能。</p>
               <div class="img-container">
-                <img src="chat_with_agent.png" alt="与 Agent 对话">
+                <img src="/assets/chat_with_agent.png" alt="与 Agent 对话">
               </div>
             </div>
           </div>
@@ -1911,34 +1912,36 @@ mkdir -p $HOME/Nexus-AI/tools/generated_tools/neo4j/neo4j_plugins</code></pre>
     neo4j:latest</code></pre>
 
           <h3>提交 Agent 构建任务</h3>
-          <pre><button class="copy">复制</button><code class="language-bash">nohup python -u agents/system_agents/agent_build_workflow/agent_build_workflow.py -i '
-创建一个AWS网络拓扑分析Agent，建议名称为aws_architecture_topology_analyzer，这个Agent要能够帮助客户全面采集AWS账号中核心资源并结合Neo4j数据库构建网络拓扑。
-这个Agent需要具备以下能力，部分环节要按照给定的规则处理相关数据。
-基本能力：
-- 能够集成AWS Boto3 SDK，加载用户指定的profile创建相应查询客户端
-- 能够通过工具实现抓取指定区域的所有AWS网络组件资源以及EC2、RDS资源
-- 网络组件包括：Transit Gateway，VPC Peering，Privatelink，VPC，Direct Connect Gateway，Internet Gateway，Route Table，VGW等等核心网络组件，尽可能全面
-- 每次执行时应检查指定区域所有资源，按顺序扫描不要遗漏
-- 扫描到的资源应在给定的neo4j数据库中，创建对应的node，并根据资源属性，创建对应的edge
-- 为了确保创建edge时两端的node均存在，你应合理设计扫描顺序，避免数据插入失败导致不全面
-- Agent能够基于用户自然语言问题进行对话和问答，在回答问题时需要通过工具查询neo4j数据库中相关内容进行回答
-
-核心规则：
-- neo4j中的资源应该按如下层级：Account-> Region -> Network Service -> VPC -> Routetable -> Security Group -> EC2/RDS/etc....请按照要求合理设计，避免遗漏
-- 当Agent扫描到资源时，应使用工具在neo4j数据库中创建node及edge，node和edge必须有name属性，对应aws资源的name标签值
-- 当插入neo4j数据库失败时，应思考原因，合理进行二次查询进行补全
-- 当插入存在冲突时，应生成neo4j语句进行检索排查问题
-- 和neo4j交互的工具至少包括插入资源，更新资源，查询特定资源，按查询语句查询资源，路径检索，拓扑检索等
+          <pre><button class="copy">复制</button><code class="language-bash">nohup python -u agents/system_agents/agent_build_workflow/agent_build_workflow.py -i '创建一个agent，能够根据用户给定的话题，进行文献检索并尽可能获取文献全文，并对文献中的关键实体信息进行理解和提取，将数据导入到neo4j数据库中，并可以基于知识图谱回答客户问题
+基本功能要求：
+1）能够基于客户话题和关键字进行pubmed文献检索，并获取文献元数据及PMCID
+2）能够基于PMCID在aws公开数据集中找到文献全文
+3）能够基于LLM理解文献全文，并提取关键的信息实体，并按照生物学定义和规则，将对应的实体和关系写入neo4j数据库中
+4）具备多轮对话交互能力，能够基于知识图谱检索回答用户问题，在回答时应同时给出cypher可视化语句
+注意事项：
+1）实体和关系提取必须通过agent和LLM自身能力实现
+2）对于实体和变的定义应有统一的、明确的规范，且符合生物学意义，如基因、蛋白质、疾病、表型等等
+3）每次进行任务时，所有提取的实体应保持统一，如基因实体的Label是Gene，不能出现混淆和不一致的情况
+4）注意实体和实体间关系应符合事实意义和逻辑
 
 **数据库连接信息**
 - neo4j地址：neo4j://localhost:7687
-- neo4j数据库：neo4j
 - neo4j用户名：neo4j
 - neo4j密码：neo4jneo4j
 
 **重要信息**
 - 请先仔细思考，设计合理的数据库Schema来满足我上述的分析需求，请仔细思考如何更贴合业务使用场景
-- 持久化数据必须存储在neo4j数据库中' &</code></pre>
+- 同一个实体、边不应该创建多个，不应该存在歧义
+- 持久化数据必须存储在neo4j数据库中
+
+**数据源和场景**
+- **数据源**: PubMed Central (PMC) 开放获取文章
+- **PMC S3源**: PMC原文可通过AWS S3获取，具体信息如下：
+    - Amazon Resource Name: arn:aws:s3:::pmc-oa-opendata
+    - AWS Region: us-east-1
+    - AWS CLI Access (No AWS account required): aws s3 ls --no-sign-request s3://pmc-oa-opendata/
+    - 目录结构: oa_comm/, oa_noncomm/, phe_timebound/
+    - 文件格式: txt/和xml/两种格式，包含完整的文章内容和元数据' &</code></pre>
 
           <div class="callout alert">
             <strong>注意</strong>
