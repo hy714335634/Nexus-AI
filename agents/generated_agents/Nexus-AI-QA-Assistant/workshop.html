@@ -1648,7 +1648,7 @@ sudo dnf install terraform -y</code></pre>
               </div>
 
               <div class="timeline-item">
-                <h4>4. 安装 Docker（可选，但推荐）</h4>
+                <h4>4. 安装 Docker</h4>
                 <pre><button class="copy">复制</button><code class="language-bash">sudo dnf update -y
 sudo dnf install -y docker
 sudo systemctl enable docker
@@ -1668,7 +1668,7 @@ docker run --rm hello-world
 
               <div class="callout">
                 <strong>端口转发配置</strong>
-                <p>后续实验需要访问 Jaeger UI (16686) 和 Neo4j (7474, 7687)，建议通过 SSH 隧道将远程端口转发到本地：</p>
+                <p>如果服务器无法将指定端口暴露在公网，如需要访问 Jaeger UI (16686) 和 Neo4j (7474, 7687)，建议通过 SSH 隧道将远程端口转发到本地：</p>
                 <pre><button class="copy">复制</button><code class="language-bash">ssh -i your-key.pem -L 16686:localhost:16686 -L 7474:localhost:7474 -L 7687:localhost:7687 ec2-user@your-ec2-ip</code></pre>
                 <p>或使用支持端口转发的 IDE（如 VS Code Remote SSH）或 Terminal 工具。</p>
                 <p>配置后可通过 <code>http://localhost:16686</code> 访问 Jaeger，<code>http://localhost:7474</code> 访问 Neo4j Browser。</p>
