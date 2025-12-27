@@ -249,8 +249,59 @@ Nexus-AI/
 ## 🛠️ 技术栈
 
 ### 后端技术栈
-- **Agent开发框架**: AWS Bedrock, Strands SDK
+
 - **开发语言**: Python 3.12+
+- **Agent框架**: 
+  - Strands SDK - 多Agent协作框架
+  - AWS Bedrock AgentCore - Agent运行时和部署
+- **Web框架**: 
+  - FastAPI - 高性能异步Web框架
+  - Uvicorn - ASGI服务器
+  - Pydantic - 数据验证和序列化
+- **AWS服务**:
+  - Amazon Bedrock - AI模型服务（Claude Sonnet 4.5、Opus 4等）
+  - DynamoDB - NoSQL数据库
+  - ECS/EKS - 容器编排
+  - ECR - 容器镜像仓库
+  - EFS - 共享文件存储
+  - SQS - 消息队列
+  - CloudWatch - 日志和监控
+- **数据存储**:
+  - DynamoDB - 主数据库（项目、Agent、会话等）
+  - Neo4j - 图数据库（可选，用于知识图谱）
+- **可观测性**:
+  - OpenTelemetry - 分布式追踪
+  - Jaeger - 追踪数据可视化（可选）
+- **工具与库**:
+  - boto3/botocore - AWS SDK
+  - PyYAML - YAML配置解析
+  - pandas - 数据分析
+  - streamlit - 数据可视化应用（部分Agent）
+
+### 前端技术栈
+
+- **框架**: Next.js 14 (App Router)
+- **UI库**: React 18
+- **语言**: TypeScript 5.3+
+- **状态管理**: 
+  - TanStack Query (React Query) - 数据获取和缓存
+- **内容渲染**:
+  - React Markdown - Markdown渲染
+  - rehype-highlight - 代码高亮
+  - Prism - 语法高亮
+- **UI组件**:
+  - Sonner - Toast通知
+  - highlight.js - 代码高亮库
+
+### 基础设施与部署
+
+- **容器化**: Docker
+- **基础设施即代码**: Terraform
+- **版本控制**: Git
+- **包管理**:
+  - uv - Python包管理器（推荐）
+  - npm - Node.js包管理器
+
 
 ## 🚀 快速开始
 
@@ -344,6 +395,11 @@ python api/scripts/setup_tables.py
 > ⚠️ **注意**: 确保 IAM 角色或用户具有 DynamoDB 的读写权限
 
 ### 8. 启动服务
+**启动workshop参考材料（仅需要时开启）**
+```bash
+cd Nexus-AI
+nohup python agents/generated_agents/Nexus-AI-QA-Assistant/nexus_qa_assistant_fastapi.py &
+```
 
 **启动 FastAPI 后端 API**
 ```bash
@@ -403,7 +459,6 @@ nohup python agents/generated_agents/Nexus-AI-QA-Assistant/nexus_qa_assistant_fa
 - 环境验证示例：`python agents/system_agents/magician.py  -i "aws美东一的m8g.xlarge什么价格"`
 - 长任务可采用 `nohup python -u agents/system_agents/agent_build_workflow/agent_build_workflow.py -i "<你的需求>" | tee logs/temp.log &`
 - 查看实时日志：`tail -f nohup.out`
-- 已生成项目位于 `projects/<project_name>/`，包含 `agents/`、`project_config.json`、`workflow_summary_report.md` 等产物
 
 ## 📖 使用指南
 ### 示例：构建HTML转PPT Agent
@@ -481,70 +536,6 @@ default-config:
   logging:
     level: 'INFO'                          # 日志级别
     file_path: 'logs/nexus_ai.log'         # 日志文件路径
-```
-
-### MCP服务器配置
-
-```json
-// mcp/system_mcp_server.json
-{
-  "mcpServers": {
-    "awslabs.core-mcp-server": {
-      "command": "uvx",
-      "args": ["awslabs.core-mcp-server@latest"],
-      "env": {
-        "FASTMCP_LOG_LEVEL": "ERROR"
-      },
-      "disabled": false
-    },
-    "awslabs.aws-pricing-mcp-server": {
-      "command": "uvx", 
-      "args": ["awslabs.aws-pricing-mcp-server@latest"],
-      "env": {
-        "FASTMCP_LOG_LEVEL": "ERROR",
-        "AWS_PROFILE": "default",
-        "AWS_REGION": "us-east-1"
-      },
-      "disabled": false
-    },
-    "awslabs.aws-api-mcp-server": {
-      "command": "uvx",
-      "args": ["awslabs.aws-api-mcp-server@latest"],
-      "env": {
-        "FASTMCP_LOG_LEVEL": "ERROR",
-        "AWS_PROFILE": "default", 
-        "AWS_REGION": "us-west-2"
-      },
-      "disabled": false
-    }
-  }
-}
-```
-
-### 多模态处理配置
-
-```yaml
-# config/default_config.yaml (多模态部分)
-multimodal_parser:
-  aws:
-    s3_bucket: "awesome-nexus-ai-file-storage"  # S3存储桶
-    s3_prefix: "multimodal-content/"            # S3前缀
-    bedrock_region: "us-west-2"                 # Bedrock区域
-  
-  file_limits:
-    max_file_size: "50MB"                       # 最大文件大小
-    max_files_per_request: 10                   # 每次请求最大文件数
-    supported_formats: ["jpg", "jpeg", "png", "gif", "txt", "xlsx", "docx", "csv"]
-  
-  processing:
-    timeout_seconds: 300                        # 处理超时时间
-    retry_attempts: 3                          # 重试次数
-    batch_size: 5                              # 批处理大小
-  
-  model:
-    primary_model: "us.anthropic.claude-opus-4-20250514-v1:0"    # 主模型
-    fallback_model: "us.anthropic.claude-sonnet-4-5-20250929-v1:0" # 备用模型
-    max_tokens: 40000                          # 最大Token数
 ```
 
 ## 🎯 路线图
