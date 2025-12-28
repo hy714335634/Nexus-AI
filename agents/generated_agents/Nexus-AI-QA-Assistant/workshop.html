@@ -1535,10 +1535,10 @@
           <ul class="nav" id="toc">
             <li><a href="#env-prepare">环境准备</a></li>
             <li><a href="#deploy">部署 Nexus-AI</a></li>
-            <li><a href="#validation">环境验证</a></li>
-            <li><a href="#feature-check">功能验证</a></li>
-            <li><a href="#agent-lab">Agent 构建与测试</a></li>
+            <li><a href="#validation">环境验证（命令行）</a></li>
+            <li><a href="#agent-lab">Agent 构建与测试（命令行）</a></li>
             <li><a href="#challenge">挑战：外部资源集成</a></li>
+            <li><a href="#ui-access">通过 UI 访问</a></li>
           </ul>
           <div class="note-box">
             <h3>课堂速记</h3>
@@ -1568,7 +1568,7 @@
       <main class="content">
         <header class="hero" id="top">
           <div style="display: flex; align-items: center; gap: 2rem; margin-bottom: 1.5rem;">
-            <img src="/assets/default_logo.png" alt="Nexus-AI Logo" style="width: 120px; height: 120px; object-fit: contain; filter: drop-shadow(0 8px 16px rgba(56, 189, 248, 0.3));">
+            <img src="./default_logo.png" alt="Nexus-AI Logo" style="width: 120px; height: 120px; object-fit: contain; filter: drop-shadow(0 8px 16px rgba(56, 189, 248, 0.3));">
             <div style="flex: 1;">
               <span class="badge">Nexus-AI Workshop</span>
               <h1 style="margin-top: 0.5rem; margin-bottom: 0;">Nexus-AI 动手实验手册</h1>
@@ -1605,13 +1605,13 @@
               <li>安全组：开放 SSH 22，3000,8000,16686 端口；</li>
             </ul>
             <div class="img-container">
-              <img src="/assets/01.create-ec2-ami.png" alt="创建EC2-基本配置选择">
+              <img src="./01.create-ec2-ami.png" alt="创建EC2-基本配置选择">
             </div>
             <div class="img-container">
-              <img src="/assets/01.create-ec2-sg.png" alt="创建EC2-安全组及存储配置">
+              <img src="./01.create-ec2-sg.png" alt="创建EC2-安全组及存储配置">
             </div>
             <div class="img-container">
-              <img src="/assets/01.create-ec2-iam.png" alt="创建EC2-权限配置">
+              <img src="./01.create-ec2-iam.png" alt="创建EC2-权限配置">
             </div>
             <blockquote>
               <strong>检查点</strong> SSH 登录后执行以下命令，确保凭证有效。
@@ -1736,65 +1736,6 @@ uv pip install -e .</code></pre>
           <blockquote>
             <strong>提示</strong> 确保 IAM 角色或用户具有 DynamoDB 的读写权限。
           </blockquote>
-
-          <h3>六、启动 FastAPI 后端服务</h3>
-          <pre><button class="copy">复制</button><code class="language-bash">nohup uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload &</code></pre>
-          <ul>
-            <li>API 服务监听 <code>0.0.0.0:8000</code>，可从外部访问</li>
-            <li>访问 API 文档：<code>http://&lt;EC2-IP&gt;:8000/docs</code></li>
-            <li>使用 <code>tail -f nohup.out</code> 查看日志</li>
-          </ul>
-          <p>验证服务是否启动：</p>
-          <pre><button class="copy">复制</button><code class="language-bash">curl http://localhost:8000/health</code></pre>
-
-          <h3>七、启动 Next.js 前端服务</h3>
-          <pre><button class="copy">复制</button><code class="language-bash">cd web
-npm install
-nohup npm run dev -- -H 0.0.0.0 &
-cd ..</code></pre>
-          <ul>
-            <li>前端服务监听 <code>0.0.0.0:3000</code>，可从外部访问</li>
-            <li>访问地址：<code>http://&lt;EC2-IP&gt;:3000</code></li>
-            <li>首次运行需要安装依赖，可能需要几分钟</li>
-          </ul>
-          <div class="callout">
-            <strong>安全组配置提醒</strong>
-            <p>确保 EC2 安全组已开放以下端口（在环境准备阶段已配置）：</p>
-            <ul>
-              <li><code>3000</code> - Next.js 前端</li>
-              <li><code>8000</code> - FastAPI 后端</li>
-            </ul>
-            <p>配置完成后可直接通过浏览器访问 <code>http://&lt;EC2公网IP&gt;:3000</code></p>
-          </div>
-
-          <h3>八、Web UI 使用流程</h3>
-          <p>服务启动后，通过浏览器访问前端界面，按以下流程体验 Nexus-AI：</p>
-
-          <div class="timeline">
-            <div class="timeline-item">
-              <h4>1. 访问首页</h4>
-              <p>打开浏览器访问 <code>http://&lt;EC2公网IP&gt;:3000</code>，进入 Nexus-AI 主界面。</p>
-              <div class="img-container">
-                <img src="/assets/nexus-ai_homepage.png" alt="Nexus-AI 首页">
-              </div>
-            </div>
-
-            <div class="timeline-item">
-              <h4>2. 创建 Agent</h4>
-              <p>点击创建按钮，输入 Agent 需求描述，开始构建自定义 Agent。</p>
-              <div class="img-container">
-                <img src="/assets/start-create-agent.png" alt="开始创建 Agent">
-              </div>
-            </div>
-
-            <div class="timeline-item">
-              <h4>3. 与 Agent 对话</h4>
-              <p>Agent 构建完成后，即可在对话界面与其交互，体验智能问答功能。</p>
-              <div class="img-container">
-                <img src="/assets/chat_with_agent.png" alt="与 Agent 对话">
-              </div>
-            </div>
-          </div>
         </section>
 
         <section id="validation" data-section="Stage 03">
@@ -1860,10 +1801,10 @@ tail -f nohup.out</code></pre>
             </div>
 
           <div class="img-container">
-            <img src="/assets/05.build_console_log.png" alt="控制台输出">
+            <img src="./05.build_console_log.png" alt="控制台输出">
           </div>
           <div class="img-container">
-            <img src="/assets/05.build_workflow_summary.png" alt="工作流日志">
+            <img src="./05.build_workflow_summary.png" alt="工作流日志">
           </div>
 
             <h3>二、构建结果检查</h3>
@@ -1914,7 +1855,7 @@ tail -f nohup.out</code></pre>
           </div>
 
           <div class="img-container">
-            <img src="/assets/06.neo4j-bio.png" alt="文献实体提取">
+            <img src="./06.neo4j-bio.png" alt="文献实体提取">
           </div>
 
           <h3>提交 Agent 构建任务</h3>
@@ -1958,6 +1899,77 @@ python tools/generated_tools/xxxx/xxxx.py -it
             <strong>注意</strong>
             <p>此挑战任务需要较长时间完成，建议在完成基础实验后再尝试。</p>
             <p>确保 Docker 已正确安装并运行，Neo4j 容器启动成功后再提交构建任务。</p>
+          </div>
+        </section>
+
+        <section id="ui-access" data-section="UI Access">
+          <div class="toolbar">
+            <h2>通过 UI 访问</h2>
+            <span class="badge">Web Interface</span>
+          </div>
+
+          <div class="callout">
+            <strong>说明</strong>
+            <p>除了命令行方式外，Nexus-AI 还提供 Web UI 界面，方便用户通过浏览器进行 Agent 创建和对话交互。</p>
+          </div>
+
+          <h3>一、启动 FastAPI 后端服务</h3>
+          <pre><button class="copy">复制</button><code class="language-bash">nohup uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload &</code></pre>
+          <ul>
+            <li>API 服务监听 <code>0.0.0.0:8000</code>，可从外部访问</li>
+            <li>访问 API 文档：<code>http://&lt;EC2-IP&gt;:8000/docs</code></li>
+            <li>使用 <code>tail -f nohup.out</code> 查看日志</li>
+          </ul>
+          <p>验证服务是否启动：</p>
+          <pre><button class="copy">复制</button><code class="language-bash">curl http://localhost:8000/health</code></pre>
+
+          <h3>二、启动 Next.js 前端服务</h3>
+          <pre><button class="copy">复制</button><code class="language-bash">cd web
+npm install
+nohup npm run dev -- -H 0.0.0.0 &
+cd ..</code></pre>
+          <ul>
+            <li>前端服务监听 <code>0.0.0.0:3000</code>，可从外部访问</li>
+            <li>访问地址：<code>http://&lt;EC2-IP&gt;:3000</code></li>
+            <li>首次运行需要安装依赖，可能需要几分钟</li>
+          </ul>
+          <div class="callout">
+            <strong>安全组配置提醒</strong>
+            <p>确保 EC2 安全组已开放以下端口（在环境准备阶段已配置）：</p>
+            <ul>
+              <li><code>3000</code> - Next.js 前端</li>
+              <li><code>8000</code> - FastAPI 后端</li>
+            </ul>
+            <p>配置完成后可直接通过浏览器访问 <code>http://&lt;EC2公网IP&gt;:3000</code></p>
+          </div>
+
+          <h3>三、Web UI 使用流程</h3>
+          <p>服务启动后，通过浏览器访问前端界面，按以下流程体验 Nexus-AI：</p>
+
+          <div class="timeline">
+            <div class="timeline-item">
+              <h4>1. 访问首页</h4>
+              <p>打开浏览器访问 <code>http://&lt;EC2公网IP&gt;:3000</code>，进入 Nexus-AI 主界面。</p>
+              <div class="img-container">
+                <img src="./nexus-ai_homepage.png" alt="Nexus-AI 首页">
+              </div>
+            </div>
+
+            <div class="timeline-item">
+              <h4>2. 创建 Agent</h4>
+              <p>点击创建按钮，输入 Agent 需求描述，开始构建自定义 Agent。</p>
+              <div class="img-container">
+                <img src="./start-create-agent.png" alt="开始创建 Agent">
+              </div>
+            </div>
+
+            <div class="timeline-item">
+              <h4>3. 与 Agent 对话</h4>
+              <p>Agent 构建完成后，即可在对话界面与其交互，体验智能问答功能。</p>
+              <div class="img-container">
+                <img src="./chat_with_agent.png" alt="与 Agent 对话">
+              </div>
+            </div>
           </div>
         </section>
       </main>
