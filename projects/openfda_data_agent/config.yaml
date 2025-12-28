@@ -1,6 +1,0 @@
-project:
-  created_date: '2025-12-02T11:34:29.485247+00:00'
-  description: 一个能够获取和查询OpenFDA（美国食品药品监督管理局开放数据）的智能Agent，支持药物、设备、食品等多种数据类型的查询和分析
-  name: openfda_data_agent
-  updated_date: '2025-12-02T11:34:41.611625+00:00'
-  version: 1.0.0

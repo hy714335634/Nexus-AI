@@ -1,0 +1,116 @@
+{
+  "project_name": "fda_data_query_agent",
+  "validation_timestamp": "2025-12-28T05:07:03.962201+00:00",
+  "overall_status": "success",
+  "agent_scripts": [
+    {
+      "script_path": "agents/generated_agents/fda_data_query_agent/fda_data_query_agent.py",
+      "syntax_valid": true,
+      "dependencies": [
+        "os",
+        "json",
+        "typing",
+        "nexus_utils.agent_factory",
+        "bedrock_agentcore.runtime",
+        "bedrock_agentcore.runtime.context",
+        "strands.telemetry",
+        "nexus_utils.config_loader",
+        "argparse"
+      ],
+      "execution_params": [],
+      "argparse_params": [
+        {
+          "name": "-i",
+          "type": "str",
+          "description": "测试查询输入（本地测试模式）",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "-e",
+          "type": "str",
+          "description": "Agent运行环境（默认: production）",
+          "required": false,
+          "default": "production",
+          "action": null
+        },
+        {
+          "name": "-v",
+          "type": "str",
+          "description": "Agent版本（默认: latest）",
+          "required": false,
+          "default": "latest",
+          "action": null
+        },
+        {
+          "name": "-it",
+          "type": "str",
+          "description": "启动交互式多轮对话模式",
+          "required": false,
+          "default": false,
+          "action": "store_true"
+        }
+      ],
+      "error_message": ""
+    }
+  ],
+  "prompt_files": [
+    {
+      "prompt_path": "generated_agents_prompts/fda_data_query_agent/fda_data_query_agent_prompt.yaml",
+      "tool_count": 14,
+      "valid": true,
+      "error_message": "",
+      "metadata": {
+        "tags": [
+          "fda",
+          "medical_data",
+          "drug_query",
+          "device_query",
+          "api_integration",
+          "healthcare"
+        ],
+        "supported_models": [
+          "global.anthropic.claude-sonnet-4-5-20250929-v1:0"
+        ],
+        "tools_dependencies": [
+          "strands_tools/current_time",
+          "generated_tools/fda_data_query_agent/fda_api_tools/fda_drug_search",
+          "generated_tools/fda_data_query_agent/fda_api_tools/fda_device_search",
+          "generated_tools/fda_data_query_agent/fda_api_tools/fda_food_search",
+          "generated_tools/fda_data_query_agent/fda_api_tools/fda_adverse_events_search",
+          "generated_tools/fda_data_query_agent/fda_api_tools/fda_nda_search",
+          "generated_tools/fda_data_query_agent/fda_api_tools/fda_recall_search",
+          "generated_tools/fda_data_query_agent/fda_api_tools/fda_api_query",
+          "generated_tools/fda_data_query_agent/fda_api_tools/format_fda_response",
+          "generated_tools/fda_data_query_agent/fda_api_tools/extract_data_fields",
+          "generated_tools/fda_data_query_agent/fda_api_tools/generate_data_source_info",
+          "generated_tools/fda_data_query_agent/fda_api_tools/validate_fda_data",
+          "generated_tools/fda_data_query_agent/fda_api_tools/get_cache_stats",
+          "generated_tools/fda_data_query_agent/fda_api_tools/clear_fda_cache"
+        ]
+      },
+      "agent_info": {
+        "name": "fda_data_query_agent",
+        "description": "FDA数据查询专家，能够通过自然语言交互查询FDA药物、医疗设备、食品等公开数据，提供准确、详细、可验证的专业问答服务",
+        "category": "api_integration"
+      }
+    }
+  ],
+  "generated_tools": [
+    {
+      "tool_path": "generated_tools/fda_data_query_agent/fda_api_tools.py",
+      "syntax_valid": true,
+      "error_message": ""
+    }
+  ],
+  "total_tools": 14,
+  "summary": {
+    "agent_scripts_count": 1,
+    "prompt_files_count": 1,
+    "generated_tool_files_count": 1,
+    "all_scripts_valid": true,
+    "all_tools_valid": true,
+    "all_prompts_valid": true
+  }
+}

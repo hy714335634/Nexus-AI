@@ -307,13 +307,14 @@ Nexus-AI/
 
 ### 前置要求
 
+- **EC2**: Amazon Linux 2023/m8i.large
 - **Python**: 3.12+
 - **Node.js**: 已安装（用于前端开发）
 - **AWS 账户**: 配置好 AWS 凭证和权限（需要 Amazon Bedrock、DynamoDB 等服务的访问权限）
 
 ### 1. 安装基础工具
 
-**Amazon Linux 2023 / RHEL / CentOS:**
+**Amazon Linux 2023:**
 ```bash
 # 安装系统依赖
 sudo dnf install -y git wget htop python3.12 nodejs
@@ -360,7 +361,6 @@ echo 'source $HOME/Nexus-AI/.nexus-ai/bin/activate' >> ~/.bashrc
 echo 'cd $HOME/Nexus-AI/' >> ~/.bashrc
 
 ### 5. 安装 Python 依赖
-```bash
 uv pip install --upgrade pip
 uv pip install -r requirements.txt
 uv pip install strands-agents[otel]
@@ -369,6 +369,18 @@ uv pip install -e .
 
 > 💡 **国内网络环境提示**: 可在命令后追加 `--index-url https://pypi.tuna.tsinghua.edu.cn/simple`  
 > 安装完成后可使用 `uv pip list | head` 验证安装成功
+
+### 5. Docker环境安装
+```bash
+sudo dnf install -y docker
+sudo systemctl enable docker
+sudo systemctl start docker
+sudo usermod -aG docker $USER
+newgrp docker
+
+# 验证
+docker run --rm hello-world
+```
 
 ### 6. 配置 AWS 凭证
 ```bash
@@ -395,18 +407,25 @@ python api/scripts/setup_tables.py
 > ⚠️ **注意**: 确保 IAM 角色或用户具有 DynamoDB 的读写权限
 
 ### 8. 启动服务
+> ⚠️ **安全组配置提醒**（如使用 AWS EC2）:  
+> 确保安全组已开放以下端口：
+> - `3000` - Next.js 前端
+> - `16686` - Jaeger前端（如需）
+> - `8888` - Workshop 材料（如需）
+> - `7474` - Neo4j控制台（如需）
+
 **启动workshop参考材料（仅需要时开启）**
 ```bash
-cd Nexus-AI
+# 在Nexus-AI中执行
 nohup python agents/generated_agents/Nexus-AI-QA-Assistant/nexus_qa_assistant_fastapi.py &
 ```
+- 默认启动后通过 `<服务器IP>:8888` 端口访问
+- Workshop 包含完整的环境准备、部署、验证和 Agent 构建流程
+
 
 **启动 FastAPI 后端 API**
 ```bash
 nohup uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload &
-
-# 查看日志
-tail -f nohup.out
 
 # 验证服务是否启动
 curl http://localhost:8000/health
@@ -427,21 +446,11 @@ cd ..
 - 访问地址：`http://<服务器IP>:3000`
 - 首次运行需要安装依赖，可能需要几分钟
 
-> ⚠️ **安全组配置提醒**（如使用 AWS EC2）:  
-> 确保安全组已开放以下端口：
-> - `3000` - Next.js 前端
-> - `8000` - FastAPI 后端  
-> - `8888` - Workshop 材料（如需）
 
-### 9. 启动 Workshop 参考材料（可选）
-
-Workshop 材料提供了详细的动手实验手册：
+**其他可选服务**
 ```bash
-nohup python agents/generated_agents/Nexus-AI-QA-Assistant/nexus_qa_assistant_fastapi.py &
-```
 
-- 默认启动后通过 `<服务器IP>:8888` 端口访问
-- Workshop 包含完整的环境准备、部署、验证和 Agent 构建流程
+```
 
 ### 首次使用
 

@@ -1,0 +1,269 @@
+{
+  "requirements_document": {
+    "feature_name": "FDA数据查询智能体系统",
+    "version": "1.0",
+    "date": "2025-12-28",
+    "overview": "FDA数据查询智能体是一个专业的医疗健康数据查询系统，通过集成FDA openFDA官方API，为用户提供药物(Drugs)、医疗设备(Devices)、食品(Foods)、不良事件(Adverse Events)等多维度FDA公开数据的智能查询服务。系统支持自然语言交互，能够理解用户的专业查询需求，提供准确、详细、可验证的数据回答，并在数据不足时给出明确说明和建议。",
+    "business_value": "该系统为医疗健康从业者、研究人员、监管人员和普通用户提供便捷的FDA数据访问途径，降低专业数据查询门槛，提高数据获取效率。通过自然语言交互和智能数据整合，用户无需深入了解FDA API技术细节即可获取所需信息。系统提供的数据来源追溯功能确保信息可验证性，提升决策质量和合规性。",
+    "workflow_complexity": "single_agent",
+    "recommended_agent_type": "数据查询与分析类Agent - 结合API集成、自然语言理解和专业知识问答能力",
+    "scope": {
+      "included": [
+        "openFDA官方API集成（drugs, devices, foods, adverse events等多个endpoint）",
+        "自然语言查询解析和意图识别",
+        "多类型FDA数据查询（药物批准信息、不良反应、医疗设备召回、食品标签等）",
+        "结构化数据提取和格式化展示",
+        "专业问题回答（基于FDA数据的综合分析）",
+        "数据来源追溯和验证链接生成",
+        "查询结果缓存机制（提升响应速度）",
+        "数据不足情况的智能提示和建议",
+        "错误处理和API限流管理",
+        "查询历史记录功能",
+        "支持批量查询和数据导出"
+      ],
+      "excluded": [
+        "非FDA数据源的整合（如EMA、PMDA等其他监管机构）",
+        "用户身份认证和权限管理（初版）",
+        "自定义数据分析和统计建模",
+        "实时监控和告警功能",
+        "多语言支持（初版仅支持英文）",
+        "移动端专用界面",
+        "FDA数据的二次加工和商业化分析报告生成"
+      ]
+    },
+    "functional_requirements": [
+      {
+        "id": "FR-001",
+        "title": "自然语言查询解析",
+        "user_story": "作为用户，我希望能够使用自然语言描述我的查询需求（如'查找阿司匹林的不良反应'），以便系统能够理解我的意图并执行相应查询",
+        "acceptance_criteria": [
+          "WHEN 用户输入自然语言查询 THEN 系统能够识别查询类型（药物/设备/食品/不良事件）",
+          "WHEN 用户输入包含产品名称的查询 THEN 系统能够提取关键实体（药物名、设备名、成分等）",
+          "WHEN 用户输入模糊查询 THEN 系统能够提供查询建议或澄清问题",
+          "IF 查询意图不明确 THEN 系统主动询问用户以明确查询范围",
+          "WHEN 用户使用同义词或俗称 THEN 系统能够映射到FDA标准术语"
+        ],
+        "priority": "High",
+        "complexity": "High",
+        "dependencies": ["openFDA API文档", "医疗术语词典", "NLU能力"],
+        "assumptions": ["用户主要使用英文查询", "Claude模型具备医疗领域知识"]
+      },
+      {
+        "id": "FR-002",
+        "title": "药物数据查询",
+        "user_story": "作为医疗从业者，我希望能够查询特定药物的FDA批准信息、标签内容、不良反应等数据，以便为临床决策提供依据",
+        "acceptance_criteria": [
+          "WHEN 用户查询药物批准信息 THEN 系统返回FDA批准日期、适应症、制造商等详细信息",
+          "WHEN 用户查询药物不良反应 THEN 系统返回FDA不良事件报告系统(FAERS)数据",
+          "WHEN 用户查询药物标签 THEN 系统提取并展示警告、用法用量、禁忌症等关键信息",
+          "IF 药物有多个剂型或品牌 THEN 系统列出所有相关产品并允许用户筛选",
+          "WHEN 查询结果包含专业术语 THEN 系统提供简要解释或定义"
+        ],
+        "priority": "High",
+        "complexity": "Medium",
+        "dependencies": ["openFDA drugs API", "drug/label endpoint", "drug/event endpoint"],
+        "assumptions": ["openFDA API稳定可用", "数据更新频率满足需求"]
+      },
+      {
+        "id": "FR-003",
+        "title": "医疗设备数据查询",
+        "user_story": "作为医疗设备监管人员，我希望能够查询医疗设备的分类、召回信息、不良事件报告，以便评估设备安全性",
+        "acceptance_criteria": [
+          "WHEN 用户查询设备分类 THEN 系统返回FDA设备分类（Class I/II/III）和510(k)信息",
+          "WHEN 用户查询设备召回 THEN 系统返回召回原因、日期、受影响产品范围",
+          "WHEN 用户查询设备不良事件 THEN 系统返回MAUDE数据库相关报告",
+          "IF 设备有多个型号 THEN 系统支持按型号筛选查询",
+          "WHEN 查询高风险设备 THEN 系统优先展示安全警告信息"
+        ],
+        "priority": "High",
+        "complexity": "Medium",
+        "dependencies": ["openFDA device API", "device/classification endpoint", "device/recall endpoint", "device/event endpoint"],
+        "assumptions": ["设备数据结构与药物数据类似", "召回信息及时更新"]
+      },
+      {
+        "id": "FR-004",
+        "title": "食品数据查询",
+        "user_story": "作为食品安全研究人员，我希望能够查询食品标签、召回信息、不良事件报告，以便进行食品安全分析",
+        "acceptance_criteria": [
+          "WHEN 用户查询食品标签 THEN 系统返回营养成分、过敏原、添加剂等信息",
+          "WHEN 用户查询食品召回 THEN 系统返回召回原因、日期、分销范围",
+          "WHEN 用户查询食品不良事件 THEN 系统返回相关投诉和事件报告",
+          "IF 食品含有特定过敏原 THEN 系统突出显示过敏原信息",
+          "WHEN 查询膳食补充剂 THEN 系统区分食品和膳食补充剂类别"
+        ],
+        "priority": "Medium",
+        "complexity": "Medium",
+        "dependencies": ["openFDA food API", "food/label endpoint", "food/recall endpoint", "food/event endpoint"],
+        "assumptions": ["食品数据完整性可能低于药物数据", "用户理解FDA食品监管范围"]
+      },
+      {
+        "id": "FR-005",
+        "title": "数据来源追溯与验证",
+        "user_story": "作为用户，我希望系统提供的每条信息都包含FDA原始数据链接，以便我能够验证信息的准确性和查看完整原始数据",
+        "acceptance_criteria": [
+          "WHEN 系统返回查询结果 THEN 每条数据都包含openFDA API调用链接",
+          "WHEN 系统引用特定报告或文档 THEN 提供FDA官网的直接访问链接",
+          "WHEN 用户点击来源链接 THEN 能够访问到对应的FDA原始数据页面",
+          "IF 数据来自多个endpoint THEN 分别标注各部分数据的来源",
+          "WHEN 数据有更新时间 THEN 显示FDA数据的最后更新日期"
+        ],
+        "priority": "High",
+        "complexity": "Low",
+        "dependencies": ["openFDA API URL结构", "FDA官网链接规则"],
+        "assumptions": ["openFDA API提供稳定的URL格式", "FDA官网链接结构相对稳定"]
+      },
+      {
+        "id": "FR-006",
+        "title": "专业问题回答",
+        "user_story": "作为用户，我希望系统不仅能返回原始数据，还能基于FDA数据回答我的专业问题（如'这个药物与其他药物相比安全性如何？'），以便获得更深入的洞察",
+        "acceptance_criteria": [
+          "WHEN 用户提出比较性问题 THEN 系统检索相关产品数据并进行对比分析",
+          "WHEN 用户询问趋势性问题 THEN 系统分析历史数据并总结趋势",
+          "WHEN 用户询问安全性问题 THEN 系统综合不良事件、召回等多维度数据回答",
+          "IF 问题需要多步推理 THEN 系统展示推理过程和依据",
+          "WHEN 回答专业问题 THEN 系统明确区分事实陈述和分析推断"
+        ],
+        "priority": "High",
+        "complexity": "High",
+        "dependencies": ["FR-002", "FR-003", "FR-004", "Claude推理能力"],
+        "assumptions": ["Claude模型具备医疗领域推理能力", "用户问题在FDA数据可回答范围内"]
+      },
+      {
+        "id": "FR-007",
+        "title": "数据不足情况处理",
+        "user_story": "作为用户，我希望当FDA数据库中没有我查询的信息时，系统能够明确告知我数据不足的原因，并提供替代建议，以便我了解查询限制并寻找其他途径",
+        "acceptance_criteria": [
+          "WHEN FDA API返回空结果 THEN 系统说明可能的原因（产品未在FDA注册、数据尚未公开等）",
+          "WHEN 查询的数据类型不存在 THEN 系统解释该类型数据的可用性限制",
+          "WHEN 数据不完整 THEN 系统标注缺失字段并说明影响",
+          "IF 可能存在替代查询方式 THEN 系统提供查询建议（如使用通用名代替商品名）",
+          "WHEN 数据不足以回答问题 THEN 系统建议用户访问FDA官网或联系FDA获取更多信息"
+        ],
+        "priority": "High",
+        "complexity": "Medium",
+        "dependencies": ["openFDA API错误响应", "FDA数据覆盖范围文档"],
+        "assumptions": ["用户能够理解数据限制", "系统能够识别数据不足的具体原因"]
+      },
+      {
+        "id": "FR-008",
+        "title": "查询结果缓存",
+        "user_story": "作为系统管理员，我希望系统能够缓存常见查询的结果，以便减少API调用次数，提升响应速度，并降低API限流风险",
+        "acceptance_criteria": [
+          "WHEN 用户查询常见产品 THEN 系统优先从缓存返回结果",
+          "WHEN 缓存数据超过24小时 THEN 系统自动刷新缓存",
+          "WHEN API限流发生 THEN 系统使用缓存数据并提示数据可能不是最新",
+          "IF 用户明确要求最新数据 THEN 系统跳过缓存直接查询API",
+          "WHEN 缓存空间不足 THEN 系统按LRU策略清理旧缓存"
+        ],
+        "priority": "Medium",
+        "complexity": "Medium",
+        "dependencies": ["文件系统缓存机制", "openFDA API限流政策"],
+        "assumptions": ["FDA数据更新频率不高（日级别）", "本地存储空间充足"]
+      },
+      {
+        "id": "FR-009",
+        "title": "错误处理与API限流管理",
+        "user_story": "作为用户，我希望当系统遇到API错误或限流时，能够优雅地处理并给出清晰的提示，以便我了解问题并采取相应行动",
+        "acceptance_criteria": [
+          "WHEN openFDA API返回错误 THEN 系统解析错误类型并给出用户友好的提示",
+          "WHEN 遇到API限流（429错误） THEN 系统自动重试并使用指数退避策略",
+          "WHEN 网络连接失败 THEN 系统提示用户检查网络并尝试使用缓存数据",
+          "IF API长时间不可用 THEN 系统记录错误日志并建议用户稍后重试",
+          "WHEN 查询参数无效 THEN 系统提示用户正确的查询格式"
+        ],
+        "priority": "High",
+        "complexity": "Medium",
+        "dependencies": ["openFDA API文档", "HTTP客户端库", "日志系统"],
+        "assumptions": ["openFDA API提供详细的错误响应", "系统有基本的重试机制"]
+      },
+      {
+        "id": "FR-010",
+        "title": "批量查询与数据导出",
+        "user_story": "作为研究人员，我希望能够批量查询多个产品的数据，并将结果导出为结构化格式（如JSON或CSV），以便进行后续分析",
+        "acceptance_criteria": [
+          "WHEN 用户提供产品列表 THEN 系统依次查询并汇总结果",
+          "WHEN 批量查询完成 THEN 系统提供JSON或CSV格式的导出选项",
+          "WHEN 批量查询中部分失败 THEN 系统继续处理其他查询并标注失败项",
+          "IF 批量查询数量过大 THEN 系统分批处理并显示进度",
+          "WHEN 导出数据 THEN 包含所有关键字段和数据来源信息"
+        ],
+        "priority": "Low",
+        "complexity": "Medium",
+        "dependencies": ["FR-002", "FR-003", "FR-004", "数据序列化库"],
+        "assumptions": ["用户有批量查询需求", "系统能够处理并发API请求"]
+      }
+    ],
+    "non_functional_requirements": {
+      "performance": [
+        "单次查询响应时间应在5秒内（不含网络延迟）",
+        "支持并发查询，至少10个并发用户",
+        "缓存命中率应达到60%以上（常见查询）",
+        "API调用失败时自动重试，最多3次",
+        "批量查询时每秒API调用不超过openFDA限制（默认240次/分钟/IP）"
+      ],
+      "security": [
+        "不存储用户敏感信息（初版无用户认证）",
+        "API密钥（如需要）通过环境变量管理，不硬编码",
+        "日志中不记录完整的用户查询内容（仅记录查询类型和时间戳）",
+        "使用HTTPS协议访问openFDA API",
+        "定期检查依赖库的安全漏洞"
+      ],
+      "usability": [
+        "查询结果以结构化、易读的格式展示",
+        "专业术语提供简要解释或链接到定义",
+        "错误提示清晰、具体，避免技术术语",
+        "支持交互式对话，允许用户追问和澄清",
+        "提供查询示例和使用指南"
+      ],
+      "reliability": [
+        "系统可用性目标：99%（排除FDA API不可用时间）",
+        "API调用失败时使用缓存数据作为降级方案",
+        "关键错误记录日志并通知管理员",
+        "定期健康检查openFDA API可用性",
+        "数据缓存机制确保部分功能在API不可用时仍可使用"
+      ]
+    },
+    "constraints": [
+      "必须使用openFDA官方API，不得抓取FDA网站数据",
+      "遵守openFDA API使用条款和限流政策（240次/分钟/IP）",
+      "初版仅支持英文查询和英文数据展示",
+      "部署在Amazon Bedrock AgentCore平台",
+      "使用Claude Sonnet 4.5模型（global.anthropic.claude-sonnet-4-5-20250929-v1:0）",
+      "缓存数据存储在本地文件系统（.cache/fda_data_query_agent/）",
+      "不提供医疗建议或诊断，仅提供FDA公开数据查询服务"
+    ],
+    "assumptions": [
+      "openFDA API长期稳定可用且免费",
+      "FDA数据更新频率为日级别或周级别",
+      "用户具备基本的医疗健康领域知识",
+      "Claude模型能够理解医疗领域的专业术语",
+      "用户主要通过文本进行交互（初版不支持语音或图像）",
+      "系统运行环境有稳定的互联网连接",
+      "用户理解FDA数据的局限性（如仅覆盖美国市场）"
+    ],
+    "success_criteria": [
+      "能够成功查询openFDA API的drugs、devices、foods三大类数据",
+      "自然语言查询意图识别准确率达到85%以上",
+      "所有查询结果都包含可验证的数据来源链接",
+      "数据不足情况能够给出明确说明和建议",
+      "用户满意度调查评分达到4/5以上",
+      "API调用成功率达到95%以上（排除FDA API故障）",
+      "缓存机制有效降低API调用量30%以上",
+      "系统能够在5分钟内完成部署和启动",
+      "文档完整，包含使用指南、API说明和故障排查指南"
+    ],
+    "glossary": {
+      "FDA": "美国食品药品监督管理局（Food and Drug Administration），负责监管食品、药品、医疗设备等产品的联邦机构",
+      "openFDA": "FDA提供的开放API平台，允许公众访问FDA公开数据",
+      "FAERS": "FDA不良事件报告系统（FDA Adverse Event Reporting System），收集药物不良反应报告",
+      "MAUDE": "医疗设备不良事件数据库（Manufacturer and User Facility Device Experience），收集医疗设备不良事件报告",
+      "510(k)": "医疗设备上市前通知程序，证明设备与已上市设备实质等同",
+      "NDA": "新药申请（New Drug Application），药物获得FDA批准的申请文件",
+      "Adverse Event": "不良事件，使用药物或医疗设备后发生的不良反应或意外事件",
+      "Recall": "召回，制造商或FDA要求将有缺陷或不安全的产品从市场撤回",
+      "Label": "标签，FDA批准的产品说明书，包含用法、警告、成分等信息",
+      "Endpoint": "API端点，openFDA API中的具体数据访问路径（如/drug/event.json）"
+    }
+  },
+  "analysis_notes": "经过深入分析，该项目为典型的单Agent场景，核心是数据查询和自然语言交互。关键技术挑战包括：1）自然语言到API查询的映射（需要理解医疗术语和同义词）；2）多endpoint数据整合和综合分析；3）专业问题的推理回答（需要Claude模型的医疗领域知识）；4）数据来源追溯的实现（需要构建FDA URL）。建议使用提示词工程实现查询意图识别、实体提取和专业问答功能，使用工具函数封装openFDA API调用、缓存管理和数据格式化。优先级方面，核心查询功能（FR-001至FR-007）为高优先级，必须在初版实现；缓存和批量查询为中低优先级，可在后续版本迭代。风险点在于openFDA API的稳定性和限流，需要完善的错误处理和降级策略。"
+}

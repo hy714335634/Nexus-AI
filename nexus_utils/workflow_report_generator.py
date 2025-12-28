@@ -648,8 +648,8 @@ class WorkflowReportGenerator:
             return "❓ 未知"
     
     def _estimate_costs(self, input_tokens: int, output_tokens: int) -> Dict[str, Any]:
-        """估算成本（基于Claude 3.7 Sonnet定价）"""
-        # Claude 3.7 Sonnet定价（每1000个token）
+        """估算成本（基于Claude 4.5 Sonnet定价）"""
+        # Claude 4.5 Sonnet定价（每1000个token）
         input_cost_per_1k = 0.003  # $0.003 per 1K input tokens
         output_cost_per_1k = 0.015  # $0.015 per 1K output tokens
         
@@ -663,7 +663,7 @@ class WorkflowReportGenerator:
             "total_cost_usd": round(total_cost, 6),
             "input_tokens": input_tokens,
             "output_tokens": output_tokens,
-            "pricing_model": "Claude 3.7 Sonnet",
+            "pricing_model": "Claude 4.5 Sonnet",
             "input_rate_per_1k": input_cost_per_1k,
             "output_rate_per_1k": output_cost_per_1k
         }
@@ -686,7 +686,7 @@ class WorkflowReportGenerator:
             tool_usage_summary={},
             cost_estimation={
                 "total_cost_usd": 0.0, 
-                "pricing_model": "Claude 3.7 Sonnet",
+                "pricing_model": "Claude 4.5 Sonnet",
                 "input_rate_per_1k": 0.003,
                 "output_rate_per_1k": 0.015
             },

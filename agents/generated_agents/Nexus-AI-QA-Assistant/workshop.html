@@ -1673,6 +1673,28 @@ docker run --rm hello-world
                 <p>或使用支持端口转发的 IDE（如 VS Code Remote SSH）或 Terminal 工具。</p>
                 <p>配置后可通过 <code>http://localhost:16686</code> 访问 Jaeger，<code>http://localhost:7474</code> 访问 Neo4j Browser。</p>
               </div>
+
+              <div class="timeline-item">
+                <h4>6. 运行 Neo4j</h4>
+                <h3>创建 Neo4j 数据目录</h3>
+          <pre><button class="copy">复制</button><code class="language-bash">mkdir -p $HOME/Nexus-AI/tools/generated_tools/neo4j/neo4j_data
+mkdir -p $HOME/Nexus-AI/tools/generated_tools/neo4j/neo4j_logs
+mkdir -p $HOME/Nexus-AI/tools/generated_tools/neo4j/neo4j_import
+mkdir -p $HOME/Nexus-AI/tools/generated_tools/neo4j/neo4j_plugins</code></pre>
+
+          <h3>启动 Neo4j 容器</h3>
+          <pre><button class="copy">复制</button><code class="language-bash">docker run -d  --name neo4j-container
+    -p 7474:7474 -p 7687:7687 
+    -e NEO4J_AUTH=neo4j/neo4jneo4j 
+    -e "NEO4J_dbms_security_procedures_unrestricted=apoc.*"  
+    -e "NEO4J_dbms_security_procedures_allowlist=apoc.*" 
+    -v $HOME/Nexus-AI/tools/generated_tools/neo4j/neo4j_data:/data  
+    -v $HOME/Nexus-AI/tools/generated_tools/neo4j/neo4j_logs:/logs  
+    -v $HOME/Nexus-AI/tools/generated_tools/neo4j/neo4j_import:/var/lib/neo4j/import 
+    -v $HOME/Nexus-AI/tools/generated_tools/neo4j/neo4j_plugins:/plugins 
+    neo4j:latest</code></pre>  
+              </div>
+
             </div>
           </article>
         </section>
@@ -1777,7 +1799,7 @@ cd ..</code></pre>
 
         <section id="validation" data-section="Stage 03">
           <div class="toolbar">
-            <h2>环境验证</h2>
+            <h2>环境验证 —— 基于命令行</h2>
             <span class="badge">Time to Run</span>
           </div>
           <p>注意：执行时间可能较长，首次运行请耐心等待模型和依赖加载。</p>
@@ -1795,12 +1817,23 @@ cd ..</code></pre>
           <pre><button class="copy">复制</button><code class="language-bash">python agents/system_agents/magician.py -i "我想知道有哪些头部的医疗科技公司在尝试使用GenAI相关技术，详细查询并汇总告诉我这些公司的信息，如营收、主营业务、体量等等"</code></pre>
 
           <h3>直接调用生成的 Agent</h3>
-          <pre><button class="copy">复制</button><code class="language-bash">python agents/generated_agents/aws_pricing_agent/aws_pricing_agent.py -r "aws美东一的m8g.xlarge什么价格"</code></pre>
+          <pre><button class="copy">复制</button><code class="language-bash"># FDA数据查询和问答
+  python agents/generated_agents/fda_data_query_agent/fda_data_query_agent.py -i "查询阿司匹林的不良反应""</code></pre>
+
+          <h3>交互式访问 Agent —— 1</h3>
+          <pre><button class="copy">复制</button><code class="language-bash"># FDA数据查询和问答
+  # 如询问：替尔泊肽有哪些不良反应
+  python agents/generated_agents/fda_data_query_agent/fda_data_query_agent.py -it</code></pre>
+
+          <h3>交互式访问 Agent —— 2</h3>
+          <pre><button class="copy">复制</button><code class="language-bash"># 美股分析助手
+# 请提前定义相关的API Key, 可从动手实验PPT中获取
+python agents/generated_agents/stock_analysis_agent/stock_analysis_agent.py -it</code></pre>
         </section>
 
         <section id="agent-lab" data-section="Stage 04">
           <div class="toolbar">
-            <h2>Agent 构建与测试</h2>
+            <h2>Agent 构建与测试 —— 基于命令行</h2>
             <button class="cta" data-collapse="[data-agent]">展开任务</button>
           </div>
 
@@ -1886,30 +1919,12 @@ tail -f nohup.out</code></pre>
 
           <div class="callout">
             <strong>实验目标</strong>
-            <p>本实验将创建一个用于AWS资源采集Agent，采集过程中完成资源关联分析，并将相关资源和关系写入neo4j数据库中，后续可基于知识图谱内容、路径检索回答客户问题。</p>
+            <p>本实验将创建一个用于文献实体提取和知识图谱构建的Agent，依赖Neo4j数据库，请确保实验开始前已通过docker启动neo4j服务</p>
           </div>
 
           <div class="img-container">
             <img src="/assets/06.neo4j.png" alt="AWS资源采集Agent架构图">
           </div>
-
-          <h3>创建 Neo4j 数据目录</h3>
-          <pre><button class="copy">复制</button><code class="language-bash">mkdir -p $HOME/Nexus-AI/tools/generated_tools/neo4j/neo4j_data
-mkdir -p $HOME/Nexus-AI/tools/generated_tools/neo4j/neo4j_logs
-mkdir -p $HOME/Nexus-AI/tools/generated_tools/neo4j/neo4j_import
-mkdir -p $HOME/Nexus-AI/tools/generated_tools/neo4j/neo4j_plugins</code></pre>
-
-          <h3>启动 Neo4j 容器</h3>
-          <pre><button class="copy">复制</button><code class="language-bash">docker run -d  --name neo4j-container
-    -p 7474:7474 -p 7687:7687 
-    -e NEO4J_AUTH=neo4j/neo4jneo4j 
-    -e "NEO4J_dbms_security_procedures_unrestricted=apoc.*"  
-    -e "NEO4J_dbms_security_procedures_allowlist=apoc.*" 
-    -v $HOME/Nexus-AI/tools/generated_tools/neo4j/neo4j_data:/data  
-    -v $HOME/Nexus-AI/tools/generated_tools/neo4j/neo4j_logs:/logs  
-    -v $HOME/Nexus-AI/tools/generated_tools/neo4j/neo4j_import:/var/lib/neo4j/import 
-    -v $HOME/Nexus-AI/tools/generated_tools/neo4j/neo4j_plugins:/plugins 
-    neo4j:latest</code></pre>
 
           <h3>提交 Agent 构建任务</h3>
           <pre><button class="copy">复制</button><code class="language-bash">nohup python -u agents/system_agents/agent_build_workflow/agent_build_workflow.py -i '创建一个agent，能够根据用户给定的话题，进行文献检索并尽可能获取文献全文，并对文献中的关键实体信息进行理解和提取，将数据导入到neo4j数据库中，并可以基于知识图谱回答客户问题
@@ -2341,6 +2356,43 @@ mkdir -p $HOME/Nexus-AI/tools/generated_tools/neo4j/neo4j_plugins</code></pre>
         }
       });
 
+      // 通用的复制函数，支持降级方案
+      const copyToClipboard = async (text) => {
+        // 优先使用现代 Clipboard API
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          try {
+            await navigator.clipboard.writeText(text);
+            return true;
+          } catch (err) {
+            console.warn('Clipboard API failed, trying fallback:', err);
+          }
+        }
+        
+        // 降级方案：使用传统的 execCommand
+        try {
+          const textArea = document.createElement('textarea');
+          textArea.value = text;
+          textArea.style.position = 'fixed';
+          textArea.style.left = '-999999px';
+          textArea.style.top = '-999999px';
+          document.body.appendChild(textArea);
+          textArea.focus();
+          textArea.select();
+          
+          const successful = document.execCommand('copy');
+          document.body.removeChild(textArea);
+          
+          if (successful) {
+            return true;
+          } else {
+            throw new Error('execCommand copy failed');
+          }
+        } catch (err) {
+          console.error('Fallback copy failed:', err);
+          return false;
+        }
+      };
+
       const loadNotes = () => {
         try {
           const stored = localStorage.getItem(STORAGE_KEY);
@@ -2483,11 +2535,11 @@ mkdir -p $HOME/Nexus-AI/tools/generated_tools/neo4j/neo4j_plugins</code></pre>
           const text = notes[idx];
           if (typeof text === "string") {
             const original = btn.textContent;
-            try {
-              await navigator.clipboard.writeText(text);
+            const success = await copyToClipboard(text);
+            if (success) {
               btn.textContent = "已复制";
               setTimeout(() => (btn.textContent = original), 1400);
-            } catch (error) {
+            } else {
               btn.textContent = "失败";
               setTimeout(() => (btn.textContent = original), 1400);
             }
@@ -2580,11 +2632,11 @@ mkdir -p $HOME/Nexus-AI/tools/generated_tools/neo4j/neo4j_plugins</code></pre>
         btn.addEventListener("click", async () => {
           const codeElement = btn.nextElementSibling;
           const code = codeElement.textContent.replace(/\n\s+/g, ' ').trim();
-          try {
-            await navigator.clipboard.writeText(code);
+          const success = await copyToClipboard(code);
+          if (success) {
             btn.textContent = "已复制";
             setTimeout(() => (btn.textContent = "复制"), 1400);
-          } catch (error) {
+          } else {
             btn.textContent = "失败";
             setTimeout(() => (btn.textContent = "复制"), 1400);
           }

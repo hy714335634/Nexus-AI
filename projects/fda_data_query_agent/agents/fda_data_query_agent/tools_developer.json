@@ -1,0 +1,691 @@
+{
+  "tool_development": {
+    "development_overview": {
+      "project_name": "fda_data_query_agent",
+      "version": "1.0",
+      "date": "2025-12-28",
+      "development_scope": "开发FDA数据查询智能体所需的全套工具函数，包括openFDA API集成、查询解析、缓存管理、数据格式化、数据来源追溯等核心能力。工具设计遵循Strands框架规范，使用@tool装饰器，支持类型注解和完整的错误处理。所有工具函数都经过精心设计，确保高可用性、高性能和良好的用户体验。",
+      "design_principles": [
+        "单一职责：每个工具函数只负责一个特定功能，保持接口清晰和代码简洁",
+        "错误优先：完善的错误处理和降级策略，确保系统高可用性（99%）",
+        "缓存优先：智能缓存机制，降低API调用量（目标30%以上），提升响应速度",
+        "数据追溯：所有查询结果都包含数据来源信息，确保可验证性和透明度",
+        "用户友好：返回结构化JSON数据，提供详细的错误提示和操作建议",
+        "性能优化：使用本地文件系统缓存，支持批量查询和流式响应",
+        "安全合规：遵守openFDA API使用条款，使用HTTPS通信，不存储敏感信息"
+      ],
+      "key_decisions": [
+        "使用requests库进行HTTP请求：成熟稳定，支持超时控制、重试机制、连接池",
+        "本地文件系统缓存：实现简单，无需外部依赖，按query_type组织目录便于管理",
+        "缓存过期时间24小时：平衡数据时效性和API调用量，FDA数据更新频率较低",
+        "使用MD5哈希生成cache_key：确保cache_key唯一性和一致性，避免缓存冲突",
+        "返回JSON格式：结构化数据便于解析和展示，支持多种客户端",
+        "专用搜索工具：fda_drug_search、fda_device_search、fda_food_search简化常见查询场景",
+        "数据验证工具：validate_fda_data评估数据质量，提供完整性评分和缺失字段提示"
+      ]
+    },
+    "tools": [
+      {
+        "tool_name": "fda_api_query",
+        "description": "通用openFDA API查询工具，支持所有API端点和查询参数。这是核心工具，其他专用搜索工具都基于此实现。",
+        "function_signature": "fda_api_query(endpoint: str, search_params: Optional[Dict[str, Any]] = None, limit: int = 10, skip: int = 0, use_cache: bool = True, timeout: int = 30) -> str",
+        "parameters": [
+          {
+            "name": "endpoint",
+            "type": "str",
+            "description": "FDA API端点，如'drug/label'、'device/recall'、'food/event'等",
+            "required": true
+          },
+          {
+            "name": "search_params",
+            "type": "Dict[str, Any]",
+            "description": "查询参数字典，键为字段名，值为搜索值。例如：{'brand_name': 'Aspirin', 'active_ingredient': 'acetylsalicylic acid'}",
+            "required": false
+          },
+          {
+            "name": "limit",
+            "type": "int",
+            "description": "返回结果数量上限，默认10，最大100",
+            "required": false
+          },
+          {
+            "name": "skip",
+            "type": "int",
+            "description": "跳过的结果数量，用于分页，默认0",
+            "required": false
+          },
+          {
+            "name": "use_cache",
+            "type": "bool",
+            "description": "是否使用缓存，默认True",
+            "required": false
+          },
+          {
+            "name": "timeout",
+            "type": "int",
+            "description": "请求超时时间（秒），默认30",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的查询结果，包含：success（是否成功）、endpoint（端点）、query_url（完整请求URL）、total（总结果数）、results（结果列表）、cached（是否来自缓存）、timestamp（查询时间戳）",
+        "dependencies": ["requests", "json", "hashlib", "time", "pathlib"],
+        "implementation_notes": [
+          "使用MD5哈希生成cache_key，确保缓存一致性",
+          "缓存按endpoint组织子目录，便于管理和清理",
+          "支持分页查询，通过skip和limit参数控制",
+          "完整的错误处理：400参数错误、404无结果、429限流、500服务器错误、超时",
+          "所有API请求使用HTTPS协议，确保数据传输安全",
+          "查询参数自动转换为openFDA查询语法（字段:值的AND组合）",
+          "缓存数据包含cached_at时间戳，用于过期检查"
+        ],
+        "error_handling": [
+          "400参数错误：返回错误信息和建议（检查参数格式、使用通用关键词）",
+          "404无结果：返回友好提示和替代建议（尝试其他关键词、访问FDA官网）",
+          "429限流：返回限流提示，尝试从缓存获取数据",
+          "500/超时：返回服务不可用提示，尝试从缓存获取数据",
+          "所有异常都捕获并转换为JSON格式的错误响应，不抛出异常"
+        ],
+        "usage_examples": [
+          "fda_api_query('drug/label', {'openfda.brand_name': 'Aspirin'}, limit=5)",
+          "fda_api_query('device/recall', {'product_description': 'pacemaker'}, use_cache=False)",
+          "fda_api_query('food/event', {}, limit=20, skip=10)"
+        ]
+      },
+      {
+        "tool_name": "fda_drug_search",
+        "description": "专用药物搜索工具，简化常见药物查询场景。支持按品牌名、通用名、活性成分、制造商等多维度搜索。",
+        "function_signature": "fda_drug_search(brand_name: Optional[str] = None, generic_name: Optional[str] = None, active_ingredient: Optional[str] = None, manufacturer: Optional[str] = None, limit: int = 10, use_cache: bool = True) -> str",
+        "parameters": [
+          {
+            "name": "brand_name",
+            "type": "str",
+            "description": "品牌名/商品名，如'Aspirin'、'Lipitor'",
+            "required": false
+          },
+          {
+            "name": "generic_name",
+            "type": "str",
+            "description": "通用名，如'atorvastatin'",
+            "required": false
+          },
+          {
+            "name": "active_ingredient",
+            "type": "str",
+            "description": "活性成分名称，如'acetylsalicylic acid'",
+            "required": false
+          },
+          {
+            "name": "manufacturer",
+            "type": "str",
+            "description": "制造商名称",
+            "required": false
+          },
+          {
+            "name": "limit",
+            "type": "int",
+            "description": "返回结果数量，默认10",
+            "required": false
+          },
+          {
+            "name": "use_cache",
+            "type": "bool",
+            "description": "是否使用缓存，默认True",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的药物信息，包含：品牌名、通用名、制造商、活性成分、适应症、警告、不良反应、用法用量、数据来源信息",
+        "dependencies": ["fda_api_query", "json"],
+        "implementation_notes": [
+          "基于fda_api_query实现，查询drug/label端点",
+          "至少需要提供一个搜索参数（brand_name、generic_name、active_ingredient、manufacturer之一）",
+          "自动提取和格式化关键字段：品牌名、通用名、制造商、活性成分、适应症、警告、不良反应、用法用量",
+          "长文本字段（如适应症、警告）截断至500字符，避免响应过大",
+          "返回数据包含完整的数据来源信息（API端点、查询URL、时间戳）"
+        ],
+        "error_handling": [
+          "未提供任何搜索参数：返回错误提示和可用参数列表",
+          "API查询失败：直接返回fda_api_query的错误响应",
+          "数据格式异常：捕获异常并返回格式化错误信息"
+        ],
+        "usage_examples": [
+          "fda_drug_search(brand_name='Aspirin')",
+          "fda_drug_search(generic_name='atorvastatin', manufacturer='Pfizer')",
+          "fda_drug_search(active_ingredient='acetylsalicylic acid', limit=5)"
+        ]
+      },
+      {
+        "tool_name": "fda_device_search",
+        "description": "专用医疗设备搜索工具，支持设备分类、召回、不良事件等多种查询类型。",
+        "function_signature": "fda_device_search(device_name: Optional[str] = None, device_class: Optional[str] = None, manufacturer: Optional[str] = None, search_type: str = 'classification', limit: int = 10, use_cache: bool = True) -> str",
+        "parameters": [
+          {
+            "name": "device_name",
+            "type": "str",
+            "description": "设备名称或描述",
+            "required": false
+          },
+          {
+            "name": "device_class",
+            "type": "str",
+            "description": "设备分类（1、2或3）",
+            "required": false
+          },
+          {
+            "name": "manufacturer",
+            "type": "str",
+            "description": "制造商名称",
+            "required": false
+          },
+          {
+            "name": "search_type",
+            "type": "str",
+            "description": "查询类型：'classification'（设备分类）、'recall'（召回）、'event'（不良事件），默认'classification'",
+            "required": false
+          },
+          {
+            "name": "limit",
+            "type": "int",
+            "description": "返回结果数量，默认10",
+            "required": false
+          },
+          {
+            "name": "use_cache",
+            "type": "bool",
+            "description": "是否使用缓存，默认True",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的设备信息，根据search_type返回不同字段：classification（设备名称、分类、专科、法规编号）、recall（产品描述、召回原因、召回日期、公司名称）、event（设备名称、制造商、事件类型、接收日期、设备问题代码）",
+        "dependencies": ["fda_api_query", "json"],
+        "implementation_notes": [
+          "支持三种查询类型：classification、recall、event，对应不同的API端点",
+          "根据search_type自动映射查询参数字段名（如classification用device_name，recall用product_description）",
+          "至少需要提供一个搜索参数",
+          "自动格式化不同查询类型的结果，提取关键字段",
+          "返回数据包含完整的数据来源信息"
+        ],
+        "error_handling": [
+          "无效的search_type：返回错误提示和有效类型列表",
+          "未提供任何搜索参数：返回错误提示和可用参数列表",
+          "API查询失败：直接返回fda_api_query的错误响应"
+        ],
+        "usage_examples": [
+          "fda_device_search(device_name='pacemaker', search_type='classification')",
+          "fda_device_search(device_name='insulin pump', search_type='recall')",
+          "fda_device_search(device_name='MRI', manufacturer='GE', search_type='event')"
+        ]
+      },
+      {
+        "tool_name": "fda_food_search",
+        "description": "专用食品搜索工具，支持食品执法报告（召回、市场撤回）和不良事件查询。",
+        "function_signature": "fda_food_search(product_name: Optional[str] = None, manufacturer: Optional[str] = None, search_type: str = 'enforcement', limit: int = 10, use_cache: bool = True) -> str",
+        "parameters": [
+          {
+            "name": "product_name",
+            "type": "str",
+            "description": "食品产品名称或描述",
+            "required": false
+          },
+          {
+            "name": "manufacturer",
+            "type": "str",
+            "description": "制造商或经销商名称",
+            "required": false
+          },
+          {
+            "name": "search_type",
+            "type": "str",
+            "description": "查询类型：'enforcement'（执法报告，包括召回和市场撤回）、'event'（不良事件），默认'enforcement'",
+            "required": false
+          },
+          {
+            "name": "limit",
+            "type": "int",
+            "description": "返回结果数量，默认10",
+            "required": false
+          },
+          {
+            "name": "use_cache",
+            "type": "bool",
+            "description": "是否使用缓存，默认True",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的食品信息，根据search_type返回不同字段：enforcement（产品描述、召回原因、召回日期、公司名称、分类、状态）、event（产品名称、事件日期、反应、结果）",
+        "dependencies": ["fda_api_query", "json"],
+        "implementation_notes": [
+          "支持两种查询类型：enforcement、event，对应不同的API端点",
+          "至少需要提供一个搜索参数",
+          "自动格式化不同查询类型的结果，提取关键字段",
+          "返回数据包含完整的数据来源信息"
+        ],
+        "error_handling": [
+          "无效的search_type：返回错误提示和有效类型列表",
+          "未提供任何搜索参数：返回错误提示和可用参数列表",
+          "API查询失败：直接返回fda_api_query的错误响应"
+        ],
+        "usage_examples": [
+          "fda_food_search(product_name='peanut butter', search_type='enforcement')",
+          "fda_food_search(manufacturer='Nestle', search_type='event')"
+        ]
+      },
+      {
+        "tool_name": "fda_adverse_events_search",
+        "description": "通用不良事件搜索工具，支持药物、医疗设备、食品的不良事件查询。支持日期范围过滤。",
+        "function_signature": "fda_adverse_events_search(product_name: str, product_type: str = 'drug', date_range: Optional[Dict[str, str]] = None, limit: int = 10, use_cache: bool = True) -> str",
+        "parameters": [
+          {
+            "name": "product_name",
+            "type": "str",
+            "description": "产品名称（必需）",
+            "required": true
+          },
+          {
+            "name": "product_type",
+            "type": "str",
+            "description": "产品类型：'drug'（药物）、'device'（医疗设备）、'food'（食品），默认'drug'",
+            "required": false
+          },
+          {
+            "name": "date_range",
+            "type": "Dict[str, str]",
+            "description": "日期范围过滤，格式：{'start': '20230101', 'end': '20231231'}",
+            "required": false
+          },
+          {
+            "name": "limit",
+            "type": "int",
+            "description": "返回结果数量，默认10",
+            "required": false
+          },
+          {
+            "name": "use_cache",
+            "type": "bool",
+            "description": "是否使用缓存，默认True",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的不良事件信息，根据product_type返回不同字段：drug（产品名称、报告日期、严重性、反应列表、患者年龄、患者性别）、device（设备名称、事件日期、事件类型、设备问题代码、患者问题代码）、food（产品名称、事件日期、反应列表、结果）",
+        "dependencies": ["fda_api_query", "json"],
+        "implementation_notes": [
+          "支持三种产品类型：drug、device、food，对应不同的API端点",
+          "根据product_type自动映射查询参数字段名",
+          "支持日期范围过滤，使用openFDA的日期范围查询语法（[start TO end]）",
+          "自动格式化不同产品类型的结果，提取关键字段",
+          "返回数据包含完整的数据来源信息"
+        ],
+        "error_handling": [
+          "无效的product_type：返回错误提示和有效类型列表",
+          "API查询失败：直接返回fda_api_query的错误响应"
+        ],
+        "usage_examples": [
+          "fda_adverse_events_search('Aspirin', product_type='drug')",
+          "fda_adverse_events_search('pacemaker', product_type='device', date_range={'start': '20230101', 'end': '20231231'})"
+        ]
+      },
+      {
+        "tool_name": "fda_recall_search",
+        "description": "通用召回搜索工具，支持药物、医疗设备、食品的召回信息查询。支持按召回分类过滤。",
+        "function_signature": "fda_recall_search(product_name: str, product_type: str = 'drug', classification: Optional[str] = None, limit: int = 10, use_cache: bool = True) -> str",
+        "parameters": [
+          {
+            "name": "product_name",
+            "type": "str",
+            "description": "产品名称（必需）",
+            "required": true
+          },
+          {
+            "name": "product_type",
+            "type": "str",
+            "description": "产品类型：'drug'（药物）、'device'（医疗设备）、'food'（食品），默认'drug'",
+            "required": false
+          },
+          {
+            "name": "classification",
+            "type": "str",
+            "description": "召回分类：'Class I'、'Class II'、'Class III'",
+            "required": false
+          },
+          {
+            "name": "limit",
+            "type": "int",
+            "description": "返回结果数量，默认10",
+            "required": false
+          },
+          {
+            "name": "use_cache",
+            "type": "bool",
+            "description": "是否使用缓存，默认True",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的召回信息，包含：产品描述、召回原因、召回日期、公司名称、分类、状态、分销模式",
+        "dependencies": ["fda_api_query", "json"],
+        "implementation_notes": [
+          "支持三种产品类型：drug、device、food",
+          "food类型使用food/enforcement端点，drug和device使用各自的recall端点",
+          "支持按召回分类过滤（Class I/II/III）",
+          "自动格式化结果，提取关键字段",
+          "返回数据包含完整的数据来源信息"
+        ],
+        "error_handling": [
+          "无效的product_type：返回错误提示和有效类型列表",
+          "API查询失败：直接返回fda_api_query的错误响应"
+        ],
+        "usage_examples": [
+          "fda_recall_search('Aspirin', product_type='drug')",
+          "fda_recall_search('pacemaker', product_type='device', classification='Class I')"
+        ]
+      },
+      {
+        "tool_name": "fda_nda_search",
+        "description": "新药申请（NDA）批准信息搜索工具，支持按申请号、赞助商、品牌名查询。",
+        "function_signature": "fda_nda_search(application_number: Optional[str] = None, sponsor_name: Optional[str] = None, brand_name: Optional[str] = None, limit: int = 10, use_cache: bool = True) -> str",
+        "parameters": [
+          {
+            "name": "application_number",
+            "type": "str",
+            "description": "NDA申请号",
+            "required": false
+          },
+          {
+            "name": "sponsor_name",
+            "type": "str",
+            "description": "赞助商/公司名称",
+            "required": false
+          },
+          {
+            "name": "brand_name",
+            "type": "str",
+            "description": "品牌名称",
+            "required": false
+          },
+          {
+            "name": "limit",
+            "type": "int",
+            "description": "返回结果数量，默认10",
+            "required": false
+          },
+          {
+            "name": "use_cache",
+            "type": "bool",
+            "description": "是否使用缓存，默认True",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的NDA信息，包含：申请号、赞助商名称、品牌名、通用名、批准日期、申请类型",
+        "dependencies": ["fda_api_query", "json"],
+        "implementation_notes": [
+          "查询drug/nda端点",
+          "至少需要提供一个搜索参数",
+          "自动提取和格式化关键字段",
+          "返回数据包含完整的数据来源信息"
+        ],
+        "error_handling": [
+          "未提供任何搜索参数：返回错误提示和可用参数列表",
+          "API查询失败：直接返回fda_api_query的错误响应"
+        ],
+        "usage_examples": [
+          "fda_nda_search(application_number='NDA021223')",
+          "fda_nda_search(sponsor_name='Pfizer', brand_name='Lipitor')"
+        ]
+      },
+      {
+        "tool_name": "clear_fda_cache",
+        "description": "清除FDA API缓存，支持按查询类型和时间过滤。",
+        "function_signature": "clear_fda_cache(query_type: Optional[str] = None, older_than_hours: Optional[int] = None) -> str",
+        "parameters": [
+          {
+            "name": "query_type",
+            "type": "str",
+            "description": "要清除的查询类型，如'drug/label'、'device/recall'。如果为None，清除所有缓存",
+            "required": false
+          },
+          {
+            "name": "older_than_hours",
+            "type": "int",
+            "description": "仅清除超过指定小时数的缓存。如果为None，清除所有缓存（不考虑时间）",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的清除结果，包含：清除的文件数量、总大小（字节）、查询类型、时间过滤条件",
+        "dependencies": ["pathlib", "time", "json"],
+        "implementation_notes": [
+          "缓存目录：.cache/fda_data_query_agent/",
+          "支持按query_type清除特定类型的缓存",
+          "支持按时间清除过期缓存（older_than_hours）",
+          "如果query_type和older_than_hours都为None，清除所有缓存",
+          "删除失败的文件会打印警告，但不影响整体清除过程"
+        ],
+        "error_handling": [
+          "缓存目录不存在：返回成功响应，提示目录不存在",
+          "文件删除失败：打印警告并继续，不抛出异常",
+          "其他异常：捕获并返回JSON格式的错误信息"
+        ],
+        "usage_examples": [
+          "clear_fda_cache()",
+          "clear_fda_cache(query_type='drug/label')",
+          "clear_fda_cache(older_than_hours=48)"
+        ]
+      },
+      {
+        "tool_name": "get_cache_stats",
+        "description": "获取FDA API缓存统计信息，包括缓存大小、文件数量、最新和最旧缓存时间。",
+        "function_signature": "get_cache_stats() -> str",
+        "parameters": [],
+        "return_type": "str",
+        "return_description": "JSON格式的缓存统计信息，包含：总文件数、总大小（字节）、按查询类型分组的统计（文件数和大小）、最旧缓存时间、最新缓存时间",
+        "dependencies": ["pathlib", "json", "datetime"],
+        "implementation_notes": [
+          "扫描缓存目录，统计所有缓存文件",
+          "按query_type分组统计",
+          "跟踪最旧和最新的缓存文件（基于文件修改时间）",
+          "文件访问失败时打印警告，不影响整体统计"
+        ],
+        "error_handling": [
+          "缓存目录不存在：返回成功响应，统计数据为0",
+          "文件访问失败：打印警告并继续，不抛出异常",
+          "其他异常：捕获并返回JSON格式的错误信息"
+        ],
+        "usage_examples": [
+          "get_cache_stats()"
+        ]
+      },
+      {
+        "tool_name": "format_fda_response",
+        "description": "格式化FDA API响应为用户友好的格式，支持摘要、详细、原始三种格式。",
+        "function_signature": "format_fda_response(raw_response: str, format_type: str = 'summary') -> str",
+        "parameters": [
+          {
+            "name": "raw_response",
+            "type": "str",
+            "description": "原始JSON响应（来自其他FDA查询工具）",
+            "required": true
+          },
+          {
+            "name": "format_type",
+            "type": "str",
+            "description": "格式类型：'summary'（简要摘要）、'detailed'（详细信息）、'raw'（原始响应），默认'summary'",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的格式化响应，根据format_type返回不同详细程度的信息",
+        "dependencies": ["json"],
+        "implementation_notes": [
+          "summary格式：生成简短摘要列表，每个结果一行关键信息",
+          "detailed格式：返回完整的结果数据",
+          "raw格式：直接返回原始响应",
+          "根据query_type自动识别数据类型，提取相应的关键字段",
+          "适用于所有FDA查询工具的响应"
+        ],
+        "error_handling": [
+          "响应解析失败：捕获异常并返回错误信息",
+          "响应不成功（success=false）：直接返回原始响应"
+        ],
+        "usage_examples": [
+          "format_fda_response(raw_response, format_type='summary')",
+          "format_fda_response(raw_response, format_type='detailed')"
+        ]
+      },
+      {
+        "tool_name": "extract_data_fields",
+        "description": "从FDA API响应中提取指定字段，支持嵌套字段（使用点号表示）。",
+        "function_signature": "extract_data_fields(fda_response: str, fields: List[str]) -> str",
+        "parameters": [
+          {
+            "name": "fda_response",
+            "type": "str",
+            "description": "FDA API响应（来自其他FDA查询工具）",
+            "required": true
+          },
+          {
+            "name": "fields",
+            "type": "List[str]",
+            "description": "要提取的字段名列表，支持嵌套字段（如'openfda.brand_name'）",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的提取结果，包含：提取的字段列表、结果列表（每个结果只包含指定字段）、总结果数、数据来源信息",
+        "dependencies": ["json"],
+        "implementation_notes": [
+          "支持嵌套字段提取，使用点号分隔（如'openfda.brand_name'）",
+          "字段不存在时返回None",
+          "适用于所有FDA查询工具的响应"
+        ],
+        "error_handling": [
+          "响应解析失败：捕获异常并返回错误信息",
+          "响应不成功（success=false）：直接返回原始响应"
+        ],
+        "usage_examples": [
+          "extract_data_fields(response, ['brand_name', 'manufacturer'])",
+          "extract_data_fields(response, ['openfda.brand_name', 'openfda.generic_name'])"
+        ]
+      },
+      {
+        "tool_name": "validate_fda_data",
+        "description": "验证FDA API响应的数据质量和完整性，提供完整性评分和缺失字段提示。",
+        "function_signature": "validate_fda_data(fda_response: str) -> str",
+        "parameters": [
+          {
+            "name": "fda_response",
+            "type": "str",
+            "description": "FDA API响应（来自其他FDA查询工具）",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的验证结果，包含：查询类型、总结果数、完整结果数、平均完整性评分、每个结果的验证详情（缺失字段、空字段、完整性评分）、数据质量等级（high/medium/low）",
+        "dependencies": ["json"],
+        "implementation_notes": [
+          "根据query_type定义必需字段列表",
+          "检查每个结果的字段缺失和空值情况",
+          "计算完整性评分（0-100）",
+          "生成整体数据质量评估（high≥90、medium≥70、low<70）"
+        ],
+        "error_handling": [
+          "响应解析失败：捕获异常并返回错误信息",
+          "响应不成功（success=false）：返回错误提示"
+        ],
+        "usage_examples": [
+          "validate_fda_data(response)"
+        ]
+      },
+      {
+        "tool_name": "generate_data_source_info",
+        "description": "生成完整的数据来源追溯信息，包括API端点、请求URL、查询参数、时间戳、缓存状态。",
+        "function_signature": "generate_data_source_info(fda_response: str) -> str",
+        "parameters": [
+          {
+            "name": "fda_response",
+            "type": "str",
+            "description": "FDA API响应（来自其他FDA查询工具）",
+            "required": true
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的数据来源信息，包含：API名称、API端点、完整请求URL、时间戳、缓存状态、查询类型、总结果数、验证URL、数据新鲜度、可靠性说明",
+        "dependencies": ["json"],
+        "implementation_notes": [
+          "从响应中提取data_source字段",
+          "生成完整的可验证信息",
+          "标注数据新鲜度（实时或缓存及缓存年龄）",
+          "提供FDA官方验证链接"
+        ],
+        "error_handling": [
+          "响应解析失败：捕获异常并返回错误信息",
+          "响应不成功（success=false）：直接返回原始响应"
+        ],
+        "usage_examples": [
+          "generate_data_source_info(response)"
+        ]
+      }
+    ],
+    "code_quality": {
+      "code_standards": [
+        "遵循PEP 8代码风格规范",
+        "使用完整的类型注解（Python 3.13+）",
+        "每个函数包含详细的docstring（Google风格）",
+        "所有工具函数使用@tool装饰器",
+        "返回值统一为JSON格式字符串",
+        "错误处理：捕获所有异常，不抛出异常，返回JSON格式错误信息"
+      ],
+      "testing_strategy": [
+        "单元测试：测试每个工具函数的核心逻辑",
+        "集成测试：测试工具函数与openFDA API的集成",
+        "缓存测试：验证缓存读写、过期检查、清理功能",
+        "错误测试：模拟各种错误场景（400/404/429/500/超时），验证错误处理",
+        "性能测试：验证缓存命中率、响应时间",
+        "边界测试：测试极端输入（空参数、超大limit、无效endpoint）"
+      ],
+      "performance_considerations": [
+        "使用本地文件系统缓存，降低API调用量",
+        "缓存过期时间24小时，平衡数据时效性和性能",
+        "使用MD5哈希生成cache_key，确保高效查找",
+        "requests库使用连接池，提升HTTP请求性能",
+        "长文本字段截断至500字符，避免响应过大",
+        "支持分页查询，避免一次性返回大量数据"
+      ],
+      "security_measures": [
+        "所有API通信使用HTTPS协议",
+        "不存储用户敏感信息",
+        "遵守openFDA API使用条款和限流政策",
+        "输入参数验证，防止注入攻击",
+        "缓存数据仅限FDA公开数据",
+        "日志中不记录完整的用户查询内容"
+      ]
+    },
+    "integration_details": {
+      "aws_services": [],
+      "external_libraries": [
+        "requests：HTTP请求库，用于调用openFDA API",
+        "strands：Strands框架，提供@tool装饰器"
+      ],
+      "api_endpoints": [
+        "https://api.fda.gov/drug/label.json：药物标签信息",
+        "https://api.fda.gov/drug/event.json：药物不良事件（FAERS）",
+        "https://api.fda.gov/drug/nda.json：新药申请批准信息",
+        "https://api.fda.gov/device/classification.json：医疗设备分类",
+        "https://api.fda.gov/device/recall.json：医疗设备召回",
+        "https://api.fda.gov/device/event.json：医疗设备不良事件（MAUDE）",
+        "https://api.fda.gov/food/enforcement.json：食品执法报告",
+        "https://api.fda.gov/food/event.json：食品不良事件"
+      ],
+      "data_formats": [
+        "输入：JSON（查询参数字典）",
+        "输出：JSON字符串（结构化查询结果）",
+        "缓存：JSON文件（包含cached_at时间戳和data字段）"
+      ]
+    },
+    "development_notes": "工具开发过程严格遵循Strands框架规范和Nexus-AI平台技术栈。所有工具函数都使用@tool装饰器，支持完整的类型注解和详细的文档字符串。错误处理采用'不抛出异常'原则，所有异常都捕获并转换为JSON格式的用户友好错误信息。缓存机制使用本地文件系统，实现简单且无外部依赖，过期时间设置为24小时，平衡数据时效性和API调用量。所有API请求使用HTTPS协议，遵守openFDA使用条款。工具设计充分考虑了可用性、性能、安全性和可维护性，确保Agent能够提供高质量的FDA数据查询服务。"
+  }
+}

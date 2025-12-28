@@ -1,0 +1,15 @@
+./nexus_utils
+strands-agents
+strands-agents-tools
+PyYAML
+bedrock-agentcore
+# FDA Data Query Agent - Python Dependencies
+# Generated: 2025-12-28
+# Python Version: >=3.12
+# Local utilities package
+# Strands Agent Framework
+# AWS Bedrock AgentCore Runtime
+# HTTP requests library (for FDA API integration)
+requests
+# YAML configuration parsing
+pyyaml
