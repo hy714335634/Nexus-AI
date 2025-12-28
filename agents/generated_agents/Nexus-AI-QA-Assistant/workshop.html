@@ -127,7 +127,34 @@
       .sidebar-content {
         display: flex;
         flex-direction: column;
-        gap: 1.2rem;
+        gap: 1rem;
+        height: calc(100vh - 8rem);
+        overflow: hidden;
+      }
+
+      .nav-wrapper {
+        flex: 1;
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding-right: 0.5rem;
+        margin-right: -0.5rem;
+      }
+
+      .nav-wrapper::-webkit-scrollbar {
+        width: 4px;
+      }
+
+      .nav-wrapper::-webkit-scrollbar-track {
+        background: transparent;
+      }
+
+      .nav-wrapper::-webkit-scrollbar-thumb {
+        background: rgba(148, 163, 184, 0.3);
+        border-radius: 2px;
+      }
+
+      .nav-wrapper::-webkit-scrollbar-thumb:hover {
+        background: rgba(148, 163, 184, 0.5);
       }
 
       .sidebar h2 {
@@ -146,20 +173,13 @@
         display: flex;
         flex-direction: column;
         gap: 0.3rem;
-        max-height: 600px;
-        overflow: hidden;
-        transition: max-height 0.45s ease, opacity 0.35s ease;
       }
 
       .nav a {
         text-decoration: none;
-        color: var(--text-primary);
-        font-size: 0.93rem;
         display: flex;
         align-items: center;
-        gap: 0.6rem;
-        padding: 0.6rem 0.85rem;
-        border-radius: 10px;
+        gap: 0.5rem;
         border: 1px solid transparent;
         transition: var(--transition);
         position: relative;
@@ -167,28 +187,7 @@
       }
 
       .nav a::before {
-        content: "▸";
-        font-size: 0.8rem;
-        color: var(--muted);
         transition: var(--transition);
-      }
-
-      .nav a:hover {
-        background: var(--panel);
-        border-color: var(--border);
-        transform: translateX(3px);
-      }
-
-      .nav a.active {
-        background: var(--panel);
-        border-color: var(--accent);
-        color: var(--accent);
-        font-weight: 600;
-      }
-
-      .nav a.active::before {
-        content: "▾";
-        color: var(--accent);
       }
 
       .nav.collapsed {
@@ -197,21 +196,186 @@
         pointer-events: none;
       }
 
+      /* 导航层次结构样式 */
+      .nav-group {
+        margin-bottom: 1rem;
+      }
+
+      .nav-group:last-child {
+        margin-bottom: 0;
+      }
+
+      .nav-group-title {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        padding: 0.6rem 0.8rem;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--accent);
+        background: linear-gradient(90deg, rgba(56, 189, 248, 0.08), transparent);
+        border-radius: 8px;
+        margin-bottom: 0.5rem;
+      }
+
+      .nav-group-title::before {
+        content: "";
+        width: 3px;
+        height: 16px;
+        border-radius: 2px;
+        background: linear-gradient(180deg, var(--accent), var(--accent-strong));
+      }
+
+      .nav-group ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+      }
+
+      /* 一级导航样式 */
+      .nav-group .nav-main {
+        margin-bottom: 0.4rem;
+      }
+
+      .nav-group .nav-main a.nav-primary {
+        font-size: 1rem;
+        font-weight: 600;
+        padding: 0.7rem 1rem;
+        color: var(--text-primary);
+        border-radius: 12px;
+        background: var(--panel);
+        border: 1px solid transparent;
+      }
+
+      .nav-group .nav-main a.nav-primary::before {
+        content: "◆";
+        font-size: 0.5rem;
+        color: var(--accent);
+        opacity: 0.7;
+      }
+
+      .nav-group .nav-main a.nav-primary:hover {
+        background: rgba(56, 189, 248, 0.12);
+        border-color: rgba(56, 189, 248, 0.2);
+        transform: translateX(4px);
+      }
+
+      .nav-group .nav-main a.nav-primary.active {
+        background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(59, 130, 246, 0.15));
+        border-color: var(--accent);
+        color: var(--accent);
+        box-shadow: 0 2px 8px rgba(56, 189, 248, 0.2);
+      }
+
+      .nav-group .nav-main a.nav-primary.active::before {
+        content: "◆";
+        color: var(--accent);
+        opacity: 1;
+      }
+
+      /* 二级导航样式 */
+      .nav-group .nav-sub {
+        padding-left: 0.8rem;
+        margin-left: 0.5rem;
+        border-left: 2px solid var(--border);
+      }
+
+      .nav-group .nav-sub a {
+        font-size: 0.85rem;
+        padding: 0.4rem 0.8rem;
+        color: var(--muted);
+        border-radius: 8px;
+      }
+
+      .nav-group .nav-sub a::before {
+        content: "›";
+        font-size: 0.85rem;
+        opacity: 0.6;
+      }
+
+      .nav-group .nav-sub a:hover {
+        color: var(--text-primary);
+        background: rgba(56, 189, 248, 0.06);
+      }
+
+      .nav-group .nav-sub a:hover::before {
+        opacity: 1;
+        color: var(--accent);
+      }
+
+      .nav-group .nav-sub a.active {
+        color: var(--accent);
+        background: rgba(56, 189, 248, 0.1);
+        font-weight: 500;
+      }
+
+      .nav-group .nav-sub a.active::before {
+        content: "▸";
+        color: var(--accent);
+        opacity: 1;
+      }
+
       .note-box {
         display: flex;
         flex-direction: column;
-        gap: 0.85rem;
-        padding: 1.3rem;
-        border-radius: 18px;
+        border-radius: 14px;
         border: 1px solid var(--border);
         background: var(--panel);
+        flex-shrink: 0;
+        overflow: hidden;
       }
 
-      .note-box h3 {
+      .note-box.collapsible .note-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.75rem 1rem;
+        cursor: pointer;
+        transition: var(--transition);
+        background: linear-gradient(90deg, rgba(56, 189, 248, 0.06), transparent);
+      }
+
+      .note-box.collapsible .note-header:hover {
+        background: linear-gradient(90deg, rgba(56, 189, 248, 0.12), transparent);
+      }
+
+      .note-box.collapsible .note-header h3 {
         margin: 0;
-        font-size: 1.1rem;
+        font-size: 0.9rem;
         color: var(--accent);
         font-weight: 600;
+      }
+
+      .note-toggle-icon {
+        font-size: 0.7rem;
+        color: var(--muted);
+        transition: transform 0.3s ease;
+      }
+
+      .note-box.collapsed .note-toggle-icon {
+        transform: rotate(-90deg);
+      }
+
+      .note-body {
+        display: flex;
+        flex-direction: column;
+        gap: 0.7rem;
+        padding: 0 1rem 1rem;
+        max-height: 500px;
+        overflow-y: auto;
+        transition: max-height 0.35s ease, padding 0.35s ease, opacity 0.25s ease;
+      }
+
+      .note-box.collapsed .note-body {
+        max-height: 0;
+        padding-top: 0;
+        padding-bottom: 0;
+        opacity: 0;
       }
 
       .note-box textarea {
@@ -275,8 +439,8 @@
         display: flex;
         flex-direction: column;
         gap: 0.7rem;
-        max-height: 380px;
-        overflow-y: auto;
+        max-height: none;
+        overflow-y: visible;
         padding-right: 0.4rem;
       }
 
@@ -1274,6 +1438,15 @@
         transition: var(--transition);
       }
 
+      [data-theme="light"] .img-wrapper {
+        border: 1px solid rgba(15, 23, 42, 0.35);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      [data-theme="light"] .img-wrapper:hover {
+        border-color: rgba(15, 23, 42, 0.5);
+      }
+
       .img-wrapper.collapsed {
         max-height: 120px;
         overflow: hidden;
@@ -1532,35 +1705,75 @@
           <button class="toggle" id="tocToggle">折叠导航</button>
         </div>
         <div class="sidebar-content">
-          <ul class="nav" id="toc">
-            <li><a href="#env-prepare">环境准备</a></li>
-            <li><a href="#deploy">部署 Nexus-AI</a></li>
-            <li><a href="#validation">环境验证（命令行）</a></li>
-            <li><a href="#agent-lab">Agent 构建与测试（命令行）</a></li>
-            <li><a href="#challenge">挑战：外部资源集成</a></li>
-            <li><a href="#ui-access">通过 UI 访问</a></li>
-          </ul>
-          <div class="note-box">
-            <h3>课堂速记</h3>
-            <textarea
-              id="noteInput"
-              placeholder="在这里粘贴或输入临时内容，点击下方按钮保存为一条记录"
-              rows="3"
-            ></textarea>
-            <div class="note-controls">
-              <button class="cta note-add" id="noteAdd" type="button">添加记录</button>
-              <span class="note-count" id="noteCount">0 条</span>
+          <div class="nav-wrapper">
+            <ul class="nav" id="toc">
+              <!-- 环境搭建 -->
+              <li class="nav-group">
+                <div class="nav-group-title">环境搭建</div>
+                <ul class="nav-main">
+                  <li><a href="#env-prepare" class="nav-primary">环境准备</a></li>
+                </ul>
+                <ul class="nav-sub">
+                  <li><a href="#env-aws">AWS 资源准备</a></li>
+                  <li><a href="#env-tools">基础工具安装</a></li>
+                </ul>
+                <ul class="nav-main">
+                  <li><a href="#deploy" class="nav-primary">部署 Nexus-AI</a></li>
+                </ul>
+                <ul class="nav-sub">
+                  <li><a href="#deploy-clone">拉取代码</a></li>
+                  <li><a href="#deploy-venv">初始化虚拟环境</a></li>
+                  <li><a href="#deploy-deps">安装 Python 依赖</a></li>
+                  <li><a href="#deploy-aws">配置 AWS 凭证</a></li>
+                  <li><a href="#deploy-db">初始化数据库</a></li>
+                </ul>
+                <ul class="nav-main">
+                  <li><a href="#validation" class="nav-primary">环境验证</a></li>
+                </ul>
+              </li>
+              <!-- 核心内容 -->
+              <li class="nav-group">
+                <div class="nav-group-title">核心内容 - Agent 构建与测试</div>
+                <ul class="nav-main">
+                  <li><a href="#agent-lab" class="nav-primary">基于命令行</a></li>
+                  <li><a href="#ui-access" class="nav-primary">基于 Web UI</a></li>
+                </ul>
+              </li>
+              <!-- 进阶挑战 -->
+              <li class="nav-group">
+                <div class="nav-group-title">进阶挑战</div>
+                <ul class="nav-main">
+                  <li><a href="#challenge" class="nav-primary">挑战一：Neo4j 文献知识图谱</a></li>
+                </ul>
+              </li>
+            </ul>
+          </div>
+          <div class="note-box collapsible">
+            <div class="note-header" id="noteToggle">
+              <h3>📝 课堂速记</h3>
+              <span class="note-toggle-icon">▼</span>
             </div>
-            <input 
-              type="text" 
-              class="note-search" 
-              id="noteSearch" 
-              placeholder="搜索笔记内容..."
-            />
-            <div class="note-empty" id="noteEmpty">
-              暂无记录，先把你的想法记下来吧。
+            <div class="note-body" id="noteBody">
+              <textarea
+                id="noteInput"
+                placeholder="在这里粘贴或输入临时内容，点击下方按钮保存为一条记录"
+                rows="2"
+              ></textarea>
+              <div class="note-controls">
+                <button class="cta note-add" id="noteAdd" type="button">添加记录</button>
+                <span class="note-count" id="noteCount">0 条</span>
+              </div>
+              <input 
+                type="text" 
+                class="note-search" 
+                id="noteSearch" 
+                placeholder="搜索笔记内容..."
+              />
+              <div class="note-empty" id="noteEmpty">
+                暂无记录，先把你的想法记下来吧。
+              </div>
+              <div class="note-entries" id="noteList"></div>
             </div>
-            <div class="note-entries" id="noteList"></div>
           </div>
         </div>
       </aside>
@@ -1568,7 +1781,7 @@
       <main class="content">
         <header class="hero" id="top">
           <div style="display: flex; align-items: center; gap: 2rem; margin-bottom: 1.5rem;">
-            <img src="./default_logo.png" alt="Nexus-AI Logo" style="width: 120px; height: 120px; object-fit: contain; filter: drop-shadow(0 8px 16px rgba(56, 189, 248, 0.3));">
+            <img src="/assets//default_logo.png" alt="Nexus-AI Logo" style="width: 120px; height: 120px; object-fit: contain; filter: drop-shadow(0 8px 16px rgba(56, 189, 248, 0.3));">
             <div style="flex: 1;">
               <span class="badge">Nexus-AI Workshop</span>
               <h1 style="margin-top: 0.5rem; margin-bottom: 0;">Nexus-AI 动手实验手册</h1>
@@ -1592,7 +1805,7 @@
           </div>
 
           <article data-env>
-            <h3>一、AWS 资源准备</h3>
+            <h3 id="env-aws">一、AWS 资源准备</h3>
             <ul>
               <li>AMI：<code>Amazon Linux 2023 (kernel 6.1)</code></li>
               <li>
@@ -1605,13 +1818,13 @@
               <li>安全组：开放 SSH 22，3000,8000,16686 端口；</li>
             </ul>
             <div class="img-container">
-              <img src="./01.create-ec2-ami.png" alt="创建EC2-基本配置选择">
+              <img src="/assets//01.create-ec2-ami.png" alt="创建EC2-基本配置选择">
             </div>
             <div class="img-container">
-              <img src="./01.create-ec2-sg.png" alt="创建EC2-安全组及存储配置">
+              <img src="/assets//01.create-ec2-sg.png" alt="创建EC2-安全组及存储配置">
             </div>
             <div class="img-container">
-              <img src="./01.create-ec2-iam.png" alt="创建EC2-权限配置">
+              <img src="/assets//01.create-ec2-iam.png" alt="创建EC2-权限配置">
             </div>
             <blockquote>
               <strong>检查点</strong> SSH 登录后执行以下命令，确保凭证有效。
@@ -1620,7 +1833,7 @@ aws sts get-caller-identity
               </code></pre>
             </blockquote>
 
-            <h3>二、基础工具安装</h3>
+            <h3 id="env-tools">二、基础工具安装</h3>
             <div class="timeline">
               <div class="timeline-item">
                 <h4>1. 安装系统依赖</h4>
@@ -1704,11 +1917,11 @@ mkdir -p $HOME/Nexus-AI/tools/generated_tools/neo4j/neo4j_plugins</code></pre>
             <h2>部署 Nexus-AI</h2>
             <span class="badge">核心步骤</span>
           </div>
-          <h3>一、拉取代码与目录配置</h3>
+          <h3 id="deploy-clone">一、拉取代码与目录配置</h3>
           <pre><button class="copy">复制</button><code class="language-bash">git clone https://github.com/hy714335634/Nexus-AI.git
 cd Nexus-AI</code></pre>
 
-          <h3>二、初始化虚拟环境</h3>
+          <h3 id="deploy-venv">二、初始化虚拟环境</h3>
           <pre><button class="copy">复制</button><code class="language-bash">python3.12 -m venv .nexus-ai
 source .nexus-ai/bin/activate
 echo 'source $HOME/Nexus-AI/.nexus-ai/bin/activate' >> ~/.bashrc
@@ -1716,7 +1929,7 @@ echo 'cd $HOME/Nexus-AI/' >> ~/.bashrc
 source ~/.bashrc</code></pre>
           <p>验证：<code>python --version</code> 显示 3.12.x</p>
 
-          <h3>三、安装 Python 依赖</h3>
+          <h3 id="deploy-deps">三、安装 Python 依赖</h3>
           <pre><button class="copy">复制</button><code class="language-bash">uv pip install --upgrade pip
 uv pip install -r requirements.txt
 uv pip install strands-agents[otel]
@@ -1726,11 +1939,11 @@ uv pip install -e .</code></pre>
             <li>安装完成后执行 <code>uv pip list | head</code> 确认成功</li>
           </ul>
 
-          <h3>四、配置 AWS 凭证</h3>
+          <h3 id="deploy-aws">四、配置 AWS 凭证</h3>
           <pre><button class="copy">复制</button><code class="language-bash">aws configure</code></pre>
           <p>按照提示输入 AWS Access Key ID、Secret Access Key、Region (us-west-2) 和输出格式 (json)。</p>
 
-          <h3>五、初始化 DynamoDB 数据库</h3>
+          <h3 id="deploy-db">五、初始化 DynamoDB 数据库</h3>
           <pre><button class="copy">复制</button><code class="language-bash">python api/scripts/setup_tables.py</code></pre>
           <p>该脚本将自动创建 Nexus-AI 平台所需的 DynamoDB 表。成功后会显示 <code>✅ All tables created successfully!</code></p>
           <blockquote>
@@ -1759,7 +1972,7 @@ uv pip install -e .</code></pre>
 
           <h3>直接调用生成的 Agent</h3>
           <pre><button class="copy">复制</button><code class="language-bash"># FDA数据查询和问答
-python agents/generated_agents/fda_data_query_agent/fda_data_query_agent.py -i "查询阿司匹林的不良反应""</code></pre>
+python agents/generated_agents/fda_data_query_agent/fda_data_query_agent.py -i "查询阿司匹林的不良反应"</code></pre>
 
           <h3>交互式访问 Agent —— 1</h3>
           <pre><button class="copy">复制</button><code class="language-bash"># FDA数据查询和问答
@@ -1772,14 +1985,14 @@ python agents/generated_agents/fda_data_query_agent/fda_data_query_agent.py -it<
 python agents/generated_agents/stock_analysis_agent/stock_analysis_agent.py -it</code></pre>
         </section>
 
-        <section id="agent-lab" data-section="Stage 04">
+        <section id="agent-lab" data-section="核心内容">
           <div class="toolbar">
             <h2>Agent 构建与测试 —— 基于命令行</h2>
             <button class="cta" data-collapse="[data-agent]">展开任务</button>
           </div>
 
           <article data-agent>
-            <h3>一、构建参考示例</h3>
+            <h3 id="agent-build-examples">一、构建参考示例</h3>
             <div class="timeline">
               <div class="timeline-item">
                 <h4>示例 1 · 新闻聚合 Agent</h4>
@@ -1801,20 +2014,20 @@ tail -f nohup.out</code></pre>
             </div>
 
           <div class="img-container">
-            <img src="./05.build_console_log.png" alt="控制台输出">
+            <img src="/assets//05.build_console_log.png" alt="控制台输出">
           </div>
           <div class="img-container">
-            <img src="./05.build_workflow_summary.png" alt="工作流日志">
+            <img src="/assets//05.build_workflow_summary.png" alt="工作流日志">
           </div>
 
-            <h3>二、构建结果检查</h3>
+            <h3 id="agent-result-check">二、构建结果检查</h3>
             <ul>
               <li><code>projects/&lt;project_name&gt;/agents/</code>：构建过程代码</li>
               <li><code>projects/&lt;project_name&gt;/project_config.json</code>：Agent 支持参数</li>
               <li><code>projects/&lt;project_name&gt;/workflow_summary_report.md</code>：总结报告</li>
             </ul>
 
-            <h3>三、Agent 调用</h3>
+            <h3 id="agent-invoke">三、Agent 调用</h3>
             <ul>
               <li>
                 通过系统 Agent：
@@ -1831,21 +2044,80 @@ tail -f nohup.out</code></pre>
           </article>
         </section>
 
-        <footer class="hero" style="margin-top: 1rem;">
-          <h2>完成实验之后</h2>
-          <p>
-            🎉恭喜，您已掌握 Nexus-AI 基础环境搭建、Agent 构建与增量更新的关键流程🎉
-          </p>
-          <div class="badge-stack">
-            <span class="badge">下一步 · 自定义工具</span>
-            <span class="badge">挑战 · Observability 集成</span>
-            <span class="badge">进阶 · 多 Agent 编排</span>
-          </div>
-        </footer>
-
-        <section id="challenge" data-section="Challenge">
+        <section id="ui-access" data-section="核心内容">
           <div class="toolbar">
-            <h2>挑战1：构建与外部资源集成Agent（可选）</h2>
+            <h2>Agent 构建与测试 —— 基于 Web UI</h2>
+            <span class="badge">Web Interface</span>
+          </div>
+
+          <div class="callout">
+            <strong>说明</strong>
+            <p>除了命令行方式外，Nexus-AI 还提供 Web UI 界面，方便用户通过浏览器进行 Agent 创建和对话交互。</p>
+          </div>
+
+          <h3 id="ui-backend">一、启动 FastAPI 后端服务</h3>
+          <pre><button class="copy">复制</button><code class="language-bash">nohup uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload &</code></pre>
+          <ul>
+            <li>API 服务监听 <code>0.0.0.0:8000</code>，可从外部访问</li>
+            <li>访问 API 文档：<code>http://&lt;EC2-IP&gt;:8000/docs</code></li>
+            <li>使用 <code>tail -f nohup.out</code> 查看日志</li>
+          </ul>
+          <p>验证服务是否启动：</p>
+          <pre><button class="copy">复制</button><code class="language-bash">curl http://localhost:8000/health</code></pre>
+
+          <h3 id="ui-frontend">二、启动 Next.js 前端服务</h3>
+          <pre><button class="copy">复制</button><code class="language-bash">cd web
+npm install
+nohup npm run dev -- -H 0.0.0.0 &
+cd ..</code></pre>
+          <ul>
+            <li>前端服务监听 <code>0.0.0.0:3000</code>，可从外部访问</li>
+            <li>访问地址：<code>http://&lt;EC2-IP&gt;:3000</code></li>
+            <li>首次运行需要安装依赖，可能需要几分钟</li>
+          </ul>
+          <div class="callout">
+            <strong>安全组配置提醒</strong>
+            <p>确保 EC2 安全组已开放以下端口（在环境准备阶段已配置）：</p>
+            <ul>
+              <li><code>3000</code> - Next.js 前端</li>
+              <li><code>8000</code> - FastAPI 后端</li>
+            </ul>
+            <p>配置完成后可直接通过浏览器访问 <code>http://&lt;EC2公网IP&gt;:3000</code></p>
+          </div>
+
+          <h3 id="ui-workflow">三、Web UI 使用流程</h3>
+          <p>服务启动后，通过浏览器访问前端界面，按以下流程体验 Nexus-AI：</p>
+
+          <div class="timeline">
+            <div class="timeline-item">
+              <h4>1. 访问首页</h4>
+              <p>打开浏览器访问 <code>http://&lt;EC2公网IP&gt;:3000</code>，进入 Nexus-AI 主界面。</p>
+              <div class="img-container">
+                <img src="/assets//nexus-ai_homepage.png" alt="Nexus-AI 首页">
+              </div>
+            </div>
+
+            <div class="timeline-item">
+              <h4>2. 创建 Agent</h4>
+              <p>点击创建按钮，输入 Agent 需求描述，开始构建自定义 Agent。</p>
+              <div class="img-container">
+                <img src="/assets//start-create-agent.png" alt="开始创建 Agent">
+              </div>
+            </div>
+
+            <div class="timeline-item">
+              <h4>3. 与 Agent 对话</h4>
+              <p>Agent 构建完成后，即可在对话界面与其交互，体验智能问答功能。</p>
+              <div class="img-container">
+                <img src="/assets//chat_with_agent.png" alt="与 Agent 对话">
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="challenge" data-section="进阶挑战">
+          <div class="toolbar">
+            <h2>挑战一：Agent 集成 Neo4j 构建文献知识图谱</h2>
             <span class="badge">Advanced</span>
           </div>
 
@@ -1855,10 +2127,10 @@ tail -f nohup.out</code></pre>
           </div>
 
           <div class="img-container">
-            <img src="./06.neo4j-bio.png" alt="文献实体提取">
+            <img src="/assets//06.neo4j-bio.png" alt="文献实体提取">
           </div>
 
-          <h3>提交 Agent 构建任务</h3>
+          <h3 id="challenge-build">提交 Agent 构建任务</h3>
           <pre><button class="copy">复制</button><code class="language-bash">nohup python -u agents/system_agents/agent_build_workflow/agent_build_workflow.py -i '创建一个agent，能够根据用户给定的话题，进行文献检索并尽可能获取文献全文，并对文献中的关键实体信息进行理解和提取，将数据导入到neo4j数据库中，并可以基于知识图谱回答客户问题
 基本功能要求：
 1）能够基于客户话题和关键字进行pubmed文献检索，并获取文献元数据及PMCID
@@ -1890,10 +2162,9 @@ tail -f nohup.out</code></pre>
     - 目录结构: oa_comm/, oa_noncomm/, phe_timebound/
     - 文件格式: txt/和xml/两种格式，包含完整的文章内容和元数据' &</code></pre>
 
-    <h3>Agent测试</h3>
-    <pre><button class="copy">复制</button><code class="language-bash"># 在tools/generated_tools目录中找到该Agent并执行交互式访问
-python tools/generated_tools/xxxx/xxxx.py -it
-    </code></pre>
+          <h3 id="challenge-test">Agent 测试</h3>
+          <pre><button class="copy">复制</button><code class="language-bash"># 在tools/generated_tools目录中找到该Agent并执行交互式访问
+python tools/generated_tools/xxxx/xxxx.py -it</code></pre>
 
           <div class="callout alert">
             <strong>注意</strong>
@@ -1902,76 +2173,17 @@ python tools/generated_tools/xxxx/xxxx.py -it
           </div>
         </section>
 
-        <section id="ui-access" data-section="UI Access">
-          <div class="toolbar">
-            <h2>通过 UI 访问</h2>
-            <span class="badge">Web Interface</span>
+        <footer class="hero" style="margin-top: 1rem;">
+          <h2>🎉 完成实验之后</h2>
+          <p>
+            恭喜，您已掌握 Nexus-AI 基础环境搭建、Agent 构建与增量更新的关键流程！
+          </p>
+          <div class="badge-stack">
+            <span class="badge">下一步 · 自定义工具</span>
+            <span class="badge">挑战 · Observability 集成</span>
+            <span class="badge">进阶 · 多 Agent 编排</span>
           </div>
-
-          <div class="callout">
-            <strong>说明</strong>
-            <p>除了命令行方式外，Nexus-AI 还提供 Web UI 界面，方便用户通过浏览器进行 Agent 创建和对话交互。</p>
-          </div>
-
-          <h3>一、启动 FastAPI 后端服务</h3>
-          <pre><button class="copy">复制</button><code class="language-bash">nohup uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload &</code></pre>
-          <ul>
-            <li>API 服务监听 <code>0.0.0.0:8000</code>，可从外部访问</li>
-            <li>访问 API 文档：<code>http://&lt;EC2-IP&gt;:8000/docs</code></li>
-            <li>使用 <code>tail -f nohup.out</code> 查看日志</li>
-          </ul>
-          <p>验证服务是否启动：</p>
-          <pre><button class="copy">复制</button><code class="language-bash">curl http://localhost:8000/health</code></pre>
-
-          <h3>二、启动 Next.js 前端服务</h3>
-          <pre><button class="copy">复制</button><code class="language-bash">cd web
-npm install
-nohup npm run dev -- -H 0.0.0.0 &
-cd ..</code></pre>
-          <ul>
-            <li>前端服务监听 <code>0.0.0.0:3000</code>，可从外部访问</li>
-            <li>访问地址：<code>http://&lt;EC2-IP&gt;:3000</code></li>
-            <li>首次运行需要安装依赖，可能需要几分钟</li>
-          </ul>
-          <div class="callout">
-            <strong>安全组配置提醒</strong>
-            <p>确保 EC2 安全组已开放以下端口（在环境准备阶段已配置）：</p>
-            <ul>
-              <li><code>3000</code> - Next.js 前端</li>
-              <li><code>8000</code> - FastAPI 后端</li>
-            </ul>
-            <p>配置完成后可直接通过浏览器访问 <code>http://&lt;EC2公网IP&gt;:3000</code></p>
-          </div>
-
-          <h3>三、Web UI 使用流程</h3>
-          <p>服务启动后，通过浏览器访问前端界面，按以下流程体验 Nexus-AI：</p>
-
-          <div class="timeline">
-            <div class="timeline-item">
-              <h4>1. 访问首页</h4>
-              <p>打开浏览器访问 <code>http://&lt;EC2公网IP&gt;:3000</code>，进入 Nexus-AI 主界面。</p>
-              <div class="img-container">
-                <img src="./nexus-ai_homepage.png" alt="Nexus-AI 首页">
-              </div>
-            </div>
-
-            <div class="timeline-item">
-              <h4>2. 创建 Agent</h4>
-              <p>点击创建按钮，输入 Agent 需求描述，开始构建自定义 Agent。</p>
-              <div class="img-container">
-                <img src="./start-create-agent.png" alt="开始创建 Agent">
-              </div>
-            </div>
-
-            <div class="timeline-item">
-              <h4>3. 与 Agent 对话</h4>
-              <p>Agent 构建完成后，即可在对话界面与其交互，体验智能问答功能。</p>
-              <div class="img-container">
-                <img src="./chat_with_agent.png" alt="与 Agent 对话">
-              </div>
-            </div>
-          </div>
-        </section>
+        </footer>
       </main>
     </div>
 
@@ -2069,9 +2281,18 @@ cd ..</code></pre>
 
     <script>
       const tocLinks = [...document.querySelectorAll(".nav a")];
-      const sections = tocLinks.map((link) =>
-        document.querySelector(link.getAttribute("href"))
-      ).filter(Boolean);
+      
+      // 构建链接到目标元素的映射
+      const linkTargets = new Map();
+      tocLinks.forEach(link => {
+        const target = document.querySelector(link.getAttribute("href"));
+        if (target) {
+          linkTargets.set(link, target);
+        }
+      });
+
+      // 获取所有可观察的元素（section 和 h3）
+      const observableElements = [...linkTargets.values()];
 
       const setActiveLink = (id) => {
         tocLinks.forEach((link) => {
@@ -2080,32 +2301,83 @@ cd ..</code></pre>
         });
       };
 
-      // Handle click events
+      // Handle click events - 立即设置高亮
       tocLinks.forEach((link) => {
         link.addEventListener("click", (e) => {
           const id = link.getAttribute("href").substring(1);
+          // 立即设置高亮状态
           setActiveLink(id);
+          
+          // 延迟一下再次确认高亮（防止滚动事件覆盖）
+          setTimeout(() => {
+            setActiveLink(id);
+          }, 100);
         });
       });
 
-      // Handle scroll events
+      // 跟踪当前可见的元素
+      let visibleElements = new Set();
+      let lastActiveId = null;
+
+      // 找到最靠近视口顶部的元素
+      const findTopMostElement = () => {
+        let topElement = null;
+        let minTop = Infinity;
+        
+        visibleElements.forEach(el => {
+          const rect = el.getBoundingClientRect();
+          // 考虑元素在视口中的位置
+          if (rect.top < minTop && rect.top > -rect.height * 0.5) {
+            minTop = rect.top;
+            topElement = el;
+          }
+        });
+        
+        return topElement;
+      };
+
+      // Handle scroll events with improved logic
       const observer = new IntersectionObserver(
         (entries) => {
           entries.forEach((entry) => {
-            if (entry.isIntersecting && entry.intersectionRatio > 0.3) {
-              const id = entry.target.getAttribute("id");
-              setActiveLink(id);
+            const id = entry.target.getAttribute("id");
+            if (entry.isIntersecting) {
+              visibleElements.add(entry.target);
+            } else {
+              visibleElements.delete(entry.target);
             }
           });
+
+          // 找到最靠近顶部的可见元素
+          const topElement = findTopMostElement();
+          if (topElement) {
+            const id = topElement.getAttribute("id");
+            if (id !== lastActiveId) {
+              lastActiveId = id;
+              setActiveLink(id);
+            }
+          }
         },
         {
-          rootMargin: "-15% 0px -70% 0px",
-          threshold: [0, 0.3, 0.5, 1],
+          rootMargin: "-10% 0px -60% 0px",
+          threshold: [0, 0.1, 0.25, 0.5, 0.75, 1],
         }
       );
 
-      sections.forEach((section) => {
-        if (section) observer.observe(section);
+      observableElements.forEach((el) => {
+        if (el) observer.observe(el);
+      });
+
+      // 初始化时设置第一个可见元素为高亮
+      requestAnimationFrame(() => {
+        const firstVisible = observableElements.find(el => {
+          if (!el) return false;
+          const rect = el.getBoundingClientRect();
+          return rect.top >= 0 && rect.top < window.innerHeight;
+        });
+        if (firstVisible) {
+          setActiveLink(firstVisible.getAttribute("id"));
+        }
       });
 
       const progressBar = document.getElementById("progressBar");
@@ -2554,6 +2826,17 @@ cd ..</code></pre>
           }
         }
       });
+
+      // 课堂速记折叠功能
+      const noteToggle = document.getElementById("noteToggle");
+      const noteBox = noteToggle?.closest(".note-box");
+      
+      if (noteToggle && noteBox) {
+        // 默认展开状态，点击可折叠
+        noteToggle.addEventListener("click", () => {
+          noteBox.classList.toggle("collapsed");
+        });
+      }
 
       tocToggle.setAttribute("aria-expanded", "true");
       sidebarToggle.textContent = "✕";
