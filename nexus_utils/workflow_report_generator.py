@@ -1147,7 +1147,8 @@ def generate_sequential_workflow_report(
     execution_order: List[str],
     execution_time: float,
     intent_analysis: Any,
-    default_project_root_path: str = './projects'
+    default_project_root_path: str = './projects',
+    is_update_workflow: bool = False
 ) -> str:
     """
     为顺序调用的工作流生成报告
@@ -1158,6 +1159,7 @@ def generate_sequential_workflow_report(
         execution_time: 总执行时间（秒）
         intent_analysis: 意图分析结果
         default_project_root_path: 项目根路径
+        is_update_workflow: 是否为更新工作流，如果是则不再拼接项目名
     
     Returns:
         生成的报告文件路径
@@ -1204,8 +1206,14 @@ def generate_sequential_workflow_report(
         else:
             project_root = default_project_root_path
         
-        # 在projects/<project_name>下生成报告
-        project_dir = os.path.join(project_root, project_name)
+        # 根据工作流类型决定报告路径
+        if is_update_workflow:
+            # 更新工作流：default_project_root_path 已经是版本目录，直接使用
+            project_dir = project_root
+        else:
+            # 构建工作流：在 projects/<project_name> 下生成报告
+            project_dir = os.path.join(project_root, project_name)
+        
         output_path = os.path.join(project_dir, "workflow_summary_report.md")
         
         # 加载项目配置信息

@@ -32,6 +32,7 @@ agent:
         4. 新版本写入：
            - 构造完整版本字段（含状态、作者、描述、system_prompt、metadata 等）
            - 调用 `append_prompt_version`
+           - 注意工具位置，当版本更新添加/修改工具时，新版本中应包含最新工具路径，默认为`generated_tools/<project_name>/<version_id>/<script_name>/<tool_name>`
         5. 使用 `write_stage_document` 将提示词更新概要写入 `<version_id>/prompt_update.json`
         6. 调用 `register_version_stage`（status=completed，传入agent_name、doc_path、artifacts）与 `append_change_log`
 

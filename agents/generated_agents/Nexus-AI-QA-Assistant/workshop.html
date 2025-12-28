@@ -1744,6 +1744,7 @@
                 <div class="nav-group-title">进阶挑战</div>
                 <ul class="nav-main">
                   <li><a href="#challenge" class="nav-primary">挑战一：Neo4j 文献知识图谱</a></li>
+                  <li><a href="#challenge2" class="nav-primary">挑战二：Milvus 临床试验知识库</a></li>
                 </ul>
               </li>
             </ul>
@@ -2170,6 +2171,92 @@ python tools/generated_tools/xxxx/xxxx.py -it</code></pre>
             <strong>注意</strong>
             <p>此挑战任务需要较长时间完成，建议在完成基础实验后再尝试。</p>
             <p>确保 Docker 已正确安装并运行，Neo4j 容器启动成功后再提交构建任务。</p>
+          </div>
+        </section>
+
+        <section id="challenge2" data-section="进阶挑战">
+          <div class="toolbar">
+            <h2>挑战二：Agent 自动化构建 Milvus 临床试验知识库</h2>
+            <span class="badge">Advanced</span>
+          </div>
+
+          <div class="callout">
+            <strong>实验目标</strong>
+            <p>本实验将创建一个临床试验智能检索 Agent，能够自动管理 Milvus Lite 向量数据库，无需预先配置。Agent 将从 ClinicalTrials.gov 采集数据，使用 Bedrock Cohere 模型进行向量化，并提供语义搜索和竞品分析能力。</p>
+          </div>
+
+          <div class="callout">
+            <strong>💡 技术亮点</strong>
+            <ul>
+              <li><strong>Milvus Lite</strong>：无需 Docker，Agent 自动初始化本地向量数据库</li>
+              <li><strong>公开数据源</strong>：ClinicalTrials.gov API 完全免费，无需 API Key</li>
+              <li><strong>Bedrock Embedding</strong>：使用 Cohere 多语言模型生成高质量向量</li>
+              <li><strong>持久化存储</strong>：数据跨会话保存，支持增量更新</li>
+            </ul>
+          </div>
+
+          <h3 id="challenge2-build">提交 Agent 构建任务</h3>
+          <pre><button class="copy">复制</button><code class="language-bash">nohup python -u agents/system_agents/agent_build_workflow/agent_build_workflow.py -i '创建一个临床试验智能检索Agent，agent命名为clinical_trial_search_agent，能够自动管理 Milvus Lite 向量数据库，对 ClinicalTrials.gov 的临床试验数据进行语义检索和智能分析
+
+**核心功能要求**
+1）Agent启动时自动检测本地是否存在 Milvus 数据库文件，如不存在则自动初始化 Milvus Lite 并创建 Collection
+2）能够根据用户指定的疾病、靶点、药物等关键词，检索 ClinicalTrials.gov 获取临床试验数据
+3）使用 Amazon Bedrock cohere.embed-multilingual-v3.0 模型对试验标题、摘要、入排标准等文本进行向量化
+4）将向量和元数据（NCT ID、试验阶段、状态、主办方等）存入 Milvus，支持增量更新避免重复
+5）支持语义搜索：根据自然语言描述找到设计相似的临床试验
+6）支持竞品分析：给定一个试验NCT ID，找出最相似的竞品研究并对比分析
+7）具备多轮对话交互能力，回答时引用具体试验（NCT ID + ClinicalTrials.gov链接）
+
+**技术规范**
+- 向量数据库：使用 pymilvus 的 MilvusClient 本地模式（Milvus Lite），数据持久化到本地文件
+- Embedding模型：Amazon Bedrock cohere.embed-multilingual-v3.0（维度1024）
+- 数据源：ClinicalTrials.gov API
+- Collection Schema应包含：nct_id, title, brief_summary, eligibility_criteria, phase, status, sponsor, start_date, completion_date, conditions, interventions, embedding_vector
+
+**重要信息**
+- Agent必须能够自主管理数据库生命周期，用户无需预先创建任何数据库
+- 向量检索时应结合元数据过滤（如试验阶段、状态）提高检索精度
+- 所有临床试验数据应持久化存储，支持跨会话查询
+- 回答问题时应给出数据来源和检索依据
+
+**示例交互场景**
+用户：帮我检索所有与 PD-1/PD-L1 抑制剂治疗非小细胞肺癌相关的III期临床试验
+Agent：[检索ClinicalTrials.gov → 向量化 → 存入Milvus → 返回结果列表及链接]
+
+用户：找到与 NCT03215706 设计最相似的5个竞品试验
+Agent：[提取该试验信息 → 向量检索相似试验 → 对比分析差异 → 结构化输出]
+
+用户：对比这几个试验的入排标准有什么主要差异
+Agent：[提取入排标准 → LLM分析对比 → 生成差异报告]' &</code></pre>
+
+          <h3 id="challenge2-test">Agent 测试示例</h3>
+          <pre><button class="copy">复制</button><code class="language-bash"># 找到生成的 Agent 并启动交互式会话
+python agents/generated_agents/clinical_trial_search_agent/clinical_trial_search_agent.py -it
+
+# 示例问题 1：检索特定领域的临床试验
+# 输入：帮我检索所有与 GLP-1 受体激动剂治疗肥胖相关的 III 期临床试验
+
+# 示例问题 2：竞品分析
+# 输入：找到与司美格鲁肽（semaglutide）最相似的 5 个竞品试验
+
+# 示例问题 3：对比分析
+# 输入：对比 NCT04184622 和 NCT03548935 这两个试验的入排标准差异</code></pre>
+
+          <div class="callout">
+            <strong>📊 应用场景</strong>
+            <p>此 Agent 特别适合药企的以下场景：</p>
+            <ul>
+              <li><strong>竞品情报</strong>：实时追踪竞争对手的临床试验进展</li>
+              <li><strong>试验设计参考</strong>：找到相似适应症的试验设计，优化自己的方案</li>
+              <li><strong>入排标准对比</strong>：分析不同试验的患者纳入标准差异</li>
+              <li><strong>市场机会识别</strong>：发现未被充分研究的疾病领域</li>
+            </ul>
+          </div>
+
+          <div class="callout alert">
+            <strong>注意事项</strong>
+            <p>首次运行时 Agent 会自动初始化 Milvus Lite 数据库，数据采集和向量化可能需要几分钟时间。</p>
+            <p>ClinicalTrials.gov API 有速率限制，建议每次查询间隔 1 秒以上。</p>
           </div>
         </section>
 

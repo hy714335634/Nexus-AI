@@ -2,7 +2,7 @@ project_info:
 - agents:
   - created_date: '2025-09-15T17:20:24.853395+00:00'
     description: 智能体：html2pptx_agent
-    last_updated: '2025-09-15T18:16:04.898053+00:00'
+    last_updated: '2025-12-28T16:44:51.562087+00:00'
     name: html2pptx_agent
     pipeline:
     - description: 需求分析阶段 - 分析用户需求，定义功能规格
@@ -52,6 +52,22 @@ project_info:
       stage: agent_developer_manager
       status: true
       updated_date: '2025-09-15T18:16:04.898057+00:00'
+    update_versions:
+    - version_id: v20251228164321
+      created_at: '2025-12-28T16:44:22.618352+00:00'
+      stages:
+      - stage: requirements_analysis
+        status: completed
+        doc_path: v20251228164321/requirements_analysis.json
+        summary: 完成需求分析：需要添加web_fetcher工具、更新agent脚本和提示词以支持URL输入
+        artifacts: &id001 []
+        updated_at: '2025-12-28T16:44:22.618333+00:00'
+      - stage: tool_update
+        status: in_progress
+        doc_path: projects/html2pptx/v20251228164321/tool_update.json
+        summary: ''
+        artifacts: &id002 []
+        updated_at: '2025-12-28T16:44:51.562063+00:00'
   - created_date: '2025-09-15T18:03:41.252937+00:00'
     description: 智能体：HTML2PPTXAgent
     last_updated: '2025-09-15T18:03:41.252966+00:00'
@@ -98,9 +114,65 @@ project_info:
       status: false
       updated_date: null
   description: 一个智能Agent，能够将HTML文档转换为PPTX格式的演示文稿，保留原始文档的结构、样式、图片和语义内容，支持自定义模板，并能处理任意复杂度的HTML文档。
-  last_updated: '2025-09-15T18:16:04.898042+00:00'
+  last_updated: '2025-12-28T16:45:15.618227+00:00'
   name: html2pptx
   progress:
   - completed: 8
     total: 14
   version: 1.0.0
+  versions:
+  - version_id: v20251228164321
+    created_at: '2025-12-28T16:43:21.807599+00:00'
+    created_by: update_orchestrator
+    status: in_progress
+    user_request: 为agent添加通过网页地址工作的能力，支持直接输入URL而不仅限于本地HTML文件
+    stages:
+    - name: orchestrator
+      status: pending
+      doc_path: ''
+      summary: ''
+      artifacts: []
+      updated_at: '2025-12-28T16:43:21.807612+00:00'
+    - name: requirements_analysis
+      status: completed
+      doc_path: v20251228164321/requirements_analysis.json
+      summary: 完成需求分析：需要添加web_fetcher工具、更新agent脚本和提示词以支持URL输入
+      artifacts: *id001
+      updated_at: '2025-12-28T16:44:22.618333+00:00'
+    - name: tool_update
+      status: in_progress
+      doc_path: projects/html2pptx/v20251228164321/tool_update.json
+      summary: ''
+      artifacts: *id002
+      updated_at: '2025-12-28T16:44:51.562063+00:00'
+    - name: prompt_update
+      status: pending
+      doc_path: ''
+      summary: ''
+      artifacts: []
+      updated_at: '2025-12-28T16:43:21.807612+00:00'
+    - name: code_update
+      status: pending
+      doc_path: ''
+      summary: ''
+      artifacts: []
+      updated_at: '2025-12-28T16:43:21.807612+00:00'
+    artifacts: []
+    summary: ''
+    change_log:
+    - title: 新增web_fetcher工具
+      description: 新增web_fetcher.py工具，支持从URL获取网页内容，包含URL验证、网页获取、基础URL提取和缓存功能
+      stage: tool_update
+      created_at: '2025-12-28T16:45:15.618216+00:00'
+    last_stage_updated: tool_update
+  current_version_id: v20251228164321
+  status: pending
+      doc_path: ''
+      summary: ''
+      artifacts: []
+      updated_at: '2025-12-28T16:43:21.807612+00:00'
+    artifacts: []
+    summary: ''
+    change_log: []
+    last_stage_updated: tool_update
+  current_version_id: v20251228164321
