@@ -271,6 +271,7 @@ agent:
         tags: ["academic_research", "literature_writing", "medical_research", "pubmed", "scientific_writing"]
         supported_models:
           - "global.anthropic.claude-sonnet-4-5-20250929-v1:0"
+          - "writer.palmyra-x5-v1:0"
           - "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
           - "global.anthropic.claude-sonnet-4-5-20250929-v1:0"
           - "global.anthropic.claude-haiku-4-5-20251001-v1:0"

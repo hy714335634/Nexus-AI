@@ -10,22 +10,10 @@ import json
 import argparse
 from pathlib import Path
 from nexus_utils.agent_factory import create_agent_from_prompt_template
-from nexus_utils.config_loader import ConfigLoader
-config = ConfigLoader()
+
 # 导入工具（用于后续步骤）
 from tools.generated_tools.pubmed_literature_screen_assistant.literature_analyzer import analyze_literature_with_query
 from tools.generated_tools.pubmed_literature_screen_assistant.mark_literature import mark_literature
-
-os.environ["BYPASS_TOOL_CONSENT"] = "true"
-otel_endpoint = config.get_with_env_override(
-    "OTEL_EXPORTER_OTLP_ENDPOINT",
-    "nexus_ai", "OTEL_EXPORTER_OTLP_ENDPOINT",
-    default="http://localhost:4318"
-)
-os.environ.setdefault("OTEL_EXPORTER_OTLP_ENDPOINT", otel_endpoint)
-strands_telemetry = StrandsTelemetry()
-strands_telemetry.setup_otlp_exporter()
-
 
 
 def create_literature_assistant():
@@ -36,6 +24,7 @@ def create_literature_assistant():
         version="latest",
         model_id="default"
     )
+
 
 def create_literature_analyzer():
     """创建文献分析agent"""

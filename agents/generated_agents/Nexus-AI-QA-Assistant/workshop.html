@@ -1818,12 +1818,12 @@ cd ..</code></pre>
 
           <h3>直接调用生成的 Agent</h3>
           <pre><button class="copy">复制</button><code class="language-bash"># FDA数据查询和问答
-  python agents/generated_agents/fda_data_query_agent/fda_data_query_agent.py -i "查询阿司匹林的不良反应""</code></pre>
+python agents/generated_agents/fda_data_query_agent/fda_data_query_agent.py -i "查询阿司匹林的不良反应""</code></pre>
 
           <h3>交互式访问 Agent —— 1</h3>
           <pre><button class="copy">复制</button><code class="language-bash"># FDA数据查询和问答
-  # 如询问：替尔泊肽有哪些不良反应
-  python agents/generated_agents/fda_data_query_agent/fda_data_query_agent.py -it</code></pre>
+# 如询问：替尔泊肽有哪些不良反应
+python agents/generated_agents/fda_data_query_agent/fda_data_query_agent.py -it</code></pre>
 
           <h3>交互式访问 Agent —— 2</h3>
           <pre><button class="copy">复制</button><code class="language-bash"># 美股分析助手
@@ -1848,17 +1848,8 @@ tail -f nohup.out</code></pre>
               <div class="timeline-item">
                 <h4>示例 2 · 股票分析 Agent</h4>
                 <pre><button class="copy">复制</button><code class="language-bash">nohup python -u agents/system_agents/agent_build_workflow/agent_build_workflow.py -i "
-创建一个股票分析助手，建议名称为stock_analysis_agent，能够为客户提供股票投资建议，基本要求如下：
-1、	能够基于公网实时抓取用户指定或关心的股票代码财报数据，根据DCF估值法计算当前股票估值，并且帮助用户判断目前市值与估值相比是高估还是低估
-2、	结合当前时间节点的宏观经济，流动性与行业趋势发展(可通过互联网检索可信数据源)，判断该股票未来1年的盈利预测与eps增长预测（未来4个季度分别预测）
-3、	提示该股票未来1年内，可能存在的风险
-4、	与该行业可比公司，进行估值与盈利预期进行比较，帮用户找出是否该行业有更值得投资的标的
-5、	把你生成的未来1年的盈利预测与wall street的券商盈利预测进行对比，以表格的形式展现给用户
-6、	针对用户指定的股票，生成报告，总字数在2000字以上
-
-**重要**
-- agent所有计算结果必须基于工具或者代码计算得到，不能猜测
-- agent对于分析报表等数据应缓存在本地" &
+创建一个，能够为客户提供股票投资建议，基本要求如下：
+" &
 tail -f nohup.out</code></pre>
               </div>
             </div>
@@ -1913,7 +1904,7 @@ tail -f nohup.out</code></pre>
 
         <section id="challenge" data-section="Challenge">
           <div class="toolbar">
-            <h2>挑战：构建与外部资源集成Agent（可选）</h2>
+            <h2>挑战1：构建与外部资源集成Agent（可选）</h2>
             <span class="badge">Advanced</span>
           </div>
 
@@ -1923,7 +1914,7 @@ tail -f nohup.out</code></pre>
           </div>
 
           <div class="img-container">
-            <img src="/assets/06.neo4j.png" alt="AWS资源采集Agent架构图">
+            <img src="/assets/06.neo4j-bio.png" alt="文献实体提取">
           </div>
 
           <h3>提交 Agent 构建任务</h3>
@@ -1957,6 +1948,11 @@ tail -f nohup.out</code></pre>
     - AWS CLI Access (No AWS account required): aws s3 ls --no-sign-request s3://pmc-oa-opendata/
     - 目录结构: oa_comm/, oa_noncomm/, phe_timebound/
     - 文件格式: txt/和xml/两种格式，包含完整的文章内容和元数据' &</code></pre>
+
+    <h3>Agent测试</h3>
+    <pre><button class="copy">复制</button><code class="language-bash"># 在tools/generated_tools目录中找到该Agent并执行交互式访问
+python tools/generated_tools/xxxx/xxxx.py -it
+    </code></pre>
 
           <div class="callout alert">
             <strong>注意</strong>

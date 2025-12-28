@@ -1,6 +1,0 @@
-project:
-  created_date: '2025-10-30T17:22:09.861330+00:00'
-  description: 专业的科研期刊主编Agent，能根据用户提供完整文献，结合在线检索PMC文献的工具，完成杂志主编对文章的评审工作
-  name: pubmed_literature_editor_assistant
-  updated_date: '2025-10-30T17:30:25.627411+00:00'
-  version: 1.0.0
