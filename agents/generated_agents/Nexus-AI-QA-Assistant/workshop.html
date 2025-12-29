@@ -1735,10 +1735,10 @@
               <li class="nav-group">
                 <div class="nav-group-title">核心内容 - Agent 构建与测试</div>
                 <ul class="nav-main">
-                  <li><a href="#agent-lab" class="nav-primary">基于命令行构建Agent</a></li>
-                  <li><a href="#agent-update" class="nav-primary">基于命令行更新Agent</a></li>
-                  <li><a href="#tool-build" class="nav-primary">命令行创建工具并附加</a></li>
-                  <li><a href="#ui-access" class="nav-primary">基于 Web UI构建Agent</a></li>
+                  <li><a href="#agent-lab" class="nav-primary">构建Agent —— CLI</a></li>
+                  <li><a href="#agent-update" class="nav-primary">更新Agent —— CLI</a></li>
+                  <li><a href="#tool-build" class="nav-primary">构建Tool —— CLI</a></li>
+                  <li><a href="#ui-access" class="nav-primary">构建Agent —— Web UI</a></li>
                 </ul>
               </li>
               <!-- 进阶挑战 -->
@@ -1998,16 +1998,29 @@ python agents/generated_agents/stock_analysis_agent/stock_analysis_agent.py -it<
             <h3 id="agent-build-examples">一、构建参考示例</h3>
             <div class="timeline">
               <div class="timeline-item">
-                <h4>示例 1 · 新闻聚合 Agent</h4>
-                <pre><button class="copy">复制</button><code class="language-bash">nohup python -u agents/system_agents/agent_build_workflow/agent_build_workflow.py -i '请创建一个Agent能够根据我关注话题，检索热度最高的新闻，新闻来源可以是百度、新浪、澎湃等主流媒体' &
+                <h4>示例 1 · 医药销售代表拜访话术生成 Agent</h4>
+                <pre><button class="copy">复制</button><code class="language-bash">nohup python -u agents/system_agents/agent_build_workflow/agent_build_workflow.py -i '创建一个agent，专业的医药学术推广培训师，基于用户提供的【产品说明书】和【相关临床指南】，针对用户提供的【特定医生画像】（包含科室、职级及核心关注点），生成一段约3分钟的定制化拜访话术。话术需精准回应医生关注点，引用指南中的推荐级别及说明书中的关键数据（如安全性或疗效数据）作为支撑。
+**输出要求**
+- 需要给出定制化的拜访话术
+- 引用数据来源清单
+- 合规检查结果
+
+**合规要求**
+- 严禁超说明书宣传和夸大疗效
+- 符合医药推广法规' &
 tail -f nohup.out</code></pre>
               </div>
               <div class="timeline-item">
-                <h4>示例 2 · 股票分析 Agent</h4>
-                <pre><button class="copy">复制</button><code class="language-bash">nohup python -u agents/system_agents/agent_build_workflow/agent_build_workflow.py -i "
-创建一个，能够为客户提供股票投资建议，基本要求如下：
-" &
-tail -f nohup.out</code></pre>
+                <h4>测试用例</h4>
+                <pre><button class="copy">复制</button><code class="language-bash"># 示例1：提供产品说明书
+以下是产品说明书核心信息：药品名称：阿托伐他汀钙片，适应症：高胆固醇血症、冠心病，用法用量：起始剂量10mg，每日一次，主要临床数据：LDL-C降低幅度可达39%，不良反应：肌痛发生率<2%。目标医生：心内科副主任医师，关注冠心病二级预防中的血脂管理。请生成话术。
+
+# 示例2：首次拜访场景
+这是我第一次拜访这位医生，他是呼吸科主治医师，对我们公司和产品都不了解。产品是布地奈德福莫特罗吸入剂，用于哮喘维持治疗。请生成一个建立初步认知的话术。
+
+# 示例3：基础话术生成
+我要拜访一位三甲医院心内科主任医师，他主要关注房颤患者的抗凝治疗，特别是出血风险控制。产品是利伐沙班，请帮我生成3分钟的拜访话术。
+                </code></pre>
               </div>
             </div>
             <div class="callout">
@@ -2033,8 +2046,8 @@ tail -f nohup.out</code></pre>
             <h3 id="agent-invoke">三、Agent 调用</h3>
             <ul>
               <li>
-                通过系统 Agent：
-                <code>python agents/system_agents/magician.py -i "描述业务需求"</code>
+                交互式访问 Agent：
+                <code>python agents/generated_agents/&lt;agent&gt;/&lt;agent&gt;.py -it</code>
               </li>
               <li>
                 直接运行生成 Agent：
