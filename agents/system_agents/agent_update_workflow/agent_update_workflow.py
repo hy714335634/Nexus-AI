@@ -263,7 +263,7 @@ def run_update_workflow(user_request: str, project_id: str, session_id: Optional
             execution_results["requirements_update"] = requirements_result
             execution_order.append("requirements_update")
             requirements_content = str(requirements_result.content) if hasattr(requirements_result, 'content') else str(requirements_result)
-            current_context = base_context + "\n===\nRequirements Update Agent: " + requirements_content + "\n===\n"
+            current_context = current_context + "\n===\nRequirements Update Agent: " + requirements_content + "\n===\n"
             mark_stage_completed(project_id, 'requirements_update') if mode == "remote" else None
         except Exception as e:
             mark_stage_failed(project_id, 'requirements_update', str(e)) if mode == "remote" else None

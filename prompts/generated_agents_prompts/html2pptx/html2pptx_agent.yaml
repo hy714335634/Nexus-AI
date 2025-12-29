@@ -281,4 +281,3 @@ agent:
       - generated_tools/html2pptx/cache_manager/delete_cached_item
       - generated_tools/html2pptx/cache_manager/get_cache_info
       - generated_tools/html2pptx/cache_manager/clear_cache
-  

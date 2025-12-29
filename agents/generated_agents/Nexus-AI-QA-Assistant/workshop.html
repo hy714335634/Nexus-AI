@@ -1735,8 +1735,10 @@
               <li class="nav-group">
                 <div class="nav-group-title">核心内容 - Agent 构建与测试</div>
                 <ul class="nav-main">
-                  <li><a href="#agent-lab" class="nav-primary">基于命令行</a></li>
-                  <li><a href="#ui-access" class="nav-primary">基于 Web UI</a></li>
+                  <li><a href="#agent-lab" class="nav-primary">基于命令行构建Agent</a></li>
+                  <li><a href="#agent-update" class="nav-primary">基于命令行更新Agent</a></li>
+                  <li><a href="#tool-build" class="nav-primary">命令行创建工具并附加</a></li>
+                  <li><a href="#ui-access" class="nav-primary">基于 Web UI构建Agent</a></li>
                 </ul>
               </li>
               <!-- 进阶挑战 -->
@@ -1954,7 +1956,7 @@ uv pip install -e .</code></pre>
 
         <section id="validation" data-section="Stage 03">
           <div class="toolbar">
-            <h2>环境验证 —— 基于命令行</h2>
+            <h2>环境验证 —— 基于命令行测试当前已有Agent</h2>
             <span class="badge">Time to Run</span>
           </div>
           <p>注意：执行时间可能较长，首次运行请耐心等待模型和依赖加载。</p>
@@ -1988,7 +1990,7 @@ python agents/generated_agents/stock_analysis_agent/stock_analysis_agent.py -it<
 
         <section id="agent-lab" data-section="核心内容">
           <div class="toolbar">
-            <h2>Agent 构建与测试 —— 基于命令行</h2>
+            <h2>Agent 构建与测试 —— 基于命令行构建Agent</h2>
             <button class="cta" data-collapse="[data-agent]">展开任务</button>
           </div>
 
@@ -2040,14 +2042,185 @@ tail -f nohup.out</code></pre>
               </li>
             </ul>
 
-            <h3>四、Agent 更新（可选）</h3>
-            <pre><button class="copy">复制</button><code class="language-bash">nohup python -u agents/system_agents/agent_update_workflow/agent_update_workflow.py -i "为news_retrieval_agent添加serpapi检索能力，搜索后的结果能够以excel格式输出" -j "news_retrieval_agent" &</code></pre>
           </article>
+        </section>
+
+        <section id="agent-update" data-section="核心内容">
+          <div class="toolbar">
+            <h2>Agent 更新 —— 基于命令行更新Agent</h2>
+            <span class="badge">Incremental Update</span>
+          </div>
+
+          <div class="callout">
+            <strong>说明</strong>
+            <p>当需要为已有的 Agent 添加新功能或修改现有能力时，可以使用 Agent 更新工作流。系统会基于现有 Agent 代码和配置，进行增量更新而非重新构建。</p>
+          </div>
+
+          <h3>更新流程</h3>
+          <p>Agent 更新需要指定两个关键参数：</p>
+          <ul>
+            <li><code>-j</code> 或 <code>--job_name</code>：要更新的 Agent 名称</li>
+            <li><code>-i</code> 或 <code>--input</code>：描述需要添加或修改的功能</li>
+          </ul>
+
+          <h3>更新示例</h3>
+          <div class="timeline">
+            <div class="timeline-item">
+              <h4>示例：为 html2pptx Agent 添加网页解析能力</h4>
+              <pre><button class="copy">复制</button><code class="language-bash">nohup python -u agents/system_agents/agent_update_workflow/agent_update_workflow.py \
+-j "html2pptx" \
+-i "为这个agent添加能力并相应添加参数，我希望这个agent能够通过用户给定的网页地址进行工作" &
+
+# 查看更新日志
+tail -f nohup.out</code></pre>
+            </div>
+
+          <h3>验证更新结果</h3>
+          <p>更新完成后，可以在 <code>agents/generated_agents/&lt;agent_name&gt;/</code> 目录中找到新版本的 Agent 脚本。</p>
+          <pre><button class="copy">复制</button><code class="language-bash"># 查看 Agent 目录
+ls -lt agents/generated_agents/html2pptx/
+
+# 启动交互式测试
+python agents/generated_agents/html2pptx/html2pptx_agent_v*.py -it
+
+# 示例交互
+# 输入：请将这个网页转换为PPT：https://example.com/article</code></pre>
+
+          <div class="callout">
+            <strong>💡 提示</strong>
+            <ul>
+              <li>更新后会生成带版本号的新脚本文件（如 <code>agent_v20231228.py</code>）</li>
+              <li>原有版本会保留，可以回退到之前的版本</li>
+              <li>更新过程会生成变更日志（<code>change_log.yaml</code>）记录修改内容</li>
+              <li>建议在更新前备份重要的 Agent 配置</li>
+            </ul>
+          </div>
+
+          <div class="callout alert">
+            <strong>注意</strong>
+            <p>Agent 更新是增量式的，系统会尽量保留原有功能。如果需要大幅度重构，建议重新构建 Agent。</p>
+          </div>
+        </section>
+
+        <section id="tool-build" data-section="核心内容">
+          <div class="toolbar">
+            <h2>Tool 构建 —— 基于命令行创建工具并附加到指定 Agent</h2>
+            <span class="badge">Tool Build</span>
+          </div>
+
+          <div class="callout">
+            <strong>说明</strong>
+            <p>除了构建完整的 Agent，Nexus-AI 还支持独立创建工具（Tool），并将其附加到已有的 Agent 上，实现能力扩展。这种方式适合为现有 Agent 添加特定功能，而无需重新构建整个 Agent。</p>
+          </div>
+
+          <h3>一、创建独立工具</h3>
+          <p>使用 <code>tool_build_workflow.py</code> 可以根据需求描述自动生成工具代码：</p>
+
+          <div class="timeline">
+            <div class="timeline-item">
+              <h4>示例：创建医疗数据脱敏工具</h4>
+              <pre><button class="copy">复制</button><code class="language-bash">nohup python -u agents/system_agents/tool_build_workflow/tool_build_workflow.py -i '我需要一个医疗数据脱敏工具，能够：
+1. 识别医疗文本中的敏感信息（患者姓名、身份证号、手机号、地址、病历号）
+2. 支持多种脱敏策略（掩码、假名化、泛化、删除）
+3. 保持数据的可用性，支持科研分析
+4. 符合HIPAA、GDPR等隐私保护法规
+5. 生成脱敏日志，便于审计追溯' &
+tail -f nohup.out</code></pre>
+              <p>工具构建完成后，会在 <code>tools/generated_tools/</code> 目录下生成对应的工具代码和文档。</p>
+            </div>
+          </div>
+
+          <h3>二、将工具附加到 Agent</h3>
+          <p>工具创建完成后，需要将其注册到 Agent 的 prompt 配置中，使 Agent 能够调用该工具。</p>
+
+          <div class="timeline">
+            <div class="timeline-item">
+              <h4>步骤 1：确认生成的工具目录</h4>
+              <pre><button class="copy">复制</button><code class="language-bash"># 查看生成的工具目录
+ls -la tools/generated_tools/
+
+# 假设工具目录名为 tool_build_medical_data_anonymizer
+TOOL_PROJECT="tool_build_medical_data_anonymizer"</code></pre>
+            </div>
+
+            <div class="timeline-item">
+              <h4>步骤 2：提取工具路径并更新 Prompt 配置</h4>
+              <pre><button class="copy">复制</button><code class="language-bash"># 定义配置文件路径
+Default_PROMPT="prompts/template_prompts/default.yaml"
+Demo_PROMPT="prompts/template_prompts/demo.yaml"
+TOOL_PROJECT="tool_build_medical_data_anonymizer"
+
+# 从工具代码中提取 @tool 装饰的函数路径
+TOOL_PATHS=$(grep -A 1 "^@tool" tools/generated_tools/${TOOL_PROJECT}/*.py | \
+  grep "def " | \
+  sed -E 's|^tools/generated_tools/([^/]+)/([^.]+)\.py.*def ([a-zA-Z_]+)\(.*|          - "generated_tools/\1/\2/\3"|')
+
+# 复制默认配置并追加工具路径
+cp $Default_PROMPT $Demo_PROMPT
+echo "\n$TOOL_PATHS" >> $Demo_PROMPT
+
+# 查看更新后的配置
+cat $Demo_PROMPT</code></pre>
+            </div>
+
+            <div class="timeline-item">
+              <h4>步骤 3：使用附加工具的 Agent 执行任务</h4>
+              <pre><button class="copy">复制</button><code class="language-bash"># 使用带有新工具的 Agent 处理医疗数据脱敏任务
+python agents/system_agents/magician.py -a "prompts/template_prompts/demo.yaml" -i "请将以下内容匿名处理：住院病案 首页
+基本信息：
+姓名：王丽萍          性别：女          年龄：62岁
+身份证号：320106196205123456
+医保卡号：JS32010619620512001X
+联系电话：15987654321
+紧急联系人：王建国（子）  电话：18611112222
+家庭住址：江苏省南京市鼓楼区中山北路256号金陵花园3栋502室
+病历号：MR20240115002
+
+入院日期：2024-01-10
+出院日期：2024-01-18
+住院天数：8天
+
+入院诊断：
+1. 2型糖尿病
+2. 糖尿病肾病III期
+3. 高血压病3级（极高危）
+
+出院诊断：
+1. 2型糖尿病
+2. 糖尿病肾病III期
+3. 高血压病3级（极高危）
+4. 低蛋白血症
+
+主治医师：陈志强"</code></pre>
+            </div>
+          </div>
+
+          <h3>三、工具构建结果检查</h3>
+          <ul>
+            <li><code>tools/generated_tools/&lt;tool_name&gt;/</code>：工具代码目录</li>
+            <li><code>tools/generated_tools/&lt;tool_name&gt;/*.py</code>：工具实现代码</li>
+            <li><code>tools/generated_tools/&lt;tool_name&gt;/skill.md</code>：工具说明文档</li>
+          </ul>
+
+          <div class="callout">
+            <strong>💡 提示</strong>
+            <ul>
+              <li>工具路径格式为 <code>generated_tools/&lt;目录名&gt;/&lt;文件名&gt;/&lt;函数名&gt;</code></li>
+              <li>可以将多个工具附加到同一个 Agent，实现能力组合</li>
+              <li>工具代码使用 <code>@tool</code> 装饰器标记可被 Agent 调用的函数</li>
+              <li>建议为每个场景创建独立的 prompt 配置文件，便于管理和复用</li>
+            </ul>
+          </div>
+
+          <div class="callout alert">
+            <strong>注意</strong>
+            <p>工具附加后，Agent 会根据用户输入自动判断是否需要调用该工具。确保工具的功能描述清晰，以便 Agent 正确理解何时使用。</p>
+          </div>
         </section>
 
         <section id="ui-access" data-section="核心内容">
           <div class="toolbar">
-            <h2>Agent 构建与测试 —— 基于 Web UI</h2>
+            <h2>Agent 构建与测试 —— 基于 Web UI构建Agent</h2>
             <span class="badge">Web Interface</span>
           </div>
 
@@ -2185,16 +2358,6 @@ python tools/generated_tools/xxxx/xxxx.py -it</code></pre>
             <p>本实验将创建一个临床试验智能检索 Agent，能够自动管理 Milvus Lite 向量数据库，无需预先配置。Agent 将从 ClinicalTrials.gov 采集数据，使用 Bedrock Cohere 模型进行向量化，并提供语义搜索和竞品分析能力。</p>
           </div>
 
-          <div class="callout">
-            <strong>💡 技术亮点</strong>
-            <ul>
-              <li><strong>Milvus Lite</strong>：无需 Docker，Agent 自动初始化本地向量数据库</li>
-              <li><strong>公开数据源</strong>：ClinicalTrials.gov API 完全免费，无需 API Key</li>
-              <li><strong>Bedrock Embedding</strong>：使用 Cohere 多语言模型生成高质量向量</li>
-              <li><strong>持久化存储</strong>：数据跨会话保存，支持增量更新</li>
-            </ul>
-          </div>
-
           <h3 id="challenge2-build">提交 Agent 构建任务</h3>
           <pre><button class="copy">复制</button><code class="language-bash">nohup python -u agents/system_agents/agent_build_workflow/agent_build_workflow.py -i '创建一个临床试验智能检索Agent，agent命名为clinical_trial_search_agent，能够自动管理 Milvus Lite 向量数据库，对 ClinicalTrials.gov 的临床试验数据进行语义检索和智能分析
 
@@ -2229,9 +2392,9 @@ Agent：[提取该试验信息 → 向量检索相似试验 → 对比分析差�
 用户：对比这几个试验的入排标准有什么主要差异
 Agent：[提取入排标准 → LLM分析对比 → 生成差异报告]' &</code></pre>
 
-          <h3 id="challenge2-test">Agent 测试示例</h3>
+          <h3 id="challenge2-test">Agent 测试</h3>
           <pre><button class="copy">复制</button><code class="language-bash"># 找到生成的 Agent 并启动交互式会话
-python agents/generated_agents/clinical_trial_search_agent/clinical_trial_search_agent.py -it
+python agents/generated_agents/xxxx/xxxx.py -it
 
 # 示例问题 1：检索特定领域的临床试验
 # 输入：帮我检索所有与 GLP-1 受体激动剂治疗肥胖相关的 III 期临床试验
@@ -2242,21 +2405,9 @@ python agents/generated_agents/clinical_trial_search_agent/clinical_trial_search
 # 示例问题 3：对比分析
 # 输入：对比 NCT04184622 和 NCT03548935 这两个试验的入排标准差异</code></pre>
 
-          <div class="callout">
-            <strong>📊 应用场景</strong>
-            <p>此 Agent 特别适合药企的以下场景：</p>
-            <ul>
-              <li><strong>竞品情报</strong>：实时追踪竞争对手的临床试验进展</li>
-              <li><strong>试验设计参考</strong>：找到相似适应症的试验设计，优化自己的方案</li>
-              <li><strong>入排标准对比</strong>：分析不同试验的患者纳入标准差异</li>
-              <li><strong>市场机会识别</strong>：发现未被充分研究的疾病领域</li>
-            </ul>
-          </div>
-
           <div class="callout alert">
             <strong>注意事项</strong>
-            <p>首次运行时 Agent 会自动初始化 Milvus Lite 数据库，数据采集和向量化可能需要几分钟时间。</p>
-            <p>ClinicalTrials.gov API 有速率限制，建议每次查询间隔 1 秒以上。</p>
+            <p>ClinicalTrials.gov API 有速率限制，可能存在API调用失败的情况。</p>
           </div>
         </section>
 

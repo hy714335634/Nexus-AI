@@ -30,7 +30,6 @@ def get_agent_list():
     for template in all_templates:
         if "relative_path" in template:
             agent_dict[template["relative_path"]] = template
-
     return agent_dict
 
 def get_magician_agent(template_path):
