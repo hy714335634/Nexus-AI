@@ -1889,25 +1889,13 @@ docker run --rm hello-world
                 <p>或使用支持端口转发的 IDE（如 VS Code Remote SSH）或 Terminal 工具。</p>
                 <p>配置后可通过 <code>http://localhost:16686</code> 访问 Jaeger，<code>http://localhost:7474</code> 访问 Neo4j Browser。</p>
               </div>
-
-              <div class="timeline-item">
-                <h4>6. 运行 Neo4j</h4>
-                <h3>创建 Neo4j 数据目录</h3>
-          <pre><button class="copy">复制</button><code class="language-bash">mkdir -p $HOME/Nexus-AI/tools/generated_tools/neo4j/neo4j_data
-mkdir -p $HOME/Nexus-AI/tools/generated_tools/neo4j/neo4j_logs
-mkdir -p $HOME/Nexus-AI/tools/generated_tools/neo4j/neo4j_import
-mkdir -p $HOME/Nexus-AI/tools/generated_tools/neo4j/neo4j_plugins</code></pre>
-
+              
           <h3>启动 Neo4j 容器</h3>
           <pre><button class="copy">复制</button><code class="language-bash">docker run -d  --name neo4j-container
     -p 7474:7474 -p 7687:7687 
     -e NEO4J_AUTH=neo4j/neo4jneo4j 
     -e "NEO4J_dbms_security_procedures_unrestricted=apoc.*"  
     -e "NEO4J_dbms_security_procedures_allowlist=apoc.*" 
-    -v $HOME/Nexus-AI/tools/generated_tools/neo4j/neo4j_data:/data  
-    -v $HOME/Nexus-AI/tools/generated_tools/neo4j/neo4j_logs:/logs  
-    -v $HOME/Nexus-AI/tools/generated_tools/neo4j/neo4j_import:/var/lib/neo4j/import 
-    -v $HOME/Nexus-AI/tools/generated_tools/neo4j/neo4j_plugins:/plugins 
     neo4j:latest</code></pre>  
               </div>
 
