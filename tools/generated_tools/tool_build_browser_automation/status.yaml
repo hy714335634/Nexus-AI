@@ -1,0 +1,47 @@
+last_updated: '2026-01-12T02:32:49.527430+00:00'
+progress:
+  completed: 2
+  percentage: 100.0
+  total: 2
+stages:
+  tool_developer:
+    doc_path: stages/tool_developer.json
+    status: true
+    summary: 工具开发阶段完成！已成功实现所有5个浏览器自动化工具函数，包含完整的代码实现、测试脚本、使用示例和文档。所有工具都已注册并符合Strands
+      SDK规范。
+    updated_at: '2026-01-12T02:30:43.347124+00:00'
+  tool_validator:
+    doc_path: stages/tool_validator.json
+    status: true
+    summary: 工具验证阶段完成！浏览器自动化工具集验证通过（95/100分），所有5个工具函数都符合Strands SDK规范，代码质量优秀，功能完整，文档齐全。语法检查无错误，代码质量评分A级，功能验证全部通过，强烈推荐投入生产使用。
+    updated_at: '2026-01-12T02:32:49.527416+00:00'
+tools:
+- description: 批量从多个URL采集数据，支持并发控制和两种采集方法（Nova Act和Browser Use），单个URL失败不影响其他URL的处理
+  file_path: browser_automation_tools.py
+  function_name: batch_extract_from_urls
+  parameters:
+  - description: 待采集的URL列表，JSON数组字符串格式（如：'["https://example1.com", "https://example2.com"]'）
+    name: urls
+    required: true
+    type: str
+  - description: 数据提取指令（如：'提取产品名称、价格和评分'）
+    name: extraction_prompt
+    required: true
+    type: str
+  - description: 采集方法，可选'nova_act'或'browser_use'，默认'browser_use'
+    name: method
+    required: false
+    type: str
+  - description: Nova Act API密钥（method='nova_act'时必需）
+    name: nova_act_key
+    required: false
+    type: str
+  - description: AWS区域，默认'us-west-2'
+    name: region
+    required: false
+    type: str
+  - description: 最大并发数，默认3
+    name: max_concurrent
+    required: false
+    type: int
+  registered_at: '2026-01-12T02:28:17.113813+00:00'

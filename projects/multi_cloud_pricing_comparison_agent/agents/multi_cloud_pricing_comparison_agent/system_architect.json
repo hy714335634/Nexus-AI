@@ -1,0 +1,426 @@
+{
+  "system_design": {
+    "design_overview": {
+      "project_name": "multi_cloud_pricing_comparison_agent",
+      "version": "1.0",
+      "date": "2026-01-14",
+      "design_scope": "设计一个单Agent架构的多云报价对比系统，通过AWS Pricing API和Azure Retail Prices API获取真实价格数据，支持EC2/VM、存储、数据库、缓存等多种服务的价格查询，建立AWS和Azure服务映射关系，提供智能配置推荐，并生成包含三个Sheet的Excel报告。系统基于Strands SDK和AWS Bedrock构建，使用LLM进行自然语言理解和需求解析，通过专业工具函数实现API集成和数据处理。",
+      "design_principles": [
+        "单一职责原则：Agent专注于多云报价对比业务逻辑，工具函数负责具体的技术实现",
+        "关注点分离：将自然语言理解、API调用、数据处理、报告生成等功能分离到不同的模块",
+        "可扩展性：支持未来添加更多云平台（如GCP、阿里云）和服务类型",
+        "容错性：每个API调用都有完善的错误处理和重试机制，单个服务失败不影响整体流程",
+        "可观测性：记录详细的日志信息，便于调试和监控",
+        "真实数据原则：所有价格数据必须来自官方API，不使用硬编码或模拟数据",
+        "用户友好：支持自然语言输入，输出清晰易懂的中文报告"
+      ],
+      "key_decisions": [
+        "选择单Agent架构而非多Agent：需求分析显示工作流是线性的（需求解析→价格查询→对比分析→报告生成），不需要多个Agent的协作，单Agent配合工具函数更简单高效",
+        "基于AWS定价专家模板扩展：复用成熟的AWS API集成框架，减少开发工作量，提高代码质量",
+        "使用LLM进行自然语言理解：通过提示词引导LLM提取结构化信息，避免复杂的NLP模型训练",
+        "工具函数实现API集成：boto3和requests库调用必须通过工具函数实现，LLM无法直接调用API",
+        "使用openpyxl生成Excel报告：满足用户对结构化报告的需求，支持多Sheet、格式化、超链接等功能",
+        "建立服务映射配置表：使用配置文件或常量管理AWS-Azure服务映射关系，便于维护和扩展",
+        "实现智能推荐算法：结合实例规格数据库和加权评分机制，推荐最合适的实例类型",
+        "采用并发API调用：使用asyncio或线程池并发调用多个API，缩短总响应时间",
+        "使用全局模型配置：默认使用global.anthropic.claude-sonnet-4-5-20250929-v1:0，支持通过配置调整",
+        "遵循AgentCore部署规范：实现handler入口点函数，支持流式响应，确保可部署到Amazon Bedrock AgentCore"
+      ],
+      "workflow_type": "single_agent",
+      "recommended_templates": [
+        "aws_pricing_agent（AWS定价专家）- 评分92/100，提供成熟的AWS API集成和实例推荐功能",
+        "api_integration_agent（API集成专家）- 评分85/100，提供通用的API集成框架"
+      ]
+    },
+    "architecture": {
+      "system_context": "本系统是一个智能的多云报价对比工具，面向云架构师、成本优化团队、采购决策者等用户群体。用户通过自然语言描述云服务需求（如'我需要8核32GB内存的计算实例，用于生产环境，部署在美国东部'），系统自动解析需求，调用AWS Pricing API和Azure Retail Prices API获取真实价格数据，匹配合适的实例类型，对比两个平台的价格差异，并生成包含详细配置和价格的Excel报告。系统集成了AWS Bedrock作为LLM引擎，使用Strands SDK作为Agent框架，通过boto3和requests库调用云平台API，使用openpyxl生成Excel报告。系统运行在本地环境或Docker容器中，支持命令行输入、交互式对话和HTTP服务模式。",
+      "agent_topology": "单Agent拓扑结构：\n\n┌─────────────────────────────────────────────────────────────┐\n│                        用户输入层                            │\n│  (自然语言描述云服务需求，如'8核32GB内存，生产环境')       │\n└─────────────────────────────────────────────────────────────┘\n                              |\n                              v\n┌─────────────────────────────────────────────────────────────┐\n│              Multi-Cloud Pricing Comparison Agent           │\n│                    (单一智能Agent)                          │\n│                                                             │\n│  核心能力：                                                  │\n│  1. 自然语言理解与需求解析                                   │\n│  2. 工具调用与编排                                           │\n│  3. 数据分析与对比                                           │\n│  4. 报告生成与输出                                           │\n│                                                             │\n│  基于：AWS Bedrock + Strands SDK                            │\n│  模型：claude-sonnet-4-5-20250929-v1:0                      │\n└─────────────────────────────────────────────────────────────┘\n                              |\n                              v\n┌─────────────────────────────────────────────────────────────┐\n│                        工具函数层                            │\n│                                                             │\n│  ┌─────────────────┐  ┌─────────────────┐                 │\n│  │  AWS工具集       │  │  Azure工具集     │                 │\n│  │                 │  │                 │                 │\n│  │ • get_aws_      │  │ • get_azure_    │                 │\n│  │   pricing       │  │   pricing       │                 │\n│  │ • get_aws_      │  │ • get_azure_    │                 │\n│  │   instance_     │  │   instance_     │                 │\n│  │   pricing       │  │   pricing       │                 │\n│  │ • recommend_    │  │ • recommend_    │                 │\n│  │   aws_instances │  │   azure_        │                 │\n│  │                 │  │   instances     │                 │\n│  └─────────────────┘  └─────────────────┘                 │\n│                                                             │\n│  ┌─────────────────┐  ┌─────────────────┐                 │\n│  │  对比分析工具集  │  │  报告生成工具集  │                 │\n│  │                 │  │                 │                 │\n│  │ • compare_      │  │ • generate_     │                 │\n│  │   pricing       │  │   excel_report  │                 │\n│  │ • calculate_    │  │ • format_       │                 │\n│  │   cost_         │  │   pricing_data  │                 │\n│  │   difference    │  │                 │                 │\n│  │ • map_aws_to_   │  │                 │                 │\n│  │   azure_        │  │                 │                 │\n│  │   services      │  │                 │                 │\n│  └─────────────────┘  └─────────────────┘                 │\n└─────────────────────────────────────────────────────────────┘\n                              |\n                              v\n┌─────────────────────────────────────────────────────────────┐\n│                        外部服务层                            │\n│                                                             │\n│  ┌─────────────────┐  ┌─────────────────┐                 │\n│  │  AWS Pricing    │  │  Azure Retail   │                 │\n│  │  API            │  │  Prices API     │                 │\n│  │  (boto3)        │  │  (REST API)     │                 │\n│  └─────────────────┘  └─────────────────┘                 │\n└─────────────────────────────────────────────────────────────┘\n                              |\n                              v\n┌─────────────────────────────────────────────────────────────┐\n│                        输出层                                │\n│  (Excel报告：AWS报价表 + Azure报价表 + 对比总结表)          │\n└─────────────────────────────────────────────────────────────┘",
+      "interaction_model": "同步交互模型（单Agent线性工作流）：\n\n1. 用户输入阶段：\n   - 用户通过自然语言描述云服务需求\n   - Agent接收输入并进行初步验证\n\n2. 需求解析阶段（LLM处理）：\n   - Agent使用LLM理解自然语言输入\n   - 提取结构化信息：服务类型、配置参数、数量、地理位置、环境类型等\n   - 如果信息不完整，基于上下文推测合理的默认值\n\n3. 服务映射阶段（工具调用）：\n   - 调用map_aws_to_azure_services工具\n   - 建立AWS和Azure服务的对应关系\n   - 匹配对应的区域代码\n\n4. AWS价格查询阶段（并发工具调用）：\n   - 根据解析的需求，并发调用AWS价格查询工具：\n     * get_aws_ec2_pricing\n     * get_aws_ebs_pricing\n     * get_aws_s3_pricing\n     * get_aws_rds_pricing\n     * get_aws_elasticache_pricing\n     * get_aws_opensearch_pricing\n     * get_aws_elb_pricing\n     * get_aws_network_pricing\n   - 收集所有价格数据，处理失败的查询\n\n5. Azure价格查询阶段（并发工具调用）：\n   - 根据解析的需求，并发调用Azure价格查询工具：\n     * get_azure_vm_pricing\n     * get_azure_disk_pricing\n     * get_azure_blob_pricing\n     * get_azure_sql_pricing\n     * get_azure_redis_pricing\n     * get_azure_search_pricing\n     * get_azure_gateway_pricing\n     * get_azure_bandwidth_pricing\n   - 收集所有价格数据，处理失败的查询\n\n6. 智能推荐阶段（工具调用）：\n   - 调用recommend_aws_instances和recommend_azure_instances工具\n   - 根据vCPU和内存需求匹配最合适的实例类型\n   - 应用最佳实践规则（避免生产环境使用突发性能实例）\n\n7. 价格对比阶段（LLM分析 + 工具调用）：\n   - 调用compare_pricing_across_clouds工具\n   - 计算每项服务的单价和年度总价\n   - 计算价格差异的绝对值和百分比\n   - LLM生成对比分析和成本优化建议\n\n8. 报告生成阶段（工具调用）：\n   - 调用generate_excel_report工具\n   - 生成三个Sheet：AWS报价表、Azure报价表、对比总结表\n   - 格式化数据，添加官方文档链接\n   - 标注价格获取失败的项\n\n9. 结果输出阶段：\n   - 保存Excel文件到指定路径\n   - 返回报告路径和摘要信息给用户\n   - 记录完整的执行日志\n\n错误处理流程：\n- 每个阶段都有try-catch错误处理\n- API调用失败时自动重试（最多3次）\n- 单个服务失败不影响其他服务的查询\n- 所有错误都记录在日志中，并在报告中标注\n\n流式响应模式：\n- 支持实时输出处理进度\n- 每完成一个阶段，流式返回进度信息\n- 最终流式返回报告路径和摘要",
+      "technology_stack": {
+        "sdk": "Strands SDK",
+        "runtime": "Local / Docker Container",
+        "llm_engine": "AWS Bedrock",
+        "llm_model": "global.anthropic.claude-sonnet-4-5-20250929-v1:0",
+        "agent_framework": "BedrockAgentCoreApp (支持部署到Amazon Bedrock AgentCore)",
+        "programming_language": "Python 3.13+",
+        "integrations": [
+          "AWS Pricing API（通过boto3 pricing client）",
+          "Azure Retail Prices REST API（通过requests库）",
+          "openpyxl（Excel文件生成）",
+          "asyncio（并发API调用）",
+          "logging（日志记录）",
+          "nexus_utils.agent_factory（Agent创建）",
+          "nexus_utils.config_loader（配置管理）",
+          "StrandsTelemetry（遥测和监控）"
+        ]
+      }
+    },
+    "agents": [
+      {
+        "name": "multi_cloud_pricing_comparison_agent",
+        "purpose": "智能多云报价对比Agent，负责理解用户的云服务需求，调用AWS和Azure的价格API获取真实数据，进行智能配置推荐和价格对比分析，最终生成包含三个Sheet的Excel报告",
+        "responsibilities": [
+          "自然语言理解：解析用户输入的云服务需求，提取服务类型、配置参数、数量、地理位置、环境类型等结构化信息",
+          "工具编排：根据需求调用合适的工具函数，协调AWS和Azure价格查询、服务映射、实例推荐、对比分析、报告生成等操作",
+          "数据分析：对比AWS和Azure的价格数据，计算成本差异，生成优化建议",
+          "决策推理：应用最佳实践规则（如避免生产环境使用突发性能实例），推荐最合适的配置",
+          "报告生成：组织和格式化数据，生成清晰易懂的中文Excel报告",
+          "错误处理：处理API调用失败、数据解析错误等异常情况，确保系统稳定运行",
+          "用户交互：提供友好的错误提示和进度反馈，支持多轮对话和交互式模式"
+        ],
+        "interfaces": {
+          "inputs": [
+            "用户自然语言输入（字符串）：描述云服务需求，如'我需要8核32GB内存的计算实例，用于生产环境，部署在美国东部'",
+            "可选参数：user_id（用户ID）、session_id（会话ID）、media（媒体文件列表）"
+          ],
+          "outputs": [
+            "流式响应：实时输出处理进度和结果",
+            "Excel报告路径：生成的报告文件的完整路径",
+            "摘要信息：包含总成本对比、价格差异、推荐建议等关键信息",
+            "错误信息：如果发生错误，返回详细的错误描述和解决建议"
+          ]
+        },
+        "dependencies": [
+          "AWS Pricing API（需要有效的AWS凭证和pricing:GetProducts权限）",
+          "Azure Retail Prices REST API（公开API，需要网络访问）",
+          "AWS工具集（get_aws_pricing系列工具）",
+          "Azure工具集（get_azure_pricing系列工具）",
+          "对比分析工具集（compare_pricing、calculate_cost_difference、map_aws_to_azure_services）",
+          "报告生成工具集（generate_excel_report、format_pricing_data）",
+          "配置文件（服务映射表、区域映射表、实例规格数据库）",
+          "LLM模型（global.anthropic.claude-sonnet-4-5-20250929-v1:0）"
+        ],
+        "implementation_notes": [
+          "基于aws_pricing_agent模板扩展，复用成熟的AWS API集成框架",
+          "使用BedrockAgentCoreApp模式，实现@app.entrypoint装饰的async handler函数",
+          "handler函数必须使用agent.stream_async()获取流式响应，通过yield产生文本片段",
+          "通过nexus_utils.agent_factory.create_agent_from_prompt_template创建Agent对象",
+          "提示词模板路径：prompts/generated_agents_prompts/multi_cloud_pricing_comparison_agent/multi_cloud_pricing_comparison_agent.yaml",
+          "工具代码路径：tools/generated_tools/multi_cloud_pricing_comparison_agent/*.py",
+          "Agent脚本路径：agents/generated_agents/multi_cloud_pricing_comparison_agent/multi_cloud_pricing_comparison_agent.py",
+          "支持三种运行模式：Docker容器模式（AgentCore部署）、命令行测试模式、交互式对话模式",
+          "设置环境变量BYPASS_TOOL_CONSENT=true以跳过工具同意确认",
+          "集成StrandsTelemetry进行遥测和监控，OTEL端点可通过配置文件或环境变量设置",
+          "使用asyncio.gather实现并发API调用，提高响应速度",
+          "每个API调用都有30秒超时和最多3次重试机制",
+          "所有价格数据使用USD货币单位，保留2位小数",
+          "Excel文件名格式：multi_cloud_pricing_report_YYYYMMDD_HHMMSS.xlsx",
+          "报告保存路径：.cache/multi_cloud_pricing_comparison_agent/reports/",
+          "日志记录级别：INFO（关键步骤）、WARNING（非致命错误）、ERROR（致命错误）"
+        ],
+        "recommended_template": "aws_pricing_agent（AWS定价专家）- 评分92/100，提供成熟的AWS API集成和实例推荐功能，是最佳的扩展基础"
+      }
+    ],
+    "data_models": [
+      {
+        "name": "UserRequirement",
+        "schema": "{\n  \"services\": [\n    {\n      \"service_type\": \"string (如'compute', 'storage', 'database', 'cache')\",\n      \"vcpu\": \"integer (vCPU数量)\",\n      \"memory_gb\": \"integer (内存大小，单位GB)\",\n      \"storage_gb\": \"integer (存储大小，单位GB，可选)\",\n      \"storage_type\": \"string (存储类型，如'gp3', 'Premium SSD'，可选)\",\n      \"database_engine\": \"string (数据库引擎，如'MySQL', 'PostgreSQL'，可选)\",\n      \"quantity\": \"integer (数量，默认1)\",\n      \"environment\": \"string ('production' | 'development' | 'testing'，默认'production')\"\n    }\n  ],\n  \"region\": \"string (地理位置描述，如'美国东部', 'US East')\",\n  \"term_type\": \"string ('OnDemand' | 'Reserved-1Year' | 'Reserved-3Year'，默认'OnDemand')\"\n}",
+        "validation_rules": [
+          "service_type必须是支持的服务类型之一",
+          "vcpu和memory_gb必须是正整数",
+          "quantity必须大于0",
+          "environment必须是'production'、'development'或'testing'之一",
+          "term_type必须是'OnDemand'、'Reserved-1Year'或'Reserved-3Year'之一"
+        ],
+        "relationships": [
+          "UserRequirement由Agent从自然语言输入中解析生成",
+          "UserRequirement用于查询ServiceMapping和InstanceRecommendation"
+        ]
+      },
+      {
+        "name": "ServiceMapping",
+        "schema": "{\n  \"aws_service\": \"string (AWS服务名称，如'EC2', 'S3')\",\n  \"azure_service\": \"string (Azure服务名称，如'Virtual Machines', 'Blob Storage')\",\n  \"service_category\": \"string (服务类别，如'compute', 'storage')\",\n  \"aws_api_endpoint\": \"string (AWS API端点或服务代码)\",\n  \"azure_api_filter\": \"string (Azure API的OData过滤条件模板)\"\n}",
+        "validation_rules": [
+          "aws_service和azure_service不能为空",
+          "service_category必须是预定义的类别之一",
+          "映射关系必须是一对一的"
+        ],
+        "relationships": [
+          "ServiceMapping用于将用户需求映射到具体的AWS和Azure服务",
+          "ServiceMapping关联到PricingData"
+        ]
+      },
+      {
+        "name": "RegionMapping",
+        "schema": "{\n  \"location_description\": \"string (地理位置描述，如'美国东部', 'US East')\",\n  \"aws_region\": \"string (AWS区域代码，如'us-east-1')\",\n  \"azure_region\": \"string (Azure区域名称，如'East US')\"\n}",
+        "validation_rules": [
+          "location_description、aws_region、azure_region不能为空",
+          "aws_region必须是有效的AWS区域代码",
+          "azure_region必须是有效的Azure区域名称"
+        ],
+        "relationships": [
+          "RegionMapping用于将用户描述的地理位置映射到AWS和Azure的区域代码",
+          "RegionMapping关联到PricingData"
+        ]
+      },
+      {
+        "name": "InstanceRecommendation",
+        "schema": "{\n  \"cloud_provider\": \"string ('AWS' | 'Azure')\",\n  \"instance_type\": \"string (实例类型，如'm6i.2xlarge', 'Standard_D8s_v5')\",\n  \"vcpu\": \"integer (vCPU数量)\",\n  \"memory_gb\": \"float (内存大小，单位GB)\",\n  \"network_performance\": \"string (网络性能描述)\",\n  \"generation\": \"string (实例代际，如'Current Gen', 'Previous Gen')\",\n  \"is_burstable\": \"boolean (是否为突发性能实例)\",\n  \"match_score\": \"float (匹配度评分，0-100)\",\n  \"recommendation_reason\": \"string (推荐理由)\"\n}",
+        "validation_rules": [
+          "cloud_provider必须是'AWS'或'Azure'",
+          "vcpu和memory_gb必须大于0",
+          "match_score必须在0-100之间",
+          "如果environment为'production'且is_burstable为true，match_score应降低"
+        ],
+        "relationships": [
+          "InstanceRecommendation基于UserRequirement生成",
+          "InstanceRecommendation关联到PricingData"
+        ]
+      },
+      {
+        "name": "PricingData",
+        "schema": "{\n  \"cloud_provider\": \"string ('AWS' | 'Azure')\",\n  \"service_name\": \"string (服务名称)\",\n  \"region\": \"string (区域代码)\",\n  \"instance_type\": \"string (实例类型，可选)\",\n  \"configuration\": \"object (详细配置参数)\",\n  \"unit_price\": \"float (单价，单位USD)\",\n  \"pricing_unit\": \"string (计费单位，如'per hour', 'per GB-month')\",\n  \"term_type\": \"string ('OnDemand' | 'Reserved-1Year' | 'Reserved-3Year')\",\n  \"currency\": \"string (货币单位，默认'USD')\",\n  \"last_updated\": \"string (价格更新时间，ISO 8601格式)\",\n  \"official_doc_url\": \"string (官方文档链接)\",\n  \"query_status\": \"string ('success' | 'failed')\",\n  \"error_message\": \"string (错误信息，query_status为'failed'时提供)\"\n}",
+        "validation_rules": [
+          "cloud_provider必须是'AWS'或'Azure'",
+          "unit_price必须大于等于0",
+          "currency必须是'USD'",
+          "query_status必须是'success'或'failed'",
+          "如果query_status为'failed'，error_message不能为空"
+        ],
+        "relationships": [
+          "PricingData由AWS和Azure价格查询工具生成",
+          "PricingData用于生成ComparisonResult"
+        ]
+      },
+      {
+        "name": "ComparisonResult",
+        "schema": "{\n  \"service_name\": \"string (服务名称)\",\n  \"aws_pricing\": \"PricingData (AWS价格数据)\",\n  \"azure_pricing\": \"PricingData (Azure价格数据)\",\n  \"quantity\": \"integer (数量)\",\n  \"usage_hours_per_year\": \"integer (年度使用小时数，默认8760)\",\n  \"aws_annual_cost\": \"float (AWS年度总成本，单位USD)\",\n  \"azure_annual_cost\": \"float (Azure年度总成本，单位USD)\",\n  \"cost_difference\": \"float (成本差异，单位USD，正数表示Azure更贵)\",\n  \"cost_difference_percentage\": \"float (成本差异百分比)\",\n  \"cheaper_provider\": \"string ('AWS' | 'Azure' | 'Equal')\",\n  \"recommendation\": \"string (推荐建议)\"\n}",
+        "validation_rules": [
+          "quantity必须大于0",
+          "usage_hours_per_year必须在1-8760之间",
+          "aws_annual_cost和azure_annual_cost必须大于等于0",
+          "cheaper_provider必须是'AWS'、'Azure'或'Equal'"
+        ],
+        "relationships": [
+          "ComparisonResult基于两个PricingData对象计算生成",
+          "ComparisonResult用于生成ExcelReport"
+        ]
+      },
+      {
+        "name": "ExcelReport",
+        "schema": "{\n  \"file_path\": \"string (报告文件路径)\",\n  \"file_name\": \"string (报告文件名)\",\n  \"generation_time\": \"string (生成时间，ISO 8601格式)\",\n  \"sheets\": [\n    {\n      \"sheet_name\": \"string ('AWS报价表' | 'Azure报价表' | '对比总结表')\",\n      \"columns\": [\"序号\", \"项目\", \"服务名称\", \"配置\", \"数量\", \"单价\", \"1年总价\", \"备注\"],\n      \"rows\": [\n        {\n          \"序号\": \"integer\",\n          \"项目\": \"string\",\n          \"服务名称\": \"string\",\n          \"配置\": \"string\",\n          \"数量\": \"integer\",\n          \"单价\": \"string (格式化后的价格，如'$1.23/小时')\",\n          \"1年总价\": \"string (格式化后的价格，如'$10,789.20')\",\n          \"备注\": \"string (包含官方文档链接或错误信息)\"\n        }\n      ]\n    }\n  ],\n  \"summary\": {\n    \"total_aws_cost\": \"float (AWS总成本)\",\n    \"total_azure_cost\": \"float (Azure总成本)\",\n    \"total_cost_difference\": \"float (总成本差异)\",\n    \"total_cost_difference_percentage\": \"float (总成本差异百分比)\",\n    \"overall_recommendation\": \"string (整体推荐建议)\"\n  }\n}",
+        "validation_rules": [
+          "file_path必须是有效的文件路径",
+          "sheets必须包含三个Sheet：'AWS报价表'、'Azure报价表'、'对比总结表'",
+          "每个Sheet的columns必须包含指定的8个列",
+          "价格格式必须使用千分位分隔符和2位小数"
+        ],
+        "relationships": [
+          "ExcelReport基于多个ComparisonResult对象生成",
+          "ExcelReport是系统的最终输出"
+        ]
+      }
+    ],
+    "interaction_flows": [
+      {
+        "name": "完整报价对比流程",
+        "description": "用户输入自然语言需求，系统解析需求、查询价格、对比分析、生成报告的完整流程",
+        "steps": [
+          {
+            "step": "1. 接收用户输入",
+            "agent": "multi_cloud_pricing_comparison_agent",
+            "action": "接收用户的自然语言输入，初步验证输入不为空",
+            "data": "用户输入字符串"
+          },
+          {
+            "step": "2. 解析用户需求",
+            "agent": "multi_cloud_pricing_comparison_agent",
+            "action": "使用LLM理解自然语言，提取结构化信息（服务类型、配置参数、数量、地理位置、环境类型等），生成UserRequirement对象",
+            "data": "UserRequirement对象（JSON格式）"
+          },
+          {
+            "step": "3. 服务映射",
+            "agent": "multi_cloud_pricing_comparison_agent",
+            "action": "调用map_aws_to_azure_services工具，查询ServiceMapping配置表，建立AWS和Azure服务的对应关系",
+            "data": "ServiceMapping对象列表"
+          },
+          {
+            "step": "4. 区域映射",
+            "agent": "multi_cloud_pricing_comparison_agent",
+            "action": "调用map_regions工具，查询RegionMapping配置表，将用户描述的地理位置映射到AWS和Azure的区域代码",
+            "data": "RegionMapping对象"
+          },
+          {
+            "step": "5. 并发查询AWS价格",
+            "agent": "multi_cloud_pricing_comparison_agent",
+            "action": "根据UserRequirement中的服务类型，并发调用对应的AWS价格查询工具（如get_aws_ec2_pricing、get_aws_s3_pricing等），获取实时价格数据",
+            "data": "PricingData对象列表（AWS）"
+          },
+          {
+            "step": "6. 并发查询Azure价格",
+            "agent": "multi_cloud_pricing_comparison_agent",
+            "action": "根据UserRequirement中的服务类型，并发调用对应的Azure价格查询工具（如get_azure_vm_pricing、get_azure_blob_pricing等），获取实时价格数据",
+            "data": "PricingData对象列表（Azure）"
+          },
+          {
+            "step": "7. AWS实例推荐",
+            "agent": "multi_cloud_pricing_comparison_agent",
+            "action": "如果需要计算实例，调用recommend_aws_instances工具，根据vCPU和内存需求推荐最合适的AWS实例类型",
+            "data": "InstanceRecommendation对象（AWS）"
+          },
+          {
+            "step": "8. Azure实例推荐",
+            "agent": "multi_cloud_pricing_comparison_agent",
+            "action": "如果需要计算实例，调用recommend_azure_instances工具，根据vCPU和内存需求推荐最合适的Azure实例类型",
+            "data": "InstanceRecommendation对象（Azure）"
+          },
+          {
+            "step": "9. 价格对比分析",
+            "agent": "multi_cloud_pricing_comparison_agent",
+            "action": "调用compare_pricing_across_clouds工具，对比每项服务在AWS和Azure的价格，计算成本差异和百分比",
+            "data": "ComparisonResult对象列表"
+          },
+          {
+            "step": "10. 生成Excel报告",
+            "agent": "multi_cloud_pricing_comparison_agent",
+            "action": "调用generate_excel_report工具，根据ComparisonResult对象列表生成包含三个Sheet的Excel报告，格式化数据，添加官方文档链接",
+            "data": "ExcelReport对象"
+          },
+          {
+            "step": "11. 返回结果",
+            "agent": "multi_cloud_pricing_comparison_agent",
+            "action": "流式返回报告路径、摘要信息和推荐建议给用户",
+            "data": "报告路径字符串 + 摘要JSON"
+          }
+        ]
+      },
+      {
+        "name": "错误处理流程",
+        "description": "处理API调用失败、数据解析错误等异常情况的流程",
+        "steps": [
+          {
+            "step": "1. 捕获异常",
+            "agent": "multi_cloud_pricing_comparison_agent",
+            "action": "在每个工具调用处使用try-catch捕获异常",
+            "data": "异常对象"
+          },
+          {
+            "step": "2. 记录错误日志",
+            "agent": "multi_cloud_pricing_comparison_agent",
+            "action": "使用logging模块记录错误详情（错误类型、错误消息、堆栈跟踪、请求参数）",
+            "data": "日志记录"
+          },
+          {
+            "step": "3. 判断是否可重试",
+            "agent": "multi_cloud_pricing_comparison_agent",
+            "action": "判断错误类型，如果是网络超时或临时性错误，进行重试（最多3次）",
+            "data": "重试决策"
+          },
+          {
+            "step": "4. 标记失败项",
+            "agent": "multi_cloud_pricing_comparison_agent",
+            "action": "如果重试失败，将该项标记为失败，在PricingData中设置query_status='failed'和error_message",
+            "data": "PricingData对象（失败状态）"
+          },
+          {
+            "step": "5. 继续其他查询",
+            "agent": "multi_cloud_pricing_comparison_agent",
+            "action": "单个服务失败不影响其他服务的查询，继续执行后续步骤",
+            "data": "继续流程"
+          },
+          {
+            "step": "6. 在报告中标注",
+            "agent": "multi_cloud_pricing_comparison_agent",
+            "action": "在Excel报告中明确标注价格获取失败的项，在备注列中说明失败原因",
+            "data": "Excel报告（包含失败标注）"
+          },
+          {
+            "step": "7. 返回部分结果",
+            "agent": "multi_cloud_pricing_comparison_agent",
+            "action": "返回成功查询的结果和失败项的列表，提示用户部分数据不可用",
+            "data": "部分结果 + 失败列表"
+          }
+        ]
+      },
+      {
+        "name": "交互式对话流程",
+        "description": "支持多轮对话，用户可以补充信息或修改需求的流程",
+        "steps": [
+          {
+            "step": "1. 初始输入",
+            "agent": "multi_cloud_pricing_comparison_agent",
+            "action": "接收用户的初始需求描述",
+            "data": "用户输入"
+          },
+          {
+            "step": "2. 需求验证",
+            "agent": "multi_cloud_pricing_comparison_agent",
+            "action": "解析需求，判断是否缺少关键信息（如服务类型、配置参数）",
+            "data": "验证结果"
+          },
+          {
+            "step": "3. 请求补充信息",
+            "agent": "multi_cloud_pricing_comparison_agent",
+            "action": "如果缺少关键信息，向用户询问具体细节（如'请问您需要多少vCPU和内存？'）",
+            "data": "问题字符串"
+          },
+          {
+            "step": "4. 接收补充信息",
+            "agent": "multi_cloud_pricing_comparison_agent",
+            "action": "接收用户的补充回答，更新UserRequirement对象",
+            "data": "更新后的UserRequirement"
+          },
+          {
+            "step": "5. 继续流程",
+            "agent": "multi_cloud_pricing_comparison_agent",
+            "action": "信息完整后，继续执行价格查询和对比分析流程",
+            "data": "进入完整报价对比流程"
+          },
+          {
+            "step": "6. 支持修改需求",
+            "agent": "multi_cloud_pricing_comparison_agent",
+            "action": "生成报告后，用户可以修改需求（如'我想看看预留实例的价格'），重新执行查询",
+            "data": "修改后的UserRequirement"
+          }
+        ]
+      }
+    ],
+    "security_considerations": [
+      "AWS凭证管理：使用环境变量（AWS_ACCESS_KEY_ID、AWS_SECRET_ACCESS_KEY）或AWS配置文件（~/.aws/credentials）管理凭证，不在代码中硬编码",
+      "IAM权限控制：确保AWS凭证具有pricing:GetProducts权限，但不授予其他不必要的权限（最小权限原则）",
+      "敏感信息保护：不在日志中记录完整的API密钥或访问令牌，只记录部分字符（如前4位和后4位）",
+      "报告文件安全：生成的Excel报告保存在安全的本地路径（.cache/multi_cloud_pricing_comparison_agent/reports/），设置适当的文件权限（仅当前用户可读写）",
+      "HTTPS通信：所有API调用使用HTTPS协议，确保数据传输安全",
+      "输入验证：对用户输入进行验证和清理，防止注入攻击（虽然LLM本身具有一定的安全性，但仍需额外验证）",
+      "依赖库安全：定期更新boto3、requests、openpyxl等依赖库，修复已知的安全漏洞",
+      "容器安全：如果部署在Docker容器中，使用非root用户运行，限制容器权限"
+    ],
+    "error_handling": [
+      "API调用失败：捕获boto3和requests的异常（如ClientError、ConnectionError、Timeout），记录详细错误信息，进行有限次数的重试（最多3次，指数退避）",
+      "数据解析错误：捕获JSON解析异常（如JSONDecodeError），记录原始响应数据，返回友好的错误提示",
+      "价格数据不可用：如果API返回空结果或价格字段缺失，标记为'价格获取失败'，在报告中说明原因（如'该区域不支持此服务'）",
+      "实例推荐失败：如果无法找到匹配的实例类型，返回最接近的实例并说明差异，或建议用户调整需求",
+      "Excel生成失败：捕获openpyxl的异常（如PermissionError、OSError），检查文件路径和权限，提示用户更换保存路径",
+      "网络超时：设置30秒的API调用超时时间，超时后自动重试，最终失败时提示用户检查网络连接",
+      "配置文件缺失：如果配置文件（如服务映射表）不存在，使用硬编码的默认配置，记录警告日志",
+      "用户输入无效：如果无法从用户输入中提取有效信息，返回示例输入和使用说明，引导用户重新输入",
+      "内存不足：如果处理大量数据导致内存不足，分批处理API调用和数据生成，避免一次性加载所有数据",
+      "并发错误：如果并发API调用出现竞争条件或资源冲突，使用锁机制保护共享资源，确保数据一致性"
+    ],
+    "performance_considerations": [
+      "并发API调用：使用asyncio.gather或concurrent.futures.ThreadPoolExecutor并发调用多个API，将总响应时间从串行的N*30秒缩短到接近单次调用的30秒",
+      "API调用优化：精确构建API过滤条件，减少返回的数据量，避免传输和解析不必要的数据",
+      "缓存机制：对于不经常变化的数据（如实例规格数据库、服务映射表），使用内存缓存或文件缓存，减少重复查询",
+      "批量处理：如果用户需要查询多个服务，批量构建API请求，减少网络往返次数",
+      "流式响应：使用流式响应实时输出处理进度，提升用户体验，避免长时间等待无反馈",
+      "超时控制：设置合理的API调用超时时间（30秒），避免因单个API调用卡住导致整体超时",
+      "数据压缩：如果生成的Excel文件较大，考虑使用压缩算法减小文件体积",
+      "内存管理：及时释放不再使用的大对象（如API响应数据），避免内存泄漏",
+      "索引优化：如果实例规格数据库较大，使用索引或哈希表加速查询，将查询时间从O(n)降到O(1)",
+      "懒加载：只在需要时加载配置文件和数据库，避免启动时加载所有数据"
+    ],
+    "monitoring_strategy": [
+      "日志记录：使用Python logging模块记录关键步骤的日志，日志级别包括INFO（正常流程）、WARNING（非致命错误）、ERROR（致命错误）",
+      "遥测集成：使用StrandsTelemetry集成OpenTelemetry，收集trace、span、metrics等遥测数据，发送到OTEL端点（默认http://localhost:4318）",
+      "性能指标：记录每个步骤的执行时间（如API调用时间、数据处理时间、报告生成时间），识别性能瓶颈",
+      "错误率监控：统计API调用的成功率和失败率，监控错误类型分布，及时发现和修复问题",
+      "用户行为分析：记录用户输入的需求类型、查询的服务类型、生成的报告数量，分析用户使用模式",
+      "资源使用监控：监控CPU使用率、内存使用量、网络流量，确保系统资源充足",
+      "告警机制：当错误率超过阈值（如10%）或响应时间超过目标（如2分钟）时，发送告警通知",
+      "健康检查：提供健康检查端点（如/health），返回系统状态和依赖服务状态（AWS API可用性、Azure API可用性）",
+      "审计日志：记录所有API调用的请求参数和响应摘要，用于审计和故障排查",
+      "可视化仪表板：使用Grafana或类似工具可视化监控数据，实时查看系统运行状态"
+    ]
+  },
+  "design_rationale": "本系统设计基于以下核心考虑和决策理由：\n\n1. **单Agent架构的选择**：\n   - 需求分析显示工作流是线性的（需求解析→价格查询→对比分析→报告生成），不涉及复杂的Agent间协作和决策协调\n   - 单Agent配合专业工具函数的架构更简单、更易维护，降低系统复杂度\n   - 所有功能都围绕'多云报价对比'这一核心目标，职责单一明确\n   - 参考AWS定价专家模板的成功经验，单Agent架构已被验证可行\n\n2. **基于aws_pricing_agent模板扩展**：\n   - aws_pricing_agent提供了成熟的AWS API集成框架，代码质量有保证，减少开发风险\n   - 已实现的AWS价格查询工具（get_aws_pricing系列）和实例推荐功能（recommend_instance_types）可直接复用\n   - 提示词经过优化，能够有效引导LLM理解云服务需求\n   - 架构清晰，易于扩展Azure API集成和多云对比功能\n   - 评分92/100，是最佳的扩展基础\n\n3. **LLM与工具函数的职责分工**：\n   - LLM负责自然语言理解、需求解析、决策推理、报告内容组织等高层次任务\n   - 工具函数负责API调用、数据处理、文件生成等具体技术实现\n   - 这种分工充分发挥了LLM的语言理解能力和工具函数的技术执行能力\n   - 提示词通过详细的指导和示例，引导LLM正确调用工具函数\n\n4. **数据模型设计**：\n   - 定义了7个核心数据模型（UserRequirement、ServiceMapping、RegionMapping、InstanceRecommendation、PricingData、ComparisonResult、ExcelReport），覆盖了从需求输入到报告输出的完整数据流\n   - 每个模型都有清晰的schema、验证规则和关系定义，确保数据一致性和完整性\n   - 数据模型支持JSON序列化，便于在Agent和工具之间传递\n   - 错误处理机制内置在数据模型中（如PricingData的query_status字段），便于追踪失败项\n\n5. **API集成策略**：\n   - AWS使用boto3 pricing client，调用get_products API，通过精确的过滤条件获取价格数据\n   - Azure使用requests库调用REST API，构建OData查询字符串进行过滤\n   - 两种API的调用方式不同，但都封装在工具函数中，对Agent透明\n   - 支持并发调用多个API（使用asyncio.gather），显著缩短总响应时间\n   - 每个API调用都有30秒超时和最多3次重试机制，提高可靠性\n\n6. **智能推荐算法**：\n   - 实例推荐基于加权评分机制，综合考虑vCPU、内存、代际、使用场景等多个因素\n   - 应用最佳实践规则：生产环境避免突发性能实例、优先推荐当前代实例\n   - 如果无法找到完全匹配的实例，推荐最接近的实例并说明差异\n   - 推荐结果包含详细的推荐理由，提高透明度和可信度\n\n7. **报告生成设计**：\n   - 使用openpyxl库生成Excel文件，支持多Sheet、格式化、超链接等功能\n   - 三个Sheet的设计（AWS报价表、Azure报价表、对比总结表）清晰展示不同维度的信息\n   - 表头格式统一（序号/项目/服务名称/配置/数量/单价/1年总价/备注），便于阅读和对比\n   - 价格格式化使用千分位分隔符和2位小数，提升专业性\n   - 备注列包含官方文档链接和错误信息，提供额外的上下文\n\n8. **错误处理策略**：\n   - 多层次的错误处理：API调用层、数据解析层、业务逻辑层、报告生成层\n   - 单个服务失败不影响其他服务的查询（容错性）\n   - 所有错误都记录在日志中，并在报告中明确标注（可观测性）\n   - 网络超时和临时性错误自动重试（可靠性）\n   - 友好的错误提示和解决建议（用户体验）\n\n9. **性能优化策略**：\n   - 并发API调用是最重要的性能优化手段，可将总响应时间从数分钟缩短到1-2分钟\n   - 精确的API过滤条件减少数据传输量和解析时间\n   - 缓存机制避免重复查询不变的数据（如实例规格数据库）\n   - 流式响应提升用户体验，避免长时间等待无反馈\n   - 内存管理和懒加载避免资源浪费\n\n10. **安全性考虑**：\n    - AWS凭证使用环境变量或配置文件管理，不硬编码在代码中\n    - IAM权限遵循最小权限原则，只授予pricing:GetProducts权限\n    - 敏感信息不记录在日志中\n    - 所有API调用使用HTTPS协议\n    - 报告文件保存在安全的本地路径，设置适当的文件权限\n\n11. **可扩展性设计**：\n    - 服务映射和区域映射使用配置文件管理，易于添加新的服务和区域\n    - 工具函数采用模块化设计，易于添加新的API集成（如GCP、阿里云）\n    - 数据模型支持扩展，可以添加新的字段和验证规则\n    - Agent提示词支持动态更新，无需修改代码\n\n12. **监控和可观测性**：\n    - 集成StrandsTelemetry和OpenTelemetry，收集trace、span、metrics等遥测数据\n    - 详细的日志记录（INFO、WARNING、ERROR三个级别）\n    - 性能指标记录（API调用时间、数据处理时间、报告生成时间）\n    - 错误率监控和告警机制\n    - 健康检查端点支持运维监控\n\n13. **AgentCore部署支持**：\n    - 使用BedrockAgentCoreApp模式，实现@app.entrypoint装饰的async handler函数\n    - handler函数必须使用agent.stream_async()获取流式响应，通过yield产生文本片段\n    - 支持Docker容器模式（DOCKER_CONTAINER=1时启动HTTP服务器）和本地测试模式\n    - app.run()启动Starlette HTTP服务器监听/invocations端点，默认端口8080\n    - 遵循AgentCore的标准输入输出格式（payload包含prompt、user_id、session_id、media）\n\n14. **用户体验优化**：\n    - 支持自然语言输入，无需了解复杂的云服务术语\n    - 友好的错误提示和使用说明\n    - 流式响应实时输出处理进度\n    - 清晰易懂的中文报告\n    - 支持多轮对话和交互式模式\n    - 提供示例输入，帮助用户快速上手\n\n15. **技术栈选择理由**：\n    - AWS Bedrock：企业级LLM服务，稳定可靠，支持Claude Sonnet 4.5等先进模型\n    - Strands SDK：专为Agent开发设计的框架，简化Agent创建和工具集成\n    - boto3：AWS官方Python SDK，功能完整，文档详细\n    - requests：Python最流行的HTTP库，简单易用\n    - openpyxl：功能强大的Excel处理库，支持复杂的格式化和样式\n    - asyncio：Python原生的异步编程框架，支持高效的并发处理\n\n总结：本设计充分考虑了功能需求、非功能需求、技术约束、用户体验、可维护性、可扩展性等多个维度，采用单Agent架构配合专业工具函数的模式，基于成熟的aws_pricing_agent模板扩展，确保系统能够高效、可靠、安全地完成多云报价对比任务。设计遵循了SOLID原则、DRY原则、关注点分离原则等软件工程最佳实践，为后续的开发、测试、部署和维护奠定了坚实的基础。"
+}

@@ -1,0 +1,6 @@
+project:
+  created_date: '2026-01-14T09:10:57.516578+00:00'
+  description: 多云报价对比Agent - 通过AWS Pricing API和Azure Retail Prices API获取真实价格数据，支持EC2/VM、存储、数据库、缓存等多种服务的价格查询，建立AWS和Azure服务映射关系，提供智能配置推荐，并生成包含三个Sheet的Excel报告
+  name: multi_cloud_pricing_comparison_agent
+  updated_date: '2026-01-14T09:11:13.191648+00:00'
+  version: 1.0.0

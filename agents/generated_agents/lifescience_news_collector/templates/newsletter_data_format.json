@@ -1,0 +1,79 @@
+{
+  "_comment": "这是Agent需要提供的JSON数据格式示例",
+  "stats": {
+    "total_articles": 42,
+    "total_categories": 7,
+    "total_sources": 15,
+    "coverage": "100%"
+  },
+  "insights": {
+    "content_insights": [
+      "GenAI在药物研发场景渗透率显著增高：多家药企宣布采用AI辅助药物发现平台，预计将推动HPC和ML服务需求增长，AWS可重点关注计算密集型药物筛选场景",
+      "中国创新药出海趋势洞察：本周多起跨境合作案例显示，药企对数据合规和跨境数据传输解决方案需求增加，AWS合规服务（如HIPAA合规）具有市场机会",
+      "医疗大模型应用场景扩展：从辅助诊断扩展到患者管理、药物研发等多个场景，对云基础设施和AI服务需求提升，SageMaker和Bedrock服务可重点关注",
+      "基因测序数据分析需求增长：单细胞组学和空间组学技术应用加速，产生海量数据需要高性能计算和存储，AWS HPC和S3服务具有明显优势"
+    ]
+  },
+  "categories": [
+    {
+      "id": "policy",
+      "name": "政策法规类",
+      "icon": "📜",
+      "articles": [
+        {
+          "title": "国家药监局发布新版《医疗器械监督管理条例》实施细则",
+          "url": "https://www.nmpa.gov.cn/example1",
+          "summary": "国家药监局近日发布了新修订的《医疗器械监督管理条例》实施细则，对医疗器械的分类管理、注册审批流程、生产质量管理等方面进行了全面更新。",
+          "source": "国家药监局",
+          "date": "2026-01-15"
+        }
+      ]
+    },
+    {
+      "id": "digital",
+      "name": "医疗数字化转型案例",
+      "icon": "💻",
+      "articles": [
+        {
+          "title": "北京协和医院上线智慧医疗系统",
+          "url": "https://www.yxj.org.cn/example4",
+          "summary": "北京协和医院正式上线新一代智慧医疗系统，整合了预约挂号、智能导诊、在线问诊等全流程服务。",
+          "source": "医学界",
+          "date": "2026-01-15"
+        }
+      ]
+    },
+    {
+      "id": "drug",
+      "name": "药物研发与创新",
+      "icon": "💊",
+      "articles": []
+    },
+    {
+      "id": "device",
+      "name": "医疗器械与产品",
+      "icon": "🔬",
+      "articles": []
+    },
+    {
+      "id": "collab",
+      "name": "战略合作与并购",
+      "icon": "🤝",
+      "articles": []
+    },
+    {
+      "id": "genomics",
+      "name": "基因组学与精准医疗",
+      "icon": "🧪",
+      "articles": []
+    },
+    {
+      "id": "ai",
+      "name": "医疗数据与AI",
+      "icon": "🤖",
+      "articles": []
+    }
+  ],
+  "data_sources": "Google Search、丁香园、医学界、健康界、医谷、生物探索、医药魔方、药智网、美柏医健、科学网、中国生物技术网、生物谷、动脉网、亿欧大健康、36氪医疗、国家药监局、国家卫健委"
+}
+

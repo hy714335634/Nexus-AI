@@ -1,0 +1,323 @@
+{
+  "agent_design": {
+    "design_overview": {
+      "project_name": "multi_cloud_pricing_comparison_agent",
+      "version": "1.0",
+      "date": "2026-01-14",
+      "design_scope": "设计一个智能的多云报价对比Agent，能够理解自然语言描述的云服务需求，通过AWS Pricing API和Azure Retail Prices API获取真实价格数据，进行智能配置推荐和价格对比分析，最终生成包含三个Sheet的Excel报告。Agent基于Strands SDK和AWS Bedrock构建，使用Claude Sonnet 4.5模型进行自然语言理解和决策推理，通过专业工具函数实现API集成和数据处理。",
+      "design_goals": [
+        "实现高准确度的自然语言需求解析，能够从用户输入中提取服务类型、配置参数、数量、地理位置、环境类型等结构化信息",
+        "提供真实可靠的价格数据，所有价格必须来自AWS Pricing API和Azure Retail Prices API，不使用硬编码或模拟数据",
+        "实现智能配置推荐，根据vCPU和内存需求推荐最合适的实例类型，应用生产环境最佳实践",
+        "生成专业清晰的Excel报告，包含AWS报价表、Azure报价表和对比总结表，使用中文输出，包含官方文档链接",
+        "确保系统稳定可靠，单个服务失败不影响整体流程，所有错误都有详细记录和明确标注",
+        "优化响应速度，通过并发API调用将总响应时间控制在2分钟内",
+        "提供友好的用户体验，支持自然语言输入、流式响应、多轮对话、交互式模式",
+        "支持部署到Amazon Bedrock AgentCore，遵循BedrockAgentCoreApp规范"
+      ],
+      "key_design_decisions": [
+        {
+          "decision": "采用单Agent架构而非多Agent架构",
+          "rationale": "工作流是线性的（需求解析→价格查询→对比分析→报告生成），不需要多个Agent的协作和协调。单Agent配合专业工具函数的架构更简单、更易维护，降低系统复杂度。所有功能都围绕'多云报价对比'这一核心目标，职责单一明确。",
+          "alternatives": [
+            "多Agent架构：需求解析Agent + AWS查询Agent + Azure查询Agent + 对比分析Agent + 报告生成Agent",
+            "混合架构：主Agent + 专门的价格查询子Agent"
+          ],
+          "consequences": [
+            "简化系统架构，减少Agent间通信开销",
+            "降低开发和维护成本",
+            "提高响应速度，避免多Agent协调延迟",
+            "可能在未来扩展到更多云平台时需要重构"
+          ]
+        },
+        {
+          "decision": "基于aws_pricing_agent模板扩展",
+          "rationale": "aws_pricing_agent提供了成熟的AWS API集成框架，代码质量有保证，减少开发风险。已实现的AWS价格查询工具和实例推荐功能可直接复用。提示词经过优化，能够有效引导LLM理解云服务需求。架构清晰，易于扩展Azure API集成和多云对比功能。评分92/100，是最佳的扩展基础。",
+          "alternatives": [
+            "从零开始开发：完全自定义Agent和工具函数",
+            "基于api_integration_agent模板扩展：提供通用的API集成框架，但缺少AWS特定功能"
+          ],
+          "consequences": [
+            "显著减少开发工作量，复用成熟代码",
+            "提高代码质量和可靠性",
+            "加快项目交付速度",
+            "需要理解和适配现有模板的架构"
+          ]
+        },
+        {
+          "decision": "使用LLM进行自然语言理解和决策推理",
+          "rationale": "LLM具有强大的自然语言理解能力，能够从非结构化的用户输入中提取结构化信息。通过精心设计的提示词，可以引导LLM理解云服务需求、应用最佳实践规则、生成推荐建议。避免复杂的NLP模型训练和维护。Claude Sonnet 4.5模型在推理和分析任务上表现优秀。",
+          "alternatives": [
+            "基于规则的NLP：使用正则表达式和关键词匹配提取信息",
+            "训练自定义NLP模型：使用BERT或GPT等模型进行微调"
+          ],
+          "consequences": [
+            "提高需求解析的准确性和灵活性",
+            "简化开发流程，无需训练和维护NLP模型",
+            "支持复杂的推理和决策任务",
+            "依赖LLM服务的可用性和性能"
+          ]
+        },
+        {
+          "decision": "工具函数实现API集成和数据处理",
+          "rationale": "LLM无法直接调用外部API或执行文件操作，必须通过工具函数实现。工具函数提供确定性的执行逻辑，确保API调用的正确性和数据处理的准确性。工具函数可以独立测试和优化，提高代码质量。支持复用和组合，提高开发效率。",
+          "alternatives": [
+            "让LLM生成代码并执行：使用代码解释器执行LLM生成的Python代码",
+            "使用插件系统：通过插件机制扩展Agent能力"
+          ],
+          "consequences": [
+            "确保API调用和数据处理的正确性",
+            "提高代码可测试性和可维护性",
+            "支持工具复用和组合",
+            "需要开发和维护多个工具函数"
+          ]
+        },
+        {
+          "decision": "使用openpyxl生成Excel报告",
+          "rationale": "openpyxl是Python最流行的Excel处理库，功能强大，支持多Sheet、格式化、样式、超链接等功能。Excel格式是企业用户最熟悉的报告格式，易于查看、编辑和分享。支持复杂的表格结构和数据可视化。",
+          "alternatives": [
+            "使用pandas生成Excel：更适合数据分析，但格式化能力较弱",
+            "生成PDF报告：格式固定，但不易编辑",
+            "生成HTML报告：易于展示，但不适合离线查看"
+          ],
+          "consequences": [
+            "满足用户对结构化报告的需求",
+            "支持复杂的格式化和样式",
+            "易于查看、编辑和分享",
+            "需要学习和使用openpyxl API"
+          ]
+        },
+        {
+          "decision": "实现并发API调用优化性能",
+          "rationale": "多个API调用是系统的主要性能瓶颈，串行调用会导致总响应时间过长。使用asyncio.gather并发调用多个API，可以将总响应时间从数分钟缩短到1-2分钟。提升用户体验，满足2分钟内完成查询的性能要求。",
+          "alternatives": [
+            "串行调用API：简单但慢",
+            "使用线程池：concurrent.futures.ThreadPoolExecutor",
+            "使用进程池：concurrent.futures.ProcessPoolExecutor"
+          ],
+          "consequences": [
+            "显著缩短总响应时间",
+            "提升用户体验",
+            "增加代码复杂度",
+            "需要处理并发错误和资源竞争"
+          ]
+        },
+        {
+          "decision": "建立服务映射和区域映射配置表",
+          "rationale": "AWS和Azure的服务名称、区域代码不同，需要建立映射关系。使用配置文件或常量管理映射关系，便于维护和扩展。支持未来添加更多云平台（如GCP、阿里云）和服务类型。提供清晰的文档和注释，降低维护成本。",
+          "alternatives": [
+            "硬编码映射关系：在代码中直接定义映射字典",
+            "使用数据库存储映射关系：支持动态更新，但增加系统复杂度"
+          ],
+          "consequences": [
+            "便于维护和扩展",
+            "支持未来添加更多云平台",
+            "提高代码可读性",
+            "需要维护配置文件"
+          ]
+        },
+        {
+          "decision": "实现智能推荐算法应用最佳实践",
+          "rationale": "用户可能不熟悉云服务的最佳实践，需要系统提供智能推荐。生产环境应避免使用突发性能实例（AWS t系列、Azure B系列），优先推荐当前代实例。使用加权评分机制综合考虑vCPU、内存、代际、使用场景等多个因素。提供详细的推荐理由，提高透明度和可信度。",
+          "alternatives": [
+            "简单匹配：只根据vCPU和内存匹配实例",
+            "让用户自己选择：不提供推荐，用户自行决定"
+          ],
+          "consequences": [
+            "提高推荐的准确性和合理性",
+            "应用云服务最佳实践",
+            "提升用户体验和信任度",
+            "需要维护实例规格数据库和推荐规则"
+          ]
+        },
+        {
+          "decision": "遵循BedrockAgentCoreApp部署规范",
+          "rationale": "支持部署到Amazon Bedrock AgentCore，实现企业级的Agent服务。使用@app.entrypoint装饰器定义async handler函数，支持流式响应。通过Docker容器模式和本地测试模式灵活运行。遵循AgentCore的标准输入输出格式，确保兼容性。",
+          "alternatives": [
+            "不支持AgentCore部署：只支持本地运行",
+            "使用自定义部署方案：自行实现HTTP服务器和接口"
+          ],
+          "consequences": [
+            "支持企业级部署",
+            "提供标准化的接口",
+            "提高可扩展性和可维护性",
+            "需要遵循AgentCore规范"
+          ]
+        }
+      ]
+    },
+    "agents": [
+      {
+        "agent_id": "multi_cloud_pricing_comparison_agent",
+        "name": "Multi-Cloud Pricing Comparison Agent",
+        "role": "智能多云报价对比专家",
+        "purpose": "理解用户的自然语言云服务需求，调用AWS和Azure的价格API获取真实数据，进行智能配置推荐和价格对比分析，生成包含三个Sheet的Excel报告，帮助用户做出经济高效的云服务选择决策。",
+        "personality": {
+          "traits": [
+            "专业：深入了解AWS和Azure的服务、定价模型、最佳实践",
+            "精确：提供准确的价格数据和详细的配置信息",
+            "友好：使用清晰易懂的中文与用户沟通，避免过于技术化的术语",
+            "耐心：能够处理不完整或模糊的需求，引导用户提供必要信息",
+            "透明：清楚说明推荐理由、价格来源、计算方法",
+            "高效：快速响应用户需求，通过并发处理优化性能"
+          ],
+          "communication_style": "专业但友好，使用清晰的中文表达，避免过于技术化的术语。在解释复杂概念时使用类比和示例。对于不确定的信息，明确说明假设和推测依据。提供详细的推荐理由和数据来源，增强用户信任。",
+          "tone": "专业、友好、透明、高效。在处理错误时保持冷静，提供建设性的解决方案。"
+        },
+        "capabilities": {
+          "core_functions": [
+            "自然语言理解：从用户的自然语言输入中提取服务类型、配置参数、数量、地理位置、环境类型等结构化信息",
+            "AWS价格查询：通过AWS Pricing API获取EC2、EBS、S3、RDS、ElastiCache、OpenSearch、ELB、网络流量等服务的真实价格",
+            "Azure价格查询：通过Azure Retail Prices API获取Virtual Machines、Managed Disks、Blob Storage、Azure SQL Database、Azure Cache for Redis、Azure Cognitive Search、Application Gateway/Load Balancer、带宽等服务的真实价格",
+            "服务映射：建立AWS和Azure服务的对应关系，根据用户需求自动匹配对应的服务",
+            "区域映射：将用户描述的地理位置映射到AWS和Azure的区域代码",
+            "智能推荐：根据vCPU和内存需求推荐最合适的AWS和Azure实例类型，应用生产环境最佳实践",
+            "价格对比：对比AWS和Azure在相似配置下的价格差异，计算成本节省百分比",
+            "报告生成：生成包含AWS报价表、Azure报价表、对比总结表的Excel报告，使用中文输出，包含官方文档链接",
+            "错误处理：优雅地处理API调用失败、数据解析错误等异常情况，在报告中明确标注失败项",
+            "进度反馈：通过流式响应实时输出处理进度，提升用户体验"
+          ],
+          "specialized_skills": [
+            "云服务最佳实践：了解生产环境应避免突发性能实例、优先推荐当前代实例等最佳实践",
+            "定价模型理解：深入理解AWS和Azure的按需实例、预留实例、不同期限的定价模型",
+            "配置优化：根据用户需求推荐性能和成本的最优平衡配置",
+            "并发处理：使用asyncio并发调用多个API，显著缩短总响应时间",
+            "数据格式化：将价格数据格式化为易读的格式，使用千分位分隔符和2位小数",
+            "Excel生成：使用openpyxl生成专业的Excel报告，支持多Sheet、格式化、超链接",
+            "多轮对话：支持交互式模式，能够补充信息或修改需求",
+            "中英文处理：支持中文和英文输入，输出使用中文"
+          ],
+          "limitations": [
+            "仅支持AWS和Azure两个云平台，不支持GCP、阿里云等其他平台",
+            "仅支持8类核心服务（计算、存储、数据库、缓存、搜索、负载均衡、网络流量），不支持所有云服务",
+            "价格数据依赖API可用性，如果API不可用或返回错误数据，无法提供准确报价",
+            "不支持历史价格趋势分析、TCO计算、自动化采购等高级功能",
+            "报告仅支持Excel格式，不支持PDF、HTML等其他格式",
+            "不支持实时价格变动监控和告警",
+            "依赖AWS凭证的有效性和权限配置"
+          ],
+          "tools_required": [
+            "get_aws_ec2_pricing：查询AWS EC2实例价格",
+            "get_aws_ebs_pricing：查询AWS EBS存储价格",
+            "get_aws_s3_pricing：查询AWS S3对象存储价格",
+            "get_aws_rds_pricing：查询AWS RDS数据库价格",
+            "get_aws_elasticache_pricing：查询AWS ElastiCache缓存价格",
+            "get_aws_opensearch_pricing：查询AWS OpenSearch搜索服务价格",
+            "get_aws_elb_pricing：查询AWS ELB负载均衡器价格",
+            "get_aws_network_pricing：查询AWS网络流量价格",
+            "get_azure_vm_pricing：查询Azure Virtual Machines价格",
+            "get_azure_disk_pricing：查询Azure Managed Disks价格",
+            "get_azure_blob_pricing：查询Azure Blob Storage价格",
+            "get_azure_sql_pricing：查询Azure SQL Database价格",
+            "get_azure_redis_pricing：查询Azure Cache for Redis价格",
+            "get_azure_search_pricing：查询Azure Cognitive Search价格",
+            "get_azure_gateway_pricing：查询Azure Application Gateway/Load Balancer价格",
+            "get_azure_bandwidth_pricing：查询Azure带宽价格",
+            "recommend_aws_instances：根据vCPU和内存需求推荐AWS实例类型",
+            "recommend_azure_instances：根据vCPU和内存需求推荐Azure实例类型",
+            "map_aws_to_azure_services：建立AWS和Azure服务的映射关系",
+            "map_regions：将地理位置映射到AWS和Azure区域代码",
+            "compare_pricing_across_clouds：对比AWS和Azure的价格差异",
+            "calculate_annual_cost：计算年度总成本",
+            "generate_excel_report：生成包含三个Sheet的Excel报告",
+            "format_pricing_data：格式化价格数据为易读格式"
+          ]
+        },
+        "knowledge_domain": {
+          "primary_domains": [
+            "AWS服务和定价：EC2、EBS、S3、RDS、ElastiCache、OpenSearch、ELB、网络流量的服务特性、配置选项、定价模型",
+            "Azure服务和定价：Virtual Machines、Managed Disks、Blob Storage、Azure SQL Database、Azure Cache for Redis、Azure Cognitive Search、Application Gateway/Load Balancer、带宽的服务特性、配置选项、定价模型",
+            "云服务最佳实践：实例类型选择、环境配置、成本优化策略",
+            "API集成：AWS Pricing API和Azure Retail Prices API的调用方法、参数格式、响应结构",
+            "数据分析：价格对比、成本计算、差异分析",
+            "报告生成：Excel文件结构、格式化、样式、超链接"
+          ],
+          "expertise_level": "专家级：深入了解AWS和Azure的服务、定价、最佳实践，能够提供专业的推荐和优化建议",
+          "knowledge_sources": [
+            "AWS官方文档：https://docs.aws.amazon.com/",
+            "Azure官方文档：https://docs.microsoft.com/azure/",
+            "AWS Pricing API文档：https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/price-changes.html",
+            "Azure Retail Prices API文档：https://docs.microsoft.com/rest/api/cost-management/retail-prices/azure-retail-prices",
+            "云服务最佳实践白皮书",
+            "实例规格数据库（内置）",
+            "服务映射表（内置）",
+            "区域映射表（内置）"
+          ],
+          "update_frequency": "实时：价格数据通过API实时获取，确保最新和准确。服务映射表和区域映射表根据云平台更新定期维护。"
+        },
+        "interaction_patterns": {
+          "communication_style": "同步交互，支持流式响应。用户通过自然语言描述需求，Agent解析需求、调用工具、分析数据、生成报告，最终返回报告路径和摘要信息。支持多轮对话，用户可以补充信息或修改需求。",
+          "conversation_flow": "1. 接收用户输入 → 2. 解析自然语言需求 → 3. 验证信息完整性（如不完整则请求补充） → 4. 服务和区域映射 → 5. 并发查询AWS和Azure价格 → 6. 智能推荐实例类型 → 7. 价格对比分析 → 8. 生成Excel报告 → 9. 返回报告路径和摘要 → 10. 支持后续修改需求",
+          "error_responses": [
+            "API调用失败：'抱歉，获取[服务名称]的价格时遇到问题：[错误信息]。我将在报告中标注此项，并继续处理其他服务。'",
+            "数据解析错误：'抱歉，解析[服务名称]的价格数据时出错。原始数据格式可能不符合预期。我将记录此问题并在报告中标注。'",
+            "用户输入不完整：'您的需求描述中缺少[关键信息]。例如，您需要多少vCPU和内存？或者您可以提供更多细节，我将尽力推测合理的配置。'",
+            "无法找到匹配的实例：'抱歉，根据您提供的需求（[vCPU]核[内存]GB），我无法找到完全匹配的实例类型。最接近的选项是[实例类型]（[vCPU]核[内存]GB），您是否接受此配置？'",
+            "网络超时：'抱歉，调用[API名称]时网络超时。我已尝试重试3次，但仍然失败。请检查网络连接或稍后重试。'",
+            "报告生成失败：'抱歉，生成Excel报告时遇到问题：[错误信息]。请检查文件路径和权限，或尝试更换保存位置。'"
+          ]
+        },
+        "constraints": [
+          "必须通过AWS Pricing API获取AWS价格，不得使用硬编码或模拟数据",
+          "必须通过Azure Retail Prices API获取Azure价格，不得使用硬编码或模拟数据",
+          "AWS Pricing API需要有效的AWS凭证和pricing:GetProducts权限",
+          "单次查询的总响应时间应在2分钟内完成",
+          "生成的报告必须为Excel格式（.xlsx）",
+          "报告内容必须使用中文输出（技术术语除外）",
+          "价格数据必须使用USD货币单位，保留2位小数",
+          "生产环境必须避免推荐突发性能实例（AWS t系列、Azure B系列），除非用户明确说明为测试或开发环境",
+          "优先推荐当前代实例类型",
+          "所有API调用必须使用HTTPS协议",
+          "AWS凭证不得硬编码在代码中，必须通过环境变量或配置文件管理",
+          "遵循BedrockAgentCoreApp部署规范，实现async handler函数，支持流式响应"
+        ],
+        "evaluation_criteria": [
+          "需求解析准确性：能够从自然语言输入中准确提取服务类型、配置参数、数量、地理位置、环境类型等信息，准确率应达到90%以上",
+          "价格数据准确性：获取的价格数据与API返回的数据一致，误差在可接受范围内（如四舍五入误差）",
+          "推荐合理性：推荐的实例类型符合用户需求和最佳实践，推荐理由清晰透明",
+          "报告质量：生成的Excel报告格式规范、数据准确、易于阅读，包含所有必需的信息和链接",
+          "响应速度：单次查询的总响应时间在2分钟内完成",
+          "错误处理：API调用失败或数据解析错误时，能够优雅地处理并在报告中明确标注，不影响其他服务的查询",
+          "用户体验：提供友好的错误提示、清晰的进度反馈、支持多轮对话",
+          "系统稳定性：连续运行100次查询后无内存泄漏或性能下降",
+          "安全性：AWS凭证管理符合最佳实践，不在日志中记录敏感信息",
+          "可观测性：记录完整的日志信息，便于调试和监控"
+        ],
+        "model_requirements": {
+          "model_name": "global.anthropic.claude-sonnet-4-5-20250929-v1:0",
+          "minimum_capabilities": [
+            "自然语言理解：能够理解中文和英文的云服务需求描述，提取结构化信息",
+            "工具调用：能够根据需求调用合适的工具函数，传递正确的参数",
+            "推理和决策：能够应用最佳实践规则，进行配置推荐和优化建议",
+            "数据分析：能够对比价格数据，计算成本差异，生成分析报告",
+            "多轮对话：能够维护上下文，支持补充信息和修改需求",
+            "错误处理：能够识别错误情况，生成友好的错误提示和解决建议"
+          ],
+          "rationale": "Claude Sonnet 4.5是Anthropic最新的高性能模型，在自然语言理解、推理、工具调用等任务上表现优秀。支持长上下文（200K tokens），能够处理复杂的多服务报价需求。推理速度快，延迟低，满足2分钟内完成查询的性能要求。支持流式响应，提升用户体验。价格合理，性价比高。"
+        },
+        "memory_configuration": {
+          "memory_type": "会话记忆（Session Memory）",
+          "retention_policy": "保留当前会话的所有对话历史和中间结果，会话结束后清除。支持多轮对话，用户可以补充信息或修改需求。",
+          "retrieval_strategy": "线性检索：按时间顺序检索对话历史，提取相关上下文。关键信息提取：从对话历史中提取用户需求、配置参数、中间结果等关键信息，用于后续处理。"
+        }
+      }
+    ],
+    "agent_relationships": [],
+    "system_integration": {
+      "entry_point": "BedrockAgentCoreApp的async handler函数，接收payload参数（包含prompt、user_id、session_id、media），通过agent.stream_async()获取流式响应，yield产生文本片段。支持三种运行模式：Docker容器模式（AgentCore部署）、命令行测试模式、交互式对话模式。",
+      "exit_points": [
+        "流式响应：实时输出处理进度和结果",
+        "Excel报告文件：保存到.cache/multi_cloud_pricing_comparison_agent/reports/目录",
+        "摘要信息：包含报告路径、总成本对比、价格差异、推荐建议",
+        "错误信息：如果发生错误，返回详细的错误描述和解决建议"
+      ],
+      "external_interfaces": [
+        "AWS Pricing API：通过boto3 pricing client调用，端点为https://api.pricing.us-east-1.amazonaws.com",
+        "Azure Retail Prices API：通过requests库调用，端点为https://prices.azure.com/api/retail/prices",
+        "AWS Bedrock：LLM推理引擎，模型为global.anthropic.claude-sonnet-4-5-20250929-v1:0",
+        "OTEL端点：遥测数据收集，默认端点为http://localhost:4318",
+        "文件系统：读取配置文件、写入Excel报告、记录日志"
+      ]
+    }
+  }
+}

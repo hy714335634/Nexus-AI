@@ -1,0 +1,154 @@
+{
+  "project_name": "multi_cloud_pricing_comparison_agent",
+  "validation_timestamp": "2026-01-14T09:34:21.416973+00:00",
+  "overall_status": "success",
+  "agent_scripts": [
+    {
+      "script_path": "agents/generated_agents/multi_cloud_pricing_comparison_agent/multi_cloud_pricing_comparison_agent.py",
+      "syntax_valid": true,
+      "dependencies": [
+        "os",
+        "json",
+        "argparse",
+        "typing",
+        "nexus_utils.agent_factory",
+        "bedrock_agentcore.runtime",
+        "bedrock_agentcore.runtime.context",
+        "strands.telemetry",
+        "nexus_utils.config_loader"
+      ],
+      "execution_params": [],
+      "argparse_params": [
+        {
+          "name": "-r",
+          "type": "str",
+          "description": "自然语言描述的云服务需求",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "-f",
+          "type": "str",
+          "description": "包含需求描述的文件路径",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "--aws-region",
+          "type": "str",
+          "description": "AWS区域代码，默认为us-east-1",
+          "required": false,
+          "default": "us-east-1",
+          "action": null
+        },
+        {
+          "name": "--azure-region",
+          "type": "str",
+          "description": "Azure区域代码，默认为eastus",
+          "required": false,
+          "default": "eastus",
+          "action": null
+        },
+        {
+          "name": "-it",
+          "type": "str",
+          "description": "启动交互式多轮对话模式",
+          "required": false,
+          "default": null,
+          "action": "store_true"
+        },
+        {
+          "name": "-o",
+          "type": "str",
+          "description": "指定Excel报告输出路径",
+          "required": false,
+          "default": null,
+          "action": null
+        }
+      ],
+      "error_message": ""
+    }
+  ],
+  "prompt_files": [
+    {
+      "prompt_path": "generated_agents_prompts/multi_cloud_pricing_comparison_agent/multi_cloud_pricing_comparison_agent_prompt.yaml",
+      "tool_count": 24,
+      "valid": true,
+      "error_message": "",
+      "metadata": {
+        "tags": [
+          "cloud_cost_optimization",
+          "multi_cloud",
+          "aws",
+          "azure",
+          "pricing_comparison",
+          "excel_reporting",
+          "configuration_recommendation",
+          "cost_analysis"
+        ],
+        "supported_models": [
+          "global.anthropic.claude-sonnet-4-5-20250929-v1:0"
+        ],
+        "tools_dependencies": [
+          "generated_tools/multi_cloud_pricing_comparison_agent/aws_pricing_tools/get_aws_ebs_pricing",
+          "generated_tools/multi_cloud_pricing_comparison_agent/aws_pricing_tools/get_aws_ec2_pricing",
+          "generated_tools/multi_cloud_pricing_comparison_agent/aws_pricing_tools/get_aws_elasticache_pricing",
+          "generated_tools/multi_cloud_pricing_comparison_agent/aws_pricing_tools/get_aws_elb_pricing",
+          "generated_tools/multi_cloud_pricing_comparison_agent/aws_pricing_tools/get_aws_network_pricing",
+          "generated_tools/multi_cloud_pricing_comparison_agent/aws_pricing_tools/get_aws_opensearch_pricing",
+          "generated_tools/multi_cloud_pricing_comparison_agent/aws_pricing_tools/get_aws_rds_pricing",
+          "generated_tools/multi_cloud_pricing_comparison_agent/aws_pricing_tools/get_aws_s3_pricing",
+          "generated_tools/multi_cloud_pricing_comparison_agent/aws_pricing_tools/recommend_aws_instances",
+          "generated_tools/multi_cloud_pricing_comparison_agent/azure_pricing_tools/get_azure_bandwidth_pricing",
+          "generated_tools/multi_cloud_pricing_comparison_agent/azure_pricing_tools/get_azure_blob_pricing",
+          "generated_tools/multi_cloud_pricing_comparison_agent/azure_pricing_tools/get_azure_disk_pricing",
+          "generated_tools/multi_cloud_pricing_comparison_agent/azure_pricing_tools/get_azure_gateway_pricing",
+          "generated_tools/multi_cloud_pricing_comparison_agent/azure_pricing_tools/get_azure_redis_pricing",
+          "generated_tools/multi_cloud_pricing_comparison_agent/azure_pricing_tools/get_azure_search_pricing",
+          "generated_tools/multi_cloud_pricing_comparison_agent/azure_pricing_tools/get_azure_sql_pricing",
+          "generated_tools/multi_cloud_pricing_comparison_agent/azure_pricing_tools/get_azure_vm_pricing",
+          "generated_tools/multi_cloud_pricing_comparison_agent/azure_pricing_tools/recommend_azure_instances",
+          "generated_tools/multi_cloud_pricing_comparison_agent/comparison_tools/calculate_annual_cost",
+          "generated_tools/multi_cloud_pricing_comparison_agent/comparison_tools/compare_pricing_across_clouds",
+          "generated_tools/multi_cloud_pricing_comparison_agent/comparison_tools/format_pricing_data",
+          "generated_tools/multi_cloud_pricing_comparison_agent/comparison_tools/generate_excel_report",
+          "generated_tools/multi_cloud_pricing_comparison_agent/comparison_tools/map_aws_to_azure_services",
+          "generated_tools/multi_cloud_pricing_comparison_agent/comparison_tools/map_regions"
+        ]
+      },
+      "agent_info": {
+        "name": "multi_cloud_pricing_comparison_agent",
+        "description": "智能多云报价对比专家 - 理解自然语言云服务需求，通过AWS Pricing API和Azure Retail Prices API获取真实价格数据，进行智能配置推荐和价格对比分析，生成包含三个Sheet的Excel报告",
+        "category": "cloud_cost_optimization"
+      }
+    }
+  ],
+  "generated_tools": [
+    {
+      "tool_path": "generated_tools/multi_cloud_pricing_comparison_agent/comparison_tools.py",
+      "syntax_valid": true,
+      "error_message": ""
+    },
+    {
+      "tool_path": "generated_tools/multi_cloud_pricing_comparison_agent/aws_pricing_tools.py",
+      "syntax_valid": true,
+      "error_message": ""
+    },
+    {
+      "tool_path": "generated_tools/multi_cloud_pricing_comparison_agent/azure_pricing_tools.py",
+      "syntax_valid": true,
+      "error_message": ""
+    }
+  ],
+  "total_tools": 24,
+  "summary": {
+    "agent_scripts_count": 1,
+    "prompt_files_count": 1,
+    "generated_tool_files_count": 3,
+    "all_scripts_valid": true,
+    "all_tools_valid": true,
+    "all_prompts_valid": true
+  }
+}

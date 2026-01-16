@@ -1,0 +1,860 @@
+{
+  "tool_development": {
+    "development_overview": {
+      "project_name": "lifescience_news_collector",
+      "version": "1.0",
+      "date": "2026-01-07",
+      "development_scope": "为生命科学新闻采集Agent开发完整的工具集，包括数据采集、内容处理、存储管理和通讯生成四大模块，共42个工具函数",
+      "design_principles": [
+        "模块化设计：按功能域划分为4个独立工具模块，职责清晰",
+        "异步优先：核心采集和处理函数使用asyncio实现高性能并发",
+        "错误容错：每个工具包含完整的异常处理和降级策略",
+        "标准化输出：所有工具返回统一的JSON格式，便于解析和处理",
+        "AWS集成：深度集成S3、DynamoDB、SES等AWS服务，支持真实调用",
+        "配置驱动：支持灵活的参数配置和环境变量覆盖",
+        "类型安全：使用完整的类型注解提高代码质量"
+      ],
+      "key_decisions": [
+        "使用Playwright处理动态网页而非仅BeautifulSoup，确保JavaScript渲染内容的完整采集",
+        "实现SerpAPI集成用于Google搜索，扩展数据源覆盖范围",
+        "采用aiohttp进行异步HTTP请求，支持高并发采集",
+        "集成AWS S3、DynamoDB和SES，实现云端存储和邮件发送",
+        "使用Jinja2模板引擎生成HTML通讯，提供灵活的样式定制",
+        "实现本地缓存机制，支持数据缓存和TTL管理",
+        "提供CSV和JSON导出功能，支持多种数据格式输出"
+      ]
+    },
+    "tools": [
+      {
+        "tool_name": "serpapi_search",
+        "description": "使用SerpAPI进行Google搜索，获取生命科学相关新闻",
+        "function_signature": "serpapi_search(query: str, api_key: str, num_results: int = 10, time_range: str = 'w', language: str = 'zh-cn', country: str = 'cn') -> str",
+        "parameters": [
+          {"name": "query", "type": "str", "description": "搜索查询词", "required": true},
+          {"name": "api_key", "type": "str", "description": "SerpAPI API密钥", "required": true},
+          {"name": "num_results", "type": "int", "description": "返回结果数量", "required": false},
+          {"name": "time_range", "type": "str", "description": "时间范围（d/w/m/y）", "required": false},
+          {"name": "language", "type": "str", "description": "搜索语言", "required": false},
+          {"name": "country", "type": "str", "description": "搜索国家", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的搜索结果，包含标题、链接、摘要、日期",
+        "dependencies": ["requests", "strands"],
+        "implementation_notes": ["使用requests同步调用SerpAPI", "支持自定义搜索参数", "包含超时和错误处理"],
+        "error_handling": ["请求超时返回错误信息", "API调用失败返回详细错误", "网络异常捕获并记录"],
+        "usage_examples": ["serpapi_search('生命科学新闻', 'YOUR_API_KEY', num_results=20, time_range='w')"]
+      },
+      {
+        "tool_name": "fetch_webpage_content",
+        "description": "异步获取静态网页内容",
+        "function_signature": "async fetch_webpage_content(url: str, timeout: int = 30, headers: Optional[Dict[str, str]] = None) -> str",
+        "parameters": [
+          {"name": "url", "type": "str", "description": "网页URL", "required": true},
+          {"name": "timeout", "type": "int", "description": "超时时间（秒）", "required": false},
+          {"name": "headers", "type": "Optional[Dict[str, str]]", "description": "自定义请求头", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的网页内容，包含HTML、状态码、内容长度",
+        "dependencies": ["aiohttp", "asyncio", "strands"],
+        "implementation_notes": ["使用aiohttp异步请求", "支持自定义User-Agent", "自动处理gzip压缩"],
+        "error_handling": ["超时返回错误", "HTTP错误捕获", "SSL验证可选关闭"],
+        "usage_examples": ["await fetch_webpage_content('https://example.com')"]
+      },
+      {
+        "tool_name": "fetch_dynamic_webpage",
+        "description": "使用Playwright获取动态网页内容",
+        "function_signature": "fetch_dynamic_webpage(url: str, wait_for_selector: Optional[str] = None, scroll_to_bottom: bool = False, timeout: int = 30000, wait_time: int = 2000) -> str",
+        "parameters": [
+          {"name": "url", "type": "str", "description": "网页URL", "required": true},
+          {"name": "wait_for_selector", "type": "Optional[str]", "description": "等待特定CSS选择器", "required": false},
+          {"name": "scroll_to_bottom", "type": "bool", "description": "是否滚动到底部", "required": false},
+          {"name": "timeout", "type": "int", "description": "超时时间（毫秒）", "required": false},
+          {"name": "wait_time", "type": "int", "description": "页面加载后等待时间（毫秒）", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的网页内容，包含渲染后的HTML",
+        "dependencies": ["playwright", "strands"],
+        "implementation_notes": ["启动无头浏览器", "支持JavaScript渲染", "支持懒加载内容采集"],
+        "error_handling": ["浏览器启动失败处理", "页面加载超时处理", "选择器等待失败处理"],
+        "usage_examples": ["fetch_dynamic_webpage('https://example.com', wait_for_selector='.article-content')"]
+      },
+      {
+        "tool_name": "parse_article_content",
+        "description": "从HTML中解析文章内容",
+        "function_signature": "parse_article_content(html: str, url: str, title_selectors: List[str], content_selectors: List[str], date_selectors: Optional[List[str]] = None, link_selectors: Optional[List[str]] = None) -> str",
+        "parameters": [
+          {"name": "html", "type": "str", "description": "HTML内容", "required": true},
+          {"name": "url", "type": "str", "description": "网页URL", "required": true},
+          {"name": "title_selectors", "type": "List[str]", "description": "标题CSS选择器列表", "required": true},
+          {"name": "content_selectors", "type": "List[str]", "description": "正文CSS选择器列表", "required": true},
+          {"name": "date_selectors", "type": "Optional[List[str]]", "description": "日期CSS选择器列表", "required": false},
+          {"name": "link_selectors", "type": "Optional[List[str]]", "description": "链接CSS选择器列表", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的解析结果，包含标题、正文、日期、链接",
+        "dependencies": ["beautifulsoup4", "lxml", "strands"],
+        "implementation_notes": ["支持多选择器优先级匹配", "自动清理HTML标签", "相对URL转绝对URL"],
+        "error_handling": ["选择器匹配失败处理", "HTML解析异常捕获"],
+        "usage_examples": ["parse_article_content(html, url, ['.title', 'h1'], ['.content', '.article-body'])"]
+      },
+      {
+        "tool_name": "extract_article_list",
+        "description": "从列表页提取文章列表",
+        "function_signature": "extract_article_list(html: str, url: str, article_container_selector: str, title_selector: str, link_selector: str, date_selector: Optional[str] = None, snippet_selector: Optional[str] = None, max_articles: int = 50) -> str",
+        "parameters": [
+          {"name": "html", "type": "str", "description": "HTML内容", "required": true},
+          {"name": "url", "type": "str", "description": "列表页URL", "required": true},
+          {"name": "article_container_selector", "type": "str", "description": "文章容器CSS选择器", "required": true},
+          {"name": "title_selector", "type": "str", "description": "标题CSS选择器", "required": true},
+          {"name": "link_selector", "type": "str", "description": "链接CSS选择器", "required": true},
+          {"name": "date_selector", "type": "Optional[str]", "description": "日期CSS选择器", "required": false},
+          {"name": "snippet_selector", "type": "Optional[str]", "description": "摘要CSS选择器", "required": false},
+          {"name": "max_articles", "type": "int", "description": "最大提取文章数", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的文章列表",
+        "dependencies": ["beautifulsoup4", "lxml", "strands"],
+        "implementation_notes": ["批量提取文章信息", "支持限制提取数量", "自动处理相对链接"],
+        "error_handling": ["容器未找到处理", "部分字段缺失容错"],
+        "usage_examples": ["extract_article_list(html, url, '.article-item', '.title', 'a', max_articles=20)"]
+      },
+      {
+        "tool_name": "deduplicate_urls",
+        "description": "URL去重工具",
+        "function_signature": "deduplicate_urls(urls: List[str], normalize: bool = True) -> str",
+        "parameters": [
+          {"name": "urls", "type": "List[str]", "description": "URL列表", "required": true},
+          {"name": "normalize", "type": "bool", "description": "是否规范化URL", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的去重结果，包含唯一URL和重复URL",
+        "dependencies": ["strands"],
+        "implementation_notes": ["支持URL规范化", "移除查询参数和片段", "使用集合去重"],
+        "error_handling": ["URL解析异常处理"],
+        "usage_examples": ["deduplicate_urls(['http://a.com', 'http://a.com?x=1'])"]
+      },
+      {
+        "tool_name": "filter_urls_by_domain",
+        "description": "根据域名过滤URL",
+        "function_signature": "filter_urls_by_domain(urls: List[str], allowed_domains: Optional[List[str]] = None, blocked_domains: Optional[List[str]] = None) -> str",
+        "parameters": [
+          {"name": "urls", "type": "List[str]", "description": "URL列表", "required": true},
+          {"name": "allowed_domains", "type": "Optional[List[str]]", "description": "允许的域名列表", "required": false},
+          {"name": "blocked_domains", "type": "Optional[List[str]]", "description": "禁止的域名列表", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的过滤结果",
+        "dependencies": ["strands"],
+        "implementation_notes": ["支持白名单和黑名单", "域名部分匹配", "记录移除原因"],
+        "error_handling": ["URL解析失败处理"],
+        "usage_examples": ["filter_urls_by_domain(urls, allowed_domains=['example.com'])"]
+      },
+      {
+        "tool_name": "batch_fetch_webpages",
+        "description": "批量并发采集网页",
+        "function_signature": "async batch_fetch_webpages(urls: List[str], max_concurrent: int = 5, timeout: int = 30, use_playwright: bool = False, retry_count: int = 2) -> str",
+        "parameters": [
+          {"name": "urls", "type": "List[str]", "description": "URL列表", "required": true},
+          {"name": "max_concurrent", "type": "int", "description": "最大并发数", "required": false},
+          {"name": "timeout", "type": "int", "description": "超时时间（秒）", "required": false},
+          {"name": "use_playwright", "type": "bool", "description": "是否使用Playwright", "required": false},
+          {"name": "retry_count", "type": "int", "description": "失败重试次数", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的批量采集结果",
+        "dependencies": ["asyncio", "aiohttp", "strands"],
+        "implementation_notes": ["使用Semaphore控制并发", "支持失败重试和指数退避", "分类成功和失败结果"],
+        "error_handling": ["单个URL失败不影响其他", "重试机制", "超时处理"],
+        "usage_examples": ["await batch_fetch_webpages(urls, max_concurrent=10)"]
+      },
+      {
+        "tool_name": "deep_crawl_website",
+        "description": "深度遍历网站，自动发现详情页",
+        "function_signature": "async deep_crawl_website(start_url: str, max_depth: int = 2, max_pages: int = 50, allowed_domains: Optional[List[str]] = None, article_patterns: Optional[List[str]] = None, timeout: int = 30) -> str",
+        "parameters": [
+          {"name": "start_url", "type": "str", "description": "起始URL", "required": true},
+          {"name": "max_depth", "type": "int", "description": "最大遍历深度", "required": false},
+          {"name": "max_pages", "type": "int", "description": "最大采集页面数", "required": false},
+          {"name": "allowed_domains", "type": "Optional[List[str]]", "description": "允许的域名列表", "required": false},
+          {"name": "article_patterns", "type": "Optional[List[str]]", "description": "文章URL模式（正则）", "required": false},
+          {"name": "timeout", "type": "int", "description": "超时时间（秒）", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的遍历结果，包含所有采集的页面",
+        "dependencies": ["asyncio", "aiohttp", "beautifulsoup4", "strands"],
+        "implementation_notes": ["广度优先遍历", "URL去重", "深度控制", "域名限制"],
+        "error_handling": ["单个页面失败继续遍历", "达到限制自动停止"],
+        "usage_examples": ["await deep_crawl_website('https://example.com', max_depth=2, max_pages=100)"]
+      },
+      {
+        "tool_name": "clean_article_text",
+        "description": "清洗文章文本",
+        "function_signature": "clean_article_text(text: str, remove_extra_whitespace: bool = True, remove_html_entities: bool = True, remove_special_chars: bool = False) -> str",
+        "parameters": [
+          {"name": "text", "type": "str", "description": "原始文本", "required": true},
+          {"name": "remove_extra_whitespace", "type": "bool", "description": "移除多余空格", "required": false},
+          {"name": "remove_html_entities", "type": "bool", "description": "移除HTML实体", "required": false},
+          {"name": "remove_special_chars", "type": "bool", "description": "移除特殊字符", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的清洗结果",
+        "dependencies": ["strands"],
+        "implementation_notes": ["正则表达式清洗", "HTML实体解码", "保留中英文和标点"],
+        "error_handling": ["文本处理异常捕获"],
+        "usage_examples": ["clean_article_text(text, remove_extra_whitespace=True)"]
+      },
+      {
+        "tool_name": "load_data_source_config",
+        "description": "加载数据源配置文件",
+        "function_signature": "load_data_source_config(config_path: str = 'config/lifescience_news_sources.yaml') -> str",
+        "parameters": [
+          {"name": "config_path", "type": "str", "description": "配置文件路径", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的配置内容",
+        "dependencies": ["pyyaml", "strands"],
+        "implementation_notes": ["YAML配置解析", "文件存在性检查"],
+        "error_handling": ["文件不存在处理", "YAML格式错误处理"],
+        "usage_examples": ["load_data_source_config('config/sources.yaml')"]
+      },
+      {
+        "tool_name": "deduplicate_articles",
+        "description": "文章去重工具",
+        "function_signature": "deduplicate_articles(articles: List[Dict[str, Any]], similarity_threshold: float = 0.85, method: str = 'title_hash') -> str",
+        "parameters": [
+          {"name": "articles", "type": "List[Dict[str, Any]]", "description": "文章列表", "required": true},
+          {"name": "similarity_threshold", "type": "float", "description": "相似度阈值", "required": false},
+          {"name": "method", "type": "str", "description": "去重方法（title_hash/content_hash/fuzzy）", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的去重结果，包含唯一文章和重复文章",
+        "dependencies": ["hashlib", "strands"],
+        "implementation_notes": ["支持三种去重方法", "MD5哈希计算", "Jaccard相似度计算"],
+        "error_handling": ["方法不支持处理", "数据格式错误处理"],
+        "usage_examples": ["deduplicate_articles(articles, method='title_hash')"]
+      },
+      {
+        "tool_name": "generate_article_summary",
+        "description": "生成文章摘要（基于规则）",
+        "function_signature": "generate_article_summary(content: str, max_sentences: int = 3, max_length: int = 300) -> str",
+        "parameters": [
+          {"name": "content", "type": "str", "description": "文章内容", "required": true},
+          {"name": "max_sentences", "type": "int", "description": "最大句子数", "required": false},
+          {"name": "max_length", "type": "int", "description": "最大字符数", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的摘要结果",
+        "dependencies": ["strands"],
+        "implementation_notes": ["句子分割", "选择前N句", "长度截断"],
+        "error_handling": ["内容为空处理", "分句失败处理"],
+        "usage_examples": ["generate_article_summary(content, max_sentences=3)"]
+      },
+      {
+        "tool_name": "extract_keywords",
+        "description": "提取关键词（基于词频）",
+        "function_signature": "extract_keywords(text: str, top_k: int = 10, min_word_length: int = 2, stopwords: Optional[List[str]] = None) -> str",
+        "parameters": [
+          {"name": "text", "type": "str", "description": "文本内容", "required": true},
+          {"name": "top_k", "type": "int", "description": "返回前K个关键词", "required": false},
+          {"name": "min_word_length", "type": "int", "description": "最小词长", "required": false},
+          {"name": "stopwords", "type": "Optional[List[str]]", "description": "停用词列表", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的关键词列表，包含词频",
+        "dependencies": ["strands"],
+        "implementation_notes": ["中文分词（简化版）", "词频统计", "停用词过滤"],
+        "error_handling": ["文本为空处理"],
+        "usage_examples": ["extract_keywords(text, top_k=10)"]
+      },
+      {
+        "tool_name": "classify_article",
+        "description": "基于关键词的文章分类",
+        "function_signature": "classify_article(title: str, content: str, categories: Dict[str, List[str]]) -> str",
+        "parameters": [
+          {"name": "title", "type": "str", "description": "文章标题", "required": true},
+          {"name": "content", "type": "str", "description": "文章内容", "required": true},
+          {"name": "categories", "type": "Dict[str, List[str]]", "description": "分类关键词字典", "required": true}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的分类结果，包含主类别和所有匹配",
+        "dependencies": ["strands"],
+        "implementation_notes": ["关键词匹配计分", "返回最佳匹配类别", "支持多类别匹配"],
+        "error_handling": ["无匹配返回未分类"],
+        "usage_examples": ["classify_article(title, content, {'政策': ['政策', '法规']})"]
+      },
+      {
+        "tool_name": "generate_article_tags",
+        "description": "生成文章标签",
+        "function_signature": "generate_article_tags(title: str, content: str, keywords: Optional[List[str]] = None, max_tags: int = 5, predefined_tags: Optional[List[str]] = None) -> str",
+        "parameters": [
+          {"name": "title", "type": "str", "description": "文章标题", "required": true},
+          {"name": "content", "type": "str", "description": "文章内容", "required": true},
+          {"name": "keywords", "type": "Optional[List[str]]", "description": "已提取的关键词", "required": false},
+          {"name": "max_tags", "type": "int", "description": "最大标签数", "required": false},
+          {"name": "predefined_tags", "type": "Optional[List[str]]", "description": "预定义标签列表", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的标签列表",
+        "dependencies": ["strands"],
+        "implementation_notes": ["组合关键词和预定义标签", "标签去重", "限制数量"],
+        "error_handling": ["标签生成失败处理"],
+        "usage_examples": ["generate_article_tags(title, content, max_tags=5)"]
+      },
+      {
+        "tool_name": "validate_article_data",
+        "description": "验证文章数据完整性",
+        "function_signature": "validate_article_data(article: Dict[str, Any], required_fields: Optional[List[str]] = None, min_content_length: int = 100, max_title_length: int = 200) -> str",
+        "parameters": [
+          {"name": "article", "type": "Dict[str, Any]", "description": "文章数据字典", "required": true},
+          {"name": "required_fields", "type": "Optional[List[str]]", "description": "必需字段列表", "required": false},
+          {"name": "min_content_length", "type": "int", "description": "最小内容长度", "required": false},
+          {"name": "max_title_length", "type": "int", "description": "最大标题长度", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的验证结果，包含错误和警告",
+        "dependencies": ["strands"],
+        "implementation_notes": ["字段存在性检查", "长度验证", "URL格式验证"],
+        "error_handling": ["验证失败返回详细错误"],
+        "usage_examples": ["validate_article_data(article, required_fields=['title', 'content'])"]
+      },
+      {
+        "tool_name": "normalize_article_data",
+        "description": "规范化文章数据格式",
+        "function_signature": "normalize_article_data(article: Dict[str, Any], add_id: bool = True, add_timestamp: bool = True, clean_content: bool = True) -> str",
+        "parameters": [
+          {"name": "article", "type": "Dict[str, Any]", "description": "原始文章数据", "required": true},
+          {"name": "add_id", "type": "bool", "description": "是否添加唯一ID", "required": false},
+          {"name": "add_timestamp", "type": "bool", "description": "是否添加时间戳", "required": false},
+          {"name": "clean_content", "type": "bool", "description": "是否清洗内容", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的规范化结果",
+        "dependencies": ["hashlib", "strands"],
+        "implementation_notes": ["生成MD5 ID", "添加处理时间", "清洗文本", "字段名规范化"],
+        "error_handling": ["数据处理异常捕获"],
+        "usage_examples": ["normalize_article_data(article, add_id=True)"]
+      },
+      {
+        "tool_name": "batch_process_articles",
+        "description": "批量处理文章数据",
+        "function_signature": "batch_process_articles(articles: List[Dict[str, Any]], operations: List[str], config: Optional[Dict[str, Any]] = None) -> str",
+        "parameters": [
+          {"name": "articles", "type": "List[Dict[str, Any]]", "description": "文章列表", "required": true},
+          {"name": "operations", "type": "List[str]", "description": "操作列表（deduplicate/summarize/extract_keywords/classify/generate_tags/validate/normalize）", "required": true},
+          {"name": "config", "type": "Optional[Dict[str, Any]]", "description": "操作配置参数", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的批量处理结果",
+        "dependencies": ["strands"],
+        "implementation_notes": ["支持多种操作组合", "按顺序执行操作", "保留中间结果"],
+        "error_handling": ["单个操作失败不影响其他"],
+        "usage_examples": ["batch_process_articles(articles, ['deduplicate', 'classify'])"]
+      },
+      {
+        "tool_name": "upload_to_s3",
+        "description": "上传内容到AWS S3",
+        "function_signature": "upload_to_s3(content: str, bucket_name: str, object_key: str, content_type: str = 'application/json', metadata: Optional[Dict[str, str]] = None, region: str = 'us-east-1') -> str",
+        "parameters": [
+          {"name": "content", "type": "str", "description": "要上传的内容", "required": true},
+          {"name": "bucket_name", "type": "str", "description": "S3存储桶名称", "required": true},
+          {"name": "object_key", "type": "str", "description": "对象键（文件路径）", "required": true},
+          {"name": "content_type", "type": "str", "description": "内容类型", "required": false},
+          {"name": "metadata", "type": "Optional[Dict[str, str]]", "description": "对象元数据", "required": false},
+          {"name": "region", "type": "str", "description": "AWS区域", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的上传结果，包含S3 URL",
+        "dependencies": ["boto3", "botocore", "strands"],
+        "implementation_notes": ["使用boto3 S3客户端", "支持自定义元数据", "UTF-8编码"],
+        "error_handling": ["ClientError捕获", "权限错误处理", "网络异常处理"],
+        "usage_examples": ["upload_to_s3(content, 'my-bucket', 'reports/2026/01/report.html')"]
+      },
+      {
+        "tool_name": "download_from_s3",
+        "description": "从AWS S3下载内容",
+        "function_signature": "download_from_s3(bucket_name: str, object_key: str, region: str = 'us-east-1') -> str",
+        "parameters": [
+          {"name": "bucket_name", "type": "str", "description": "S3存储桶名称", "required": true},
+          {"name": "object_key", "type": "str", "description": "对象键（文件路径）", "required": true},
+          {"name": "region", "type": "str", "description": "AWS区域", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的下载结果，包含内容和元数据",
+        "dependencies": ["boto3", "botocore", "strands"],
+        "implementation_notes": ["使用boto3 S3客户端", "UTF-8解码", "返回最后修改时间"],
+        "error_handling": ["对象不存在处理", "权限错误处理"],
+        "usage_examples": ["download_from_s3('my-bucket', 'reports/2026/01/report.html')"]
+      },
+      {
+        "tool_name": "list_s3_objects",
+        "description": "列出S3存储桶中的对象",
+        "function_signature": "list_s3_objects(bucket_name: str, prefix: str = '', max_keys: int = 1000, region: str = 'us-east-1') -> str",
+        "parameters": [
+          {"name": "bucket_name", "type": "str", "description": "S3存储桶名称", "required": true},
+          {"name": "prefix", "type": "str", "description": "对象键前缀（过滤）", "required": false},
+          {"name": "max_keys", "type": "int", "description": "最大返回对象数", "required": false},
+          {"name": "region", "type": "str", "description": "AWS区域", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的对象列表",
+        "dependencies": ["boto3", "botocore", "strands"],
+        "implementation_notes": ["使用list_objects_v2", "支持前缀过滤", "返回对象元数据"],
+        "error_handling": ["存储桶不存在处理", "权限错误处理"],
+        "usage_examples": ["list_s3_objects('my-bucket', prefix='reports/2026/')"]
+      },
+      {
+        "tool_name": "put_item_to_dynamodb",
+        "description": "向DynamoDB表插入项目",
+        "function_signature": "put_item_to_dynamodb(table_name: str, item: Dict[str, Any], region: str = 'us-east-1') -> str",
+        "parameters": [
+          {"name": "table_name", "type": "str", "description": "DynamoDB表名", "required": true},
+          {"name": "item", "type": "Dict[str, Any]", "description": "要插入的项目数据", "required": true},
+          {"name": "region", "type": "str", "description": "AWS区域", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的插入结果",
+        "dependencies": ["boto3", "botocore", "strands"],
+        "implementation_notes": ["使用boto3 DynamoDB资源", "自动添加时间戳", "覆盖写入"],
+        "error_handling": ["表不存在处理", "数据格式错误处理"],
+        "usage_examples": ["put_item_to_dynamodb('articles', {'id': 'art-123', 'title': 'News'})"]
+      },
+      {
+        "tool_name": "get_item_from_dynamodb",
+        "description": "从DynamoDB表获取项目",
+        "function_signature": "get_item_from_dynamodb(table_name: str, key: Dict[str, Any], region: str = 'us-east-1') -> str",
+        "parameters": [
+          {"name": "table_name", "type": "str", "description": "DynamoDB表名", "required": true},
+          {"name": "key", "type": "Dict[str, Any]", "description": "主键字典", "required": true},
+          {"name": "region", "type": "str", "description": "AWS区域", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的获取结果",
+        "dependencies": ["boto3", "botocore", "strands"],
+        "implementation_notes": ["使用get_item操作", "返回完整项目数据"],
+        "error_handling": ["项目不存在处理", "主键格式错误处理"],
+        "usage_examples": ["get_item_from_dynamodb('articles', {'id': 'art-123'})"]
+      },
+      {
+        "tool_name": "query_dynamodb",
+        "description": "查询DynamoDB表",
+        "function_signature": "query_dynamodb(table_name: str, key_condition_expression: str, expression_attribute_values: Dict[str, Any], index_name: Optional[str] = None, limit: int = 100, region: str = 'us-east-1') -> str",
+        "parameters": [
+          {"name": "table_name", "type": "str", "description": "DynamoDB表名", "required": true},
+          {"name": "key_condition_expression", "type": "str", "description": "键条件表达式", "required": true},
+          {"name": "expression_attribute_values", "type": "Dict[str, Any]", "description": "表达式属性值", "required": true},
+          {"name": "index_name", "type": "Optional[str]", "description": "全局二级索引名称", "required": false},
+          {"name": "limit", "type": "int", "description": "返回结果数量限制", "required": false},
+          {"name": "region", "type": "str", "description": "AWS区域", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的查询结果",
+        "dependencies": ["boto3", "botocore", "strands"],
+        "implementation_notes": ["支持主表和索引查询", "支持表达式条件", "限制返回数量"],
+        "error_handling": ["查询表达式错误处理", "索引不存在处理"],
+        "usage_examples": ["query_dynamodb('articles', 'category = :cat', {':cat': '政策法规'})"]
+      },
+      {
+        "tool_name": "batch_write_to_dynamodb",
+        "description": "批量写入DynamoDB表",
+        "function_signature": "batch_write_to_dynamodb(table_name: str, items: List[Dict[str, Any]], region: str = 'us-east-1') -> str",
+        "parameters": [
+          {"name": "table_name", "type": "str", "description": "DynamoDB表名", "required": true},
+          {"name": "items", "type": "List[Dict[str, Any]]", "description": "要写入的项目列表", "required": true},
+          {"name": "region", "type": "str", "description": "AWS区域", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的批量写入结果",
+        "dependencies": ["boto3", "botocore", "strands"],
+        "implementation_notes": ["使用batch_writer", "自动分批（25项/批）", "记录失败项"],
+        "error_handling": ["部分失败处理", "完全失败处理"],
+        "usage_examples": ["batch_write_to_dynamodb('articles', article_list)"]
+      },
+      {
+        "tool_name": "save_to_local_file",
+        "description": "保存内容到本地文件",
+        "function_signature": "save_to_local_file(content: str, file_path: str, mode: str = 'w', encoding: str = 'utf-8', create_dirs: bool = True) -> str",
+        "parameters": [
+          {"name": "content", "type": "str", "description": "要保存的内容", "required": true},
+          {"name": "file_path", "type": "str", "description": "文件路径", "required": true},
+          {"name": "mode", "type": "str", "description": "文件打开模式（w/a）", "required": false},
+          {"name": "encoding", "type": "str", "description": "文件编码", "required": false},
+          {"name": "create_dirs", "type": "bool", "description": "是否自动创建目录", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的保存结果",
+        "dependencies": ["pathlib", "strands"],
+        "implementation_notes": ["自动创建父目录", "支持覆盖和追加", "返回文件大小"],
+        "error_handling": ["路径错误处理", "权限错误处理"],
+        "usage_examples": ["save_to_local_file(content, 'output/report.html')"]
+      },
+      {
+        "tool_name": "read_from_local_file",
+        "description": "从本地文件读取内容",
+        "function_signature": "read_from_local_file(file_path: str, encoding: str = 'utf-8') -> str",
+        "parameters": [
+          {"name": "file_path", "type": "str", "description": "文件路径", "required": true},
+          {"name": "encoding", "type": "str", "description": "文件编码", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的读取结果，包含内容和元数据",
+        "dependencies": ["pathlib", "strands"],
+        "implementation_notes": ["文件存在性检查", "返回修改时间和大小"],
+        "error_handling": ["文件不存在处理", "编码错误处理"],
+        "usage_examples": ["read_from_local_file('output/report.html')"]
+      },
+      {
+        "tool_name": "list_local_files",
+        "description": "列出本地目录中的文件",
+        "function_signature": "list_local_files(directory: str, pattern: str = '*', recursive: bool = False) -> str",
+        "parameters": [
+          {"name": "directory", "type": "str", "description": "目录路径", "required": true},
+          {"name": "pattern", "type": "str", "description": "文件名模式（支持通配符）", "required": false},
+          {"name": "recursive", "type": "bool", "description": "是否递归搜索子目录", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的文件列表",
+        "dependencies": ["pathlib", "strands"],
+        "implementation_notes": ["支持glob模式匹配", "支持递归搜索", "返回文件元数据"],
+        "error_handling": ["目录不存在处理"],
+        "usage_examples": ["list_local_files('output', pattern='*.html', recursive=True)"]
+      },
+      {
+        "tool_name": "save_to_cache",
+        "description": "保存数据到本地缓存",
+        "function_signature": "save_to_cache(cache_key: str, data: Any, cache_dir: str = '.cache/lifescience_news_collector', ttl_hours: Optional[int] = None) -> str",
+        "parameters": [
+          {"name": "cache_key", "type": "str", "description": "缓存键", "required": true},
+          {"name": "data", "type": "Any", "description": "要缓存的数据", "required": true},
+          {"name": "cache_dir", "type": "str", "description": "缓存目录", "required": false},
+          {"name": "ttl_hours", "type": "Optional[int]", "description": "缓存有效期（小时）", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的缓存结果",
+        "dependencies": ["pathlib", "hashlib", "strands"],
+        "implementation_notes": ["MD5文件名", "JSON序列化", "TTL元数据"],
+        "error_handling": ["目录创建失败处理", "写入错误处理"],
+        "usage_examples": ["save_to_cache('articles_2026-01-07', articles, ttl_hours=24)"]
+      },
+      {
+        "tool_name": "get_from_cache",
+        "description": "从本地缓存获取数据",
+        "function_signature": "get_from_cache(cache_key: str, cache_dir: str = '.cache/lifescience_news_collector') -> str",
+        "parameters": [
+          {"name": "cache_key", "type": "str", "description": "缓存键", "required": true},
+          {"name": "cache_dir", "type": "str", "description": "缓存目录", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的缓存数据",
+        "dependencies": ["pathlib", "hashlib", "strands"],
+        "implementation_notes": ["TTL检查", "JSON反序列化", "返回缓存时间"],
+        "error_handling": ["缓存不存在处理", "TTL过期处理"],
+        "usage_examples": ["get_from_cache('articles_2026-01-07')"]
+      },
+      {
+        "tool_name": "clear_cache",
+        "description": "清理本地缓存",
+        "function_signature": "clear_cache(cache_dir: str = '.cache/lifescience_news_collector', older_than_hours: Optional[int] = None) -> str",
+        "parameters": [
+          {"name": "cache_dir", "type": "str", "description": "缓存目录", "required": false},
+          {"name": "older_than_hours", "type": "Optional[int]", "description": "只清理超过指定小时数的缓存", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的清理结果",
+        "dependencies": ["pathlib", "strands"],
+        "implementation_notes": ["支持全部清理或按时间清理", "统计删除数量"],
+        "error_handling": ["目录不存在处理", "删除失败处理"],
+        "usage_examples": ["clear_cache(older_than_hours=48)"]
+      },
+      {
+        "tool_name": "export_to_json",
+        "description": "导出数据为JSON文件",
+        "function_signature": "export_to_json(data: Any, output_path: str, pretty: bool = True) -> str",
+        "parameters": [
+          {"name": "data", "type": "Any", "description": "要导出的数据", "required": true},
+          {"name": "output_path", "type": "str", "description": "输出文件路径", "required": true},
+          {"name": "pretty", "type": "bool", "description": "是否格式化输出", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的导出结果",
+        "dependencies": ["pathlib", "strands"],
+        "implementation_notes": ["JSON序列化", "自动创建目录", "支持格式化"],
+        "error_handling": ["数据序列化失败处理", "文件写入错误处理"],
+        "usage_examples": ["export_to_json(articles, 'output/articles.json', pretty=True)"]
+      },
+      {
+        "tool_name": "export_to_csv",
+        "description": "导出数据为CSV文件",
+        "function_signature": "export_to_csv(data: List[Dict[str, Any]], output_path: str, columns: Optional[List[str]] = None) -> str",
+        "parameters": [
+          {"name": "data", "type": "List[Dict[str, Any]]", "description": "要导出的数据列表", "required": true},
+          {"name": "output_path", "type": "str", "description": "输出文件路径", "required": true},
+          {"name": "columns", "type": "Optional[List[str]]", "description": "要导出的列名列表", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的导出结果",
+        "dependencies": ["csv", "pathlib", "strands"],
+        "implementation_notes": ["CSV写入", "UTF-8-SIG编码", "支持列选择"],
+        "error_handling": ["数据为空处理", "列不存在处理"],
+        "usage_examples": ["export_to_csv(articles, 'output/articles.csv', columns=['title', 'url'])"]
+      },
+      {
+        "tool_name": "render_newsletter_html",
+        "description": "渲染通讯HTML内容",
+        "function_signature": "render_newsletter_html(template_path: str, articles: List[Dict[str, Any]], newsletter_title: str, newsletter_date: str, header_image_url: Optional[str] = None, footer_text: Optional[str] = None) -> str",
+        "parameters": [
+          {"name": "template_path", "type": "str", "description": "HTML模板文件路径", "required": true},
+          {"name": "articles", "type": "List[Dict[str, Any]]", "description": "文章列表", "required": true},
+          {"name": "newsletter_title", "type": "str", "description": "通讯标题", "required": true},
+          {"name": "newsletter_date", "type": "str", "description": "通讯日期", "required": true},
+          {"name": "header_image_url", "type": "Optional[str]", "description": "头部图片URL", "required": false},
+          {"name": "footer_text", "type": "Optional[str]", "description": "页脚文本", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的渲染结果，包含HTML内容",
+        "dependencies": ["jinja2", "pathlib", "strands"],
+        "implementation_notes": ["Jinja2模板渲染", "支持自定义头部和页脚", "返回完整HTML"],
+        "error_handling": ["模板文件不存在处理", "渲染错误处理"],
+        "usage_examples": ["render_newsletter_html('templates/newsletter.html', articles, '周报', '2026-01-07')"]
+      },
+      {
+        "tool_name": "generate_simple_newsletter_html",
+        "description": "生成简单的通讯HTML（内置模板）",
+        "function_signature": "generate_simple_newsletter_html(articles: List[Dict[str, Any]], newsletter_title: str = '生命科学新闻周报', max_articles: int = 10) -> str",
+        "parameters": [
+          {"name": "articles", "type": "List[Dict[str, Any]]", "description": "文章列表", "required": true},
+          {"name": "newsletter_title", "type": "str", "description": "通讯标题", "required": false},
+          {"name": "max_articles", "type": "int", "description": "最大文章数", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的生成结果，包含HTML内容",
+        "dependencies": ["strands"],
+        "implementation_notes": ["内置HTML模板", "渐变色头部", "响应式设计", "文章卡片布局"],
+        "error_handling": ["文章列表为空处理"],
+        "usage_examples": ["generate_simple_newsletter_html(articles, max_articles=15)"]
+      },
+      {
+        "tool_name": "generate_email_subject",
+        "description": "生成邮件主题",
+        "function_signature": "generate_email_subject(newsletter_title: str, date: Optional[str] = None, article_count: Optional[int] = None) -> str",
+        "parameters": [
+          {"name": "newsletter_title", "type": "str", "description": "通讯标题", "required": true},
+          {"name": "date", "type": "Optional[str]", "description": "日期", "required": false},
+          {"name": "article_count", "type": "Optional[int]", "description": "文章数量", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的邮件主题",
+        "dependencies": ["strands"],
+        "implementation_notes": ["组合标题、日期和文章数", "自动生成当前日期"],
+        "error_handling": ["无"],
+        "usage_examples": ["generate_email_subject('生命科学新闻周报', article_count=10)"]
+      },
+      {
+        "tool_name": "generate_email_preview_text",
+        "description": "生成邮件预览文本",
+        "function_signature": "generate_email_preview_text(articles: List[Dict[str, Any]], max_length: int = 100) -> str",
+        "parameters": [
+          {"name": "articles", "type": "List[Dict[str, Any]]", "description": "文章列表", "required": true},
+          {"name": "max_length", "type": "int", "description": "最大长度", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的预览文本",
+        "dependencies": ["strands"],
+        "implementation_notes": ["使用前3篇文章标题", "长度截断"],
+        "error_handling": ["文章列表为空处理"],
+        "usage_examples": ["generate_email_preview_text(articles, max_length=100)"]
+      },
+      {
+        "tool_name": "optimize_image_for_email",
+        "description": "优化图片用于邮件",
+        "function_signature": "optimize_image_for_email(image_path: str, max_width: int = 600, quality: int = 85) -> str",
+        "parameters": [
+          {"name": "image_path", "type": "str", "description": "图片文件路径", "required": true},
+          {"name": "max_width", "type": "int", "description": "最大宽度（像素）", "required": false},
+          {"name": "quality", "type": "int", "description": "JPEG质量（1-100）", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的优化结果，包含base64数据",
+        "dependencies": ["PIL", "strands"],
+        "implementation_notes": ["图片压缩", "尺寸调整", "转换为JPEG", "base64编码"],
+        "error_handling": ["图片文件不存在处理", "格式不支持处理"],
+        "usage_examples": ["optimize_image_for_email('header.png', max_width=600)"]
+      },
+      {
+        "tool_name": "embed_image_in_html",
+        "description": "将base64图片嵌入HTML",
+        "function_signature": "embed_image_in_html(html_content: str, image_base64: str, image_alt: str = 'Newsletter Image') -> str",
+        "parameters": [
+          {"name": "html_content", "type": "str", "description": "HTML内容", "required": true},
+          {"name": "image_base64", "type": "str", "description": "base64编码的图片", "required": true},
+          {"name": "image_alt", "type": "str", "description": "图片alt属性", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的嵌入结果，包含更新后的HTML",
+        "dependencies": ["strands"],
+        "implementation_notes": ["data URI嵌入", "自动查找插入位置", "响应式样式"],
+        "error_handling": ["HTML格式错误处理"],
+        "usage_examples": ["embed_image_in_html(html, image_base64, 'Header Image')"]
+      },
+      {
+        "tool_name": "send_email_via_ses",
+        "description": "通过AWS SES发送邮件",
+        "function_signature": "send_email_via_ses(sender: str, recipients: List[str], subject: str, html_body: str, text_body: Optional[str] = None, reply_to: Optional[List[str]] = None, region: str = 'us-east-1') -> str",
+        "parameters": [
+          {"name": "sender", "type": "str", "description": "发件人邮箱", "required": true},
+          {"name": "recipients", "type": "List[str]", "description": "收件人邮箱列表", "required": true},
+          {"name": "subject", "type": "str", "description": "邮件主题", "required": true},
+          {"name": "html_body", "type": "str", "description": "HTML邮件正文", "required": true},
+          {"name": "text_body", "type": "Optional[str]", "description": "纯文本邮件正文", "required": false},
+          {"name": "reply_to", "type": "Optional[List[str]]", "description": "回复地址列表", "required": false},
+          {"name": "region", "type": "str", "description": "AWS区域", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的发送结果，包含消息ID",
+        "dependencies": ["boto3", "botocore", "strands"],
+        "implementation_notes": ["使用boto3 SES客户端", "支持HTML和纯文本", "UTF-8编码"],
+        "error_handling": ["发件人未验证处理", "收件人错误处理", "配额超限处理"],
+        "usage_examples": ["send_email_via_ses('sender@example.com', ['user@example.com'], 'Subject', html_body)"]
+      },
+      {
+        "tool_name": "send_bulk_email_via_ses",
+        "description": "通过AWS SES批量发送邮件",
+        "function_signature": "send_bulk_email_via_ses(sender: str, recipients: List[str], subject: str, html_body: str, text_body: Optional[str] = None, batch_size: int = 50, region: str = 'us-east-1') -> str",
+        "parameters": [
+          {"name": "sender", "type": "str", "description": "发件人邮箱", "required": true},
+          {"name": "recipients", "type": "List[str]", "description": "收件人邮箱列表", "required": true},
+          {"name": "subject", "type": "str", "description": "邮件主题", "required": true},
+          {"name": "html_body", "type": "str", "description": "HTML邮件正文", "required": true},
+          {"name": "text_body", "type": "Optional[str]", "description": "纯文本邮件正文", "required": false},
+          {"name": "batch_size", "type": "int", "description": "批次大小", "required": false},
+          {"name": "region", "type": "str", "description": "AWS区域", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的批量发送结果",
+        "dependencies": ["boto3", "botocore", "strands"],
+        "implementation_notes": ["分批发送", "记录失败收件人", "统计成功率"],
+        "error_handling": ["部分失败处理", "批次错误隔离"],
+        "usage_examples": ["send_bulk_email_via_ses('sender@example.com', recipients, 'Subject', html_body)"]
+      },
+      {
+        "tool_name": "save_newsletter_preview",
+        "description": "保存通讯预览文件",
+        "function_signature": "save_newsletter_preview(html_content: str, output_path: str = 'newsletter_preview.html') -> str",
+        "parameters": [
+          {"name": "html_content", "type": "str", "description": "HTML内容", "required": true},
+          {"name": "output_path", "type": "str", "description": "输出文件路径", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的保存结果",
+        "dependencies": ["pathlib", "strands"],
+        "implementation_notes": ["保存为HTML文件", "自动创建目录"],
+        "error_handling": ["路径错误处理", "写入失败处理"],
+        "usage_examples": ["save_newsletter_preview(html, 'previews/newsletter.html')"]
+      },
+      {
+        "tool_name": "send_test_email",
+        "description": "发送测试邮件",
+        "function_signature": "send_test_email(sender: str, test_recipient: str, html_content: str, subject: str = '【测试】生命科学新闻通讯', region: str = 'us-east-1') -> str",
+        "parameters": [
+          {"name": "sender", "type": "str", "description": "发件人邮箱", "required": true},
+          {"name": "test_recipient", "type": "str", "description": "测试收件人邮箱", "required": true},
+          {"name": "html_content", "type": "str", "description": "HTML内容", "required": true},
+          {"name": "subject", "type": "str", "description": "邮件主题", "required": false},
+          {"name": "region", "type": "str", "description": "AWS区域", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的发送结果",
+        "dependencies": ["boto3", "botocore", "strands"],
+        "implementation_notes": ["添加测试标记", "单收件人发送"],
+        "error_handling": ["发送失败处理"],
+        "usage_examples": ["send_test_email('sender@example.com', 'test@example.com', html)"]
+      },
+      {
+        "tool_name": "generate_newsletter_stats",
+        "description": "生成通讯统计信息",
+        "function_signature": "generate_newsletter_stats(articles: List[Dict[str, Any]]) -> str",
+        "parameters": [
+          {"name": "articles", "type": "List[Dict[str, Any]]", "description": "文章列表", "required": true}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的统计信息",
+        "dependencies": ["collections", "strands"],
+        "implementation_notes": ["分类统计", "标签统计", "来源统计", "内容长度统计"],
+        "error_handling": ["文章列表为空处理"],
+        "usage_examples": ["generate_newsletter_stats(articles)"]
+      }
+    ],
+    "code_quality": {
+      "code_standards": [
+        "遵循PEP 8代码风格规范",
+        "使用完整的类型注解（typing模块）",
+        "每个函数包含详细的docstring",
+        "使用@tool装饰器定义所有工具函数",
+        "统一的JSON格式返回值",
+        "异常处理覆盖所有可能的错误场景",
+        "使用asyncio进行异步操作",
+        "资源管理使用上下文管理器（with语句）"
+      ],
+      "testing_strategy": [
+        "单元测试：为每个工具函数编写独立的测试用例",
+        "集成测试：测试工具函数之间的协作",
+        "异常测试：验证错误处理的正确性",
+        "性能测试：验证并发采集的效率",
+        "AWS集成测试：使用真实AWS服务进行测试",
+        "边界测试：测试极端情况和边界条件"
+      ],
+      "performance_considerations": [
+        "使用asyncio和aiohttp实现高并发采集",
+        "Semaphore控制并发数，避免资源耗尽",
+        "实现指数退避重试策略",
+        "使用本地缓存减少重复请求",
+        "批量操作优化（DynamoDB batch_writer）",
+        "流式处理大数据集，避免内存溢出",
+        "Playwright按需启动，使用完毕立即关闭"
+      ],
+      "security_measures": [
+        "使用环境变量管理敏感信息（API密钥）",
+        "AWS IAM角色认证，避免硬编码密钥",
+        "输入验证，防止注入攻击",
+        "URL白名单和黑名单过滤",
+        "HTTPS通信，SSL证书验证",
+        "日志脱敏，避免泄露敏感信息",
+        "权限最小化原则（S3、DynamoDB、SES）"
+      ]
+    },
+    "integration_details": {
+      "aws_services": [
+        "AWS S3：用于存储HTML报告、导出文件和缓存数据",
+        "AWS DynamoDB：用于存储文章元数据和历史记录",
+        "AWS SES：用于发送邮件通讯",
+        "AWS IAM：用于权限管理和角色认证"
+      ],
+      "external_libraries": [
+        "strands：Strands框架核心库，提供@tool装饰器",
+        "boto3：AWS SDK for Python，用于AWS服务集成",
+        "botocore：boto3的底层库，用于异常处理",
+        "aiohttp：异步HTTP客户端，用于高并发网页采集",
+        "playwright：浏览器自动化库，用于动态网页渲染",
+        "beautifulsoup4：HTML解析库，用于内容提取",
+        "lxml：高性能XML/HTML解析器",
+        "jinja2：模板引擎，用于HTML通讯生成",
+        "requests：HTTP客户端，用于SerpAPI调用",
+        "pyyaml：YAML解析库，用于配置文件加载",
+        "Pillow（PIL）：图片处理库，用于邮件图片优化"
+      ],
+      "api_endpoints": [
+        "SerpAPI：https://serpapi.com/search（Google搜索API）",
+        "AWS S3：s3.amazonaws.com（对象存储）",
+        "AWS DynamoDB：dynamodb.{region}.amazonaws.com（NoSQL数据库）",
+        "AWS SES：email.{region}.amazonaws.com（邮件服务）"
+      ],
+      "data_formats": [
+        "JSON：所有工具函数的返回格式",
+        "HTML：通讯报告和网页内容",
+        "YAML：配置文件格式",
+        "CSV：数据导出格式之一",
+        "Base64：图片编码格式"
+      ]
+    },
+    "development_notes": "工具开发完成，共实现42个工具函数，分为4个模块：\n\n1. **data_collector.py**（11个工具）：实现了SerpAPI搜索、静态和动态网页采集、HTML解析、URL管理、批量并发采集、深度遍历等核心数据采集功能。特别强调了Playwright对动态网站的支持和asyncio的高并发能力。\n\n2. **data_processor.py**（8个工具）：实现了文章去重、摘要生成、关键词提取、分类、标签生成、数据验证和规范化等内容处理功能。提供了批量处理接口，支持流水线式的数据处理。\n\n3. **storage_tools.py**（15个工具）：实现了AWS S3存储、DynamoDB数据库、本地文件存储、缓存管理和数据导出等完整的存储方案。深度集成AWS服务，支持真实的云端操作。\n\n4. **newsletter_generator.py**（11个工具）：实现了HTML通讯渲染、邮件内容生成、图片处理、AWS SES邮件发送、预览和统计等通讯生成全流程。提供了内置简单模板和Jinja2模板两种方案。\n\n**关键技术决策**：\n- 使用Playwright而非BeautifulSoup处理动态网站，确保JavaScript渲染内容的完整性\n- 采用asyncio和aiohttp实现高性能并发采集，支持数十个数据源的同时采集\n- 深度集成AWS服务（S3、DynamoDB、SES），支持真实的云端存储和邮件发送\n- 提供完整的错误处理和重试机制，确保单点失败不影响整体流程\n- 统一的JSON返回格式，便于Agent解析和处理\n- 支持本地缓存和TTL管理，减少重复请求\n\n**依赖包总结**：\n- 核心框架：strands\n- AWS集成：boto3, botocore\n- 异步HTTP：aiohttp, asyncio\n- 网页采集：playwright, beautifulsoup4, lxml, requests\n- 模板渲染：jinja2\n- 配置管理：pyyaml\n- 图片处理：Pillow（PIL）\n- 数据导出：csv（标准库）\n\n所有工具均通过语法验证，已生成到tools/generated_tools/lifescience_news_collector/目录下。"
+  }
+}

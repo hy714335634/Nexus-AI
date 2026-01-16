@@ -237,9 +237,17 @@ def get_tool_by_path(tool_path: str):
         if tool_path.startswith('strands_tools/'):
             tool_name = tool_path.split('/')[-1]
             try:
+                # 特殊处理 browser 工具
+                if tool_name == 'browser':
+                    from strands_tools.browser import AgentCoreBrowser
+                    from boto3.session import Session
+                    boto_session = Session()
+                    region = boto_session.region_name or "us-west-2"
+                    browser_instance = AgentCoreBrowser(region=region)
+                    return browser_instance.browser
+                
+                # 其他 strands_tools 工具
                 tool_module = importlib.import_module(f'strands_tools.{tool_name}')
-                # 对于strands_tools，直接返回模块本身
-                # 因为strands_tools中的工具通常是以模块形式提供的
                 return tool_module
             except ImportError as e:
                 print(f"Failed to import strands_tools tool {tool_path}: {e}")

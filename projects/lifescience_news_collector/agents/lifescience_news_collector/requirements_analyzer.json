@@ -1,0 +1,344 @@
+{
+  "requirements_document": {
+    "feature_name": "生命科学行业新闻自动采集系统",
+    "version": "1.0",
+    "date": "2026-01-07",
+    "overview": "一个智能化的生命科学行业新闻采集、分析和报告生成系统。该系统能够从15+权威数据源自动采集新闻内容，通过AI技术进行智能分类、摘要生成，并输出结构化的HTML报告，最终自动上传到AWS S3并生成分享链接。系统支持配置化管理，可灵活配置数据源、API密钥等参数，适用于医疗健康行业的信息聚合和知识管理场景。",
+    "business_value": "1. 显著提升信息获取效率，从手动收集数小时缩短到自动化分钟级完成；2. 通过AI智能分类和摘要，提高信息质量和可读性，降低信息过载；3. 标准化的HTML报告输出，便于团队协作和知识分享；4. 自动化的S3存储和链接生成，简化后续邮件分发流程；5. 支持配置化管理，可快速适应数据源变化和业务需求调整。",
+    "workflow_complexity": "single_agent",
+    "recommended_agent_type": "数据采集与分析类Agent - 结合网络爬虫、API集成、自然语言处理和云存储能力的复合型Agent",
+    "scope": {
+      "included": [
+        "从15+数据源（搜索引擎API + 医疗资讯网站）自动采集生命科学行业新闻",
+        "支持深度检索和遍历检索，确保数据采集的全面性",
+        "基于AI的智能内容分类（7大类别体系）",
+        "自动生成文档摘要和关键信息总结",
+        "基于HTML模板生成可视化报告（包含超链接、分类结构）",
+        "自动上传报告到AWS S3（按年月日分类存储）",
+        "生成S3 Presign URL供后续分享使用",
+        "支持外部配置文件管理数据源URL、API Key等敏感信息",
+        "错误处理和日志记录机制",
+        "支持本地测试和AgentCore部署两种模式"
+      ],
+      "excluded": [
+        "邮件自动发送功能（用户将手动使用Presign URL发送邮件）",
+        "实时监控和定时任务调度（需要外部调度系统触发）",
+        "用户权限管理和访问控制",
+        "历史报告的查询和管理界面",
+        "多语言支持（仅支持中文内容）",
+        "数据源的自动发现和动态添加"
+      ]
+    },
+    "functional_requirements": [
+      {
+        "id": "FR-001",
+        "title": "多源数据采集引擎",
+        "user_story": "作为系统用户，我希望Agent能够从15+数据源（包括Google Search API和14个医疗资讯网站）自动采集生命科学行业的最新新闻，以便获取全面的行业信息。",
+        "acceptance_criteria": [
+          "WHEN Agent启动数据采集任务 THEN 系统应能够从配置文件中读取所有数据源URL和API密钥",
+          "WHEN 访问Google Search API（SerpAPI）THEN 系统应能够使用配置的API Key进行搜索并返回结果",
+          "WHEN 访问各医疗资讯网站 THEN 系统应能够解析网页结构并提取新闻标题、正文、发布时间、来源链接等关键信息",
+          "IF 某个数据源访问失败 THEN 系统应记录错误日志并继续处理其他数据源，不中断整体流程",
+          "WHEN 数据采集完成 THEN 系统应返回至少包含标题、正文、来源URL、发布时间的结构化数据",
+          "WHEN 遇到分页或列表页 THEN 系统应支持深度遍历，提取所有相关新闻内容"
+        ],
+        "priority": "High",
+        "complexity": "High",
+        "dependencies": [
+          "requests库用于HTTP请求",
+          "BeautifulSoup或Playwright用于网页解析",
+          "SerpAPI的Python SDK",
+          "配置文件管理模块"
+        ],
+        "assumptions": [
+          "用户提供有效的SerpAPI密钥",
+          "目标网站结构相对稳定，不会频繁大幅调整",
+          "网络连接稳定，支持并发请求"
+        ]
+      },
+      {
+        "id": "FR-002",
+        "title": "智能内容分类系统",
+        "user_story": "作为系统用户，我希望Agent能够将采集到的新闻内容自动分类到7大类别（政策法规、医疗数字化转型、药物研发、医疗器械、战略合作、基因组学、医疗数据与AI），以便快速定位感兴趣的内容。",
+        "acceptance_criteria": [
+          "WHEN 系统获取到新闻内容 THEN 应使用AI模型（Claude Sonnet 4.5）分析内容并分配到7大类别之一",
+          "WHEN 内容符合多个类别特征 THEN 系统应选择最匹配的主类别，并可标注次要类别",
+          "WHEN 分类完成 THEN 每条新闻应包含类别标签和分类置信度信息",
+          "IF 内容无法明确分类 THEN 系统应标记为'其他'类别并记录原因",
+          "WHEN 所有内容分类完成 THEN 系统应生成分类统计信息（各类别文章数量、占比）"
+        ],
+        "priority": "High",
+        "complexity": "Medium",
+        "dependencies": [
+          "Claude Sonnet 4.5 AI模型",
+          "Strands SDK的Agent框架",
+          "预定义的7大类别分类体系和描述"
+        ],
+        "assumptions": [
+          "AI模型能够理解中文医疗健康领域的专业术语",
+          "分类准确率达到80%以上即可满足业务需求"
+        ]
+      },
+      {
+        "id": "FR-003",
+        "title": "自动摘要生成",
+        "user_story": "作为系统用户，我希望Agent能够为每篇新闻生成简洁的摘要，并生成全局的关键信息总结，以便快速了解核心内容而无需阅读全文。",
+        "acceptance_criteria": [
+          "WHEN 系统获取到新闻全文 THEN 应使用AI模型生成100-200字的中文摘要",
+          "WHEN 生成摘要 THEN 摘要应包含新闻的核心观点、关键数据和主要结论",
+          "WHEN 所有新闻处理完成 THEN 系统应生成一份全局总结，包含本次采集的关键发现、热点趋势、重要事件",
+          "WHEN 生成全局总结 THEN 应按类别汇总，突出各领域的重要动态",
+          "IF 原文内容过短（少于50字）THEN 可直接使用原文作为摘要"
+        ],
+        "priority": "High",
+        "complexity": "Medium",
+        "dependencies": [
+          "Claude Sonnet 4.5 AI模型",
+          "Strands SDK的消息处理能力"
+        ],
+        "assumptions": [
+          "AI模型能够生成高质量的中文摘要",
+          "摘要生成时间在可接受范围内（每篇<5秒）"
+        ]
+      },
+      {
+        "id": "FR-004",
+        "title": "HTML报告生成",
+        "user_story": "作为系统用户，我希望Agent能够基于HTML模板生成结构化的可视化报告，包含所有新闻的分类、摘要、超链接等信息，以便以专业的形式分享给团队。",
+        "acceptance_criteria": [
+          "WHEN 数据处理完成 THEN 系统应读取HTML模板文件（case/newsletter_template.html）",
+          "WHEN 生成报告 THEN 应将新闻按7大类别组织，每个类别下列出相关新闻",
+          "WHEN 渲染新闻条目 THEN 应包含标题（带超链接）、摘要、来源、发布时间",
+          "WHEN 生成报告 THEN 应在顶部包含生成日期、总文章数、各类别统计信息",
+          "WHEN 生成报告 THEN 应包含全局关键信息总结板块",
+          "WHEN HTML生成完成 THEN 文件应格式良好，支持在浏览器中正常显示",
+          "IF 模板文件不存在 THEN 系统应使用内置的默认模板"
+        ],
+        "priority": "High",
+        "complexity": "Medium",
+        "dependencies": [
+          "Jinja2模板引擎或类似工具",
+          "HTML/CSS模板文件",
+          "文件读写工具"
+        ],
+        "assumptions": [
+          "HTML模板格式符合预期，包含必要的占位符",
+          "生成的HTML文件大小在合理范围内（<10MB）"
+        ]
+      },
+      {
+        "id": "FR-005",
+        "title": "AWS S3自动上传",
+        "user_story": "作为系统用户，我希望Agent能够将生成的HTML报告自动上传到指定的S3桶（s3://newletter-2026），并按年月日分类存储，以便后续通过邮件分享。",
+        "acceptance_criteria": [
+          "WHEN HTML报告生成完成 THEN 系统应自动上传到S3桶'newletter-2026'（us-west-2区域）",
+          "WHEN 上传文件 THEN 文件路径应按格式'YYYY/MM/DD/report_YYYYMMDD_HHMMSS.html'组织",
+          "WHEN 上传完成 THEN 系统应验证文件是否成功上传（通过HEAD请求）",
+          "IF 上传失败 THEN 系统应重试最多3次，并记录详细错误信息",
+          "WHEN 上传成功 THEN 系统应返回S3文件的完整URI"
+        ],
+        "priority": "High",
+        "complexity": "Low",
+        "dependencies": [
+          "boto3 AWS SDK",
+          "AWS凭证配置（IAM角色或访问密钥）",
+          "S3桶的写权限"
+        ],
+        "assumptions": [
+          "S3桶'newletter-2026'已存在且有写权限",
+          "AWS凭证配置正确且有效",
+          "网络连接稳定，支持S3上传"
+        ]
+      },
+      {
+        "id": "FR-006",
+        "title": "Presign URL生成",
+        "user_story": "作为系统用户，我希望Agent能够生成S3文件的Presign URL（有效期7天），以便我可以通过邮件将链接分享给团队成员，而无需他们拥有AWS账号。",
+        "acceptance_criteria": [
+          "WHEN S3上传完成 THEN 系统应自动生成该文件的Presign URL",
+          "WHEN 生成Presign URL THEN 有效期应设置为7天（604800秒）",
+          "WHEN 生成URL THEN 应支持HTTPS协议，确保安全传输",
+          "WHEN 生成完成 THEN 系统应返回可直接访问的完整URL",
+          "WHEN 返回结果 THEN 应同时包含S3 URI和Presign URL"
+        ],
+        "priority": "High",
+        "complexity": "Low",
+        "dependencies": [
+          "boto3 AWS SDK的generate_presigned_url功能",
+          "S3桶的读权限配置"
+        ],
+        "assumptions": [
+          "S3桶允许生成Presign URL",
+          "生成的URL在7天内保持有效"
+        ]
+      },
+      {
+        "id": "FR-007",
+        "title": "配置文件管理",
+        "user_story": "作为系统管理员，我希望能够通过外部配置文件管理数据源URL、API密钥、S3配置等敏感信息，以便在不修改代码的情况下调整系统配置。",
+        "acceptance_criteria": [
+          "WHEN Agent启动 THEN 应从指定路径读取配置文件（支持YAML或JSON格式）",
+          "WHEN 读取配置 THEN 应包含数据源列表、API密钥、S3桶信息、模板路径等参数",
+          "WHEN 配置文件不存在 THEN 系统应使用默认配置或提示用户创建配置文件",
+          "IF 配置文件格式错误 THEN 系统应给出明确的错误提示并终止运行",
+          "WHEN 配置更新 THEN 无需重新部署Agent，重启即可生效",
+          "WHEN 处理敏感信息 THEN 应支持环境变量覆盖配置文件中的值"
+        ],
+        "priority": "Medium",
+        "complexity": "Low",
+        "dependencies": [
+          "PyYAML或json库",
+          "nexus_utils.config_loader模块"
+        ],
+        "assumptions": [
+          "配置文件存储在安全的位置",
+          "用户理解配置文件的结构和参数含义"
+        ]
+      },
+      {
+        "id": "FR-008",
+        "title": "错误处理和日志记录",
+        "user_story": "作为系统运维人员，我希望Agent能够完善的错误处理机制和详细的日志记录，以便快速定位和解决问题。",
+        "acceptance_criteria": [
+          "WHEN 发生任何错误 THEN 系统应记录详细的错误日志（包含时间戳、错误类型、堆栈信息）",
+          "WHEN 数据源访问失败 THEN 应记录失败的URL和原因，但不中断整体流程",
+          "WHEN 关键步骤执行 THEN 应记录INFO级别日志（如'开始采集数据'、'分类完成'等）",
+          "WHEN Agent运行完成 THEN 应生成执行摘要（成功/失败的任务数、总耗时等）",
+          "WHEN 日志输出 THEN 应同时支持控制台输出和文件记录",
+          "IF 系统资源不足 THEN 应提前检测并给出警告"
+        ],
+        "priority": "Medium",
+        "complexity": "Low",
+        "dependencies": [
+          "Python logging模块",
+          "StrandsTelemetry遥测组件"
+        ],
+        "assumptions": [
+          "日志存储空间充足",
+          "日志格式符合运维团队的要求"
+        ]
+      },
+      {
+        "id": "FR-009",
+        "title": "AgentCore部署支持",
+        "user_story": "作为DevOps工程师，我希望Agent能够支持部署到Amazon Bedrock AgentCore，并提供标准的HTTP入口点，以便集成到企业的微服务架构中。",
+        "acceptance_criteria": [
+          "WHEN Agent代码生成 THEN 必须包含BedrockAgentCoreApp实例和@app.entrypoint装饰的handler函数",
+          "WHEN 在Docker容器中运行 THEN 应自动启动HTTP服务器监听8080端口",
+          "WHEN 接收HTTP请求 THEN handler函数应能够解析payload中的prompt参数",
+          "WHEN 处理请求 THEN 应支持流式响应（使用async/await和yield）",
+          "WHEN 返回结果 THEN 应返回JSON格式的响应（包含生成的报告信息和Presign URL）",
+          "WHEN 本地测试 THEN 应支持命令行参数（-i用于单次测试，-it用于交互模式）"
+        ],
+        "priority": "High",
+        "complexity": "Medium",
+        "dependencies": [
+          "bedrock_agentcore.runtime模块",
+          "Starlette HTTP框架",
+          "Docker容器环境"
+        ],
+        "assumptions": [
+          "AgentCore运行环境已正确配置",
+          "网络策略允许8080端口访问"
+        ]
+      },
+      {
+        "id": "FR-010",
+        "title": "深度检索和遍历机制",
+        "user_story": "作为系统用户，我希望Agent能够进行深度检索和遍历，不仅获取首页内容，还能自动发现和采集相关的子页面和详情页，以确保数据的全面性。",
+        "acceptance_criteria": [
+          "WHEN 访问列表页 THEN 系统应识别分页链接并自动遍历多页内容",
+          "WHEN 发现新闻摘要 THEN 系统应自动访问详情页获取完整内容",
+          "WHEN 遍历深度超过配置的最大层级 THEN 系统应停止深度遍历",
+          "WHEN 发现重复内容 THEN 系统应通过URL或标题去重，避免重复采集",
+          "IF 遍历过程中遇到验证码或登录墙 THEN 系统应记录并跳过该数据源"
+        ],
+        "priority": "Medium",
+        "complexity": "High",
+        "dependencies": [
+          "网页解析工具（BeautifulSoup/Playwright）",
+          "URL去重机制",
+          "深度控制配置参数"
+        ],
+        "assumptions": [
+          "大部分目标网站不需要登录即可访问",
+          "深度遍历不会触发反爬虫机制"
+        ]
+      }
+    ],
+    "non_functional_requirements": {
+      "performance": [
+        "单次完整采集任务应在30分钟内完成（包含15+数据源）",
+        "AI分类和摘要生成每篇文章耗时不超过5秒",
+        "支持并发请求，最多同时处理5个数据源",
+        "HTML报告生成时间不超过10秒",
+        "S3上传速度取决于网络，但应支持断点续传"
+      ],
+      "security": [
+        "API密钥和AWS凭证应存储在配置文件或环境变量中，不应硬编码",
+        "生成的Presign URL应设置合理的有效期（默认7天）",
+        "日志文件中不应包含敏感信息（API密钥、密码等）",
+        "S3桶应配置适当的访问策略，仅允许授权用户访问",
+        "支持通过IAM角色进行AWS身份验证"
+      ],
+      "usability": [
+        "配置文件应有清晰的注释和示例",
+        "错误信息应明确且易于理解",
+        "提供详细的README文档，包含安装、配置和使用说明",
+        "支持命令行参数进行快速测试",
+        "生成的HTML报告应有良好的可读性和美观度"
+      ],
+      "reliability": [
+        "单个数据源失败不应影响整体任务执行",
+        "网络请求应有超时设置（默认30秒）",
+        "关键操作（如S3上传）应有重试机制（最多3次）",
+        "系统应能够从部分失败中恢复，完成可完成的部分",
+        "日志记录应完整，便于问题追溯"
+      ]
+    },
+    "constraints": [
+      "必须使用Claude Sonnet 4.5模型（global.anthropic.claude-sonnet-4-5-20250929-v1:0）",
+      "必须使用Strands SDK和Bedrock AgentCore框架",
+      "必须遵守AgentCore部署入口点规则（BedrockAgentCoreApp模式）",
+      "S3桶固定为'newletter-2026'，区域为'us-west-2'",
+      "HTML模板参考路径为'case/newsletter_template.html'",
+      "数据源列表固定为用户指定的15个网站",
+      "分类体系固定为7大类别",
+      "仅支持中文内容处理",
+      "不包含邮件发送功能"
+    ],
+    "assumptions": [
+      "用户拥有有效的SerpAPI密钥",
+      "S3桶'newletter-2026'已创建且具有读写权限",
+      "AWS凭证已正确配置（IAM角色或访问密钥）",
+      "目标网站结构相对稳定，不会频繁大幅调整",
+      "网络连接稳定，支持访问国内外网站",
+      "用户理解配置文件的结构和参数含义",
+      "生成的报告将通过邮件手动分发，不需要Agent自动发送",
+      "HTML模板文件存在且格式正确"
+    ],
+    "success_criteria": [
+      "能够成功从15+数据源采集生命科学行业新闻",
+      "AI分类准确率达到80%以上",
+      "每篇新闻都能生成高质量的摘要（100-200字）",
+      "生成的HTML报告结构清晰、格式美观",
+      "报告能够成功上传到S3并生成有效的Presign URL",
+      "单次完整任务在30分钟内完成",
+      "系统稳定性高，单个数据源失败不影响整体流程",
+      "支持本地测试和AgentCore部署两种模式",
+      "配置文件管理灵活，支持快速调整参数",
+      "日志记录完整，便于问题排查"
+    ],
+    "glossary": {
+      "SerpAPI": "一个提供Google搜索结果API的第三方服务，用于程序化访问搜索引擎数据",
+      "Presign URL": "AWS S3的预签名URL，允许在不暴露AWS凭证的情况下临时授权访问私有对象",
+      "AgentCore": "Amazon Bedrock提供的Agent运行时环境，支持HTTP入口点和流式响应",
+      "Strands SDK": "用于构建AI Agent的开发框架，提供模型调用、工具集成等能力",
+      "深度检索": "不仅采集网站首页内容，还自动发现和访问子页面、详情页的采集策略",
+      "HTML模板": "预定义的HTML结构文件，用于渲染最终报告的样式和布局",
+      "Claude Sonnet 4.5": "Anthropic公司的大语言模型，用于内容分类、摘要生成等AI任务",
+      "生命科学": "涵盖生物医药、医疗健康、基因组学、医疗器械等领域的综合学科"
+    }
+  },
+  "analysis_notes": "该项目为单Agent场景，核心价值在于自动化信息聚合和智能分析。关键技术挑战包括：1）多源异构数据采集（需处理不同网站结构）；2）AI驱动的内容理解（分类和摘要生成）；3）云服务集成（S3存储和URL生成）。项目采用单Agent架构的理由：所有功能围绕'采集-处理-输出'的线性流程，不需要多Agent协作；通过工具函数（爬虫、API调用、S3操作）和AI能力（分类、摘要）的组合即可完成。建议的技术栈：Playwright用于网页采集（支持动态内容），boto3用于AWS集成，Jinja2用于模板渲染，Claude Sonnet 4.5用于AI处理。关键设计要点：1）模块化工具设计，每个数据源独立处理；2）错误隔离机制，单点失败不影响全局；3）配置驱动，便于后续扩展数据源；4）完善的日志和监控，支持生产环境运维。"
+}

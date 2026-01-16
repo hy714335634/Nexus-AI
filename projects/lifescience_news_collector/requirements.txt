@@ -1,0 +1,15 @@
+./nexus_utils
+strands-agents
+strands-agents-tools
+PyYAML
+bedrock-agentcore
+pyyaml
+boto3
+botocore
+aiohttp
+playwright
+beautifulsoup4
+lxml
+jinja2
+requests
+pillow

@@ -1,0 +1,63 @@
+agents: {}
+created_at: '2026-01-07T04:46:55.769731+00:00'
+last_updated: '2026-01-07T04:46:55.769743+00:00'
+project: lifescience_news_collector
+project_info:
+- agents:
+  - created_date: '2026-01-07T04:49:23.368212+00:00'
+    description: 智能体：lifescience_news_collector
+    last_updated: '2026-01-07T05:11:40.774229+00:00'
+    name: lifescience_news_collector
+    pipeline:
+    - description: 需求分析阶段 - 分析用户需求，定义功能规格
+      doc_path: projects/lifescience_news_collector/agents/lifescience_news_collector/requirements_analyzer.json
+      stage: requirements_analyzer
+      status: true
+      updated_date: '2026-01-07T04:49:23.368237+00:00'
+    - description: 系统架构设计阶段 - 设计系统架构和技术方案
+      doc_path: projects/lifescience_news_collector/agents/lifescience_news_collector/system_architect.json
+      stage: system_architect
+      status: true
+      updated_date: '2026-01-07T04:52:56.724789+00:00'
+    - description: Agent设计阶段 - 设计智能体结构和交互模式
+      doc_path: projects/lifescience_news_collector/agents/lifescience_news_collector/agent_designer.json
+      stage: agent_designer
+      status: true
+      updated_date: '2026-01-07T04:55:12.446298+00:00'
+    - agent_artifact_path:
+      - prompts/generated_agents_prompts/lifescience_news_collector/lifescience_news_collector.yaml
+      description: 提示词工程阶段 - 设计和优化提示词模板
+      doc_path: projects/lifescience_news_collector/agents/lifescience_news_collector/prompt_engineer.json
+      stage: prompt_engineer
+      status: true
+      updated_date: '2026-01-07T05:06:43.121774+00:00'
+    - agent_artifact_path:
+      - tools/generated_tools/lifescience_news_collector/data_collector.py
+      - tools/generated_tools/lifescience_news_collector/data_processor.py
+      - tools/generated_tools/lifescience_news_collector/storage_tools.py
+      - tools/generated_tools/lifescience_news_collector/newsletter_generator.py
+      description: 工具开发阶段 - 开发必要的工具和函数
+      doc_path: projects/lifescience_news_collector/agents/lifescience_news_collector/tools_developer.json
+      stage: tools_developer
+      status: true
+      updated_date: '2026-01-07T05:02:29.521484+00:00'
+    - agent_artifact_path:
+      - generated_agents/lifescience_news_collector/lifescience_news_collector.py
+      description: Agent代码开发阶段 - 实现智能体代码
+      doc_path: projects/lifescience_news_collector/agents/lifescience_news_collector/agent_code_developer.json
+      stage: agent_code_developer
+      status: true
+      updated_date: '2026-01-07T05:09:03.107412+00:00'
+    - description: Agent开发管理阶段 - 管理和协调开发流程
+      doc_path: projects/lifescience_news_collector/README.md
+      stage: agent_developer_manager
+      status: true
+      updated_date: '2026-01-07T05:11:40.774233+00:00'
+  description: 生命科学行业新闻自动采集Agent - 支持多源数据采集、智能分类、摘要生成、HTML报告生成及S3自动上传
+  last_updated: '2026-01-07T05:11:40.774212+00:00'
+  name: lifescience_news_collector
+  progress:
+  - completed: 7
+    total: 7
+  version: 1.0.0
+status: initialized

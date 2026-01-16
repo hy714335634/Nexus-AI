@@ -1,0 +1,572 @@
+{
+  "system_design": {
+    "design_overview": {
+      "project_name": "lifescience_news_collector",
+      "version": "1.0",
+      "date": "2026-01-07",
+      "design_scope": "设计一个单Agent架构的生命科学行业新闻自动采集系统，能够从15+数据源采集新闻、智能分类、生成摘要、创建HTML报告并上传到AWS S3，支持配置文件管理和AgentCore部署",
+      "design_principles": [
+        "单一职责原则：Agent专注于新闻采集和处理的完整流程",
+        "模块化设计：将数据采集、分类、摘要、报告生成等功能模块化",
+        "配置驱动：所有数据源和参数通过配置文件管理，便于扩展",
+        "错误隔离：单个数据源失败不影响整体流程",
+        "可观测性：完善的日志和监控机制",
+        "云原生：支持容器化部署和AWS服务集成"
+      ],
+      "key_decisions": [
+        "采用单Agent架构而非多Agent：所有功能围绕线性的'采集-处理-输出'流程，无需Agent间协作",
+        "参考deep_research_agent模板：该模板提供完整的数据采集、分析和报告生成能力",
+        "使用Playwright而非BeautifulSoup：支持动态加载的医疗资讯网站",
+        "使用Claude Sonnet 4.5进行分类和摘要：利用大模型的语义理解能力，无需训练专门的NLP模型",
+        "采用Jinja2模板引擎生成HTML报告：灵活且易于定制",
+        "使用boto3集成AWS S3：官方SDK，稳定可靠",
+        "支持AgentCore部署模式：使用BedrockAgentCoreApp和@app.entrypoint装饰器",
+        "配置文件采用YAML格式：便于阅读和维护"
+      ],
+      "workflow_type": "single_agent",
+      "recommended_templates": [
+        "deep_research_agent - 主要参考模板，提供数据采集、分析和报告生成能力"
+      ]
+    },
+    "architecture": {
+      "system_context": "该系统是一个自动化的生命科学行业新闻采集和分析系统。用户通过HTTP请求或命令行触发Agent，Agent从配置的15+数据源采集新闻，使用AI进行分类和摘要生成，生成HTML报告并上传到AWS S3，最后返回Presign URL供用户分享。系统部署在Amazon Bedrock AgentCore上，支持本地测试和生产环境运行。",
+      "agent_topology": "单Agent架构 - lifescience_news_collector Agent独立完成所有任务，通过内部模块化设计实现功能分离。Agent内部包含：配置管理模块、数据采集模块、内容处理模块（分类、摘要）、报告生成模块、S3上传模块。",
+      "interaction_model": "用户 -> Agent HTTP入口点 -> 配置加载 -> 数据采集（并发） -> 内容分类（AI） -> 摘要生成（AI） -> HTML报告生成 -> S3上传 -> Presign URL生成 -> 返回结果给用户。Agent内部采用流水线模式，每个步骤完成后将结果传递给下一步骤。",
+      "technology_stack": {
+        "sdk": "Strands SDK",
+        "runtime": "Amazon Bedrock AgentCore (Docker容器)",
+        "ai_model": "Claude Sonnet 4.5 (global.anthropic.claude-sonnet-4-5-20250929-v1:0)",
+        "integrations": [
+          "SerpAPI - Google搜索引擎API",
+          "AWS S3 - 报告存储和分享",
+          "Playwright - 动态网页采集",
+          "Jinja2 - HTML模板渲染",
+          "boto3 - AWS SDK",
+          "PyYAML - 配置文件解析",
+          "BeautifulSoup4 - HTML解析",
+          "aiohttp - 异步HTTP请求"
+        ]
+      }
+    },
+    "agents": [
+      {
+        "name": "lifescience_news_collector",
+        "purpose": "自动采集生命科学行业新闻，进行智能分类和摘要，生成HTML报告并上传到S3",
+        "responsibilities": [
+          "从配置文件加载数据源、API密钥和系统参数",
+          "并发访问15+数据源（SerpAPI + 14个医疗资讯网站）采集新闻",
+          "解析网页内容，提取标题、正文、发布时间、来源链接",
+          "使用AI模型将新闻分类到7大类别（政策法规、医疗数字化转型、药物研发、医疗器械、战略合作、基因组学、医疗数据与AI）",
+          "为每篇新闻生成100-200字的中文摘要",
+          "生成全局关键信息总结",
+          "基于HTML模板生成可视化报告",
+          "将报告上传到AWS S3（按年月日分类）",
+          "生成S3 Presign URL（有效期7天）",
+          "返回完整的执行结果和URL",
+          "记录详细的执行日志和错误信息"
+        ],
+        "interfaces": {
+          "inputs": [
+            "HTTP请求payload（包含prompt、user_id、session_id等）",
+            "配置文件路径（默认：config/lifescience_news_collector.yaml）",
+            "命令行参数（-i输入文本，-it交互模式）"
+          ],
+          "outputs": [
+            "流式响应：执行进度和状态更新",
+            "最终结果：包含采集统计、分类结果、S3 URI、Presign URL",
+            "错误信息：详细的错误描述和堆栈信息",
+            "日志文件：完整的执行日志"
+          ]
+        },
+        "dependencies": [
+          "外部依赖：SerpAPI服务、目标医疗资讯网站、AWS S3服务",
+          "配置文件：config/lifescience_news_collector.yaml",
+          "HTML模板：case/newsletter_template.html",
+          "工具函数：data_collector、content_classifier、summary_generator、report_builder、s3_uploader"
+        ],
+        "implementation_notes": [
+          "使用nexus_utils.agent_factory.create_agent_from_prompt_template创建Agent实例",
+          "使用BedrockAgentCoreApp和@app.entrypoint装饰器支持AgentCore部署",
+          "handler函数必须是async异步函数，使用agent.stream_async()进行流式响应",
+          "使用aiohttp进行并发HTTP请求，提高采集效率",
+          "使用Playwright处理需要JavaScript渲染的网站",
+          "AI分类和摘要使用Agent的内置能力，通过精心设计的提示词实现",
+          "HTML报告使用Jinja2模板引擎，支持自定义样式",
+          "S3上传使用boto3，支持断点续传和重试机制",
+          "配置文件支持环境变量覆盖，便于不同环境部署",
+          "日志使用Python logging模块和StrandsTelemetry",
+          "错误处理采用try-except包裹每个数据源，确保隔离性"
+        ],
+        "recommended_template": "deep_research_agent"
+      }
+    ],
+    "data_models": [
+      {
+        "name": "NewsArticle",
+        "schema": {
+          "id": "string (UUID)",
+          "title": "string",
+          "content": "string",
+          "summary": "string (100-200字)",
+          "source": "string (网站名称)",
+          "source_url": "string (原文链接)",
+          "publish_date": "string (ISO 8601格式)",
+          "category": "string (7大类别之一)",
+          "category_confidence": "float (0-1)",
+          "collected_at": "string (采集时间，ISO 8601格式)",
+          "metadata": {
+            "author": "string (可选)",
+            "tags": "list[string] (可选)",
+            "language": "string (默认zh-CN)"
+          }
+        },
+        "validation_rules": [
+          "title不能为空且长度不超过200字符",
+          "content不能为空且长度不超过50000字符",
+          "summary长度在100-200字符之间",
+          "source_url必须是有效的HTTP(S) URL",
+          "category必须是7大类别之一",
+          "category_confidence必须在0-1之间",
+          "publish_date和collected_at必须是有效的ISO 8601时间格式"
+        ],
+        "relationships": [
+          "多个NewsArticle组成一个NewsReport",
+          "NewsArticle可以被分类到CategoryGroup"
+        ]
+      },
+      {
+        "name": "CategoryGroup",
+        "schema": {
+          "category_name": "string (类别名称)",
+          "category_description": "string (类别描述)",
+          "articles": "list[NewsArticle]",
+          "article_count": "integer",
+          "key_insights": "string (该类别的关键发现)"
+        },
+        "validation_rules": [
+          "category_name必须是预定义的7大类别之一",
+          "articles列表不能为空",
+          "article_count必须等于articles列表长度"
+        ],
+        "relationships": [
+          "CategoryGroup包含多个NewsArticle",
+          "多个CategoryGroup组成一个NewsReport"
+        ]
+      },
+      {
+        "name": "NewsReport",
+        "schema": {
+          "report_id": "string (UUID)",
+          "title": "string",
+          "generation_date": "string (ISO 8601格式)",
+          "date_range": {
+            "start_date": "string (ISO 8601格式)",
+            "end_date": "string (ISO 8601格式)"
+          },
+          "summary": {
+            "total_articles": "integer",
+            "data_sources_count": "integer",
+            "successful_sources": "integer",
+            "failed_sources": "list[string]",
+            "key_findings": "string (全局关键发现)",
+            "category_distribution": "dict[string, integer]"
+          },
+          "categories": "list[CategoryGroup]",
+          "s3_info": {
+            "bucket": "string",
+            "key": "string (YYYY/MM/DD/report_YYYYMMDD_HHMMSS.html)",
+            "region": "string",
+            "s3_uri": "string",
+            "presign_url": "string",
+            "presign_expires_in": "integer (秒)"
+          },
+          "metadata": {
+            "execution_time": "float (秒)",
+            "config_version": "string",
+            "agent_version": "string"
+          }
+        },
+        "validation_rules": [
+          "report_id必须是有效的UUID",
+          "generation_date必须是有效的ISO 8601时间格式",
+          "total_articles必须等于所有categories中articles的总数",
+          "s3_uri和presign_url必须是有效的URL",
+          "execution_time必须大于0"
+        ],
+        "relationships": [
+          "NewsReport包含多个CategoryGroup",
+          "NewsReport对应一个S3对象"
+        ]
+      },
+      {
+        "name": "CollectorConfig",
+        "schema": {
+          "data_sources": {
+            "search_api": {
+              "provider": "string (serpapi)",
+              "api_key": "string (从环境变量读取)",
+              "search_query": "string (搜索关键词)",
+              "max_results": "integer"
+            },
+            "news_websites": "list[NewsWebsiteConfig]"
+          },
+          "classification": {
+            "categories": "list[CategoryConfig]",
+            "model": "string (Claude Sonnet 4.5)",
+            "confidence_threshold": "float (0.6)"
+          },
+          "summarization": {
+            "min_length": "integer (100)",
+            "max_length": "integer (200)",
+            "model": "string (Claude Sonnet 4.5)"
+          },
+          "report": {
+            "template_path": "string (case/newsletter_template.html)",
+            "output_format": "string (html)"
+          },
+          "s3": {
+            "bucket": "string (newletter-2026)",
+            "region": "string (us-west-2)",
+            "key_prefix": "string (YYYY/MM/DD/)",
+            "presign_expires_in": "integer (604800秒，7天)"
+          },
+          "execution": {
+            "concurrent_requests": "integer (5)",
+            "request_timeout": "integer (30秒)",
+            "retry_attempts": "integer (3)",
+            "max_depth": "integer (2，深度遍历层级)"
+          }
+        },
+        "validation_rules": [
+          "api_key不能为空",
+          "categories必须包含7个预定义类别",
+          "confidence_threshold必须在0-1之间",
+          "min_length必须小于max_length",
+          "bucket和region不能为空",
+          "concurrent_requests必须在1-10之间",
+          "request_timeout必须大于0"
+        ],
+        "relationships": [
+          "CollectorConfig被Agent在初始化时加载",
+          "CollectorConfig可以被环境变量覆盖"
+        ]
+      },
+      {
+        "name": "NewsWebsiteConfig",
+        "schema": {
+          "name": "string (网站名称)",
+          "url": "string (网站URL)",
+          "type": "string (static/dynamic)",
+          "selectors": {
+            "article_list": "string (CSS选择器)",
+            "article_title": "string",
+            "article_content": "string",
+            "article_date": "string",
+            "article_link": "string"
+          },
+          "enabled": "boolean",
+          "priority": "integer (1-10)"
+        },
+        "validation_rules": [
+          "url必须是有效的HTTP(S) URL",
+          "type必须是'static'或'dynamic'",
+          "selectors中的选择器必须是有效的CSS选择器",
+          "priority必须在1-10之间"
+        ],
+        "relationships": [
+          "NewsWebsiteConfig是CollectorConfig的一部分",
+          "每个NewsWebsiteConfig对应一个数据源"
+        ]
+      },
+      {
+        "name": "CategoryConfig",
+        "schema": {
+          "name": "string (类别名称)",
+          "description": "string (类别描述)",
+          "keywords": "list[string] (关键词)",
+          "subcategories": "list[string] (子类别)"
+        },
+        "validation_rules": [
+          "name必须是唯一的",
+          "keywords列表不能为空",
+          "description长度不超过500字符"
+        ],
+        "relationships": [
+          "CategoryConfig是CollectorConfig的一部分",
+          "CategoryConfig定义了NewsArticle的分类标准"
+        ]
+      }
+    ],
+    "interaction_flows": [
+      {
+        "name": "主流程：新闻采集和报告生成",
+        "description": "用户触发Agent，完成从数据采集到报告上传的完整流程",
+        "steps": [
+          {
+            "step": "1. 接收请求",
+            "agent": "lifescience_news_collector",
+            "action": "handler函数接收HTTP请求payload或命令行输入",
+            "data": "payload: {prompt: string, user_id?: string, session_id?: string}"
+          },
+          {
+            "step": "2. 加载配置",
+            "agent": "lifescience_news_collector",
+            "action": "从config/lifescience_news_collector.yaml加载配置，支持环境变量覆盖",
+            "data": "CollectorConfig对象"
+          },
+          {
+            "step": "3. 初始化采集器",
+            "agent": "lifescience_news_collector",
+            "action": "初始化数据采集工具（SerpAPI客户端、Playwright浏览器、HTTP客户端）",
+            "data": "采集器实例列表"
+          },
+          {
+            "step": "4. 并发采集数据",
+            "agent": "lifescience_news_collector",
+            "action": "并发访问15+数据源，提取新闻内容（标题、正文、链接、日期）",
+            "data": "list[RawNewsData]（原始新闻数据）"
+          },
+          {
+            "step": "5. 数据清洗和去重",
+            "agent": "lifescience_news_collector",
+            "action": "清洗HTML标签、去除重复内容（基于URL和标题）",
+            "data": "list[CleanedNewsData]"
+          },
+          {
+            "step": "6. 内容分类",
+            "agent": "lifescience_news_collector",
+            "action": "使用AI模型将新闻分类到7大类别，计算置信度",
+            "data": "list[NewsArticle]（包含category字段）"
+          },
+          {
+            "step": "7. 生成摘要",
+            "agent": "lifescience_news_collector",
+            "action": "为每篇新闻生成100-200字摘要",
+            "data": "list[NewsArticle]（包含summary字段）"
+          },
+          {
+            "step": "8. 生成全局总结",
+            "agent": "lifescience_news_collector",
+            "action": "分析所有新闻，生成关键发现和趋势总结",
+            "data": "GlobalSummary对象"
+          },
+          {
+            "step": "9. 构建报告数据",
+            "agent": "lifescience_news_collector",
+            "action": "按类别组织新闻，构建NewsReport对象",
+            "data": "NewsReport对象"
+          },
+          {
+            "step": "10. 渲染HTML报告",
+            "agent": "lifescience_news_collector",
+            "action": "使用Jinja2模板渲染HTML报告",
+            "data": "HTML字符串"
+          },
+          {
+            "step": "11. 上传到S3",
+            "agent": "lifescience_news_collector",
+            "action": "将HTML文件上传到s3://newletter-2026/YYYY/MM/DD/report_YYYYMMDD_HHMMSS.html",
+            "data": "S3 URI"
+          },
+          {
+            "step": "12. 生成Presign URL",
+            "agent": "lifescience_news_collector",
+            "action": "生成有效期7天的S3 Presign URL",
+            "data": "Presign URL字符串"
+          },
+          {
+            "step": "13. 返回结果",
+            "agent": "lifescience_news_collector",
+            "action": "通过流式响应返回执行结果、统计信息和Presign URL",
+            "data": "响应JSON：{status, report_summary, s3_uri, presign_url, statistics}"
+          }
+        ]
+      },
+      {
+        "name": "错误处理流程",
+        "description": "处理数据采集、分类、上传等各环节的错误",
+        "steps": [
+          {
+            "step": "1. 捕获异常",
+            "agent": "lifescience_news_collector",
+            "action": "在每个数据源采集、AI调用、S3操作处使用try-except捕获异常",
+            "data": "Exception对象"
+          },
+          {
+            "step": "2. 记录错误日志",
+            "agent": "lifescience_news_collector",
+            "action": "记录详细的错误信息（时间、来源、错误类型、堆栈）",
+            "data": "日志条目"
+          },
+          {
+            "step": "3. 错误分类",
+            "agent": "lifescience_news_collector",
+            "action": "判断错误类型：网络错误、解析错误、AI错误、S3错误",
+            "data": "错误类型枚举"
+          },
+          {
+            "step": "4. 重试机制",
+            "agent": "lifescience_news_collector",
+            "action": "对于网络错误和S3错误，执行最多3次重试（指数退避）",
+            "data": "重试计数器"
+          },
+          {
+            "step": "5. 降级处理",
+            "agent": "lifescience_news_collector",
+            "action": "如果某个数据源完全失败，跳过该源继续处理其他源",
+            "data": "失败数据源列表"
+          },
+          {
+            "step": "6. 生成错误报告",
+            "agent": "lifescience_news_collector",
+            "action": "在最终报告中包含失败的数据源和原因",
+            "data": "错误摘要"
+          },
+          {
+            "step": "7. 返回部分结果",
+            "agent": "lifescience_news_collector",
+            "action": "即使部分失败，也返回成功采集的内容和报告",
+            "data": "部分成功的响应"
+          }
+        ]
+      },
+      {
+        "name": "配置管理流程",
+        "description": "加载和验证配置文件",
+        "steps": [
+          {
+            "step": "1. 查找配置文件",
+            "agent": "lifescience_news_collector",
+            "action": "从默认路径或命令行参数指定的路径查找配置文件",
+            "data": "配置文件路径"
+          },
+          {
+            "step": "2. 解析配置文件",
+            "agent": "lifescience_news_collector",
+            "action": "使用PyYAML解析YAML配置文件",
+            "data": "原始配置字典"
+          },
+          {
+            "step": "3. 环境变量覆盖",
+            "agent": "lifescience_news_collector",
+            "action": "检查环境变量，覆盖配置文件中的敏感信息（API密钥、AWS凭证）",
+            "data": "合并后的配置字典"
+          },
+          {
+            "step": "4. 配置验证",
+            "agent": "lifescience_news_collector",
+            "action": "验证配置项的完整性和有效性（必填项、格式、范围）",
+            "data": "验证结果"
+          },
+          {
+            "step": "5. 创建配置对象",
+            "agent": "lifescience_news_collector",
+            "action": "将配置字典转换为CollectorConfig对象",
+            "data": "CollectorConfig实例"
+          },
+          {
+            "step": "6. 配置日志",
+            "agent": "lifescience_news_collector",
+            "action": "记录加载的配置信息（脱敏后）",
+            "data": "配置日志"
+          }
+        ]
+      },
+      {
+        "name": "深度遍历流程",
+        "description": "对支持深度遍历的网站进行多层级内容采集",
+        "steps": [
+          {
+            "step": "1. 访问列表页",
+            "agent": "lifescience_news_collector",
+            "action": "访问网站首页或新闻列表页",
+            "data": "列表页HTML"
+          },
+          {
+            "step": "2. 提取文章链接",
+            "agent": "lifescience_news_collector",
+            "action": "使用CSS选择器提取所有文章详情页链接",
+            "data": "list[article_url]"
+          },
+          {
+            "step": "3. 检测分页",
+            "agent": "lifescience_news_collector",
+            "action": "识别分页链接（下一页、页码）",
+            "data": "list[pagination_url]"
+          },
+          {
+            "step": "4. 深度控制",
+            "agent": "lifescience_news_collector",
+            "action": "检查当前深度是否超过配置的max_depth（默认2层）",
+            "data": "current_depth计数器"
+          },
+          {
+            "step": "5. 并发访问详情页",
+            "agent": "lifescience_news_collector",
+            "action": "并发访问文章详情页，提取完整内容",
+            "data": "list[article_content]"
+          },
+          {
+            "step": "6. URL去重",
+            "agent": "lifescience_news_collector",
+            "action": "维护已访问URL集合，避免重复采集",
+            "data": "set[visited_urls]"
+          },
+          {
+            "step": "7. 递归遍历",
+            "agent": "lifescience_news_collector",
+            "action": "如果深度未达上限，递归访问分页链接",
+            "data": "递归调用"
+          }
+        ]
+      }
+    ],
+    "security_considerations": [
+      "API密钥和AWS凭证必须通过环境变量或加密的配置文件管理，不得硬编码",
+      "S3 Presign URL有效期设置为7天，避免长期暴露",
+      "S3桶应配置适当的访问策略，仅允许授权用户上传和读取",
+      "使用IAM角色进行AWS身份验证，避免使用长期访问密钥",
+      "日志文件中不得记录敏感信息（API密钥、密码、完整URL参数）",
+      "网络请求使用HTTPS协议，确保数据传输安全",
+      "对用户输入进行验证和清理，防止注入攻击",
+      "配置文件权限应设置为仅所有者可读（chmod 600）",
+      "Docker容器应使用非root用户运行",
+      "定期更新依赖库，修复安全漏洞"
+    ],
+    "error_handling": [
+      "网络错误：超时、连接失败、DNS解析失败 - 重试3次，指数退避",
+      "解析错误：HTML结构变化、CSS选择器失效 - 记录错误，跳过该源",
+      "AI错误：模型调用失败、响应格式错误 - 重试1次，失败则使用默认分类",
+      "S3错误：上传失败、权限不足 - 重试3次，失败则保存本地并告警",
+      "配置错误：文件不存在、格式错误 - 使用默认配置或终止运行",
+      "资源耗尽：内存不足、文件句柄耗尽 - 限制并发数，清理临时文件",
+      "数据验证错误：必填字段缺失、格式不正确 - 记录警告，使用默认值或跳过",
+      "所有错误都应记录详细的上下文信息，便于调试和监控"
+    ],
+    "performance_considerations": [
+      "并发采集：使用aiohttp和asyncio并发访问数据源，并发数可配置（默认5）",
+      "请求超时：设置合理的超时时间（默认30秒），避免长时间等待",
+      "连接池：复用HTTP连接，减少建立连接的开销",
+      "缓存机制：对于短时间内重复请求的URL，使用缓存避免重复采集",
+      "流式处理：对于大文件，使用流式读写，避免一次性加载到内存",
+      "资源限制：限制Playwright浏览器实例数量，避免资源耗尽",
+      "增量采集：支持仅采集新增内容，避免重复处理历史数据",
+      "AI调用优化：批量处理分类和摘要请求，减少API调用次数",
+      "S3上传优化：使用分段上传处理大文件，支持断点续传",
+      "监控指标：记录每个步骤的耗时，识别性能瓶颈"
+    ],
+    "monitoring_strategy": [
+      "日志记录：使用Python logging模块记录INFO、WARNING、ERROR级别日志",
+      "遥测数据：使用StrandsTelemetry记录执行时间、成功率、错误率",
+      "指标采集：记录关键指标（采集文章数、分类准确率、上传成功率、执行时间）",
+      "告警机制：当错误率超过阈值或执行时间过长时触发告警",
+      "健康检查：提供/health端点，检查Agent和依赖服务的健康状态",
+      "日志聚合：将日志发送到集中式日志系统（如CloudWatch Logs）",
+      "性能分析：定期分析执行日志，识别性能瓶颈和优化机会",
+      "用户反馈：记录用户使用情况，收集改进建议",
+      "版本追踪：在日志和报告中记录Agent版本和配置版本，便于问题追溯",
+      "资源监控：监控CPU、内存、网络使用情况，避免资源耗尽"
+    ]
+  },
+  "design_rationale": "本系统设计采用单Agent架构，基于以下理由：1）功能流程线性：从数据采集到报告上传是一个清晰的流水线流程，无需多Agent协作；2）简化复杂度：单Agent架构降低了系统复杂度，便于开发、测试和维护；3）性能优化：通过内部并发和异步处理实现高性能，无需引入Agent间通信开销。参考deep_research_agent模板，该模板提供了完整的数据采集、分析和报告生成能力，非常适合本项目需求。技术选型方面：使用Playwright处理动态网站，使用Claude Sonnet 4.5进行AI分类和摘要（无需训练专门模型），使用Jinja2生成HTML报告（灵活且易定制），使用boto3集成AWS S3（官方SDK，稳定可靠）。数据模型设计遵循清晰的层次结构：NewsArticle（单篇新闻）-> CategoryGroup（类别分组）-> NewsReport（完整报告），每层都有明确的验证规则和关系定义。交互流程设计考虑了完整性和容错性：主流程覆盖从请求接收到结果返回的所有步骤，错误处理流程确保单点失败不影响整体，配置管理流程支持灵活的参数配置，深度遍历流程保证数据采集的全面性。安全考虑涵盖密钥管理、访问控制、数据传输、日志脱敏等方面。性能优化通过并发采集、连接复用、流式处理等技术实现。监控策略提供完整的可观测性，便于运维和问题排查。整体设计遵循模块化、可扩展、可维护的原则，支持未来的功能扩展和优化。"
+}

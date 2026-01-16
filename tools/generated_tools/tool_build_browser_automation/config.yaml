@@ -1,0 +1,7 @@
+tool_project:
+  created_date: '2026-01-12T02:20:45.755867+00:00'
+  description: Browser automation toolkit integrating Nova Act and AWS AgentCore Browser
+    Use for web interaction and data extraction tasks
+  name: tool_build_browser_automation
+  status: initialized
+  version: 1.0.0

@@ -1,0 +1,479 @@
+{
+  "requirements_document": {
+    "tool_name": "tool_build_browser_automation",
+    "version": "1.0",
+    "date": "2026-01-12",
+    "overview": "浏览器自动化工具集，集成Amazon Bedrock AgentCore、Nova Act和Browser Use，提供AI驱动的网页交互、数据采集和自动化操作能力。支持CDP协议、实时浏览器视图和自然语言指令执行。",
+    
+    "functional_requirements": [
+      {
+        "id": "FR-001",
+        "title": "基础 Nova Act 浏览器自动化",
+        "description": "使用Nova Act API通过CDP WebSocket连接进行浏览器自动化操作，支持自然语言指令执行和网页数据提取",
+        "input_parameters": [
+          {
+            "name": "prompt",
+            "type": "str",
+            "required": true,
+            "description": "自然语言浏览器操作指令（如：'搜索Python教程'）"
+          },
+          {
+            "name": "starting_page",
+            "type": "str",
+            "required": true,
+            "description": "起始URL地址（如：'https://www.google.com'）"
+          },
+          {
+            "name": "nova_act_key",
+            "type": "str",
+            "required": true,
+            "description": "Nova Act API密钥"
+          },
+          {
+            "name": "region",
+            "type": "str",
+            "required": false,
+            "description": "AWS区域",
+            "default": "us-west-2"
+          }
+        ],
+        "output_format": {
+          "type": "JSON string",
+          "description": "包含操作结果和响应数据",
+          "example": "{\"status\": \"success\", \"response\": \"搜索完成\", \"data\": {...}, \"screenshots\": [...]}"
+        },
+        "use_cases": [
+          "自动化网页搜索和数据提取",
+          "表单填写和提交",
+          "网页内容抓取",
+          "连续多步骤浏览器操作"
+        ],
+        "error_handling": [
+          "CDP连接失败时返回错误信息",
+          "Nova Act API调用失败时捕获异常",
+          "浏览器超时处理",
+          "无效URL处理"
+        ]
+      },
+      {
+        "id": "FR-002",
+        "title": "Nova Act 实时视图浏览器自动化",
+        "description": "在FR-001基础上增加DCV实时浏览器视图功能，支持可配置显示尺寸（720p-1440p）和手动控制",
+        "input_parameters": [
+          {
+            "name": "prompt",
+            "type": "str",
+            "required": true,
+            "description": "自然语言浏览器操作指令"
+          },
+          {
+            "name": "starting_page",
+            "type": "str",
+            "required": true,
+            "description": "起始URL地址"
+          },
+          {
+            "name": "nova_act_key",
+            "type": "str",
+            "required": true,
+            "description": "Nova Act API密钥"
+          },
+          {
+            "name": "region",
+            "type": "str",
+            "required": false,
+            "description": "AWS区域",
+            "default": "us-west-2"
+          },
+          {
+            "name": "viewer_port",
+            "type": "int",
+            "required": false,
+            "description": "DCV viewer服务器端口",
+            "default": "8000"
+          },
+          {
+            "name": "display_size",
+            "type": "str",
+            "required": false,
+            "description": "显示尺寸（720p/900p/1080p/1440p）",
+            "default": "900p"
+          },
+          {
+            "name": "open_browser",
+            "type": "bool",
+            "required": false,
+            "description": "是否自动打开浏览器查看",
+            "default": "true"
+          }
+        ],
+        "output_format": {
+          "type": "JSON string",
+          "description": "包含操作结果、响应数据和viewer URL",
+          "example": "{\"status\": \"success\", \"response\": \"操作完成\", \"viewer_url\": \"http://localhost:8000\", \"data\": {...}}"
+        },
+        "use_cases": [
+          "需要实时监控的浏览器自动化",
+          "调试和验证自动化脚本",
+          "演示和培训场景",
+          "人工干预和接管控制"
+        ],
+        "error_handling": [
+          "DCV服务器启动失败处理",
+          "端口占用冲突处理",
+          "viewer连接超时处理",
+          "显示布局回调错误处理"
+        ]
+      },
+      {
+        "id": "FR-003",
+        "title": "Browser Use AI驱动浏览器自动化",
+        "description": "使用browser-use库和Claude 3.5 Sonnet模型进行AI驱动的浏览器任务执行，支持持久化会话和异步操作",
+        "input_parameters": [
+          {
+            "name": "task",
+            "type": "str",
+            "required": true,
+            "description": "自然语言任务描述（如：'在亚马逊搜索笔记本电脑并比较前5个产品'）"
+          },
+          {
+            "name": "region",
+            "type": "str",
+            "required": false,
+            "description": "AWS区域",
+            "default": "us-west-2"
+          },
+          {
+            "name": "viewer_port",
+            "type": "int",
+            "required": false,
+            "description": "DCV viewer服务器端口",
+            "default": "8000"
+          },
+          {
+            "name": "open_browser",
+            "type": "bool",
+            "required": false,
+            "description": "是否自动打开浏览器查看",
+            "default": "true"
+          },
+          {
+            "name": "model_id",
+            "type": "str",
+            "required": false,
+            "description": "Bedrock模型ID",
+            "default": "anthropic.claude-3-5-sonnet-20240620-v1:0"
+          },
+          {
+            "name": "timeout",
+            "type": "int",
+            "required": false,
+            "description": "浏览器超时时间（秒）",
+            "default": "1500"
+          }
+        ],
+        "output_format": {
+          "type": "JSON string",
+          "description": "包含AI执行结果、中间步骤和最终数据",
+          "example": "{\"status\": \"success\", \"task_result\": {...}, \"steps\": [...], \"viewer_url\": \"http://localhost:8000\"}"
+        },
+        "use_cases": [
+          "复杂的多步骤浏览器任务",
+          "需要AI决策的动态网页交互",
+          "智能数据采集和分析",
+          "自适应的网页导航和操作"
+        ],
+        "error_handling": [
+          "异步操作超时处理",
+          "AI模型调用失败处理",
+          "浏览器会话中断恢复",
+          "任务执行失败重试机制"
+        ]
+      },
+      {
+        "id": "FR-004",
+        "title": "浏览器会话管理器",
+        "description": "提供统一的浏览器会话创建、管理和销毁功能，支持WebSocket头生成和AWS区域配置",
+        "input_parameters": [
+          {
+            "name": "action",
+            "type": "str",
+            "required": true,
+            "description": "操作类型（create/stop/get_ws_headers/get_status）"
+          },
+          {
+            "name": "region",
+            "type": "str",
+            "required": false,
+            "description": "AWS区域",
+            "default": "us-west-2"
+          },
+          {
+            "name": "session_id",
+            "type": "str",
+            "required": false,
+            "description": "会话ID（用于stop/get_status操作）"
+          }
+        ],
+        "output_format": {
+          "type": "JSON string",
+          "description": "包含会话信息、WebSocket URL和headers",
+          "example": "{\"status\": \"success\", \"session_id\": \"xxx\", \"ws_url\": \"wss://...\", \"headers\": {...}}"
+        },
+        "use_cases": [
+          "创建新的浏览器会话",
+          "生成CDP WebSocket连接信息",
+          "查询会话状态",
+          "清理和关闭会话"
+        ],
+        "error_handling": [
+          "会话创建失败处理",
+          "无效session_id处理",
+          "区域不支持处理",
+          "会话泄漏防护"
+        ]
+      },
+      {
+        "id": "FR-005",
+        "title": "批量网页数据采集",
+        "description": "支持对多个URL进行批量自动化数据采集，利用持久化会话提高效率",
+        "input_parameters": [
+          {
+            "name": "urls",
+            "type": "List[str]",
+            "required": true,
+            "description": "待采集的URL列表"
+          },
+          {
+            "name": "extraction_prompt",
+            "type": "str",
+            "required": true,
+            "description": "数据提取指令（如：'提取产品名称、价格和评分'）"
+          },
+          {
+            "name": "method",
+            "type": "str",
+            "required": false,
+            "description": "采集方法（nova_act/browser_use）",
+            "default": "browser_use"
+          },
+          {
+            "name": "nova_act_key",
+            "type": "str",
+            "required": false,
+            "description": "Nova Act API密钥（method=nova_act时必需）"
+          },
+          {
+            "name": "region",
+            "type": "str",
+            "required": false,
+            "description": "AWS区域",
+            "default": "us-west-2"
+          },
+          {
+            "name": "max_concurrent",
+            "type": "int",
+            "required": false,
+            "description": "最大并发数",
+            "default": "3"
+          }
+        ],
+        "output_format": {
+          "type": "JSON string",
+          "description": "包含所有URL的采集结果",
+          "example": "{\"status\": \"success\", \"total\": 10, \"success\": 9, \"failed\": 1, \"results\": [{\"url\": \"...\", \"data\": {...}}, ...]}"
+        },
+        "use_cases": [
+          "批量产品信息采集",
+          "多个新闻网站内容抓取",
+          "竞品价格监控",
+          "批量网页截图"
+        ],
+        "error_handling": [
+          "单个URL失败不影响其他",
+          "并发控制防止资源耗尽",
+          "部分失败结果记录",
+          "超时URL跳过处理"
+        ]
+      }
+    ],
+    
+    "dependencies": [
+      {
+        "package": "bedrock-agentcore",
+        "version": ">=1.0.0",
+        "purpose": "Amazon Bedrock AgentCore浏览器客户端和会话管理"
+      },
+      {
+        "package": "nova-act",
+        "version": ">=0.1.0",
+        "purpose": "Nova Act API集成，支持Playwright actuation"
+      },
+      {
+        "package": "browser-use",
+        "version": ">=0.1.0",
+        "purpose": "AI驱动的浏览器自动化库"
+      },
+      {
+        "package": "langchain-aws",
+        "version": ">=0.1.0",
+        "purpose": "ChatBedrockConverse模型集成"
+      },
+      {
+        "package": "boto3",
+        "version": ">=1.26.0",
+        "purpose": "AWS SDK，用于区域配置和会话管理"
+      },
+      {
+        "package": "rich",
+        "version": ">=13.0.0",
+        "purpose": "终端输出美化和进度显示"
+      },
+      {
+        "package": "playwright",
+        "version": ">=1.40.0",
+        "purpose": "浏览器自动化底层支持（通过Nova Act使用）"
+      },
+      {
+        "package": "asyncio",
+        "version": "builtin",
+        "purpose": "异步操作支持"
+      }
+    ],
+    
+    "constraints": {
+      "technical": [
+        "必须使用@tool装饰器符合Strands SDK规范",
+        "所有工具函数必须返回JSON字符串或错误信息字符串",
+        "异步函数需要正确处理事件循环",
+        "CDP WebSocket连接需要正确的headers配置",
+        "DCV viewer需要Amazon DCV SDK文件支持",
+        "浏览器会话必须正确创建和销毁，防止资源泄漏",
+        "Nova Act需要有效的API密钥",
+        "Bedrock模型调用需要适当的IAM权限",
+        "browser-use需要持久化会话支持（keep_alive=True）"
+      ],
+      "business": [
+        "工具应支持连续多步骤操作，特别是数据采集任务",
+        "提供清晰的错误信息和操作日志",
+        "支持实时监控和人工干预",
+        "批量操作应支持并发控制",
+        "所有工具必须注册到status.yaml",
+        "必须生成完整的README.md使用文档",
+        "工具应易于集成到Agent工作流中"
+      ]
+    },
+    
+    "success_criteria": [
+      "所有5个功能需求（FR-001至FR-005）完整实现",
+      "每个工具函数都有@tool装饰器并返回JSON字符串",
+      "成功集成Nova Act和Browser Use两种自动化方式",
+      "实时视图功能正常工作，支持多种显示尺寸",
+      "会话管理器能正确创建、查询和销毁会话",
+      "批量采集功能支持并发控制和错误恢复",
+      "所有依赖包正确安装并可用",
+      "通过至少3个典型使用场景的测试",
+      "生成完整的README.md文档，包含所有工具的使用示例",
+      "代码符合Tool Build Workflow规范，存储在正确目录"
+    ],
+    
+    "technical_specifications": {
+      "browser_session_lifecycle": {
+        "description": "浏览器会话生命周期管理",
+        "steps": [
+          "1. 使用BrowserClient(region)创建客户端",
+          "2. 调用client.start()启动浏览器",
+          "3. 使用client.generate_ws_headers()获取WebSocket连接信息",
+          "4. 创建NovaAct或BrowserSession实例",
+          "5. 执行自动化任务",
+          "6. 调用client.stop()清理资源"
+        ]
+      },
+      "nova_act_integration": {
+        "description": "Nova Act集成规范",
+        "configuration": {
+          "cdp_endpoint_url": "从browser_session获取的WebSocket URL",
+          "cdp_headers": "从browser_session获取的headers",
+          "preview": {"playwright_actuation": true},
+          "nova_act_api_key": "用户提供的API密钥",
+          "starting_page": "起始URL"
+        },
+        "usage_pattern": "使用with NovaAct(...) as nova_act上下文管理器"
+      },
+      "browser_use_integration": {
+        "description": "Browser Use集成规范",
+        "configuration": {
+          "browser_profile": "包含headers和timeout的BrowserProfile",
+          "browser_session": "持久化会话（keep_alive=True）",
+          "llm": "ChatBedrockConverse模型实例",
+          "task": "自然语言任务描述"
+        },
+        "async_pattern": "使用await agent.run()执行任务"
+      },
+      "live_viewer_configuration": {
+        "description": "DCV实时视图配置",
+        "setup": {
+          "server": "BrowserViewerServer(client, port=8000)",
+          "display_sizes": ["720p", "900p", "1080p", "1440p"],
+          "default_size": "1600×900",
+          "control_features": ["take_control", "release_control"]
+        }
+      },
+      "error_handling_strategy": {
+        "description": "统一错误处理策略",
+        "patterns": [
+          "所有工具函数使用try-except捕获异常",
+          "返回格式：{\"status\": \"error\", \"error_type\": \"...\", \"message\": \"...\"}",
+          "使用rich.console记录详细错误日志",
+          "异步函数使用suppress(Exception)安全清理资源"
+        ]
+      }
+    },
+    
+    "reference_code_analysis": {
+      "basic_browser_with_nova_act": {
+        "key_patterns": [
+          "使用browser_session上下文管理器",
+          "generate_ws_headers()获取CDP连接信息",
+          "NovaAct上下文管理器执行操作",
+          "返回result对象包含response属性"
+        ],
+        "improvements_needed": [
+          "添加@tool装饰器",
+          "返回JSON字符串而非对象",
+          "增强错误处理和日志记录",
+          "支持可选参数和默认值"
+        ]
+      },
+      "live_view_with_nova_act": {
+        "key_patterns": [
+          "BrowserViewerServer启动实时视图",
+          "支持open_browser自动打开",
+          "结果写入文件（result.txt）",
+          "显示viewer URL供用户访问"
+        ],
+        "improvements_needed": [
+          "添加@tool装饰器",
+          "返回JSON字符串包含viewer_url",
+          "可配置viewer端口",
+          "优化资源清理流程"
+        ]
+      },
+      "live_view_with_browser_use": {
+        "key_patterns": [
+          "异步函数使用asyncio.run()",
+          "BrowserSession持久化（keep_alive=True）",
+          "ChatBedrockConverse模型集成",
+          "Agent执行任务await agent.run()",
+          "使用suppress(Exception)安全关闭会话"
+        ],
+        "improvements_needed": [
+          "添加@tool装饰器（需要同步包装）",
+          "返回JSON字符串格式",
+          "支持批量任务执行",
+          "增加超时和重试机制"
+        ]
+      }
+    }
+  }
+}

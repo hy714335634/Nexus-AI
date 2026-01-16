@@ -1,0 +1,446 @@
+# 生命科学新闻数据源配置
+# 该配置文件定义了新闻采集的数据源、分类规则和其他参数
+
+# 数据源配置
+data_sources:
+  # SerpAPI Google Search（AWS SA/BD 视角优化）
+  serpapi:
+    enabled: true
+    api_key: "b64547286d019790973ecdb4bd84d64ee64be4a4786f6f626625e1ac2c57ce2f"  # 支持环境变量覆盖
+    queries:
+      # AI与大模型技术突破（重点关注）
+      - "AIDD AI药物发现 最新进展"
+      - "AlphaFold 蛋白质结构 研究"
+      - "医疗大模型 发布 应用"
+      - "AI制药 药物发现 突破"
+      - "生成式AI 生命科学 药物设计"
+      - "生命科学 生物医药 出海"
+      # 高性能计算与科研
+      - "基因测序 NGS 突破"
+      - "单细胞测序 空间组学"
+      - "计算生物学 分子模拟"
+      # 投融资动态（关注潜在客户）
+      - "生物医药 融资 IPO 2026"
+      - "创新药企业 投资 并购"
+      - "Biotech 融资 最新"
+      # 新药研发与临床
+      - "创新药 研发 管线 进展"
+      - "临床试验 获批 新药"
+      # 行业动态
+      - "生命科学 行业动态 最新"
+      - "医疗健康 创新 技术 突破"
+    num_results: 100
+    time_range: "w"  # d=天, w=周, m=月
+    language: "zh-cn"
+    country: "cn"
+
+  # 医疗资讯网站列表（已验证有效 2026-01-07）
+  websites:
+    # ==================== 推荐数据源（已验证可用） ====================
+    
+    # 健康界 - 推荐优先采集 ✅ 已验证
+    cn_healthcare:
+      name: "健康界"
+      url: "https://www.cn-healthcare.com/"
+      enabled: true
+      priority: 1
+      method: "playwright"
+      wait_time: 6000
+      verified: true
+      article_selectors:
+        container: ".news-item, .article-item"
+        title: "h3, h2, .title"
+        link: "a"
+        date: ".date, .time, .meta"
+        snippet: ".summary, .desc, p"
+      patterns:
+        article_url: "/article/"
+        list_url: "/newslist"
+    
+    # 生物谷 ✅ 已验证
+    bioon:
+      name: "生物谷"
+      url: "https://www.bioon.com/"
+      enabled: true
+      priority: 1
+      method: "playwright"
+      wait_time: 3000
+      verified: true
+      article_selectors:
+        container: ".news-list li, .article-item"
+        title: ".title, h3"
+        link: "a"
+        date: ".date, .time"
+        snippet: ".desc, .content"
+      patterns:
+        article_url: "/article/"
+        news_url: "/news/"
+    
+    # 动脉网 ✅ 已验证（新域名）
+    vbdata:
+      name: "动脉网"
+      url: "https://www.vbdata.cn/"
+      enabled: true
+      priority: 1
+      method: "playwright"
+      wait_time: 3000
+      verified: true
+      note: "原vcbeat.top已重定向到vbdata.cn"
+      article_selectors:
+        container: ".article-item, .news-item"
+        title: ".title, h3"
+        link: "a"
+        date: ".date, .time"
+        snippet: ".summary, .desc"
+    
+    # 科学网-生命科学 ✅ 已验证
+    sciencenet:
+      name: "科学网-生命科学"
+      url: "https://news.sciencenet.cn/life/"
+      enabled: true
+      priority: 2
+      method: "static"
+      timeout: 30
+      verified: true
+      article_selectors:
+        container: ".news_list li"
+        title: "a"
+        link: "a"
+        date: ".news_time"
+    
+    # Endpoints News ✅ 已验证（英文，专业生物医药）
+    endpoints:
+      name: "Endpoints News"
+      url: "https://endpoints.news/"
+      enabled: true
+      priority: 2
+      method: "playwright"
+      wait_time: 3000
+      verified: true
+      language: "en"
+      note: "英文专业医药新闻，高质量内容"
+      article_selectors:
+        container: "article, .article-item"
+        title: "h2, h3, .title"
+        link: "a"
+        date: ".date, time"
+        snippet: ".excerpt, .summary"
+    
+    # Fierce Pharma ✅ 已验证（英文，医药行业）
+    fiercepharma:
+      name: "Fierce Pharma"
+      url: "https://www.fiercepharma.com/"
+      enabled: true
+      priority: 2
+      method: "playwright"
+      wait_time: 3000
+      verified: true
+      language: "en"
+      note: "英文医药行业新闻"
+      article_selectors:
+        container: "article, .article-item"
+        title: "h2, h3"
+        link: "a"
+        date: ".date, time"
+        snippet: ".summary, .excerpt"
+    
+    # ==================== 备选数据源（可能不稳定） ====================
+    
+    # 医药魔方 ⚠️ /news页面失效，主站可访问
+    pharmcube:
+      name: "医药魔方"
+      url: "https://www.pharmcube.com/"
+      enabled: false  # /news 页面返回错误
+      priority: 3
+      method: "playwright"
+      wait_time: 3000
+      verified: false
+      note: "/news页面返回Whitelabel Error，需要找新的新闻入口"
+    
+    # 36氪 ⚠️ 医疗频道URL失效
+    36kr:
+      name: "36氪"
+      url: "https://36kr.com/"
+      enabled: false  # /information/healthcare/ 返回错误页
+      priority: 3
+      method: "playwright"
+      wait_time: 3000
+      verified: false
+      note: "医疗健康频道URL变更，需更新"
+    
+    # 亿欧 ⚠️ 健康频道URL失效
+    iyiou:
+      name: "亿欧"
+      url: "https://www.iyiou.com/"
+      enabled: false  # /jiankang 页面不存在
+      priority: 3
+      method: "playwright"
+      wait_time: 3000
+      verified: false
+      note: "有医疗健康频道但URL变更"
+    
+    # ==================== 已禁用数据源 ====================
+    
+    # 丁香园 ❌ 需要人机验证
+    dxy:
+      name: "丁香园"
+      url: "https://www.dxy.cn/"
+      enabled: false
+      priority: 4
+      method: "playwright"
+      wait_time: 5000
+      verified: false
+      note: "需要人机验证，建议通过SerpAPI搜索丁香园内容"
+    
+    # 医学界 ❌ 反爬措施
+    yxj:
+      name: "医学界"
+      url: "https://www.yxj.org.cn/"
+      enabled: false
+      priority: 4
+      note: "有反爬措施"
+    
+    # 医谷 ❌ 域名失效
+    yigoo:
+      name: "医谷"
+      url: "https://www.yigoonet.com/"
+      enabled: false
+      priority: 4
+      note: "域名无法解析"
+    
+    # 药智网 ❌ 响应慢
+    yaozh:
+      name: "药智网"
+      url: "https://www.yaozh.com/"
+      enabled: false
+      priority: 4
+      note: "网站响应非常慢"
+
+# 采集参数
+collection:
+  max_concurrent: 5  # 最大并发数
+  default_timeout: 30  # 默认超时时间（秒）
+  retry_count: 2  # 重试次数
+  retry_delay: 2  # 重试间隔（秒）
+  max_articles_per_source: 20  # 每个数据源最大文章数
+  total_max_articles: 100  # 总最大文章数
+  dedup_strategy: "url"  # 去重策略: url / title / both
+
+# 分类规则（AWS SA/BD 视角）
+# 关注点：客户需求洞察、行业动态、新技术对行业的影响、潜在商机
+categories:
+  AI与大模型技术突破:
+    description: "关注改变行业格局的AI技术突破，如AlphaFold、医疗大模型、AIDD等"
+    keywords:
+      - "AlphaFold"
+      - "大模型"
+      - "LLM"
+      - "GPT"
+      - "Claude"
+      - "AI制药"
+      - "AIDD"
+      - "蛋白质预测"
+      - "生成式AI"
+      - "基础模型"
+      - "foundation model"
+      - "深度学习"
+      - "机器学习"
+      - "神经网络"
+      - "AI诊断"
+      - "医疗AI"
+      - "计算生物学"
+      - "分子模拟"
+      - "药物设计AI"
+      - "虚拟筛选"
+      - "分子生成"
+    icon: "🤖"
+    color: "#3498DB"
+    priority: 1
+  
+  高性能计算与科研:
+    description: "HPC、科学计算需求，AWS在科研领域的机会"
+    keywords:
+      - "高性能计算"
+      - "HPC"
+      - "超算"
+      - "GPU"
+      - "分子动力学"
+      - "基因测序"
+      - "NGS"
+      - "生物信息学"
+      - "计算化学"
+      - "蛋白质折叠"
+      - "单细胞测序"
+      - "空间组学"
+      - "多组学"
+      - "大规模计算"
+      - "并行计算"
+    icon: "⚡"
+    color: "#9B59B6"
+    priority: 2
+  
+  数据合规与安全:
+    description: "数据安全需求，合规要求，AWS安全服务的机会"
+    keywords:
+      - "数据安全"
+      - "合规"
+      - "HIPAA"
+      - "等保"
+      - "数据出境"
+      - "隐私保护"
+      - "数据脱敏"
+      - "联邦学习"
+      - "隐私计算"
+      - "可信执行环境"
+      - "数据主权"
+      - "GxP"
+      - "21 CFR Part 11"
+      - "FDA合规"
+    icon: "🔒"
+    color: "#E74C3C"
+    priority: 2
+  
+  投融资与行业并购:
+    description: "潜在客户动态，行业整合趋势，大客户商机"
+    keywords:
+      - "融资"
+      - "IPO"
+      - "上市"
+      - "并购"
+      - "收购"
+      - "投资"
+      - "估值"
+      - "Pre-IPO"
+      - "A轮"
+      - "B轮"
+      - "C轮"
+      - "战略投资"
+      - "独角兽"
+      - "出海"
+      - "license-out"
+      - "license-in"
+    icon: "💰"
+    color: "#27AE60"
+    priority: 2
+  
+  新药研发与临床:
+    description: "药企客户的核心业务动态，了解客户需求"
+    keywords:
+      - "新药"
+      - "研发"
+      - "临床试验"
+      - "IND"
+      - "NDA"
+      - "BLA"
+      - "管线"
+      - "靶点"
+      - "药物发现"
+      - "创新药"
+      - "仿制药"
+      - "生物类似药"
+      - "ADC"
+      - "双抗"
+      - "mRNA"
+      - "核酸药物"
+      - "细胞治疗"
+      - "基因治疗"
+    icon: "💊"
+    color: "#FF6B6B"
+    priority: 3
+  
+  医疗器械与智能硬件:
+    description: "IoT、边缘计算、设备上云等场景机会"
+    keywords:
+      - "医疗器械"
+      - "可穿戴设备"
+      - "IoT"
+      - "物联网"
+      - "智能硬件"
+      - "远程监测"
+      - "影像设备"
+      - "诊断设备"
+      - "POCT"
+      - "IVD"
+      - "手术机器人"
+      - "数字疗法"
+      - "DTx"
+    icon: "🔬"
+    color: "#FFB946"
+    priority: 3
+  
+  政策监管动态:
+    description: "影响行业的政策变化，可能带来的IT需求变化"
+    keywords:
+      - "政策"
+      - "监管"
+      - "药监局"
+      - "NMPA"
+      - "FDA"
+      - "医保"
+      - "集采"
+      - "带量采购"
+      - "审批"
+      - "注册"
+      - "改革"
+      - "指南"
+      - "标准"
+    icon: "📜"
+    color: "#4A90D9"
+    priority: 3
+
+# 摘要生成参数（AWS SA/BD 视角）
+summary:
+  min_length: 100
+  max_length: 250
+  max_sentences: 4
+  language: "zh-CN"
+  # 摘要应包含的元素
+  required_elements:
+    - "核心事件描述"
+    - "涉及的公司/机构"
+    - "行业影响分析"
+    - "AWS业务机会洞察（如适用）"
+  # AWS 相关关键词（用于识别商业机会）
+  aws_opportunity_keywords:
+    - "云计算"
+    - "数字化转型"
+    - "AI"
+    - "机器学习"
+    - "大模型"
+    - "HPC"
+    - "高性能计算"
+    - "数据分析"
+    - "数据湖"
+    - "数据仓库"
+    - "IoT"
+    - "边缘计算"
+
+# S3上传配置
+s3:
+  bucket: "hcls-newsletter"
+  region: "us-west-2"
+  prefix: "reports"
+  presign_expiry: 604800  # 7天（秒）
+  content_type: "text/html"
+
+# 报告模板配置（AWS SA/BD 视角）
+report:
+  template_path: "case/newsletter_template.html"
+  title_format: "生命科学行业洞察周报 - {date}"
+  subtitle: "AWS SA/BD 团队专属"
+  date_format: "%Y年%m月%d日"
+  max_articles_per_category: 10
+  show_source_stats: true
+  show_category_distribution: true
+  # 报告特色板块
+  sections:
+    - name: "🎯 本周关键发现"
+      description: "从AWS业务角度筛选的重要新闻"
+      max_items: 5
+    - name: "💡 商业机会提示"
+      description: "潜在的AWS业务机会"
+      max_items: 3
+    - name: "🔮 趋势预测"
+      description: "行业发展趋势和技术演进方向"
+      max_items: 3
+

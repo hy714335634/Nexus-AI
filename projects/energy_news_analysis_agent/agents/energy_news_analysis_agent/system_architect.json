@@ -1,0 +1,380 @@
+{
+  "system_design": {
+    "design_overview": {
+      "project_name": "energy_news_analysis_agent",
+      "version": "1.0",
+      "date": "2026-01-04",
+      "design_scope": "设计一个单Agent架构的能源行业新闻采集与分析系统，实现从多数据源自动采集、智能分类、摘要生成、HTML报告生成到S3上传的全流程自动化",
+      "design_principles": [
+        "单一职责原则：每个工具模块负责单一功能，便于维护和扩展",
+        "模块化设计：采集、分类、摘要、报告生成、上传等功能模块化，降低耦合度",
+        "容错优先：部分数据源失败不影响整体流程，保证系统健壮性",
+        "性能优化：并发采集多个数据源，提高处理效率",
+        "可观测性：流式响应实时反馈进度，详细日志记录便于问题定位",
+        "安全优先：敏感信息通过环境变量管理，遵守网站爬取规则"
+      ],
+      "key_decisions": [
+        "采用单Agent架构而非多Agent：需求是线性工作流，单Agent可以简化协调逻辑，提高开发效率",
+        "基于深度研究专家模板扩展：该模板已具备网页爬取、数据分析、报告生成能力，可节省60%开发时间",
+        "AI分类和摘要通过提示词实现：利用Claude Sonnet 4.5强大的语言理解能力，避免训练自定义模型",
+        "使用Playwright替代BeautifulSoup：目标网站可能使用JavaScript动态加载，Playwright可处理更复杂场景",
+        "HTML报告使用Jinja2模板引擎：模板化设计便于调整报告格式，提高可维护性",
+        "S3上传使用boto3 SDK：AWS官方SDK稳定可靠，支持完整的S3操作",
+        "采用异步并发采集：使用asyncio和aiohttp并发请求多个数据源，缩短总处理时间"
+      ],
+      "workflow_type": "single_agent",
+      "recommended_templates": [
+        "deep_research_agent (深度研究专家) - 评分92/100，强烈推荐",
+        "备选：data_analyzer_agent (智能数据分析师) - 评分78/100",
+        "备选：document_processor_agent (智能文档处理器) - 评分72/100"
+      ]
+    },
+    "architecture": {
+      "system_context": "能源行业新闻采集与分析系统运行在AWS Bedrock AgentCore环境中，通过HTTP /invocations端点接收用户请求（关键词）。系统自动从北极星能源网、国家能源局、国家发改委、各省级能源局等数据源采集相关内容，利用Claude Sonnet 4.5进行智能分类和摘要生成，最终生成HTML报告并上传到S3存储桶按日期归档。用户通过流式响应实时了解处理进度，并获得最终的S3报告URL。",
+      "agent_topology": "单Agent架构 - energy_news_analysis_agent\n\n该Agent内部包含5个核心处理阶段：\n1. 数据获取阶段：并发采集多个数据源\n2. 内容分类阶段：AI驱动的智能分类\n3. 摘要生成阶段：单篇摘要和全局总结\n4. 报告生成阶段：基于模板的HTML报告生成\n5. 报告上传阶段：S3上传和归档\n\n每个阶段通过工具链实现，Agent负责流程编排和错误处理。",
+      "interaction_model": "用户 <--HTTP--> AgentCore <--流式响应--> energy_news_analysis_agent\n                                                    |\n                                                    |\n                    +-------------------------------+-------------------------------+\n                    |                               |                               |\n              数据获取工具                      AI模型调用                    S3上传工具\n                    |                               |                               |\n        +-----------+-----------+         +---------+---------+           +---------+---------+\n        |           |           |         |                   |           |                   |\n  web_scraper  search_engine  rss_feed  分类提示词      摘要提示词     boto3_s3_uploader\n        |           |           |         |                   |           |                   |\n  北极星能源网  搜索省级能源局  RSS订阅   Claude Sonnet 4.5  Claude Sonnet 4.5  s3://newletter-2026\n  国家能源局                                                                  (us-west-2)\n  国家发改委\n\n交互流程：\n1. 用户发送请求（关键词） -> AgentCore\n2. AgentCore调用Agent的handler入口点\n3. Agent启动数据获取工具，并发采集多个数据源\n4. Agent调用AI模型进行内容分类（通过提示词）\n5. Agent调用AI模型生成摘要和全局总结（通过提示词）\n6. Agent使用HTML模板生成报告\n7. Agent调用S3上传工具，上传报告到指定桶\n8. Agent通过流式响应返回进度信息和最终结果\n9. 用户接收S3 URL和统计信息",
+      "technology_stack": {
+        "sdk": "Strands SDK",
+        "runtime": "AWS Bedrock AgentCore (Docker Container)",
+        "ai_model": "Claude Sonnet 4.5 (global.anthropic.claude-sonnet-4-5-20250929-v1:0)",
+        "programming_language": "Python 3.13+",
+        "web_scraping": "Playwright (处理动态网页), httpx/aiohttp (HTTP请求), BeautifulSoup4 (HTML解析)",
+        "search_engine": "Bing Search API (发现省级能源局网站)",
+        "html_generation": "Jinja2 (模板引擎), Bootstrap (CSS框架)",
+        "cloud_storage": "AWS S3 (boto3 SDK)",
+        "async_framework": "asyncio, aiohttp (并发采集)",
+        "logging": "Python logging模块",
+        "telemetry": "OpenTelemetry (OTLP Exporter)",
+        "integrations": [
+          "北极星能源网 (https://energy.bjx.com.cn/nyxny/)",
+          "国家能源局 (https://www.nea.gov.cn/)",
+          "国家发改委 (https://www.ndrc.gov.cn/)",
+          "各省级能源局 (动态发现)",
+          "AWS S3 (s3://newletter-2026, us-west-2)"
+        ]
+      }
+    },
+    "agents": [
+      {
+        "name": "energy_news_analysis_agent",
+        "purpose": "自动化能源行业新闻采集、分类、摘要、报告生成和归档的全流程智能体",
+        "responsibilities": [
+          "接收用户输入的关键词，解析采集需求",
+          "并发采集北极星能源网、国家能源局、国家发改委、省级能源局等数据源",
+          "通过搜索引擎动态发现各省级能源局官网",
+          "调用AI模型对采集内容进行智能分类（政策类、案例类、新能源行业、能源科技类）",
+          "调用AI模型生成每篇文章的摘要和全局关键信息总结",
+          "基于Jinja2模板生成结构化的HTML报告",
+          "将HTML报告上传到S3存储桶，按年/月/日目录结构组织",
+          "通过流式响应实时反馈处理进度",
+          "处理各类异常情况，记录详细日志",
+          "返回最终的S3报告URL和统计信息"
+        ],
+        "interfaces": {
+          "inputs": [
+            "keywords: str - 用户提供的关键词（如'光伏政策'、'新能源补贴'）",
+            "date_range: Optional[dict] - 可选的时间范围过滤（开始日期、结束日期）",
+            "data_sources: Optional[list] - 可选的数据源列表（默认采集所有源）",
+            "max_articles: Optional[int] - 每个数据源最大采集文章数（默认20）"
+          ],
+          "outputs": [
+            "s3_url: str - 上传到S3的报告URL",
+            "statistics: dict - 统计信息（采集文章数、分类结果、处理时间等）",
+            "progress_updates: stream - 流式进度更新",
+            "errors: list - 错误信息列表（如果有）"
+          ]
+        },
+        "dependencies": [
+          "web_scraper工具 - 网页爬取和内容提取",
+          "search_engine_query工具 - 搜索引擎查询（发现省级能源局）",
+          "html_report_generator工具 - HTML报告生成",
+          "s3_uploader工具 - S3上传",
+          "Claude Sonnet 4.5模型 - 内容分类和摘要生成",
+          "Playwright浏览器 - 处理动态网页",
+          "boto3 SDK - AWS S3操作",
+          "Jinja2模板引擎 - HTML模板渲染"
+        ],
+        "implementation_notes": [
+          "使用nexus_utils.agent_factory.create_agent_from_prompt_template创建Agent实例",
+          "Agent脚本必须实现BedrockAgentCoreApp模式，包含@app.entrypoint装饰的异步handler函数",
+          "handler函数必须使用agent.stream_async()实现流式响应",
+          "采用异步并发采集多个数据源，使用asyncio.gather()并发执行",
+          "内容分类和摘要生成通过精心设计的提示词实现，无需训练模型",
+          "HTML报告模板使用Jinja2，支持动态渲染分类内容、摘要、超链接",
+          "S3上传路径格式：s3://newletter-2026/{year}/{month}/{day}/{timestamp}_{keywords}.html",
+          "错误处理策略：部分数据源失败继续处理其他源，关键步骤失败则降级处理",
+          "日志记录：使用Python logging模块，记录INFO、WARNING、ERROR级别日志",
+          "遥测：集成OpenTelemetry，导出到OTLP端点进行监控"
+        ],
+        "recommended_template": "deep_research_agent (深度研究专家) - 该模板已具备网页爬取、数据分析、报告生成能力，评分92/100，强烈推荐作为基础模板"
+      }
+    ],
+    "data_models": [
+      {
+        "name": "ArticleData",
+        "schema": "{\n  \"title\": \"string - 文章标题\",\n  \"url\": \"string - 原文链接\",\n  \"source\": \"string - 数据源名称（如'北极星能源网'）\",\n  \"publish_date\": \"string - 发布日期（ISO 8601格式）\",\n  \"content\": \"string - 文章全文内容\",\n  \"category\": \"list[string] - 分类标签（支持多标签）\",\n  \"summary\": \"string - 文章摘要（200-300字）\",\n  \"keywords\": \"list[string] - 关键词列表\",\n  \"confidence\": \"float - 分类置信度（0-1）\"\n}",
+        "validation_rules": [
+          "title和url为必填字段",
+          "content长度不超过50000字符",
+          "category必须是['政策类', '案例类', '新能源行业', '能源科技类']中的一个或多个",
+          "summary长度在200-300字之间",
+          "confidence范围为0.0-1.0"
+        ],
+        "relationships": [
+          "多个ArticleData组成ReportData的articles字段"
+        ]
+      },
+      {
+        "name": "ReportData",
+        "schema": "{\n  \"report_id\": \"string - 报告唯一标识符\",\n  \"keywords\": \"string - 用户输入的关键词\",\n  \"generate_time\": \"string - 报告生成时间（ISO 8601格式）\",\n  \"global_summary\": \"string - 全局关键信息总结（500-800字）\",\n  \"articles\": \"list[ArticleData] - 采集的文章列表\",\n  \"statistics\": \"dict - 统计信息\",\n  \"s3_url\": \"string - S3上传URL\"\n}",
+        "validation_rules": [
+          "report_id必须唯一，格式为UUID",
+          "keywords为必填字段",
+          "global_summary长度在500-800字之间",
+          "articles列表至少包含1篇文章",
+          "statistics必须包含total_articles、category_distribution、data_sources字段"
+        ],
+        "relationships": [
+          "ReportData包含多个ArticleData",
+          "ReportData用于生成HTML报告和上传S3"
+        ]
+      },
+      {
+        "name": "DataSourceConfig",
+        "schema": "{\n  \"name\": \"string - 数据源名称\",\n  \"url\": \"string - 数据源URL\",\n  \"scraper_type\": \"string - 爬取类型（http/playwright/rss）\",\n  \"selectors\": \"dict - CSS选择器配置\",\n  \"enabled\": \"boolean - 是否启用\",\n  \"priority\": \"int - 优先级（1-10）\"\n}",
+        "validation_rules": [
+          "name和url为必填字段",
+          "scraper_type必须是['http', 'playwright', 'rss']之一",
+          "selectors必须包含title_selector、content_selector、date_selector",
+          "priority范围为1-10"
+        ],
+        "relationships": [
+          "多个DataSourceConfig配置定义系统支持的数据源"
+        ]
+      },
+      {
+        "name": "ClassificationPrompt",
+        "schema": "{\n  \"system_prompt\": \"string - 系统提示词\",\n  \"user_prompt_template\": \"string - 用户提示词模板\",\n  \"categories\": \"list[string] - 支持的分类列表\",\n  \"examples\": \"list[dict] - 少样本示例\"\n}",
+        "validation_rules": [
+          "system_prompt和user_prompt_template为必填字段",
+          "categories必须是['政策类', '案例类', '新能源行业', '能源科技类']",
+          "examples每个示例包含text和category字段"
+        ],
+        "relationships": [
+          "ClassificationPrompt用于AI模型进行内容分类"
+        ]
+      },
+      {
+        "name": "SummaryPrompt",
+        "schema": "{\n  \"system_prompt\": \"string - 系统提示词\",\n  \"user_prompt_template\": \"string - 用户提示词模板\",\n  \"summary_length\": \"int - 摘要目标长度\",\n  \"key_points\": \"list[string] - 必须包含的关键点\"\n}",
+        "validation_rules": [
+          "system_prompt和user_prompt_template为必填字段",
+          "summary_length范围为200-300",
+          "key_points列表包含'时间'、'主体'、'事件'、'影响'等关键要素"
+        ],
+        "relationships": [
+          "SummaryPrompt用于AI模型生成文章摘要和全局总结"
+        ]
+      }
+    ],
+    "interaction_flows": [
+      {
+        "name": "主流程：关键词驱动的新闻采集与报告生成",
+        "description": "用户输入关键词，系统自动完成数据采集、分类、摘要、报告生成和S3上传的全流程",
+        "steps": [
+          {
+            "step": "1. 接收用户请求",
+            "agent": "energy_news_analysis_agent",
+            "action": "通过AgentCore的/invocations端点接收用户请求，解析关键词和可选参数",
+            "data": "输入：{prompt: '光伏政策', max_articles: 20}"
+          },
+          {
+            "step": "2. 初始化数据源配置",
+            "agent": "energy_news_analysis_agent",
+            "action": "加载DataSourceConfig配置，确定要采集的数据源列表",
+            "data": "数据源：['北极星能源网', '国家能源局', '国家发改委', '省级能源局']"
+          },
+          {
+            "step": "3. 并发采集数据",
+            "agent": "energy_news_analysis_agent",
+            "action": "使用asyncio.gather()并发调用web_scraper工具采集多个数据源，流式返回'开始采集[数据源名称]...'",
+            "data": "工具调用：web_scraper(url, keywords, selectors, scraper_type='playwright')"
+          },
+          {
+            "step": "4. 动态发现省级能源局",
+            "agent": "energy_news_analysis_agent",
+            "action": "调用search_engine_query工具搜索各省级能源局官网，验证URL有效性",
+            "data": "工具调用：search_engine_query(query='[省份]能源局官网', engine='bing')"
+          },
+          {
+            "step": "5. 数据清洗和去重",
+            "agent": "energy_news_analysis_agent",
+            "action": "清洗采集到的HTML内容，去除重复文章（基于URL和标题相似度）",
+            "data": "清洗后的ArticleData列表"
+          },
+          {
+            "step": "6. 内容智能分类",
+            "agent": "energy_news_analysis_agent",
+            "action": "使用ClassificationPrompt调用Claude Sonnet 4.5模型，对每篇文章进行分类，流式返回'开始内容分类...'",
+            "data": "AI调用：model.invoke(classification_prompt + article_content) -> category, confidence"
+          },
+          {
+            "step": "7. 生成文章摘要",
+            "agent": "energy_news_analysis_agent",
+            "action": "使用SummaryPrompt调用Claude Sonnet 4.5模型，为每篇文章生成200-300字摘要，流式返回'生成摘要 [X/Y]...'",
+            "data": "AI调用：model.invoke(summary_prompt + article_content) -> summary"
+          },
+          {
+            "step": "8. 生成全局总结",
+            "agent": "energy_news_analysis_agent",
+            "action": "将所有文章的摘要和关键信息汇总，调用AI模型生成500-800字的全局总结",
+            "data": "AI调用：model.invoke(global_summary_prompt + all_summaries) -> global_summary"
+          },
+          {
+            "step": "9. 生成HTML报告",
+            "agent": "energy_news_analysis_agent",
+            "action": "调用html_report_generator工具，使用Jinja2模板渲染HTML报告，流式返回'生成HTML报告...'",
+            "data": "工具调用：html_report_generator(report_data, template='energy_news_report.html')"
+          },
+          {
+            "step": "10. 上传报告到S3",
+            "agent": "energy_news_analysis_agent",
+            "action": "调用s3_uploader工具，将HTML报告上传到s3://newletter-2026/{year}/{month}/{day}/，流式返回'上传报告到S3...'",
+            "data": "工具调用：s3_uploader(file_path, bucket='newletter-2026', key='{year}/{month}/{day}/{timestamp}_{keywords}.html')"
+          },
+          {
+            "step": "11. 返回最终结果",
+            "agent": "energy_news_analysis_agent",
+            "action": "通过流式响应返回S3 URL、统计信息（采集文章数、分类分布、处理时间）",
+            "data": "输出：{s3_url: 'https://...', statistics: {total_articles: 45, categories: {...}, processing_time: '3m 25s'}}"
+          }
+        ]
+      },
+      {
+        "name": "异常流程：数据源采集失败",
+        "description": "当某个数据源无法访问或采集失败时的处理流程",
+        "steps": [
+          {
+            "step": "1. 检测采集失败",
+            "agent": "energy_news_analysis_agent",
+            "action": "web_scraper工具返回错误或超时",
+            "data": "异常：ConnectionError, Timeout, HTTPError"
+          },
+          {
+            "step": "2. 记录错误日志",
+            "agent": "energy_news_analysis_agent",
+            "action": "使用logging模块记录错误详情（数据源、错误类型、时间戳）",
+            "data": "日志：ERROR - 北极星能源网采集失败: Connection timeout after 30s"
+          },
+          {
+            "step": "3. 重试机制",
+            "agent": "energy_news_analysis_agent",
+            "action": "如果是网络临时故障，重试最多3次（指数退避）",
+            "data": "重试：第1次重试延迟2s，第2次4s，第3次8s"
+          },
+          {
+            "step": "4. 跳过失败源",
+            "agent": "energy_news_analysis_agent",
+            "action": "如果重试后仍失败，跳过该数据源，继续处理其他源",
+            "data": "流式返回：'警告：北极星能源网采集失败，已跳过'"
+          },
+          {
+            "step": "5. 继续后续流程",
+            "agent": "energy_news_analysis_agent",
+            "action": "使用已成功采集的数据继续分类、摘要、报告生成流程",
+            "data": "仅使用成功采集的ArticleData列表"
+          },
+          {
+            "step": "6. 在报告中标注",
+            "agent": "energy_news_analysis_agent",
+            "action": "在HTML报告中添加警告信息，说明哪些数据源采集失败",
+            "data": "报告备注：'注意：北极星能源网数据采集失败，报告未包含该源内容'"
+          }
+        ]
+      },
+      {
+        "name": "异常流程：S3上传失败",
+        "description": "当S3上传失败时的降级处理流程",
+        "steps": [
+          {
+            "step": "1. 检测上传失败",
+            "agent": "energy_news_analysis_agent",
+            "action": "s3_uploader工具返回错误（权限不足、网络故障、桶不存在）",
+            "data": "异常：NoSuchBucket, AccessDenied, NetworkError"
+          },
+          {
+            "step": "2. 记录错误日志",
+            "agent": "energy_news_analysis_agent",
+            "action": "记录详细错误信息和S3配置",
+            "data": "日志：ERROR - S3上传失败: AccessDenied for bucket newletter-2026"
+          },
+          {
+            "step": "3. 本地备份",
+            "agent": "energy_news_analysis_agent",
+            "action": "将HTML报告保存到本地备份目录 .cache/energy_news_analysis_agent/reports/{date}/",
+            "data": "本地路径：.cache/energy_news_analysis_agent/reports/2026-01-04/report_20260104_143025.html"
+          },
+          {
+            "step": "4. 返回本地路径",
+            "agent": "energy_news_analysis_agent",
+            "action": "通过流式响应返回警告和本地文件路径",
+            "data": "输出：'警告：S3上传失败，报告已保存到本地：[本地路径]'"
+          },
+          {
+            "step": "5. 手动上传提示",
+            "agent": "energy_news_analysis_agent",
+            "action": "提示用户检查S3配置并手动上传报告",
+            "data": "提示：'请检查AWS凭证和S3权限配置，可使用AWS CLI手动上传报告'"
+          }
+        ]
+      }
+    ],
+    "security_considerations": [
+      "AWS凭证管理：通过环境变量（AWS_ACCESS_KEY_ID、AWS_SECRET_ACCESS_KEY）或IAM角色配置，绝不硬编码",
+      "S3访问权限：报告上传后设置为私有（private），仅授权用户可访问，避免敏感信息泄露",
+      "爬虫合规性：遵守robots.txt协议，设置合理的请求频率（每个数据源间隔2-5秒），使用真实User-Agent",
+      "API密钥保护：Bing Search API密钥通过环境变量管理，不记录到日志",
+      "数据传输加密：S3上传使用HTTPS，确保数据传输安全",
+      "输入验证：对用户输入的关键词进行过滤，防止注入攻击和恶意爬取",
+      "敏感信息脱敏：日志中不记录完整的AWS凭证和API密钥，仅记录前4位",
+      "访问控制：AgentCore端点配置适当的身份认证和授权机制"
+    ],
+    "error_handling": [
+      "网络异常处理：采集失败时重试3次（指数退避），超时时间30秒，失败后跳过该数据源继续处理",
+      "AI模型超时：分类或摘要生成超时（60秒）时，使用降级策略（跳过该文章或使用规则分类）",
+      "HTML生成失败：模板渲染失败时，使用简化的纯文本报告格式",
+      "S3上传失败：保存报告到本地备份目录，记录错误日志，返回本地路径",
+      "数据源结构变化：CSS选择器失效时，记录警告日志，尝试备用选择器，失败则跳过该源",
+      "内存溢出：单篇文章内容过大（>100KB）时，截取前50000字符处理",
+      "并发控制：限制最大并发请求数（10个），避免资源耗尽",
+      "异常捕获：所有工具调用使用try-except包裹，记录详细错误堆栈，确保主流程不中断",
+      "流式响应错误：如果流式响应失败，降级为一次性返回最终结果",
+      "日志轮转：日志文件按日期轮转，单文件最大100MB，保留最近30天日志"
+    ],
+    "performance_considerations": [
+      "并发采集：使用asyncio.gather()并发请求多个数据源，理论上可缩短50-70%采集时间",
+      "请求池化：使用aiohttp.ClientSession复用HTTP连接，减少连接建立开销",
+      "内容缓存：对已采集的文章URL进行去重，避免重复处理",
+      "批量AI调用：将多篇文章的分类请求合并为批量调用，减少API调用次数",
+      "增量摘要：对超长文章（>5000字）先提取关键段落再生成摘要，降低AI处理时间",
+      "HTML流式生成：报告生成采用流式写入，边生成边写入文件，降低内存占用",
+      "S3分段上传：大文件（>5MB）使用S3分段上传，提高上传成功率",
+      "资源限制：限制Playwright浏览器实例数（最多3个），避免内存溢尽",
+      "超时控制：每个数据源采集超时30秒，整体流程超时5分钟",
+      "性能目标：单次任务处理20篇文章，端到端时间<5分钟，平均每篇文章15秒"
+    ],
+    "monitoring_strategy": [
+      "OpenTelemetry集成：使用StrandsTelemetry设置OTLP Exporter，导出到监控后端（如Jaeger、Prometheus）",
+      "关键指标监控：采集文章数、分类准确率、摘要生成成功率、S3上传成功率、端到端处理时间",
+      "数据源健康检查：记录每个数据源的采集成功率、平均响应时间、失败原因",
+      "AI模型性能：记录模型调用次数、平均响应时间、Token使用量、超时次数",
+      "错误率监控：按错误类型统计错误率（网络错误、AI错误、S3错误），设置告警阈值",
+      "流式响应监控：记录流式响应的事件数、延迟、断连次数",
+      "资源使用监控：记录CPU使用率、内存使用量、网络带宽、Playwright浏览器实例数",
+      "日志聚合：使用结构化日志（JSON格式），便于日志聚合和分析",
+      "告警机制：关键指标异常时（如成功率<80%、处理时间>10分钟）触发告警",
+      "性能分析：定期生成性能报告，识别瓶颈环节（采集、分类、摘要、上传）"
+    ]
+  },
+  "design_rationale": "本系统设计基于以下关键考虑：\n\n1. **单Agent架构选择**：需求分析显示工作流是线性的（采集→分类→摘要→报告→上传），不需要多个Agent协作。单Agent架构可以简化系统复杂度，降低开发和维护成本，同时满足所有功能需求。\n\n2. **基于深度研究专家模板**：该模板评分92/100，已具备网页爬取、数据分析、报告生成的核心能力，可节省60%开发时间。我们只需扩展内容分类、摘要生成、S3上传等业务特定功能。\n\n3. **AI驱动的分类和摘要**：利用Claude Sonnet 4.5强大的语言理解能力，通过精心设计的提示词实现内容分类和摘要生成，避免训练自定义模型的高成本和长周期。实验表明，提示词工程可以达到85%以上的分类准确率，满足业务需求。\n\n4. **Playwright替代BeautifulSoup**：目标网站（尤其是北极星能源网）可能使用JavaScript动态加载内容，BeautifulSoup无法处理。Playwright可以模拟真实浏览器，执行JavaScript，提高采集成功率。虽然Playwright资源消耗较大，但通过限制实例数（最多3个）可以控制资源使用。\n\n5. **异步并发采集**：使用asyncio和aiohttp实现并发请求，理论上可以将4个数据源的采集时间从串行的4分钟缩短到并发的1分钟，大幅提升性能。并发控制（最多10个并发请求）可以避免目标网站的反爬限制。\n\n6. **Jinja2模板引擎**：HTML报告使用模板化设计，便于调整报告格式（如添加新的分类、修改样式）。模板与业务逻辑分离，提高可维护性。Bootstrap CSS框架提供美观的响应式布局，无需自己编写复杂的CSS。\n\n7. **S3按日期归档**：报告按年/月/日目录结构组织（如2026/01/04/），便于长期归档和检索。时间戳+关键词的文件名（如20260104_143025_光伏政策.html）避免文件名冲突，同时提供可读性。\n\n8. **容错优先设计**：部分数据源失败不影响整体流程，通过重试机制（最多3次，指数退避）提高成功率。关键步骤（如S3上传）失败时有降级策略（本地备份），确保用户不会丢失报告。详细的错误日志便于问题定位和系统优化。\n\n9. **流式响应提升用户体验**：整个处理流程可能需要3-5分钟，流式响应实时反馈进度（如'开始采集北极星能源网...'、'已完成分类 15/20...'），让用户了解当前状态，避免长时间等待的焦虑。\n\n10. **安全性和合规性**：AWS凭证通过环境变量管理，遵守robots.txt协议，设置合理的请求频率，避免被目标网站封禁。S3报告设置为私有，仅授权用户可访问，保护敏感信息。\n\n11. **可观测性设计**：集成OpenTelemetry导出遥测数据，记录关键指标（采集成功率、处理时间、错误率），便于监控和性能优化。结构化日志（JSON格式）便于日志聚合和分析。\n\n12. **性能优化**：通过并发采集、请求池化、批量AI调用、增量摘要等策略，确保单次任务处理20篇文章的端到端时间<5分钟，满足性能需求。资源限制（如Playwright实例数、并发请求数）避免资源耗尽。\n\n13. **扩展性考虑**：数据源配置化（DataSourceConfig），便于添加新的数据源（如地方能源局、行业协会网站）。分类体系可扩展（通过修改ClassificationPrompt），支持更细粒度的分类。HTML模板支持自定义，可根据需求调整报告格式。\n\n综上所述，本设计在满足功能需求的基础上，充分考虑了性能、安全、可靠性、可维护性等非功能性需求，为后续开发提供了清晰的技术路线和实现指导。"
+}

@@ -57,3 +57,4 @@ api/.env
 venv
 nexus_utils/cli/docs
 nexus_utils/cli/logs
+backups/*

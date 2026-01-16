@@ -1,0 +1,262 @@
+{
+  "prompt_engineering": {
+    "overview": {
+      "project_name": "multi_cloud_pricing_comparison_agent",
+      "agent_name": "multi_cloud_pricing_comparison_agent",
+      "version": "1.0",
+      "date": "2026-01-14",
+      "engineer": "Prompt Engineer Agent",
+      "description": "为多云报价对比Agent设计专业的系统提示词模板，基于智能体设计规格和系统架构文档，遵循Nexus-AI平台的提示词标准和最佳实践，生成YAML格式的提示词配置文件。"
+    },
+    "design_principles": {
+      "role_consistency": "提示词与智能体设计规格完全匹配，明确定义为'智能多云报价对比专家'，覆盖所有核心功能和职责",
+      "clarity": "指令明确、具体、易于理解，使用清晰的中文表达，避免歧义",
+      "structure": "遵循标准化的YAML提示词模板格式，包含角色定义、核心职责、工作流程、约束条件、错误处理等完整结构",
+      "maintainability": "支持版本管理和迭代优化，通过environments配置支持开发、生产、测试三种环境",
+      "testability": "包含明确的输入输出规范、错误处理指南、输出示例，便于测试和验证"
+    },
+    "prompt_template_design": {
+      "system_prompt_structure": {
+        "role_definition": {
+          "description": "定义Agent的专业身份和领域专长",
+          "content": "智能多云报价对比专家，精通AWS和Azure两大云平台的服务、定价模型和最佳实践"
+        },
+        "core_responsibilities": {
+          "description": "详细列出Agent的8大核心职责",
+          "responsibilities": [
+            "自然语言需求理解：从用户输入中提取结构化信息，验证需求完整性",
+            "AWS价格查询：通过AWS Pricing API获取8类服务的真实价格数据",
+            "Azure价格查询：通过Azure Retail Prices API获取8类服务的真实价格数据",
+            "服务映射与对比：建立AWS和Azure服务的对应关系，自动匹配区域",
+            "智能配置推荐：根据最佳实践推荐实例类型，优化配置",
+            "Excel报告生成：生成包含三个Sheet的专业报告",
+            "错误处理与容错：优雅处理API失败，明确标注错误项",
+            "进度反馈与用户体验：流式响应，实时输出处理进度"
+          ]
+        },
+        "workflow": {
+          "description": "定义清晰的11步工作流程",
+          "steps": [
+            "接收用户输入 → 理解自然语言需求",
+            "需求解析 → 提取结构化信息",
+            "信息验证 → 确认完整性或请求补充",
+            "服务映射 → 建立AWS和Azure对应关系",
+            "区域映射 → 映射地理位置到区域代码",
+            "并发查询 → 同时调用AWS和Azure API",
+            "智能推荐 → 推荐最优实例类型和配置",
+            "价格对比 → 计算价格差异和成本节省",
+            "报告生成 → 生成Excel报告",
+            "结果返回 → 返回报告路径和摘要",
+            "后续支持 → 支持修改需求或补充信息"
+          ]
+        },
+        "tool_usage_strategy": {
+          "description": "定义24个工具函数的使用策略",
+          "categories": {
+            "aws_pricing_tools": "9个AWS价格查询工具（EC2、EBS、S3、RDS、ElastiCache、OpenSearch、ELB、网络流量、实例推荐）",
+            "azure_pricing_tools": "9个Azure价格查询工具（VM、Disk、Blob、SQL、Redis、Search、Gateway、带宽、实例推荐）",
+            "comparison_tools": "6个对比分析工具（服务映射、区域映射、价格对比、成本计算、数据格式化、报告生成）"
+          },
+          "principles": [
+            "根据用户需求选择合适的工具组合",
+            "优先使用并发调用优化性能（asyncio.gather）",
+            "单个工具失败不影响整体流程",
+            "详细记录工具调用结果和错误信息"
+          ]
+        },
+        "constraints": {
+          "technical": [
+            "所有价格必须来自AWS Pricing API和Azure Retail Prices API",
+            "需要有效的AWS凭证和pricing:GetProducts权限",
+            "单次查询响应时间应在2分钟内完成",
+            "使用asyncio.gather并发调用API",
+            "所有API调用必须使用HTTPS协议",
+            "AWS凭证不得硬编码，必须通过环境变量管理"
+          ],
+          "output": [
+            "报告格式必须为Excel（.xlsx）",
+            "报告内容使用中文输出（技术术语除外）",
+            "价格使用USD货币单位，保留2位小数",
+            "使用千分位分隔符（如：1,234.56）"
+          ],
+          "best_practices": [
+            "生产环境避免推荐突发性能实例（AWS t系列、Azure B系列）",
+            "优先推荐当前代实例类型",
+            "价格获取失败时在报告中明确标注"
+          ],
+          "deployment": [
+            "遵循BedrockAgentCoreApp部署规范",
+            "支持async handler函数和流式响应",
+            "支持Docker容器模式、命令行测试模式、交互式对话模式"
+          ]
+        },
+        "error_handling_guide": {
+          "description": "详细的错误处理指南，涵盖6种常见错误场景",
+          "scenarios": [
+            "API调用失败：友好提示，报告标注，详细日志",
+            "数据解析错误：说明原因，记录原始数据",
+            "用户输入不完整：引导性问题，主动询问关键信息",
+            "无法找到匹配实例：提供最接近选项，询问是否接受",
+            "网络超时：重试3次，提供检查建议",
+            "报告生成失败：诊断问题，提供解决方案"
+          ]
+        },
+        "output_examples": {
+          "description": "提供成功和部分失败两种场景的完整输出示例",
+          "success_scenario": "展示完整的流式响应流程，从需求理解到报告生成，包含进度反馈和智能推荐",
+          "partial_failure_scenario": "展示部分服务失败时的处理方式，明确标注错误项，继续处理其他服务"
+        }
+      },
+      "metadata_configuration": {
+        "tags": [
+          "cloud_cost_optimization",
+          "multi_cloud",
+          "aws",
+          "azure",
+          "pricing_comparison",
+          "excel_reporting",
+          "configuration_recommendation",
+          "cost_analysis"
+        ],
+        "supported_models": [
+          "global.anthropic.claude-sonnet-4-5-20250929-v1:0"
+        ],
+        "model_rationale": "Claude Sonnet 4.5是Anthropic最新的高性能模型，在自然语言理解、推理、工具调用等任务上表现优秀。支持长上下文（200K tokens），推理速度快，延迟低，支持流式响应，满足2分钟内完成查询的性能要求。"
+      },
+      "environment_configuration": {
+        "development": {
+          "max_tokens": 4096,
+          "temperature": 0.3,
+          "streaming": true,
+          "purpose": "开发和调试阶段，限制token使用，快速迭代"
+        },
+        "production": {
+          "max_tokens": 60000,
+          "temperature": 0.3,
+          "streaming": true,
+          "purpose": "生产环境，支持大规模报价查询，完整的上下文处理"
+        },
+        "testing": {
+          "max_tokens": 2048,
+          "temperature": 0.3,
+          "streaming": false,
+          "purpose": "测试阶段，快速验证功能，不使用流式响应"
+        }
+      },
+      "tools_dependencies": {
+        "total_count": 24,
+        "categories": {
+          "aws_pricing_tools": {
+            "count": 9,
+            "tools": [
+              "get_aws_ebs_pricing",
+              "get_aws_ec2_pricing",
+              "get_aws_elasticache_pricing",
+              "get_aws_elb_pricing",
+              "get_aws_network_pricing",
+              "get_aws_opensearch_pricing",
+              "get_aws_rds_pricing",
+              "get_aws_s3_pricing",
+              "recommend_aws_instances"
+            ]
+          },
+          "azure_pricing_tools": {
+            "count": 9,
+            "tools": [
+              "get_azure_bandwidth_pricing",
+              "get_azure_blob_pricing",
+              "get_azure_disk_pricing",
+              "get_azure_gateway_pricing",
+              "get_azure_redis_pricing",
+              "get_azure_search_pricing",
+              "get_azure_sql_pricing",
+              "get_azure_vm_pricing",
+              "recommend_azure_instances"
+            ]
+          },
+          "comparison_tools": {
+            "count": 6,
+            "tools": [
+              "calculate_annual_cost",
+              "compare_pricing_across_clouds",
+              "format_pricing_data",
+              "generate_excel_report",
+              "map_aws_to_azure_services",
+              "map_regions"
+            ]
+          }
+        },
+        "path_format": "generated_tools/multi_cloud_pricing_comparison_agent/<script_name>/<tool_name>",
+        "validation": "所有工具路径已通过list_project_tools验证，确保工具存在且路径正确"
+      }
+    },
+    "quality_standards": {
+      "completeness": "提示词覆盖Agent的所有核心功能：需求理解、价格查询、服务映射、智能推荐、报告生成、错误处理、进度反馈",
+      "accuracy": "提示词与智能体设计规格完全一致，所有功能要求、技术约束、最佳实践都已体现",
+      "clarity": "指令明确无歧义，使用清晰的中文表达，包含详细的工作流程和错误处理指南",
+      "executability": "提供具体可操作的指导，包含24个工具函数的使用策略、11步工作流程、6种错误处理场景",
+      "robustness": "包含完整的错误处理和边界情况处理，单个服务失败不影响整体流程，所有错误都有明确标注和友好提示"
+    },
+    "best_practices_applied": {
+      "role_definition": "明确Agent的专业身份为'智能多云报价对比专家'，定义领域专长和能力边界",
+      "task_description": "详细说明8大核心职责，覆盖从需求理解到报告生成的完整流程",
+      "workflow_definition": "定义清晰的11步工作流程，每步都有明确的输入输出和执行逻辑",
+      "output_specification": "明确Excel报告的结构（三个Sheet）、格式要求（中文、USD、2位小数、千分位分隔符）、内容要求（官方文档链接、错误标注）",
+      "constraint_setting": "设定技术约束（API数据源、AWS凭证、性能要求）、输出约束（格式、语言、货币）、最佳实践约束（实例选择、错误标注）、部署约束（AgentCore规范）",
+      "error_handling": "包含6种常见错误场景的详细处理指南，提供友好的用户提示和建设性的解决方案",
+      "tool_integration": "明确24个工具函数的分类、用途、调用策略，支持并发调用优化性能"
+    },
+    "template_characteristics": {
+      "parameterization": "支持多环境配置（开发、生产、测试），每个环境有不同的max_tokens、temperature、streaming设置",
+      "structured_input": "定义清晰的输入数据结构，从自然语言需求中提取服务类型、配置参数、数量、地理位置、环境类型等结构化信息",
+      "guiding_questions": "在用户输入不完整时，提供引导性问题帮助用户补充关键信息（vCPU、内存、存储类型、数据库引擎等）",
+      "example_illustration": "提供成功和部分失败两种场景的完整输出示例，展示流式响应流程和错误处理方式"
+    },
+    "version_management": {
+      "version": "latest",
+      "status": "stable",
+      "created_date": "2026-01-14",
+      "author": "agent build workflow",
+      "description": "多云报价对比Agent v1.0 - 支持AWS和Azure价格查询、服务映射、智能配置推荐、Excel报告生成",
+      "changelog": "初始版本，基于智能体设计规格和系统架构文档生成，包含完整的系统提示词、工具依赖、环境配置、错误处理指南"
+    },
+    "artifacts": {
+      "prompt_file": "prompts/generated_agents_prompts/multi_cloud_pricing_comparison_agent/multi_cloud_pricing_comparison_agent_prompt.yaml",
+      "format": "YAML",
+      "size": "14409 characters",
+      "validation": "已通过YAML语法验证、必需字段验证、工具依赖验证",
+      "structure": {
+        "agent": {
+          "name": "multi_cloud_pricing_comparison_agent",
+          "description": "智能多云报价对比专家",
+          "category": "cloud_cost_optimization",
+          "environments": ["development", "production", "testing"],
+          "versions": [
+            {
+              "version": "latest",
+              "status": "stable",
+              "system_prompt": "完整的系统提示词（约10000字）",
+              "metadata": {
+                "tags": 8,
+                "supported_models": 1,
+                "tools_dependencies": 24
+              }
+            }
+          ]
+        }
+      }
+    },
+    "integration_points": {
+      "agent_design": "基于projects/multi_cloud_pricing_comparison_agent/agents/multi_cloud_pricing_comparison_agent/agent_designer.json",
+      "system_architecture": "参考系统架构设计的技术栈和部署规范",
+      "tools": "集成24个项目工具函数，通过list_project_tools获取并验证",
+      "deployment": "遵循BedrockAgentCoreApp部署规范，支持async handler和流式响应"
+    },
+    "next_steps": {
+      "agent_code_development": "使用此提示词模板开发Agent代码，实现BedrockAgentCoreApp入口点",
+      "testing": "在测试环境中验证提示词效果，调整temperature和max_tokens参数",
+      "optimization": "根据实际使用反馈优化提示词内容，改进错误处理和用户体验",
+      "version_iteration": "支持版本管理，后续可添加新功能或优化现有提示词"
+    }
+  }
+}

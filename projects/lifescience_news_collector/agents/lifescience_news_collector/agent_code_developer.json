@@ -1,0 +1,249 @@
+{
+  "agent_code_development": {
+    "development_overview": {
+      "project_name": "lifescience_news_collector",
+      "version": "1.0",
+      "date": "2026-01-07",
+      "development_scope": "为生命科学新闻采集Agent开发完整的执行代码，实现从数据采集到S3上传的完整流程",
+      "design_principles": [
+        "单一职责：Agent专注于新闻采集和处理的完整流程",
+        "模块化设计：通过工具函数实现功能分离",
+        "错误容错：完善的异常处理和降级策略",
+        "流式响应：支持AgentCore流式输出，实时反馈进度",
+        "配置驱动：所有参数通过配置文件和环境变量管理",
+        "日志完善：详细的执行日志便于调试和监控"
+      ],
+      "key_decisions": [
+        "使用BedrockAgentCoreApp模式支持AgentCore部署",
+        "使用nexus_utils.agent_factory.create_agent_from_prompt_template创建Agent",
+        "实现异步handler函数支持流式响应",
+        "提供本地测试、交互模式和服务器模式三种运行方式",
+        "使用Python logging模块和StrandsTelemetry进行日志和遥测",
+        "通过环境变量DOCKER_CONTAINER判断部署模式",
+        "提供完整的命令行参数支持（环境、版本、模型、日志级别）"
+      ]
+    },
+    "agent_implementation": {
+      "agent_name": "lifescience_news_collector",
+      "file_path": "agents/generated_agents/lifescience_news_collector/lifescience_news_collector.py",
+      "main_class": "无（函数式编程）",
+      "entry_point": "handler（AgentCore入口）/ __main__（本地运行）",
+      "dependencies": [
+        "nexus_utils.agent_factory",
+        "nexus_utils.config_loader",
+        "bedrock_agentcore.runtime",
+        "strands.telemetry",
+        "logging",
+        "json",
+        "os",
+        "typing"
+      ],
+      "imports": [
+        "import os",
+        "import json",
+        "import logging",
+        "from typing import Dict, Any",
+        "from nexus_utils.agent_factory import create_agent_from_prompt_template",
+        "from bedrock_agentcore.runtime import BedrockAgentCoreApp",
+        "from bedrock_agentcore.runtime.context import RequestContext",
+        "from strands.telemetry import StrandsTelemetry",
+        "from nexus_utils.config_loader import ConfigLoader"
+      ]
+    },
+    "core_functions": [
+      {
+        "function_name": "create_news_collector_agent",
+        "purpose": "创建生命科学新闻采集Agent实例",
+        "parameters": [
+          {
+            "name": "env",
+            "type": "str",
+            "description": "运行环境（development/testing/production）",
+            "required": false,
+            "default": "production"
+          },
+          {
+            "name": "version",
+            "type": "str",
+            "description": "Agent版本",
+            "required": false,
+            "default": "latest"
+          },
+          {
+            "name": "model_id",
+            "type": "str",
+            "description": "使用的模型ID",
+            "required": false,
+            "default": "default"
+          },
+          {
+            "name": "enable_logging",
+            "type": "bool",
+            "description": "是否启用日志",
+            "required": false,
+            "default": true
+          }
+        ],
+        "return_type": "Agent",
+        "return_description": "创建的Agent实例",
+        "implementation_notes": [
+          "使用create_agent_from_prompt_template工厂方法",
+          "配置路径：generated_agents_prompts/lifescience_news_collector/lifescience_news_collector",
+          "记录创建日志",
+          "返回配置好的Agent实例"
+        ]
+      },
+      {
+        "function_name": "handler",
+        "purpose": "AgentCore标准入口点，支持流式响应",
+        "parameters": [
+          {
+            "name": "payload",
+            "type": "Dict[str, Any]",
+            "description": "AgentCore传入的请求体，包含prompt、user_id、media等",
+            "required": true
+          },
+          {
+            "name": "context",
+            "type": "RequestContext",
+            "description": "请求上下文，包含session_id等信息",
+            "required": true
+          }
+        ],
+        "return_type": "AsyncGenerator[str, None]",
+        "return_description": "流式响应的文本片段",
+        "implementation_notes": [
+          "使用@app.entrypoint装饰器",
+          "异步函数（async def）",
+          "从payload中提取prompt参数",
+          "使用agent.stream_async()进行流式响应",
+          "使用yield产生响应片段",
+          "完善的错误处理和日志记录"
+        ]
+      }
+    ],
+    "tool_integration": {
+      "custom_tools": [
+        "data_collector: serpapi_search, fetch_dynamic_webpage, extract_article_list, parse_article_content, clean_article_text, deduplicate_urls, filter_urls_by_domain, load_data_source_config",
+        "data_processor: classify_article, generate_article_summary, extract_keywords, deduplicate_articles, normalize_article_data, validate_article_data, batch_process_articles, generate_article_tags",
+        "storage_tools: upload_to_s3, download_from_s3, list_s3_objects, save_to_local_file, read_from_local_file, list_local_files, save_to_cache, get_from_cache, clear_cache, export_to_json, export_to_csv, put_item_to_dynamodb, get_item_from_dynamodb, query_dynamodb, batch_write_to_dynamodb",
+        "newsletter_generator: render_newsletter_html, generate_simple_newsletter_html, generate_email_subject, generate_email_preview_text, optimize_image_for_email, embed_image_in_html, send_email_via_ses, send_bulk_email_via_ses, send_test_email, save_newsletter_preview, generate_newsletter_stats"
+      ],
+      "system_tools": [],
+      "strands_tools": [
+        "current_time"
+      ],
+      "integration_notes": [
+        "所有工具通过提示词模板中的tools_dependencies声明",
+        "工具调用由Agent框架自动处理",
+        "工具返回JSON格式，Agent解析后生成响应",
+        "支持42个自定义工具覆盖数据采集、处理、存储、报告生成全流程"
+      ]
+    },
+    "configuration": {
+      "environment_variables": [
+        "BYPASS_TOOL_CONSENT=true（绕过工具使用确认）",
+        "OTEL_EXPORTER_OTLP_ENDPOINT（遥测端点，默认http://localhost:4318）",
+        "DOCKER_CONTAINER=1（标识Docker部署模式）"
+      ],
+      "model_configuration": {
+        "model_name": "global.anthropic.claude-sonnet-4-5-20250929-v1:0",
+        "max_tokens": {
+          "development": 4096,
+          "testing": 2048,
+          "production": 60000
+        },
+        "temperature": 0.3,
+        "streaming": false
+      },
+      "streaming_config": {
+        "enabled": true,
+        "chunk_size": "自动",
+        "description": "通过agent.stream_async()实现流式响应"
+      }
+    },
+    "error_handling": {
+      "exception_types": [
+        "ValueError（参数错误）",
+        "KeyError（配置缺失）",
+        "ConnectionError（网络错误）",
+        "TimeoutError（超时错误）",
+        "Exception（通用异常）"
+      ],
+      "error_responses": [
+        "prompt缺失：返回'Error: Missing prompt in request'",
+        "Agent调用失败：返回'Error: {错误详情}'",
+        "流式响应异常：捕获并yield错误信息",
+        "所有错误都包含详细的日志记录"
+      ],
+      "recovery_strategies": [
+        "单个工具调用失败不影响整体流程",
+        "网络错误自动重试（工具层面）",
+        "配置错误在启动阶段提前检测",
+        "部分失败时完成可完成的部分并标记失败项"
+      ]
+    },
+    "testing": {
+      "test_cases": [
+        "本地测试模式：python lifescience_news_collector.py -i '测试输入'",
+        "交互模式：python lifescience_news_collector.py -it",
+        "指定环境：python lifescience_news_collector.py -i '测试' -e development",
+        "指定版本：python lifescience_news_collector.py -i '测试' -v latest",
+        "Docker部署：DOCKER_CONTAINER=1 python lifescience_news_collector.py"
+      ],
+      "test_scenarios": [
+        "完整流程：采集 -> 分类 -> 摘要 -> 报告 -> S3上传",
+        "部分数据源失败：验证错误隔离和降级处理",
+        "AI调用失败：验证降级分类和默认摘要",
+        "S3上传失败：验证本地保存和重试机制",
+        "配置文件缺失：验证默认配置和错误提示",
+        "长时间运行：验证流式响应和进度反馈"
+      ],
+      "validation_criteria": [
+        "Agent实例创建成功",
+        "配置加载正确",
+        "工具调用正常",
+        "流式响应工作正常",
+        "错误处理完善",
+        "日志输出清晰",
+        "命令行参数解析正确",
+        "三种运行模式都能正常工作"
+      ]
+    },
+    "deployment": {
+      "deployment_requirements": [
+        "Python 3.13+",
+        "Docker容器环境（AgentCore部署）",
+        "AWS凭证配置（S3、DynamoDB、SES）",
+        "网络连接（访问数据源和AWS服务）",
+        "配置文件：config/lifescience_news_collector.yaml",
+        "HTML模板：case/newsletter_template.html"
+      ],
+      "runtime_dependencies": [
+        "nexus_utils",
+        "strands-agents",
+        "bedrock_agentcore",
+        "boto3",
+        "botocore",
+        "aiohttp",
+        "playwright",
+        "beautifulsoup4",
+        "lxml",
+        "jinja2",
+        "requests",
+        "pyyaml",
+        "Pillow"
+      ],
+      "performance_considerations": [
+        "并发采集：使用asyncio和aiohttp，并发数可配置（默认5）",
+        "流式响应：实时反馈执行进度，提升用户体验",
+        "缓存机制：支持本地缓存，减少重复请求",
+        "资源管理：Playwright按需启动，使用完毕立即关闭",
+        "内存优化：流式处理大数据集，避免内存溢出",
+        "超时控制：单个请求超时30秒，避免长时间等待",
+        "执行时间：完整流程预计20-30分钟（取决于数据源响应）"
+      ]
+    },
+    "development_notes": "Agent代码开发完成，严格遵循BedrockAgentCoreApp模式和AgentCore部署规范。关键特性：1）使用@app.entrypoint装饰器定义异步handler函数，支持流式响应；2）使用agent.stream_async()实现流式输出，通过yield产生响应片段；3）提供三种运行模式（本地测试、交互式、服务器），满足不同场景需求；4）完善的命令行参数支持，包括环境、版本、模型、日志级别等；5）详细的日志记录和错误处理，便于调试和监控；6）通过DOCKER_CONTAINER环境变量判断部署模式，自动切换运行方式；7）使用ConfigLoader和环境变量管理配置，支持多环境部署；8）集成StrandsTelemetry进行遥测，支持OTLP协议；9）符合Python最佳实践，包括类型注解、文档字符串、代码格式等；10）Agent配置路径正确指向提示词模板文件。代码已通过语法验证，可直接部署到AgentCore或本地运行。"
+  }
+}

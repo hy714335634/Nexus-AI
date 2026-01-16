@@ -42,3 +42,6 @@ setuptools
 tabulate
 opentelemetry-api
 opentelemetry-sdk
+browser-use
+langchain-aws
+rich

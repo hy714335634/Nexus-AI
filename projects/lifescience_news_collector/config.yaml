@@ -1,0 +1,6 @@
+project:
+  created_date: '2026-01-07T04:46:55.767884+00:00'
+  description: 生命科学行业新闻自动采集Agent - 支持多源数据采集、智能分类、摘要生成、HTML报告生成及S3自动上传
+  name: lifescience_news_collector
+  updated_date: '2026-01-07T04:47:02.017600+00:00'
+  version: 1.0.0

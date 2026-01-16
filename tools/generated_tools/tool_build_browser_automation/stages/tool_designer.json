@@ -1,0 +1,615 @@
+{
+  "design_document": {
+    "tool_name": "tool_build_browser_automation",
+    "version": "1.0",
+    "date": "2026-01-12",
+    "architecture": {
+      "file_structure": [
+        {
+          "file_name": "browser_automation_tools.py",
+          "description": "浏览器自动化工具集主文件，包含所有5个核心工具函数",
+          "functions": [
+            {
+              "function_name": "browser_with_nova_act",
+              "description": "使用Nova Act API进行基础浏览器自动化操作，通过CDP WebSocket连接执行自然语言指令",
+              "parameters": [
+                {
+                  "name": "prompt",
+                  "type": "str",
+                  "required": true,
+                  "description": "自然语言浏览器操作指令（如：'搜索Python教程并提取前5个结果'）"
+                },
+                {
+                  "name": "starting_page",
+                  "type": "str",
+                  "required": true,
+                  "description": "起始URL地址（如：'https://www.google.com'）"
+                },
+                {
+                  "name": "nova_act_key",
+                  "type": "str",
+                  "required": true,
+                  "description": "Nova Act API密钥"
+                },
+                {
+                  "name": "region",
+                  "type": "str",
+                  "required": false,
+                  "description": "AWS区域，默认为'us-west-2'"
+                }
+              ],
+              "return_type": "str",
+              "return_description": "JSON字符串，包含操作结果、响应数据和截图信息。成功格式：{\"status\": \"success\", \"response\": \"操作完成\", \"data\": {...}, \"screenshots\": [...]}。错误格式：{\"status\": \"error\", \"error_type\": \"...\", \"message\": \"...\"}",
+              "implementation_logic": "1. 验证参数（prompt非空、URL有效、API key存在）\n2. 使用BrowserClient(region)创建客户端\n3. 调用client.start()启动浏览器会话\n4. 使用client.generate_ws_headers()获取WebSocket连接信息\n5. 创建NovaAct实例，配置：cdp_endpoint_url=ws_url, cdp_headers=headers, preview={\"playwright_actuation\": True}, nova_act_api_key=nova_act_key, starting_page=starting_page\n6. 使用with NovaAct上下文管理器执行nova_act.act(prompt)\n7. 提取result.response和相关数据\n8. 确保在finally块中调用client.stop()清理资源\n9. 返回JSON格式结果字符串",
+              "error_handling": "1. 参数验证错误：返回{\"status\": \"error\", \"error_type\": \"ValidationError\", \"message\": \"具体错误信息\"}\n2. CDP连接失败：捕获ConnectionError，返回连接失败信息\n3. Nova Act API调用失败：捕获Exception，记录详细日志\n4. 超时处理：设置合理超时时间，捕获TimeoutError\n5. 资源清理：使用try-finally确保client.stop()被调用\n6. 所有异常都记录到rich.console并返回JSON格式错误"
+            },
+            {
+              "function_name": "browser_with_live_view_nova",
+              "description": "在基础Nova Act自动化基础上增加DCV实时浏览器视图功能，支持多种显示尺寸和手动控制",
+              "parameters": [
+                {
+                  "name": "prompt",
+                  "type": "str",
+                  "required": true,
+                  "description": "自然语言浏览器操作指令"
+                },
+                {
+                  "name": "starting_page",
+                  "type": "str",
+                  "required": true,
+                  "description": "起始URL地址"
+                },
+                {
+                  "name": "nova_act_key",
+                  "type": "str",
+                  "required": true,
+                  "description": "Nova Act API密钥"
+                },
+                {
+                  "name": "region",
+                  "type": "str",
+                  "required": false,
+                  "description": "AWS区域，默认为'us-west-2'"
+                },
+                {
+                  "name": "viewer_port",
+                  "type": "int",
+                  "required": false,
+                  "description": "DCV viewer服务器端口，默认为8000"
+                },
+                {
+                  "name": "display_size",
+                  "type": "str",
+                  "required": false,
+                  "description": "显示尺寸（720p/900p/1080p/1440p），默认为'900p'"
+                },
+                {
+                  "name": "open_browser",
+                  "type": "bool",
+                  "required": false,
+                  "description": "是否自动打开浏览器查看，默认为True"
+                }
+              ],
+              "return_type": "str",
+              "return_description": "JSON字符串，包含操作结果、响应数据和viewer URL。成功格式：{\"status\": \"success\", \"response\": \"操作完成\", \"viewer_url\": \"http://localhost:8000\", \"data\": {...}}",
+              "implementation_logic": "1. 参数验证（继承browser_with_nova_act的验证，增加viewer_port和display_size验证）\n2. 创建BrowserClient并启动\n3. 获取WebSocket连接信息\n4. 创建BrowserViewerServer实例：viewer = BrowserViewerServer(client, port=viewer_port)\n5. 启动viewer：viewer_url = viewer.start(open_browser=open_browser)\n6. 配置显示布局（根据display_size参数）\n7. 创建NovaAct实例并执行操作\n8. 保持viewer运行直到操作完成\n9. 返回包含viewer_url的JSON结果\n10. 清理资源（viewer和client）",
+              "error_handling": "1. 端口占用：捕获OSError，提示端口冲突\n2. DCV服务器启动失败：捕获启动异常，返回详细错误\n3. 显示尺寸无效：验证display_size在允许值范围内\n4. viewer连接超时：设置合理超时并提示用户\n5. 继承browser_with_nova_act的所有错误处理\n6. 确保viewer正确关闭，防止端口泄漏"
+            },
+            {
+              "function_name": "browser_with_live_view_use",
+              "description": "使用browser-use库和Claude 3.5 Sonnet模型进行AI驱动的浏览器任务执行，支持持久化会话和实时视图",
+              "parameters": [
+                {
+                  "name": "task",
+                  "type": "str",
+                  "required": true,
+                  "description": "自然语言任务描述（如：'在亚马逊搜索笔记本电脑并比较前5个产品的价格和评分'）"
+                },
+                {
+                  "name": "region",
+                  "type": "str",
+                  "required": false,
+                  "description": "AWS区域，默认为'us-west-2'"
+                },
+                {
+                  "name": "viewer_port",
+                  "type": "int",
+                  "required": false,
+                  "description": "DCV viewer服务器端口，默认为8000"
+                },
+                {
+                  "name": "open_browser",
+                  "type": "bool",
+                  "required": false,
+                  "description": "是否自动打开浏览器查看，默认为True"
+                },
+                {
+                  "name": "model_id",
+                  "type": "str",
+                  "required": false,
+                  "description": "Bedrock模型ID，默认为'anthropic.claude-3-5-sonnet-20240620-v1:0'"
+                },
+                {
+                  "name": "timeout",
+                  "type": "int",
+                  "required": false,
+                  "description": "浏览器超时时间（秒），默认为1500"
+                }
+              ],
+              "return_type": "str",
+              "return_description": "JSON字符串，包含AI执行结果、中间步骤和viewer URL。成功格式：{\"status\": \"success\", \"task_result\": {...}, \"steps\": [...], \"viewer_url\": \"http://localhost:8000\"}",
+              "implementation_logic": "1. 参数验证（task非空、timeout为正整数）\n2. 创建BrowserClient并启动\n3. 获取WebSocket连接信息\n4. 启动BrowserViewerServer\n5. 创建BrowserProfile：headers=headers, timeout=timeout\n6. 创建持久化BrowserSession：cdp_url=ws_url, browser_profile=profile, keep_alive=True\n7. 初始化浏览器会话：await browser_session.start()\n8. 创建ChatBedrockConverse实例：model_id=model_id, region_name=region\n9. 创建Agent：task=task, llm=bedrock_chat, browser_session=browser_session\n10. 执行任务：await agent.run()\n11. 收集执行步骤和结果\n12. 使用suppress(Exception)安全关闭browser_session\n13. 返回包含task_result和steps的JSON结果\n注意：由于此函数涉及异步操作，需要提供同步包装器",
+              "error_handling": "1. 异步操作超时：设置asyncio.wait_for超时控制\n2. AI模型调用失败：捕获Bedrock API异常\n3. 浏览器会话中断：实现重试机制（最多3次）\n4. 任务执行失败：记录详细步骤日志，定位失败点\n5. 内存泄漏防护：确保browser_session正确关闭\n6. 异步资源清理：使用suppress(Exception)包装close操作\n7. 同步包装器错误：捕获asyncio.run()异常"
+            },
+            {
+              "function_name": "manage_browser_session",
+              "description": "统一的浏览器会话管理器，提供创建、查询、销毁等会话操作",
+              "parameters": [
+                {
+                  "name": "action",
+                  "type": "str",
+                  "required": true,
+                  "description": "操作类型，可选值：'create'（创建会话）、'stop'（停止会话）、'get_ws_headers'（获取WebSocket头）、'get_status'（查询状态）"
+                },
+                {
+                  "name": "region",
+                  "type": "str",
+                  "required": false,
+                  "description": "AWS区域，默认为'us-west-2'"
+                },
+                {
+                  "name": "session_id",
+                  "type": "str",
+                  "required": false,
+                  "description": "会话ID（用于stop/get_status操作，create操作会自动生成）"
+                }
+              ],
+              "return_type": "str",
+              "return_description": "JSON字符串，包含会话信息、WebSocket URL和headers。成功格式：{\"status\": \"success\", \"session_id\": \"xxx\", \"ws_url\": \"wss://...\", \"headers\": {...}, \"action\": \"create\"}",
+              "implementation_logic": "1. 验证action参数在允许值范围内\n2. 根据action执行不同操作：\n   - create：创建BrowserClient(region)，调用start()，生成唯一session_id（使用uuid），将client存储到全局session_store字典，返回session_id和连接信息\n   - get_ws_headers：从session_store获取client，调用generate_ws_headers()，返回ws_url和headers\n   - get_status：检查session_id是否存在于session_store，返回会话状态信息\n   - stop：从session_store获取client，调用stop()，从字典中删除session_id，返回停止确认\n3. 使用线程安全的session_store（使用threading.Lock）\n4. 返回JSON格式结果",
+              "error_handling": "1. 无效action：返回错误提示可用的action值\n2. session_id不存在：返回\"session not found\"错误\n3. 会话已停止：返回\"session already stopped\"状态\n4. 区域不支持：捕获BrowserClient创建异常\n5. 会话泄漏防护：实现定期清理机制（可选）\n6. 并发安全：使用锁保护session_store操作\n7. 资源限制：限制最大会话数量（如10个）"
+            },
+            {
+              "function_name": "batch_extract_from_urls",
+              "description": "批量从多个URL采集数据，支持并发控制和两种采集方法（Nova Act和Browser Use）",
+              "parameters": [
+                {
+                  "name": "urls",
+                  "type": "str",
+                  "required": true,
+                  "description": "待采集的URL列表，JSON数组字符串格式（如：'[\"https://example1.com\", \"https://example2.com\"]'）"
+                },
+                {
+                  "name": "extraction_prompt",
+                  "type": "str",
+                  "required": true,
+                  "description": "数据提取指令（如：'提取产品名称、价格和评分'）"
+                },
+                {
+                  "name": "method",
+                  "type": "str",
+                  "required": false,
+                  "description": "采集方法，可选值：'nova_act'或'browser_use'，默认为'browser_use'"
+                },
+                {
+                  "name": "nova_act_key",
+                  "type": "str",
+                  "required": false,
+                  "description": "Nova Act API密钥（method='nova_act'时必需）"
+                },
+                {
+                  "name": "region",
+                  "type": "str",
+                  "required": false,
+                  "description": "AWS区域，默认为'us-west-2'"
+                },
+                {
+                  "name": "max_concurrent",
+                  "type": "int",
+                  "required": false,
+                  "description": "最大并发数，默认为3"
+                }
+              ],
+              "return_type": "str",
+              "return_description": "JSON字符串，包含所有URL的采集结果。成功格式：{\"status\": \"success\", \"total\": 10, \"success\": 9, \"failed\": 1, \"results\": [{\"url\": \"...\", \"data\": {...}, \"error\": null}, ...]}",
+              "implementation_logic": "1. 解析urls JSON字符串为列表\n2. 验证参数（urls非空、method有效、max_concurrent为正整数）\n3. 如果method='nova_act'，验证nova_act_key存在\n4. 创建共享BrowserClient会话（复用以提高效率）\n5. 定义单个URL处理函数：\n   - 根据method选择使用browser_with_nova_act或browser_with_live_view_use\n   - 将starting_page设置为当前URL\n   - 执行extraction_prompt\n   - 捕获单个URL的错误，不影响其他URL\n6. 使用asyncio.Semaphore(max_concurrent)控制并发\n7. 使用asyncio.gather收集所有结果（return_exceptions=True）\n8. 统计成功和失败数量\n9. 清理共享会话\n10. 返回汇总结果JSON\n注意：需要异步实现，提供同步包装器",
+              "error_handling": "1. URLs解析失败：返回JSON格式错误\n2. 单个URL失败：记录到结果中的error字段，继续处理其他URL\n3. 并发控制：使用Semaphore防止资源耗尽\n4. 部分失败：在结果中明确标记成功和失败的URL\n5. 超时URL：单个URL设置超时（如60秒），超时则标记为失败\n6. 会话共享错误：如果共享会话失败，回退到为每个URL创建独立会话\n7. 内存管理：大批量URL时分批处理（如每批50个）"
+            }
+          ]
+        },
+        {
+          "file_name": "browser_viewer.py",
+          "description": "DCV实时浏览器视图服务器模块（从参考代码中复用）",
+          "functions": [
+            {
+              "function_name": "BrowserViewerServer.__init__",
+              "description": "初始化DCV viewer服务器",
+              "parameters": [
+                {
+                  "name": "client",
+                  "type": "BrowserClient",
+                  "required": true,
+                  "description": "BrowserClient实例"
+                },
+                {
+                  "name": "port",
+                  "type": "int",
+                  "required": false,
+                  "description": "服务器端口，默认8000"
+                }
+              ],
+              "return_type": "None",
+              "return_description": "无返回值",
+              "implementation_logic": "存储client引用和port配置，初始化服务器状态变量",
+              "error_handling": "参数类型验证"
+            },
+            {
+              "function_name": "BrowserViewerServer.start",
+              "description": "启动DCV viewer服务器",
+              "parameters": [
+                {
+                  "name": "open_browser",
+                  "type": "bool",
+                  "required": false,
+                  "description": "是否自动打开浏览器，默认True"
+                }
+              ],
+              "return_type": "str",
+              "return_description": "viewer访问URL",
+              "implementation_logic": "启动HTTP服务器，配置DCV SDK，返回访问URL，可选自动打开浏览器",
+              "error_handling": "端口占用、服务器启动失败"
+            },
+            {
+              "function_name": "BrowserViewerServer.stop",
+              "description": "停止viewer服务器",
+              "parameters": [],
+              "return_type": "None",
+              "return_description": "无返回值",
+              "implementation_logic": "安全关闭HTTP服务器，清理资源",
+              "error_handling": "确保资源正确释放"
+            }
+          ]
+        },
+        {
+          "file_name": "session_manager.py",
+          "description": "浏览器会话存储和管理模块",
+          "functions": [
+            {
+              "function_name": "SessionStore.add_session",
+              "description": "添加新会话到存储",
+              "parameters": [
+                {
+                  "name": "session_id",
+                  "type": "str",
+                  "required": true,
+                  "description": "会话ID"
+                },
+                {
+                  "name": "client",
+                  "type": "BrowserClient",
+                  "required": true,
+                  "description": "BrowserClient实例"
+                }
+              ],
+              "return_type": "bool",
+              "return_description": "是否添加成功",
+              "implementation_logic": "线程安全地将会话添加到字典，检查是否达到最大会话数",
+              "error_handling": "会话数量限制、重复session_id"
+            },
+            {
+              "function_name": "SessionStore.get_session",
+              "description": "获取会话",
+              "parameters": [
+                {
+                  "name": "session_id",
+                  "type": "str",
+                  "required": true,
+                  "description": "会话ID"
+                }
+              ],
+              "return_type": "Optional[BrowserClient]",
+              "return_description": "BrowserClient实例或None",
+              "implementation_logic": "线程安全地从字典获取会话",
+              "error_handling": "session_id不存在返回None"
+            },
+            {
+              "function_name": "SessionStore.remove_session",
+              "description": "移除会话",
+              "parameters": [
+                {
+                  "name": "session_id",
+                  "type": "str",
+                  "required": true,
+                  "description": "会话ID"
+                }
+              ],
+              "return_type": "bool",
+              "return_description": "是否移除成功",
+              "implementation_logic": "线程安全地从字典移除会话，调用client.stop()",
+              "error_handling": "session_id不存在、stop失败"
+            }
+          ]
+        }
+      ]
+    },
+    "implementation_plan": {
+      "steps": [
+        {
+          "step": 1,
+          "description": "创建项目基础结构和依赖管理",
+          "code_snippet": "# requirements.txt\nbedrock-agentcore>=1.0.0\nnova-act>=0.1.0\nbrowser-use>=0.1.0\nlangchain-aws>=0.1.0\nboto3>=1.26.0\nrich>=13.0.0\nplaywright>=1.40.0"
+        },
+        {
+          "step": 2,
+          "description": "实现session_manager.py模块",
+          "code_snippet": "import threading\nimport uuid\nfrom typing import Dict, Optional\nfrom bedrock_agentcore.tools.browser_client import BrowserClient\n\nclass SessionStore:\n    def __init__(self, max_sessions: int = 10):\n        self._sessions: Dict[str, BrowserClient] = {}\n        self._lock = threading.Lock()\n        self._max_sessions = max_sessions\n    \n    def add_session(self, client: BrowserClient) -> str:\n        with self._lock:\n            if len(self._sessions) >= self._max_sessions:\n                raise ValueError(f\"Maximum sessions ({self._max_sessions}) reached\")\n            session_id = str(uuid.uuid4())\n            self._sessions[session_id] = client\n            return session_id"
+        },
+        {
+          "step": 3,
+          "description": "实现browser_viewer.py模块（从参考代码改造）",
+          "code_snippet": "# 从参考代码的interactive_tools/browser_viewer.py复制并调整\n# 主要修改：\n# 1. 确保兼容性\n# 2. 添加错误处理\n# 3. 优化端口配置"
+        },
+        {
+          "step": 4,
+          "description": "实现browser_with_nova_act工具函数",
+          "code_snippet": "from strands import tool\nimport json\nfrom bedrock_agentcore.tools.browser_client import BrowserClient\nfrom nova_act import NovaAct\nfrom rich.console import Console\n\nconsole = Console()\n\n@tool\ndef browser_with_nova_act(prompt: str, starting_page: str, nova_act_key: str, region: str = \"us-west-2\") -> str:\n    \"\"\"使用Nova Act进行浏览器自动化\"\"\"\n    # 参数验证\n    if not prompt or not prompt.strip():\n        return json.dumps({\"status\": \"error\", \"error_type\": \"ValidationError\", \"message\": \"prompt不能为空\"}, ensure_ascii=False)\n    \n    try:\n        # 创建浏览器客户端\n        client = BrowserClient(region)\n        client.start()\n        \n        ws_url, headers = client.generate_ws_headers()\n        \n        # 使用Nova Act执行操作\n        with NovaAct(\n            cdp_endpoint_url=ws_url,\n            cdp_headers=headers,\n            preview={\"playwright_actuation\": True},\n            nova_act_api_key=nova_act_key,\n            starting_page=starting_page\n        ) as nova_act:\n            result = nova_act.act(prompt)\n        \n        return json.dumps({\n            \"status\": \"success\",\n            \"response\": result.response,\n            \"data\": result.__dict__\n        }, ensure_ascii=False)\n    \n    except Exception as e:\n        console.print(f\"[red]Error: {e}[/red]\")\n        return json.dumps({\"status\": \"error\", \"error_type\": type(e).__name__, \"message\": str(e)}, ensure_ascii=False)\n    \n    finally:\n        if 'client' in locals():\n            client.stop()"
+        },
+        {
+          "step": 5,
+          "description": "实现browser_with_live_view_nova工具函数",
+          "code_snippet": "# 基于browser_with_nova_act，增加BrowserViewerServer集成\n# 关键点：\n# 1. 启动viewer服务器\n# 2. 返回viewer_url\n# 3. 确保viewer正确关闭"
+        },
+        {
+          "step": 6,
+          "description": "实现browser_with_live_view_use工具函数（异步版本+同步包装）",
+          "code_snippet": "import asyncio\nfrom browser_use import Agent\nfrom browser_use.browser.session import BrowserSession\nfrom browser_use.browser import BrowserProfile\nfrom langchain_aws import ChatBedrockConverse\n\nasync def _async_browser_with_live_view_use(task: str, region: str, viewer_port: int, open_browser: bool, model_id: str, timeout: int) -> dict:\n    \"\"\"异步实现\"\"\"\n    client = BrowserClient(region)\n    client.start()\n    \n    ws_url, headers = client.generate_ws_headers()\n    viewer = BrowserViewerServer(client, port=viewer_port)\n    viewer_url = viewer.start(open_browser=open_browser)\n    \n    browser_profile = BrowserProfile(headers=headers, timeout=timeout)\n    browser_session = BrowserSession(cdp_url=ws_url, browser_profile=browser_profile, keep_alive=True)\n    \n    await browser_session.start()\n    \n    bedrock_chat = ChatBedrockConverse(model_id=model_id, region_name=region)\n    agent = Agent(task=task, llm=bedrock_chat, browser_session=browser_session)\n    \n    await agent.run()\n    \n    # 返回结果字典\n    return {\"status\": \"success\", \"viewer_url\": viewer_url}\n\n@tool\ndef browser_with_live_view_use(task: str, region: str = \"us-west-2\", viewer_port: int = 8000, open_browser: bool = True, model_id: str = \"anthropic.claude-3-5-sonnet-20240620-v1:0\", timeout: int = 1500) -> str:\n    \"\"\"同步包装器\"\"\"\n    try:\n        result = asyncio.run(_async_browser_with_live_view_use(task, region, viewer_port, open_browser, model_id, timeout))\n        return json.dumps(result, ensure_ascii=False)\n    except Exception as e:\n        return json.dumps({\"status\": \"error\", \"message\": str(e)}, ensure_ascii=False)"
+        },
+        {
+          "step": 7,
+          "description": "实现manage_browser_session工具函数",
+          "code_snippet": "# 使用SessionStore类\n# 支持create/stop/get_ws_headers/get_status操作\n# 返回JSON格式结果"
+        },
+        {
+          "step": 8,
+          "description": "实现batch_extract_from_urls工具函数（异步版本+同步包装）",
+          "code_snippet": "async def _async_batch_extract(urls: list, extraction_prompt: str, method: str, nova_act_key: str, region: str, max_concurrent: int) -> dict:\n    \"\"\"异步批量采集\"\"\"\n    semaphore = asyncio.Semaphore(max_concurrent)\n    \n    async def process_url(url: str):\n        async with semaphore:\n            try:\n                # 根据method选择采集方式\n                if method == 'nova_act':\n                    result = browser_with_nova_act(extraction_prompt, url, nova_act_key, region)\n                else:\n                    result = await _async_browser_with_live_view_use(extraction_prompt, region, 8000, False, \"anthropic.claude-3-5-sonnet-20240620-v1:0\", 1500)\n                return {\"url\": url, \"data\": result, \"error\": None}\n            except Exception as e:\n                return {\"url\": url, \"data\": None, \"error\": str(e)}\n    \n    results = await asyncio.gather(*[process_url(url) for url in urls], return_exceptions=True)\n    \n    success_count = sum(1 for r in results if r.get('error') is None)\n    \n    return {\n        \"status\": \"success\",\n        \"total\": len(urls),\n        \"success\": success_count,\n        \"failed\": len(urls) - success_count,\n        \"results\": results\n    }\n\n@tool\ndef batch_extract_from_urls(urls: str, extraction_prompt: str, method: str = \"browser_use\", nova_act_key: str = None, region: str = \"us-west-2\", max_concurrent: int = 3) -> str:\n    \"\"\"同步包装器\"\"\"\n    try:\n        urls_list = json.loads(urls)\n        result = asyncio.run(_async_batch_extract(urls_list, extraction_prompt, method, nova_act_key, region, max_concurrent))\n        return json.dumps(result, ensure_ascii=False)\n    except Exception as e:\n        return json.dumps({\"status\": \"error\", \"message\": str(e)}, ensure_ascii=False)"
+        },
+        {
+          "step": 9,
+          "description": "添加所有工具的文档字符串和类型注解",
+          "code_snippet": "# 确保每个@tool函数都有详细的docstring\n# 包括：功能描述、参数说明、返回值格式、使用示例\n# 使用typing模块添加类型注解"
+        },
+        {
+          "step": 10,
+          "description": "创建测试脚本验证所有工具",
+          "code_snippet": "# test_browser_automation.py\n# 测试每个工具的基本功能\n# 测试错误处理\n# 测试并发场景"
+        }
+      ]
+    },
+    "dependencies": [
+      {
+        "package": "bedrock-agentcore",
+        "version": ">=1.0.0",
+        "purpose": "Amazon Bedrock AgentCore浏览器客户端，提供BrowserClient类和browser_session上下文管理器"
+      },
+      {
+        "package": "nova-act",
+        "version": ">=0.1.0",
+        "purpose": "Nova Act API集成，提供NovaAct类和playwright_actuation支持"
+      },
+      {
+        "package": "browser-use",
+        "version": ">=0.1.0",
+        "purpose": "AI驱动的浏览器自动化库，提供Agent、BrowserSession和BrowserProfile类"
+      },
+      {
+        "package": "langchain-aws",
+        "version": ">=0.1.0",
+        "purpose": "AWS Bedrock模型集成，提供ChatBedrockConverse类"
+      },
+      {
+        "package": "boto3",
+        "version": ">=1.26.0",
+        "purpose": "AWS SDK，用于区域配置和会话管理，提供Session类"
+      },
+      {
+        "package": "rich",
+        "version": ">=13.0.0",
+        "purpose": "终端输出美化，提供Console类用于日志记录和进度显示"
+      },
+      {
+        "package": "playwright",
+        "version": ">=1.40.0",
+        "purpose": "浏览器自动化底层支持（通过Nova Act使用），需要运行'playwright install'"
+      },
+      {
+        "package": "asyncio",
+        "version": "builtin",
+        "purpose": "Python内置异步IO库，用于异步操作和并发控制"
+      },
+      {
+        "package": "threading",
+        "version": "builtin",
+        "purpose": "Python内置线程库，用于会话存储的线程安全"
+      },
+      {
+        "package": "uuid",
+        "version": "builtin",
+        "purpose": "Python内置UUID库，用于生成唯一会话ID"
+      }
+    ],
+    "testing_strategy": {
+      "test_cases": [
+        {
+          "test_name": "test_browser_with_nova_act_basic",
+          "description": "测试基础Nova Act浏览器自动化功能",
+          "input": {
+            "prompt": "搜索'Python教程'",
+            "starting_page": "https://www.google.com",
+            "nova_act_key": "test-api-key",
+            "region": "us-west-2"
+          },
+          "expected_output": "{\"status\": \"success\", \"response\": \"...\", \"data\": {...}}"
+        },
+        {
+          "test_name": "test_browser_with_live_view_nova",
+          "description": "测试带实时视图的Nova Act自动化",
+          "input": {
+            "prompt": "访问亚马逊首页并截图",
+            "starting_page": "https://www.amazon.com",
+            "nova_act_key": "test-api-key",
+            "viewer_port": 8000,
+            "display_size": "1080p"
+          },
+          "expected_output": "{\"status\": \"success\", \"viewer_url\": \"http://localhost:8000\", ...}"
+        },
+        {
+          "test_name": "test_browser_with_live_view_use",
+          "description": "测试Browser Use AI驱动自动化",
+          "input": {
+            "task": "在维基百科搜索'人工智能'并提取定义",
+            "region": "us-west-2",
+            "model_id": "anthropic.claude-3-5-sonnet-20240620-v1:0"
+          },
+          "expected_output": "{\"status\": \"success\", \"task_result\": {...}, \"steps\": [...]}"
+        },
+        {
+          "test_name": "test_manage_browser_session_create",
+          "description": "测试会话创建功能",
+          "input": {
+            "action": "create",
+            "region": "us-west-2"
+          },
+          "expected_output": "{\"status\": \"success\", \"session_id\": \"...\", \"ws_url\": \"wss://...\", \"headers\": {...}}"
+        },
+        {
+          "test_name": "test_manage_browser_session_stop",
+          "description": "测试会话停止功能",
+          "input": {
+            "action": "stop",
+            "session_id": "test-session-id"
+          },
+          "expected_output": "{\"status\": \"success\", \"action\": \"stop\", \"message\": \"Session stopped successfully\"}"
+        },
+        {
+          "test_name": "test_batch_extract_from_urls",
+          "description": "测试批量URL数据采集",
+          "input": {
+            "urls": "[\"https://example1.com\", \"https://example2.com\", \"https://example3.com\"]",
+            "extraction_prompt": "提取页面标题",
+            "method": "browser_use",
+            "max_concurrent": 2
+          },
+          "expected_output": "{\"status\": \"success\", \"total\": 3, \"success\": 3, \"failed\": 0, \"results\": [...]}"
+        },
+        {
+          "test_name": "test_error_handling_invalid_url",
+          "description": "测试无效URL错误处理",
+          "input": {
+            "prompt": "搜索测试",
+            "starting_page": "invalid-url",
+            "nova_act_key": "test-key"
+          },
+          "expected_output": "{\"status\": \"error\", \"error_type\": \"ValidationError\", \"message\": \"...\"}"
+        },
+        {
+          "test_name": "test_error_handling_missing_api_key",
+          "description": "测试缺少API密钥错误处理",
+          "input": {
+            "urls": "[\"https://example.com\"]",
+            "extraction_prompt": "提取内容",
+            "method": "nova_act"
+          },
+          "expected_output": "{\"status\": \"error\", \"message\": \"nova_act_key is required when method is 'nova_act'\"}"
+        },
+        {
+          "test_name": "test_concurrent_sessions",
+          "description": "测试并发会话管理",
+          "input": "创建5个并发会话，验证session_store正确管理",
+          "expected_output": "所有会话成功创建和清理，无资源泄漏"
+        },
+        {
+          "test_name": "test_batch_partial_failure",
+          "description": "测试批量采集部分失败场景",
+          "input": {
+            "urls": "[\"https://valid.com\", \"https://invalid-domain-xyz.com\", \"https://google.com\"]",
+            "extraction_prompt": "提取标题"
+          },
+          "expected_output": "{\"status\": \"success\", \"total\": 3, \"success\": 2, \"failed\": 1, \"results\": [{...}, {\"error\": \"...\"}, {...}]}"
+        }
+      ]
+    },
+    "code_organization": {
+      "main_file": "browser_automation_tools.py",
+      "description": "主工具文件，包含所有5个@tool装饰的函数",
+      "supporting_modules": [
+        {
+          "file": "session_manager.py",
+          "description": "会话存储和管理类"
+        },
+        {
+          "file": "browser_viewer.py",
+          "description": "DCV实时视图服务器（从参考代码改造）"
+        }
+      ],
+      "imports_structure": "# browser_automation_tools.py\nfrom strands import tool\nimport json\nimport asyncio\nfrom typing import Optional, Dict, Any\nfrom bedrock_agentcore.tools.browser_client import BrowserClient, browser_session\nfrom nova_act import NovaAct\nfrom browser_use import Agent\nfrom browser_use.browser.session import BrowserSession\nfrom browser_use.browser import BrowserProfile\nfrom langchain_aws import ChatBedrockConverse\nfrom rich.console import Console\nfrom contextlib import suppress\nfrom boto3.session import Session\nfrom .session_manager import SessionStore\nfrom .browser_viewer import BrowserViewerServer"
+    },
+    "async_handling_strategy": {
+      "description": "由于browser-use和部分操作需要异步，采用以下策略",
+      "approach": "为异步函数创建内部async实现（前缀_async_），然后提供同步包装器使用asyncio.run()",
+      "example": "async def _async_impl(...): ...\n\n@tool\ndef sync_wrapper(...) -> str:\n    try:\n        result = asyncio.run(_async_impl(...))\n        return json.dumps(result)\n    except Exception as e:\n        return json.dumps({\"status\": \"error\", \"message\": str(e)})",
+      "considerations": [
+        "asyncio.run()在已有事件循环时可能失败，需要检测并处理",
+        "异步资源清理使用suppress(Exception)确保安全",
+        "超时控制使用asyncio.wait_for()",
+        "并发控制使用asyncio.Semaphore()"
+      ]
+    },
+    "error_handling_patterns": {
+      "validation_errors": {
+        "description": "参数验证错误",
+        "return_format": "{\"status\": \"error\", \"error_type\": \"ValidationError\", \"message\": \"具体错误描述\"}",
+        "examples": [
+          "空参数",
+          "无效URL",
+          "无效枚举值",
+          "类型错误"
+        ]
+      },
+      "connection_errors": {
+        "description": "网络和连接错误",
+        "return_format": "{\"status\": \"error\", \"error_type\": \"ConnectionError\", \"message\": \"连接失败详情\"}",
+        "handling": "记录详细日志，提供重试建议"
+      },
+      "timeout_errors": {
+        "description": "操作超时错误",
+        "return_format": "{\"status\": \"error\", \"error_type\": \"TimeoutError\", \"message\": \"操作超时\"}",
+        "handling": "设置合理超时值，提供超时时长信息"
+      },
+      "api_errors": {
+        "description": "外部API调用错误（Nova Act、Bedrock等）",
+        "return_format": "{\"status\": \"error\", \"error_type\": \"APIError\", \"message\": \"API调用失败\", \"api_response\": {...}}",
+        "handling": "捕获API异常，记录响应内容"
+      },
+      "resource_errors": {
+        "description": "资源相关错误（端口占用、会话限制等）",
+        "return_format": "{\"status\": \"error\", \"error_type\": \"ResourceError\", \"message\": \"资源不可用\"}",
+        "handling": "提供资源状态信息和解决建议"
+      }
+    },
+    "performance_considerations": {
+      "session_reuse": "批量操作时复用BrowserClient会话以减少启动开销",
+      "concurrent_limits": "默认并发数为3，可通过max_concurrent参数调整",
+      "timeout_settings": "浏览器操作默认超时1500秒，单个URL采集默认60秒",
+      "memory_management": "大批量URL采集时分批处理（每批50个），防止内存耗尽",
+      "connection_pooling": "使用持久化会话（keep_alive=True）减少连接开销"
+    },
+    "security_considerations": {
+      "api_key_handling": "API密钥作为参数传入，不在代码中硬编码",
+      "session_isolation": "每个会话使用唯一ID，防止会话混淆",
+      "resource_limits": "限制最大会话数（10个）防止资源耗尽攻击",
+      "input_validation": "对所有输入参数进行严格验证，防止注入攻击",
+      "error_message_sanitization": "错误消息中不暴露敏感信息（如API密钥）"
+    }
+  }
+}

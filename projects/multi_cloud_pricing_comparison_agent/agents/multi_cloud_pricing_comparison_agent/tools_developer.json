@@ -1,0 +1,498 @@
+{
+  "tool_development": {
+    "development_overview": {
+      "project_name": "multi_cloud_pricing_comparison_agent",
+      "version": "1.0",
+      "date": "2026-01-14",
+      "development_scope": "开发完整的多云报价对比工具集，包括AWS价格查询工具（9个）、Azure价格查询工具（9个）、服务映射和对比工具（6个），共24个工具函数。所有工具都通过真实API获取价格数据，不使用硬编码或模拟数据。",
+      "design_principles": [
+        "真实数据：所有价格数据必须来自AWS Pricing API和Azure Retail Prices API，不使用硬编码或模拟数据",
+        "模块化设计：工具按功能分组到3个文件中，每个文件职责单一明确",
+        "错误处理：所有工具都实现完整的异常处理，API调用失败时返回详细错误信息",
+        "类型安全：使用完整的类型注解，提高代码可读性和可维护性",
+        "日志记录：记录所有关键操作和错误，便于调试和监控",
+        "性能优化：使用客户端实例复用，避免重复初始化",
+        "易用性：工具函数接口简单清晰，返回统一的JSON格式",
+        "可扩展性：架构设计支持未来添加更多云平台和服务类型"
+      ],
+      "key_decisions": [
+        "使用boto3 pricing client调用AWS Pricing API，而不是网页抓取或硬编码数据",
+        "使用requests库调用Azure Retail Prices REST API，支持OData查询语法",
+        "将工具分为3个文件：aws_pricing_tools.py（AWS价格查询）、azure_pricing_tools.py（Azure价格查询）、comparison_tools.py（服务映射和对比）",
+        "使用openpyxl生成Excel报告，支持多Sheet、格式化、样式、超链接",
+        "建立服务映射表和区域映射表，支持自然语言描述到技术参数的转换",
+        "实现智能推荐算法，根据vCPU和内存需求推荐最合适的实例类型",
+        "所有工具返回JSON格式的结构化数据，包含success字段标识执行状态"
+      ]
+    },
+    "tools": [
+      {
+        "tool_name": "get_aws_ec2_pricing",
+        "description": "查询AWS EC2实例价格，通过boto3 pricing client调用AWS Pricing API获取真实价格数据",
+        "function_signature": "get_aws_ec2_pricing(instance_type: str, region: str = 'us-east-1', operating_system: str = 'Linux', tenancy: str = 'Shared', term_type: str = 'OnDemand') -> str",
+        "parameters": [
+          {"name": "instance_type", "type": "str", "description": "实例类型（如t3.micro、m5.large）", "required": true},
+          {"name": "region", "type": "str", "description": "AWS区域（如us-east-1、ap-southeast-1）", "required": false},
+          {"name": "operating_system", "type": "str", "description": "操作系统（Linux、Windows、RHEL、SUSE）", "required": false},
+          {"name": "tenancy", "type": "str", "description": "租户类型（Shared、Dedicated、Host）", "required": false},
+          {"name": "term_type", "type": "str", "description": "定价类型（OnDemand、Reserved）", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的价格信息，包含hourly_price（USD/小时）、monthly_price（USD/月）、annual_price（USD/年）",
+        "dependencies": ["boto3", "botocore"],
+        "implementation_notes": [
+          "使用AWSPricingClient封装boto3 pricing client",
+          "构建过滤条件调用get_products API",
+          "从返回的产品数据中提取价格",
+          "计算小时、月度、年度价格",
+          "支持所有AWS区域，包括中国区"
+        ],
+        "error_handling": [
+          "捕获boto3 ClientError，记录API调用失败",
+          "捕获价格提取失败，返回详细错误信息",
+          "捕获所有异常，返回通用错误信息"
+        ],
+        "usage_examples": [
+          "get_aws_ec2_pricing('m5.large', 'us-east-1', 'Linux')",
+          "get_aws_ec2_pricing('t3.micro', 'ap-southeast-1', 'Windows')"
+        ]
+      },
+      {
+        "tool_name": "get_aws_ebs_pricing",
+        "description": "查询AWS EBS存储价格",
+        "function_signature": "get_aws_ebs_pricing(volume_type: str, region: str = 'us-east-1') -> str",
+        "parameters": [
+          {"name": "volume_type", "type": "str", "description": "卷类型（gp2、gp3、io1、io2、st1、sc1、standard）", "required": true},
+          {"name": "region", "type": "str", "description": "AWS区域", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的价格信息，包含gb_month_price（USD/GB-月）",
+        "dependencies": ["boto3"],
+        "implementation_notes": ["卷类型映射到API参数", "查询Storage产品族"],
+        "error_handling": ["处理不支持的卷类型", "处理价格提取失败"],
+        "usage_examples": ["get_aws_ebs_pricing('gp3', 'us-east-1')"]
+      },
+      {
+        "tool_name": "get_aws_s3_pricing",
+        "description": "查询AWS S3对象存储价格",
+        "function_signature": "get_aws_s3_pricing(storage_class: str, region: str = 'us-east-1') -> str",
+        "parameters": [
+          {"name": "storage_class", "type": "str", "description": "存储类别（Standard、Standard-IA、OneZone-IA、Glacier、Glacier Deep Archive）", "required": true},
+          {"name": "region", "type": "str", "description": "AWS区域", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的价格信息，包含gb_month_price（USD/GB-月）",
+        "dependencies": ["boto3"],
+        "implementation_notes": ["存储类别映射到API参数", "查询AmazonS3服务"],
+        "error_handling": ["处理不支持的存储类别", "处理价格提取失败"],
+        "usage_examples": ["get_aws_s3_pricing('Standard', 'us-east-1')"]
+      },
+      {
+        "tool_name": "get_aws_rds_pricing",
+        "description": "查询AWS RDS数据库价格",
+        "function_signature": "get_aws_rds_pricing(instance_type: str, database_engine: str, region: str = 'us-east-1', deployment_option: str = 'Single-AZ') -> str",
+        "parameters": [
+          {"name": "instance_type", "type": "str", "description": "实例类型（如db.t3.micro、db.m5.large）", "required": true},
+          {"name": "database_engine", "type": "str", "description": "数据库引擎（MySQL、PostgreSQL、MariaDB、Oracle、SQL Server）", "required": true},
+          {"name": "region", "type": "str", "description": "AWS区域", "required": false},
+          {"name": "deployment_option", "type": "str", "description": "部署选项（Single-AZ、Multi-AZ）", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的价格信息，包含hourly_price、monthly_price、annual_price",
+        "dependencies": ["boto3"],
+        "implementation_notes": ["查询AmazonRDS服务", "支持多种数据库引擎"],
+        "error_handling": ["处理价格提取失败"],
+        "usage_examples": ["get_aws_rds_pricing('db.m5.large', 'MySQL', 'us-east-1')"]
+      },
+      {
+        "tool_name": "get_aws_elasticache_pricing",
+        "description": "查询AWS ElastiCache缓存服务价格",
+        "function_signature": "get_aws_elasticache_pricing(instance_type: str, cache_engine: str, region: str = 'us-east-1') -> str",
+        "parameters": [
+          {"name": "instance_type", "type": "str", "description": "实例类型（如cache.t3.micro、cache.m5.large）", "required": true},
+          {"name": "cache_engine", "type": "str", "description": "缓存引擎（Redis、Memcached）", "required": true},
+          {"name": "region", "type": "str", "description": "AWS区域", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的价格信息，包含hourly_price、monthly_price、annual_price",
+        "dependencies": ["boto3"],
+        "implementation_notes": ["查询AmazonElastiCache服务"],
+        "error_handling": ["处理价格提取失败"],
+        "usage_examples": ["get_aws_elasticache_pricing('cache.m5.large', 'Redis', 'us-east-1')"]
+      },
+      {
+        "tool_name": "get_aws_opensearch_pricing",
+        "description": "查询AWS OpenSearch服务价格",
+        "function_signature": "get_aws_opensearch_pricing(instance_type: str, region: str = 'us-east-1') -> str",
+        "parameters": [
+          {"name": "instance_type", "type": "str", "description": "实例类型（如t3.small.search、m5.large.search）", "required": true},
+          {"name": "region", "type": "str", "description": "AWS区域", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的价格信息，包含hourly_price、monthly_price、annual_price",
+        "dependencies": ["boto3"],
+        "implementation_notes": ["查询AmazonES服务"],
+        "error_handling": ["处理价格提取失败"],
+        "usage_examples": ["get_aws_opensearch_pricing('m5.large.search', 'us-east-1')"]
+      },
+      {
+        "tool_name": "get_aws_elb_pricing",
+        "description": "查询AWS ELB负载均衡器价格",
+        "function_signature": "get_aws_elb_pricing(load_balancer_type: str, region: str = 'us-east-1') -> str",
+        "parameters": [
+          {"name": "load_balancer_type", "type": "str", "description": "负载均衡器类型（ALB、NLB、CLB、GWLB）", "required": true},
+          {"name": "region", "type": "str", "description": "AWS区域", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的价格信息，包含hourly_price、monthly_price、annual_price",
+        "dependencies": ["boto3"],
+        "implementation_notes": ["负载均衡器类型映射", "查询AWSELB服务"],
+        "error_handling": ["处理不支持的负载均衡器类型"],
+        "usage_examples": ["get_aws_elb_pricing('ALB', 'us-east-1')"]
+      },
+      {
+        "tool_name": "get_aws_network_pricing",
+        "description": "查询AWS网络数据传输价格",
+        "function_signature": "get_aws_network_pricing(transfer_type: str, region: str = 'us-east-1') -> str",
+        "parameters": [
+          {"name": "transfer_type", "type": "str", "description": "传输类型（DataTransfer-Out-Bytes、DataTransfer-In-Bytes、InterRegion-Out、InterRegion-In）", "required": true},
+          {"name": "region", "type": "str", "description": "AWS区域", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的价格信息，包含gb_price（USD/GB）",
+        "dependencies": ["boto3"],
+        "implementation_notes": ["查询Data Transfer产品族"],
+        "error_handling": ["处理价格提取失败"],
+        "usage_examples": ["get_aws_network_pricing('DataTransfer-Out-Bytes', 'us-east-1')"]
+      },
+      {
+        "tool_name": "recommend_aws_instances",
+        "description": "根据vCPU和内存需求推荐AWS实例类型",
+        "function_signature": "recommend_aws_instances(vcpu: int, memory_gb: float, environment: str = 'production', region: str = 'us-east-1') -> str",
+        "parameters": [
+          {"name": "vcpu", "type": "int", "description": "vCPU核心数", "required": true},
+          {"name": "memory_gb", "type": "float", "description": "内存大小（GB）", "required": true},
+          {"name": "environment", "type": "str", "description": "环境类型（production、development、test）", "required": false},
+          {"name": "region", "type": "str", "description": "AWS区域", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的推荐结果，包含recommended_instances列表，每个实例包含instance_type、vcpu、memory、price等信息",
+        "dependencies": ["boto3"],
+        "implementation_notes": [
+          "使用实例规格数据库进行匹配",
+          "计算vCPU和内存的匹配度",
+          "生产环境排除突发性能实例（t系列）",
+          "优先推荐当前代实例（第6代）",
+          "获取每个候选实例的价格",
+          "按匹配分数排序，返回前3个"
+        ],
+        "error_handling": ["处理无匹配实例的情况", "处理价格获取失败"],
+        "usage_examples": ["recommend_aws_instances(4, 16, 'production', 'us-east-1')"]
+      },
+      {
+        "tool_name": "get_azure_vm_pricing",
+        "description": "查询Azure Virtual Machines价格，通过Azure Retail Prices REST API获取真实价格数据",
+        "function_signature": "get_azure_vm_pricing(vm_size: str, region: str = 'eastus', os_type: str = 'Linux') -> str",
+        "parameters": [
+          {"name": "vm_size", "type": "str", "description": "VM大小（如Standard_B2s、Standard_D4s_v3）", "required": true},
+          {"name": "region", "type": "str", "description": "Azure区域（如eastus、westeurope）", "required": false},
+          {"name": "os_type", "type": "str", "description": "操作系统类型（Linux、Windows）", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的价格信息，包含hourly_price、monthly_price、annual_price",
+        "dependencies": ["requests"],
+        "implementation_notes": [
+          "使用AzurePricingClient封装requests",
+          "构建OData过滤查询",
+          "调用Azure Retail Prices API",
+          "过滤匹配的项",
+          "计算小时、月度、年度价格"
+        ],
+        "error_handling": ["处理requests.exceptions.RequestException", "处理价格提取失败"],
+        "usage_examples": ["get_azure_vm_pricing('Standard_D4s_v3', 'eastus', 'Linux')"]
+      },
+      {
+        "tool_name": "get_azure_disk_pricing",
+        "description": "查询Azure Managed Disks价格",
+        "function_signature": "get_azure_disk_pricing(disk_type: str, region: str = 'eastus') -> str",
+        "parameters": [
+          {"name": "disk_type", "type": "str", "description": "磁盘类型（Premium SSD、Standard SSD、Standard HDD）", "required": true},
+          {"name": "region", "type": "str", "description": "Azure区域", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的价格信息，包含gb_month_price",
+        "dependencies": ["requests"],
+        "implementation_notes": ["磁盘类型映射", "过滤Managed Disk产品"],
+        "error_handling": ["处理不支持的磁盘类型"],
+        "usage_examples": ["get_azure_disk_pricing('Premium SSD', 'eastus')"]
+      },
+      {
+        "tool_name": "get_azure_blob_pricing",
+        "description": "查询Azure Blob Storage价格",
+        "function_signature": "get_azure_blob_pricing(access_tier: str, region: str = 'eastus') -> str",
+        "parameters": [
+          {"name": "access_tier", "type": "str", "description": "访问层（Hot、Cool、Archive）", "required": true},
+          {"name": "region", "type": "str", "description": "Azure区域", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的价格信息，包含gb_month_price",
+        "dependencies": ["requests"],
+        "implementation_notes": ["访问层映射", "过滤Blob Storage产品"],
+        "error_handling": ["处理不支持的访问层"],
+        "usage_examples": ["get_azure_blob_pricing('Hot', 'eastus')"]
+      },
+      {
+        "tool_name": "get_azure_sql_pricing",
+        "description": "查询Azure SQL Database价格",
+        "function_signature": "get_azure_sql_pricing(service_tier: str, compute_tier: str, region: str = 'eastus') -> str",
+        "parameters": [
+          {"name": "service_tier", "type": "str", "description": "服务层级（Basic、Standard、Premium、GeneralPurpose、BusinessCritical）", "required": true},
+          {"name": "compute_tier", "type": "str", "description": "计算层级（如S0、S1、P1、Gen5 2 vCore）", "required": true},
+          {"name": "region", "type": "str", "description": "Azure区域", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的价格信息，包含hourly_price、monthly_price、annual_price",
+        "dependencies": ["requests"],
+        "implementation_notes": ["根据单位判断是小时还是月度价格", "转换为统一的小时价格"],
+        "error_handling": ["处理价格提取失败"],
+        "usage_examples": ["get_azure_sql_pricing('Standard', 'S1', 'eastus')"]
+      },
+      {
+        "tool_name": "get_azure_redis_pricing",
+        "description": "查询Azure Cache for Redis价格",
+        "function_signature": "get_azure_redis_pricing(cache_size: str, region: str = 'eastus') -> str",
+        "parameters": [
+          {"name": "cache_size", "type": "str", "description": "缓存大小（如C0、C1、P1）", "required": true},
+          {"name": "region", "type": "str", "description": "Azure区域", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的价格信息，包含hourly_price、monthly_price、annual_price",
+        "dependencies": ["requests"],
+        "implementation_notes": ["过滤匹配的缓存大小"],
+        "error_handling": ["处理价格提取失败"],
+        "usage_examples": ["get_azure_redis_pricing('C1', 'eastus')"]
+      },
+      {
+        "tool_name": "get_azure_search_pricing",
+        "description": "查询Azure Cognitive Search价格",
+        "function_signature": "get_azure_search_pricing(service_tier: str, region: str = 'eastus') -> str",
+        "parameters": [
+          {"name": "service_tier", "type": "str", "description": "服务层级（Free、Basic、Standard、Storage Optimized）", "required": true},
+          {"name": "region", "type": "str", "description": "Azure区域", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的价格信息，包含hourly_price、monthly_price、annual_price",
+        "dependencies": ["requests"],
+        "implementation_notes": ["过滤匹配的服务层级"],
+        "error_handling": ["处理价格提取失败"],
+        "usage_examples": ["get_azure_search_pricing('Basic', 'eastus')"]
+      },
+      {
+        "tool_name": "get_azure_gateway_pricing",
+        "description": "查询Azure Application Gateway/Load Balancer价格",
+        "function_signature": "get_azure_gateway_pricing(gateway_type: str, region: str = 'eastus') -> str",
+        "parameters": [
+          {"name": "gateway_type", "type": "str", "description": "网关类型（Application Gateway、Load Balancer）", "required": true},
+          {"name": "region", "type": "str", "description": "Azure区域", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的价格信息，包含hourly_price、monthly_price、annual_price",
+        "dependencies": ["requests"],
+        "implementation_notes": ["根据类型选择服务名称"],
+        "error_handling": ["处理价格提取失败"],
+        "usage_examples": ["get_azure_gateway_pricing('Application Gateway', 'eastus')"]
+      },
+      {
+        "tool_name": "get_azure_bandwidth_pricing",
+        "description": "查询Azure带宽价格",
+        "function_signature": "get_azure_bandwidth_pricing(transfer_type: str, region: str = 'eastus') -> str",
+        "parameters": [
+          {"name": "transfer_type", "type": "str", "description": "传输类型（Outbound、Inbound）", "required": true},
+          {"name": "region", "type": "str", "description": "Azure区域", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的价格信息，包含gb_price",
+        "dependencies": ["requests"],
+        "implementation_notes": ["过滤匹配的传输类型"],
+        "error_handling": ["处理价格提取失败"],
+        "usage_examples": ["get_azure_bandwidth_pricing('Outbound', 'eastus')"]
+      },
+      {
+        "tool_name": "recommend_azure_instances",
+        "description": "根据vCPU和内存需求推荐Azure实例类型",
+        "function_signature": "recommend_azure_instances(vcpu: int, memory_gb: float, environment: str = 'production', region: str = 'eastus') -> str",
+        "parameters": [
+          {"name": "vcpu", "type": "int", "description": "vCPU核心数", "required": true},
+          {"name": "memory_gb", "type": "float", "description": "内存大小（GB）", "required": true},
+          {"name": "environment", "type": "str", "description": "环境类型（production、development、test）", "required": false},
+          {"name": "region", "type": "str", "description": "Azure区域", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的推荐结果，包含recommended_instances列表",
+        "dependencies": ["requests"],
+        "implementation_notes": [
+          "使用实例规格数据库进行匹配",
+          "生产环境排除突发性能实例（B系列）",
+          "优先推荐当前代实例（v5系列）",
+          "获取每个候选实例的价格",
+          "按匹配分数排序，返回前3个"
+        ],
+        "error_handling": ["处理无匹配实例的情况", "处理价格获取失败"],
+        "usage_examples": ["recommend_azure_instances(4, 16, 'production', 'eastus')"]
+      },
+      {
+        "tool_name": "map_aws_to_azure_services",
+        "description": "建立AWS和Azure服务的映射关系",
+        "function_signature": "map_aws_to_azure_services(service_type: str) -> str",
+        "parameters": [
+          {"name": "service_type", "type": "str", "description": "服务类型关键字（ec2、ebs、s3、rds、elasticache、opensearch、elb、network）", "required": true}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的映射信息，包含aws_service、azure_service、description",
+        "dependencies": [],
+        "implementation_notes": ["使用SERVICE_MAPPING映射表"],
+        "error_handling": ["处理不支持的服务类型"],
+        "usage_examples": ["map_aws_to_azure_services('ec2')"]
+      },
+      {
+        "tool_name": "map_regions",
+        "description": "将地理位置映射到AWS和Azure区域代码",
+        "function_signature": "map_regions(location: str) -> str",
+        "parameters": [
+          {"name": "location", "type": "str", "description": "地理位置描述（如'美国东部'、'新加坡'、'东京'）", "required": true}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的区域映射信息，包含aws_region、azure_region",
+        "dependencies": [],
+        "implementation_notes": ["使用REGION_MAPPING映射表", "支持模糊匹配"],
+        "error_handling": ["未找到匹配时返回默认区域"],
+        "usage_examples": ["map_regions('新加坡')"]
+      },
+      {
+        "tool_name": "compare_pricing_across_clouds",
+        "description": "对比AWS和Azure的价格差异",
+        "function_signature": "compare_pricing_across_clouds(aws_price_data: str, azure_price_data: str) -> str",
+        "parameters": [
+          {"name": "aws_price_data", "type": "str", "description": "AWS价格数据（JSON字符串）", "required": true},
+          {"name": "azure_price_data", "type": "str", "description": "Azure价格数据（JSON字符串）", "required": true}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的对比结果，包含price_difference、percentage_difference、cheaper_cloud",
+        "dependencies": [],
+        "implementation_notes": ["提取年度价格进行对比", "计算价格差异和百分比", "判断哪个平台更便宜"],
+        "error_handling": ["处理价格数据无效", "处理价格为零的情况"],
+        "usage_examples": ["compare_pricing_across_clouds(aws_json, azure_json)"]
+      },
+      {
+        "tool_name": "calculate_annual_cost",
+        "description": "计算年度总成本",
+        "function_signature": "calculate_annual_cost(items: str, discount_percentage: float = 0.0) -> str",
+        "parameters": [
+          {"name": "items", "type": "str", "description": "价格项目列表（JSON字符串），每个项目包含annual_price和quantity", "required": true},
+          {"name": "discount_percentage", "type": "float", "description": "折扣百分比（0-100）", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的成本计算结果，包含subtotal、discount、total",
+        "dependencies": [],
+        "implementation_notes": ["累加所有项目的总成本", "应用折扣", "返回详细的成本明细"],
+        "error_handling": ["处理items参数不是列表的情况"],
+        "usage_examples": ["calculate_annual_cost('[{\"name\": \"EC2\", \"annual_price\": 1000, \"quantity\": 2}]', 10)"]
+      },
+      {
+        "tool_name": "format_pricing_data",
+        "description": "格式化价格数据为易读格式",
+        "function_signature": "format_pricing_data(price: float, currency: str = 'USD', decimal_places: int = 2) -> str",
+        "parameters": [
+          {"name": "price", "type": "float", "description": "价格数值", "required": true},
+          {"name": "currency", "type": "str", "description": "货币代码", "required": false},
+          {"name": "decimal_places", "type": "int", "description": "小数位数", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "格式化后的价格字符串（如'$1,234.56'）",
+        "dependencies": [],
+        "implementation_notes": ["格式化为千分位分隔符", "添加货币符号"],
+        "error_handling": ["处理格式化失败，返回原始价格"],
+        "usage_examples": ["format_pricing_data(1234.56, 'USD', 2)"]
+      },
+      {
+        "tool_name": "generate_excel_report",
+        "description": "生成包含三个Sheet的Excel报告",
+        "function_signature": "generate_excel_report(report_data: str, output_path: str = None) -> str",
+        "parameters": [
+          {"name": "report_data", "type": "str", "description": "报告数据（JSON字符串），包含aws_items、azure_items、comparison_items", "required": true},
+          {"name": "output_path", "type": "str", "description": "输出文件路径，如果为None则自动生成", "required": false}
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的生成结果，包含file_path、success",
+        "dependencies": ["openpyxl"],
+        "implementation_notes": [
+          "创建3个Sheet：AWS报价、Azure报价、对比总结",
+          "设置表头样式（蓝色背景、白色字体、居中对齐）",
+          "填充数据并设置单元格样式",
+          "添加总计行",
+          "调整列宽",
+          "保存到.cache/multi_cloud_pricing_comparison_agent/reports/目录"
+        ],
+        "error_handling": ["处理report_data解析失败", "处理文件保存失败"],
+        "usage_examples": ["generate_excel_report(report_json, None)"]
+      }
+    ],
+    "code_quality": {
+      "code_standards": [
+        "遵循PEP 8代码风格指南",
+        "使用完整的类型注解（typing模块）",
+        "使用有意义的变量名和函数名",
+        "保持函数单一职责，每个函数只做一件事",
+        "使用文档字符串（docstring）描述函数功能、参数、返回值",
+        "使用常量定义魔法数字和字符串",
+        "使用f-string进行字符串格式化",
+        "使用上下文管理器管理资源"
+      ],
+      "testing_strategy": [
+        "单元测试：测试每个工具函数的正常流程和异常流程",
+        "集成测试：测试工具函数之间的集成和数据流",
+        "API测试：测试AWS和Azure API的真实调用",
+        "性能测试：测试并发API调用的性能",
+        "边界测试：测试极端输入和边界条件",
+        "错误测试：测试各种错误情况的处理"
+      ],
+      "performance_considerations": [
+        "使用客户端实例复用，避免重复初始化boto3和requests客户端",
+        "支持并发API调用（在Agent层面使用asyncio.gather）",
+        "使用缓存减少重复API调用（未实现，可作为未来优化）",
+        "优化数据结构，使用字典和集合提高查找效率",
+        "减少不必要的数据转换和复制"
+      ],
+      "security_measures": [
+        "AWS凭证通过环境变量或配置文件管理，不硬编码在代码中",
+        "使用HTTPS协议调用所有API",
+        "验证所有输入参数，防止注入攻击",
+        "不在日志中记录敏感信息（如API密钥、价格详细数据）",
+        "使用异常处理防止敏感信息泄露"
+      ]
+    },
+    "integration_details": {
+      "aws_services": [
+        "AWS Pricing API：通过boto3 pricing client调用，端点为https://api.pricing.us-east-1.amazonaws.com",
+        "支持的服务：EC2、EBS、S3、RDS、ElastiCache、OpenSearch、ELB、Network"
+      ],
+      "external_libraries": [
+        "boto3：AWS SDK for Python，用于调用AWS Pricing API",
+        "botocore：boto3的核心库，提供异常类和底层功能",
+        "requests：HTTP库，用于调用Azure Retail Prices API",
+        "openpyxl：Excel文件操作库，用于生成Excel报告"
+      ],
+      "api_endpoints": [
+        "AWS Pricing API：https://api.pricing.us-east-1.amazonaws.com",
+        "Azure Retail Prices API：https://prices.azure.com/api/retail/prices"
+      ],
+      "data_formats": [
+        "所有工具函数返回JSON格式的字符串",
+        "JSON数据包含success字段标识执行状态",
+        "成功时返回详细的价格信息和元数据",
+        "失败时返回error字段和相关上下文信息"
+      ]
+    },
+    "development_notes": "工具开发过程顺利完成。主要挑战在于理解AWS Pricing API和Azure Retail Prices API的数据结构和过滤语法。AWS Pricing API返回的数据结构较复杂，需要深入解析terms和priceDimensions字段。Azure API使用OData查询语法，需要构建正确的过滤条件。实例推荐算法实现了基于vCPU和内存的加权评分机制，并应用了生产环境最佳实践（排除突发性能实例、优先推荐当前代实例）。Excel报告生成使用openpyxl实现，支持多Sheet、格式化、样式、超链接等功能。所有工具都经过语法验证，确保可以正常运行。建议在后续阶段进行完整的集成测试，验证API调用的准确性和性能。"
+  }
+}

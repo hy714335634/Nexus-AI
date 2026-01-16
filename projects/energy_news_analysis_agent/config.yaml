@@ -1,0 +1,6 @@
+project:
+  created_date: '2026-01-04T06:46:50.913543+00:00'
+  description: 能源行业新闻采集和分析智能体 - 自动从多个权威数据源采集能源行业政策、新闻和技术文档，进行智能分类、摘要总结，并生成HTML报告上传至S3
+  name: energy_news_analysis_agent
+  updated_date: '2026-01-04T06:47:00.934276+00:00'
+  version: 1.0.0

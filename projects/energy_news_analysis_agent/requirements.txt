@@ -1,0 +1,31 @@
+./nexus_utils
+strands-agents
+strands-agents-tools
+PyYAML
+bedrock-agentcore
+# Energy News Analysis Agent - Python Dependencies
+# Generated: 2026-01-04
+# Python Version: >=3.13
+# Core Strands Framework
+# AWS Services
+boto3
+botocore
+# Web Scraping
+playwright
+beautifulsoup4
+lxml
+requests
+httpx
+aiohttp
+# HTML Report Generation
+jinja2
+# Configuration and Utilities
+pyyaml
+# Telemetry
+opentelemetry-api
+opentelemetry-sdk
+opentelemetry-exporter-otlp
+# Optional Dependencies (for enhanced functionality)
+# Uncomment if needed:
+# pandas>=2.0.0  # For data analysis
+# pillow>=10.0.0  # For image processing

@@ -155,6 +155,7 @@ agent:
         tools_dependencies:
           - "strands_tools/file_read"
           - "strands_tools/current_time"
+          - "strands_tools/http_request"
           - "system_tools/agent_build_workflow/project_manager/get_project_status"
           - "system_tools/agent_build_workflow/project_manager/get_project_config"
           - "system_tools/agent_build_workflow/project_manager/get_project_readme"

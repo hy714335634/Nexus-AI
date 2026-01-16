@@ -1,0 +1,338 @@
+{
+  "agent_code_development": {
+    "development_overview": {
+      "project_name": "multi_cloud_pricing_comparison_agent",
+      "version": "1.0",
+      "date": "2026-01-14",
+      "development_scope": "开发完整的多云报价对比Agent代码，基于aws_pricing_agent模板扩展，集成24个工具函数（AWS价格查询9个、Azure价格查询9个、对比分析6个），实现自然语言需求解析、价格查询、智能推荐、对比分析、Excel报告生成等完整功能",
+      "design_principles": [
+        "基于成熟模板：复用aws_pricing_agent模板的架构和最佳实践",
+        "BedrockAgentCoreApp规范：遵循AgentCore部署标准，实现async handler入口点",
+        "流式响应支持：使用agent.stream_async()实现实时进度反馈",
+        "工具集成：正确集成24个工具函数，支持并发调用",
+        "错误处理：完整的异常处理和错误恢复机制",
+        "多运行模式：支持Docker容器、命令行测试、交互式对话三种模式",
+        "配置管理：使用ConfigLoader管理配置，支持环境变量覆盖",
+        "遥测监控：集成StrandsTelemetry进行性能监控"
+      ],
+      "key_decisions": [
+        "使用BedrockAgentCoreApp而非传统的handler函数模式，确保支持AgentCore部署",
+        "使用@app.entrypoint装饰器定义async handler函数，支持流式响应",
+        "通过nexus_utils.agent_factory.create_agent_from_prompt_template创建Agent对象",
+        "Agent配置路径为generated_agents_prompts/multi_cloud_pricing_comparison_agent/multi_cloud_pricing_comparison_agent",
+        "使用CLI类封装命令行交互逻辑，支持-r、-f、--aws-region、--azure-region、-it、-o等参数",
+        "在__main__中判断是否为Docker容器模式（DOCKER_CONTAINER=1），决定启动HTTP服务器还是CLI模式",
+        "环境变量BYPASS_TOOL_CONSENT=true跳过工具同意确认",
+        "OTEL端点通过ConfigLoader获取，优先使用环境变量，其次使用配置文件，最后使用默认值http://localhost:4318"
+      ]
+    },
+    "agent_implementation": {
+      "agent_name": "multi_cloud_pricing_comparison_agent",
+      "file_path": "agents/generated_agents/multi_cloud_pricing_comparison_agent/multi_cloud_pricing_comparison_agent.py",
+      "main_class": "MultiCloudPricingAgentCLI",
+      "entry_point": "handler (async function)",
+      "dependencies": [
+        "nexus_utils.agent_factory.create_agent_from_prompt_template",
+        "bedrock_agentcore.runtime.BedrockAgentCoreApp",
+        "bedrock_agentcore.runtime.context.RequestContext",
+        "strands.telemetry.StrandsTelemetry",
+        "nexus_utils.config_loader.ConfigLoader",
+        "os", "json", "argparse", "typing"
+      ],
+      "imports": [
+        "import os",
+        "import json",
+        "import argparse",
+        "from typing import Dict, Any, Optional, List",
+        "from nexus_utils.agent_factory import create_agent_from_prompt_template",
+        "from bedrock_agentcore.runtime import BedrockAgentCoreApp",
+        "from bedrock_agentcore.runtime.context import RequestContext",
+        "from strands.telemetry import StrandsTelemetry",
+        "from nexus_utils.config_loader import ConfigLoader"
+      ]
+    },
+    "core_functions": [
+      {
+        "function_name": "create_multi_cloud_pricing_agent",
+        "purpose": "创建多云报价对比Agent实例",
+        "parameters": [
+          {
+            "name": "env",
+            "type": "str",
+            "description": "环境类型（development/production/testing）",
+            "required": false,
+            "default": "production"
+          },
+          {
+            "name": "version",
+            "type": "str",
+            "description": "版本号",
+            "required": false,
+            "default": "latest"
+          },
+          {
+            "name": "model_id",
+            "type": "str",
+            "description": "模型ID（默认default，使用claude-sonnet-4-5）",
+            "required": false,
+            "default": "default"
+          }
+        ],
+        "return_type": "Agent",
+        "return_description": "创建的Agent实例",
+        "implementation_notes": [
+          "使用agent_factory.create_agent_from_prompt_template创建Agent",
+          "Agent配置路径为generated_agents_prompts/multi_cloud_pricing_comparison_agent/multi_cloud_pricing_comparison_agent",
+          "传递env、version、model_id、enable_logging参数",
+          "enable_logging设置为True，记录详细日志"
+        ]
+      },
+      {
+        "function_name": "handler",
+        "purpose": "AgentCore标准入口点，处理HTTP请求并返回流式响应",
+        "parameters": [
+          {
+            "name": "payload",
+            "type": "Dict[str, Any]",
+            "description": "AgentCore传入的请求体，包含prompt、user_id、media等字段",
+            "required": true
+          },
+          {
+            "name": "context",
+            "type": "RequestContext",
+            "description": "请求上下文，包含session_id等信息",
+            "required": true
+          }
+        ],
+        "return_type": "AsyncGenerator[str, None]",
+        "return_description": "流式响应的文本片段",
+        "implementation_notes": [
+          "使用@app.entrypoint装饰器定义",
+          "必须是async函数",
+          "从payload中提取prompt（支持prompt、message、input三种字段名）",
+          "从context中获取session_id",
+          "调用agent.stream_async(prompt)获取流式响应",
+          "使用async for遍历stream，yield每个event",
+          "异常时yield错误信息，格式为'Error: {str(e)}'",
+          "打印详细日志，包括接收的payload、session_id、处理进度、流式事件"
+        ]
+      },
+      {
+        "function_name": "MultiCloudPricingAgentCLI.__init__",
+        "purpose": "初始化CLI类",
+        "parameters": [
+          {
+            "name": "agent",
+            "type": "Agent",
+            "description": "已初始化的Agent实例",
+            "required": true
+          }
+        ],
+        "return_type": "None",
+        "return_description": "无返回值",
+        "implementation_notes": [
+          "保存agent实例到self.agent",
+          "调用_create_parser创建参数解析器"
+        ]
+      },
+      {
+        "function_name": "MultiCloudPricingAgentCLI._create_parser",
+        "purpose": "创建命令行参数解析器",
+        "parameters": [],
+        "return_type": "argparse.ArgumentParser",
+        "return_description": "参数解析器对象",
+        "implementation_notes": [
+          "支持-r/--requirement参数：自然语言需求描述",
+          "支持-f/--file参数：需求描述文件路径",
+          "支持--aws-region参数：AWS区域代码，默认us-east-1",
+          "支持--azure-region参数：Azure区域代码，默认eastus",
+          "支持-it/--interactive参数：启动交互式对话模式",
+          "支持-o/--output参数：指定Excel报告输出路径"
+        ]
+      },
+      {
+        "function_name": "MultiCloudPricingAgentCLI.run",
+        "purpose": "运行CLI主逻辑",
+        "parameters": [],
+        "return_type": "None",
+        "return_description": "无返回值",
+        "implementation_notes": [
+          "解析命令行参数",
+          "调用_get_requirement获取需求描述",
+          "如果未提供需求描述，打印错误信息并返回",
+          "将区域信息添加到需求描述中",
+          "将输出路径添加到需求描述中",
+          "根据interactive参数决定调用_run_interactive_mode还是直接调用agent",
+          "异常时打印错误信息"
+        ]
+      },
+      {
+        "function_name": "MultiCloudPricingAgentCLI._get_requirement",
+        "purpose": "从命令行参数或文件中获取需求描述",
+        "parameters": [
+          {
+            "name": "args",
+            "type": "argparse.Namespace",
+            "description": "解析后的命令行参数",
+            "required": true
+          }
+        ],
+        "return_type": "Optional[str]",
+        "return_description": "需求描述文本，如果未提供则返回None",
+        "implementation_notes": [
+          "优先使用--requirement参数",
+          "其次使用--file参数读取文件内容",
+          "如果是交互式模式，提示用户输入",
+          "文件读取失败时打印错误信息并返回None"
+        ]
+      },
+      {
+        "function_name": "MultiCloudPricingAgentCLI._run_interactive_mode",
+        "purpose": "运行交互式对话模式",
+        "parameters": [
+          {
+            "name": "initial_requirement",
+            "type": "str",
+            "description": "初始需求描述",
+            "required": true
+          }
+        ],
+        "return_type": "None",
+        "return_description": "无返回值",
+        "implementation_notes": [
+          "打印进入交互式模式的提示",
+          "如果有初始需求，先调用agent处理",
+          "进入while循环，持续接收用户输入",
+          "用户输入'quit'或'exit'时退出",
+          "每次调用agent处理用户输入",
+          "捕获KeyboardInterrupt异常优雅退出",
+          "捕获其他异常打印错误信息并继续"
+        ]
+      }
+    ],
+    "tool_integration": {
+      "custom_tools": [
+        "get_aws_ec2_pricing", "get_aws_ebs_pricing", "get_aws_s3_pricing",
+        "get_aws_rds_pricing", "get_aws_elasticache_pricing", "get_aws_opensearch_pricing",
+        "get_aws_elb_pricing", "get_aws_network_pricing", "recommend_aws_instances",
+        "get_azure_vm_pricing", "get_azure_disk_pricing", "get_azure_blob_pricing",
+        "get_azure_sql_pricing", "get_azure_redis_pricing", "get_azure_search_pricing",
+        "get_azure_gateway_pricing", "get_azure_bandwidth_pricing", "recommend_azure_instances",
+        "map_aws_to_azure_services", "map_regions", "compare_pricing_across_clouds",
+        "calculate_annual_cost", "format_pricing_data", "generate_excel_report"
+      ],
+      "system_tools": [],
+      "strands_tools": [],
+      "integration_notes": [
+        "所有工具通过提示词模板的tools_dependencies字段声明",
+        "Agent在运行时自动加载和注册工具",
+        "工具路径格式：generated_tools/multi_cloud_pricing_comparison_agent/<script_name>/<tool_name>",
+        "提示词中包含详细的工具使用策略和调用原则",
+        "支持并发调用AWS和Azure API优化性能",
+        "单个工具失败不影响整体流程"
+      ]
+    },
+    "configuration": {
+      "environment_variables": [
+        "BYPASS_TOOL_CONSENT=true（跳过工具同意确认）",
+        "OTEL_EXPORTER_OTLP_ENDPOINT（遥测端点，默认http://localhost:4318）",
+        "DOCKER_CONTAINER=1（标识Docker容器模式）",
+        "AWS_ACCESS_KEY_ID（AWS凭证）",
+        "AWS_SECRET_ACCESS_KEY（AWS凭证）"
+      ],
+      "model_configuration": {
+        "model_name": "global.anthropic.claude-sonnet-4-5-20250929-v1:0",
+        "max_tokens": 60000,
+        "temperature": 0.3,
+        "streaming": true
+      },
+      "streaming_config": {
+        "enabled": true,
+        "implementation": "agent.stream_async()",
+        "async_iteration": "async for event in stream"
+      }
+    },
+    "error_handling": {
+      "exception_types": [
+        "Exception（通用异常）",
+        "FileNotFoundError（文件不存在）",
+        "KeyboardInterrupt（用户中断）",
+        "ValueError（参数错误）",
+        "RuntimeError（运行时错误）"
+      ],
+      "error_responses": [
+        "Error: Missing 'prompt' in request（缺少prompt参数）",
+        "Error: {str(e)}（通用错误信息）",
+        "❌ 错误: 请提供需求描述（未提供需求描述）",
+        "❌ 读取文件失败: {str(e)}（文件读取失败）",
+        "❌ 处理失败: {str(e)}（处理异常）"
+      ],
+      "recovery_strategies": [
+        "handler函数异常时yield错误信息，不中断流式响应",
+        "CLI模式异常时打印错误信息，不退出程序",
+        "交互式模式异常时打印错误信息并继续对话循环",
+        "文件读取失败时返回None，提示用户重新输入",
+        "KeyboardInterrupt时优雅退出，打印退出提示"
+      ]
+    },
+    "testing": {
+      "test_cases": [
+        "测试Docker容器模式启动HTTP服务器",
+        "测试命令行模式接收-r参数处理需求",
+        "测试命令行模式接收-f参数读取文件",
+        "测试交互式对话模式多轮对话",
+        "测试区域参数传递（--aws-region、--azure-region）",
+        "测试输出路径参数传递（-o）",
+        "测试流式响应的正确性",
+        "测试错误处理和异常恢复"
+      ],
+      "test_scenarios": [
+        "场景1：用户提供完整的需求描述，系统成功生成报告",
+        "场景2：用户需求描述不完整，系统请求补充信息",
+        "场景3：AWS API调用失败，系统标注错误并继续处理Azure",
+        "场景4：Azure API调用失败，系统标注错误并继续处理AWS",
+        "场景5：所有API调用成功，系统生成完整的对比报告",
+        "场景6：用户在交互式模式中修改需求，系统重新生成报告",
+        "场景7：用户指定输出路径，系统保存报告到指定位置",
+        "场景8：Docker容器模式下接收HTTP请求并返回流式响应"
+      ],
+      "validation_criteria": [
+        "Agent创建成功，name属性正确",
+        "CLI参数解析正确，支持所有预定义参数",
+        "Docker容器模式正确启动HTTP服务器（端口8080）",
+        "命令行模式正确处理需求并调用agent",
+        "交互式模式支持多轮对话和优雅退出",
+        "流式响应正确yield每个event",
+        "错误处理完整，所有异常都有捕获和提示",
+        "日志记录详细，包括接收payload、处理进度、流式事件"
+      ]
+    },
+    "deployment": {
+      "deployment_requirements": [
+        "Python 3.13+运行环境",
+        "安装nexus_utils、bedrock_agentcore、strands等依赖",
+        "配置AWS凭证（环境变量或配置文件）",
+        "配置OTEL端点（可选）",
+        "Docker容器模式需要设置DOCKER_CONTAINER=1环境变量"
+      ],
+      "runtime_dependencies": [
+        "./nexus_utils（本地工具包）",
+        "strands-agents（Strands Agent框架）",
+        "strands-agents-tools（Strands工具框架）",
+        "boto3（AWS SDK）",
+        "botocore（boto3核心库）",
+        "requests（HTTP请求库）",
+        "openpyxl（Excel文件操作库）",
+        "PyYAML（YAML配置解析）"
+      ],
+      "performance_considerations": [
+        "使用agent.stream_async()实现流式响应，提升用户体验",
+        "并发调用AWS和Azure API（在工具层面或提示词引导下实现）",
+        "单次查询响应时间控制在2分钟内",
+        "API调用超时时间30秒，自动重试3次",
+        "内存使用合理，及时释放大对象"
+      ]
+    },
+    "development_notes": "Agent代码开发完成，基于aws_pricing_agent模板成功扩展，实现了完整的多云报价对比功能。核心亮点：1）遵循BedrockAgentCoreApp规范，实现了async handler入口点，支持AgentCore部署；2）使用agent.stream_async()实现流式响应，提供实时进度反馈；3）通过CLI类封装命令行交互逻辑，支持丰富的参数选项；4）支持三种运行模式（Docker容器、命令行测试、交互式对话），灵活适配不同使用场景；5）集成24个工具函数（AWS 9个、Azure 9个、对比分析6个），通过提示词模板声明依赖；6）完整的错误处理和异常恢复机制，单个API失败不影响整体流程；7）使用ConfigLoader管理配置，支持环境变量覆盖；8）集成StrandsTelemetry进行性能监控和日志记录。建议后续进行完整的集成测试，验证API调用、流式响应、错误处理的正确性。特别注意提示词模板路径必须正确（generated_agents_prompts/multi_cloud_pricing_comparison_agent/multi_cloud_pricing_comparison_agent），确保Agent能够成功加载提示词和工具依赖。"
+  }
+}

@@ -1,0 +1,95 @@
+{
+  "stage": "orchestrator",
+  "timestamp": "2026-01-12T02:20:45+00:00",
+  "project_name": "tool_build_browser_automation",
+  "project_path": "tools/generated_tools/tool_build_browser_automation",
+  "description": "Browser automation toolkit integrating Nova Act and AWS AgentCore Browser Use",
+  
+  "user_requirements": {
+    "summary": "浏览器交互工具集，支持完整的网页自动化操作",
+    "core_features": [
+      "集成 Nova Act 和 AWS AgentCore Browser Use",
+      "支持一系列连续操作，特别是网页信息采集",
+      "提供基础浏览器操作工具",
+      "支持实时浏览器视图",
+      "支持 AI 驱动的自然语言交互"
+    ],
+    "reference_code_provided": [
+      "basic_browser_with_nova_act.py - 基础 Nova Act 浏览器自动化",
+      "live_view_with_nova_act.py - Nova Act 实时视图交互",
+      "live_view_with_browser_use.py - Browser Use 实时视图交互"
+    ],
+    "key_technologies": [
+      "Amazon Bedrock AgentCore",
+      "Nova Act API",
+      "browser-use library",
+      "Playwright actuation",
+      "CDP (Chrome DevTools Protocol)",
+      "DCV (Amazon DCV) live viewer"
+    ]
+  },
+  
+  "tool_naming_convention": "tool_build_browser_automation",
+  "target_directory": "tools/generated_tools/tool_build_browser_automation/",
+  
+  "planned_tools": [
+    {
+      "name": "browser_with_nova_act",
+      "purpose": "使用 Nova Act 进行浏览器自动化操作",
+      "key_features": ["CDP WebSocket连接", "自然语言指令", "网页数据提取"]
+    },
+    {
+      "name": "browser_with_live_view_nova",
+      "purpose": "Nova Act 浏览器操作 + 实时视图",
+      "key_features": ["DCV实时查看", "可配置显示尺寸", "手动控制功能"]
+    },
+    {
+      "name": "browser_with_live_view_use",
+      "purpose": "Browser Use 浏览器操作 + 实时视图",
+      "key_features": ["AI驱动任务执行", "持久化会话", "异步操作支持"]
+    },
+    {
+      "name": "browser_session_manager",
+      "purpose": "统一的浏览器会话管理",
+      "key_features": ["会话创建与销毁", "WebSocket头生成", "区域配置"]
+    }
+  ],
+  
+  "compliance_check": {
+    "directory_structure": "✅ 符合 tools/generated_tools/tool_build_<name>/ 规范",
+    "naming_convention": "✅ 使用 tool_build_ 前缀",
+    "tool_decorator": "✅ 将使用 @tool 装饰器",
+    "json_output": "✅ 工具返回 JSON 字符串",
+    "documentation": "✅ 将生成完整 README.md"
+  },
+  
+  "workflow_stages": {
+    "current": "orchestrator",
+    "next": "requirements_analysis",
+    "sequence": [
+      "orchestrator",
+      "requirements_analysis",
+      "tool_design",
+      "tool_development",
+      "tool_validation",
+      "documentation_generation"
+    ]
+  },
+  
+  "context_for_next_stage": {
+    "requirements_analyzer": {
+      "user_input": "浏览器交互工具集，集成 Nova Act 和 AWS AgentCore Browser Use",
+      "reference_code_count": 3,
+      "integration_complexity": "high",
+      "async_support_required": true,
+      "external_dependencies": [
+        "bedrock_agentcore",
+        "nova_act",
+        "browser_use",
+        "langchain_aws",
+        "boto3",
+        "rich"
+      ]
+    }
+  }
+}

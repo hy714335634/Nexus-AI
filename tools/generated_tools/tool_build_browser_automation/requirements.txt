@@ -1,0 +1,21 @@
+# Browser Automation Toolkit Dependencies
+# Amazon Bedrock AgentCore and Browser Integration
+bedrock-agentcore
+
+# Nova Act API Integration
+nova-act
+
+# Browser Use AI Automation
+browser-use
+
+# AWS Bedrock LangChain Integration
+langchain-aws
+
+# AWS SDK
+boto3
+
+# Terminal Output Beautification
+rich
+
+# Browser Automation Foundation
+playwright

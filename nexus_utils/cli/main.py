@@ -43,7 +43,7 @@ def cli(ctx, base_path):
     \b
     CORE COMMANDS:
       project     Manage projects (init, list, describe, build, backup, restore, delete)
-      agents      Manage AI agents (list, describe)
+      agents      Manage AI agents (list, describe, delete)
       backup      Manage backups (list, describe, validate, delete)
       overview    Display system-wide overview
     
@@ -953,7 +953,31 @@ def project_build(ctx, project_name, agent, tag, no_cache, push, platform, build
 
 @cli.group()
 def agents():
-    """Manage Nexus-AI agents"""
+    """Manage Nexus-AI agents
+    
+    \b
+    COMMANDS:
+      list        List all agents
+      describe    Show detailed agent information
+      delete      Delete an agent and all resources
+    
+    \b
+    EXAMPLES:
+      # List all agents
+      nexus-cli agents list
+      
+      # List agents for a specific project
+      nexus-cli agents list --project my-project
+      
+      # Show agent details
+      nexus-cli agents describe my-agent
+      
+      # Delete an agent
+      nexus-cli agents delete my-agent
+      
+      # Preview deletion
+      nexus-cli agents delete my-agent --dry-run
+    """
     pass
 
 
@@ -1001,6 +1025,152 @@ def agents_list(ctx, project, output):
                 click.echo(f"\nTotal: {len(agents)} agents in project '{project}'")
             else:
                 click.echo(f"\nTotal: {len(agents)} agents")
+    
+    except Exception as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+
+
+@agents.command('delete')
+@click.argument('name')
+@click.option('--force', '-f', is_flag=True, help='Skip confirmation')
+@click.option('--dry-run', is_flag=True, help='Show what would be done without executing')
+@click.pass_obj
+def agents_delete(ctx, name, force, dry_run):
+    """Delete an agent and all related resources
+    
+    Permanently removes an agent and ALL associated resources including:
+    - Agent implementation files (agents/generated_agents/<name>/)
+    - Prompt configurations (prompts/generated_agents_prompts/<name>/)
+    - Custom tools (tools/generated_tools/<name>/)
+    - Project files (projects/<name>/)
+    
+    \b
+    WARNING: This operation is irreversible! Consider using 'project backup'
+    before deleting to preserve a recoverable copy.
+    
+    \b
+    EXAMPLES:
+      # Delete with confirmation prompt
+      nexus-cli agents delete my-agent
+      
+      # Preview deletion (dry-run)
+      nexus-cli agents delete my-agent --dry-run
+      
+      # Force delete (skip confirmation)
+      nexus-cli agents delete my-agent --force
+      
+      # Backup before delete
+      nexus-cli project backup my-agent
+      nexus-cli agents delete my-agent --force
+    
+    \b
+    SAFETY:
+      • Confirmation prompt (unless --force)
+      • Dry-run mode for preview
+      • Shows detailed list of what will be deleted
+      • Handles missing directories gracefully
+    """
+    try:
+        # Define all directories that may need to be deleted
+        agents_dir = f"agents/generated_agents/{name}"
+        prompts_dir = f"prompts/generated_agents_prompts/{name}"
+        tools_dir = f"tools/generated_tools/{name}"
+        project_dir = f"projects/{name}"
+        
+        # Check which directories exist
+        existing_dirs = []
+        if ctx.fs_adapter.exists(project_dir):
+            existing_dirs.append(('project', project_dir))
+        if ctx.fs_adapter.exists(agents_dir):
+            existing_dirs.append(('agents', agents_dir))
+        if ctx.fs_adapter.exists(prompts_dir):
+            existing_dirs.append(('prompts', prompts_dir))
+        if ctx.fs_adapter.exists(tools_dir):
+            existing_dirs.append(('tools', tools_dir))
+        
+        # Check if agent exists at all
+        if not existing_dirs:
+            click.echo(f"Error: Agent '{name}' not found (no related directories exist)", err=True)
+            click.echo()
+            click.echo("Checked locations:")
+            click.echo(f"  • {project_dir}/")
+            click.echo(f"  • {agents_dir}/")
+            click.echo(f"  • {prompts_dir}/")
+            click.echo(f"  • {tools_dir}/")
+            sys.exit(1)
+        
+        if dry_run:
+            click.echo("[DRY RUN] Would perform the following operations:")
+            click.echo()
+            click.echo(f"Deleting agent '{name}' and all related resources...")
+            click.echo()
+            click.echo("Directories to be deleted:")
+            
+            for dir_type, dir_path in existing_dirs:
+                click.echo(f"  ✓ {dir_path}/")
+                # List contents for detailed preview
+                try:
+                    contents = ctx.fs_adapter.list_directory(dir_path)
+                    for item in contents[:5]:
+                        click.echo(f"    - {item.name}")
+                    if len(contents) > 5:
+                        click.echo(f"    ... and {len(contents) - 5} more items")
+                except:
+                    pass
+            
+            click.echo()
+            click.echo("Directories that do not exist (will be skipped):")
+            all_dirs = [
+                ('project', project_dir),
+                ('agents', agents_dir),
+                ('prompts', prompts_dir),
+                ('tools', tools_dir)
+            ]
+            non_existing = [d for d in all_dirs if d not in existing_dirs]
+            if non_existing:
+                for dir_type, dir_path in non_existing:
+                    click.echo(f"  - {dir_path}/ (not found)")
+            else:
+                click.echo("  (all directories exist)")
+            
+            click.echo()
+            click.echo("Run without --dry-run to execute these operations.")
+            return
+        
+        if not force:
+            click.echo(f"⚠️  WARNING: This will permanently delete agent '{name}' and ALL related resources")
+            click.echo()
+            click.echo("The following directories will be deleted:")
+            for dir_type, dir_path in existing_dirs:
+                click.echo(f"  • {dir_path}/")
+            
+            click.echo()
+            if not click.confirm("Are you sure you want to continue?"):
+                click.echo("Aborted.")
+                return
+        
+        # Perform deletion
+        click.echo(f"Deleting agent '{name}' and all related resources...")
+        click.echo()
+        
+        deleted_items = []
+        
+        # Delete in order: project, agents, prompts, tools
+        for dir_type, dir_path in existing_dirs:
+            try:
+                ctx.fs_adapter.delete_directory(dir_path)
+                deleted_items.append(f"✓ Deleted {dir_type}: {dir_path}/")
+            except Exception as e:
+                click.echo(f"  ✗ Failed to delete {dir_path}/: {e}", err=True)
+        
+        # Show what was deleted
+        for item in deleted_items:
+            click.echo(f"  {item}")
+        
+        click.echo()
+        click.echo(f"✓ Agent '{name}' and all related resources deleted successfully")
+        click.echo(f"  Total: {len(deleted_items)} directories removed")
     
     except Exception as e:
         click.echo(f"Error: {e}", err=True)

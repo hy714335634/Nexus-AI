@@ -1,0 +1,47 @@
+# Slack Bot 配置文件
+
+# Agent 路由配置
+agents:
+  # 默认 Agent（列表中第一个会被默认使用）
+  - name: "multi_cloud_pricing_comparison_agent"
+    description: "多云报价对比Agent，能够理解自然语言描述的云服务需求，通过AWS Pricing API和Azure Retail Prices API获取真实价格数据，进行智能配置推荐和价格对比分析，最终生成包含三个Sheet的Excel报告。"
+    enabled: true
+
+  # 可以添加更多 Agent
+  # - name: "another_agent"
+  #   description: "其他功能助手"
+  #   enabled: true
+
+# Bot 配置
+bot:
+  # 响应超时时间（秒）
+  timeout: 60
+  
+  # 是否显示详细日志
+  verbose: true
+  
+  # AI 免责声明
+  disclaimer: "⚠️ 此回复由 AI 生成，仅供参考，请独立验证信息准确性。"
+  
+  # Slack 格式化提示词（会自动添加到用户问题后）
+  slack_format_instruction: |
+    
+    【重要】请按照以下格式要求输出回复，以便在 Slack 中正确显示：
+    
+    1. 标题使用：*粗体文本* 表示（不要使用 # 符号）
+    2. 强调使用：_斜体文本_ 表示
+    3. 代码使用：`代码内容` 表示
+    4. 代码块使用：```代码块``` 表示
+    5. 列表使用：• 或 - 开头
+    6. 引用使用：> 开头
+    7. 分隔线使用：--- 或 ___
+    8. 链接使用：<URL|显示文本> 格式
+    9. Emoji 使用：:emoji_name: 格式（如 :white_check_mark: :warning: :bulb:）
+    
+    请避免：
+    - 不要使用 Markdown 的 # ## ### 标题语法
+    - 不要使用 HTML 标签
+    - 表格内容请用简洁的文本列表代替
+    - 保持回复简洁，避免过长的内容
+    
+    请直接输出格式化后的内容，不要包含任何格式说明或元信息。
