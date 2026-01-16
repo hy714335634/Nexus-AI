@@ -257,37 +257,7 @@ Nexus-AI 使用 **多 Agent 协作** 的方式自动构建 Agent：
 <details>
 <summary>📊 查看详细架构图</summary>
 
-```mermaid
-graph TD
-    UserReq[用户需求输入] --> IntentRecognition[意图识别]
-    IntentRecognition --> ReqAnalysisTeam[需求分析团队]
-    
-    ReqAnalysisTeam --> TaskPlanTeam[研发设计团队]
-    ReqAnalysisTeam --> ReqAnalysisExpert[需求分析专家]
-    
-    TaskPlanTeam --> LLMPlanner[Agent应用架构师]
-    TaskPlanTeam --> AgentDesigner[Agent设计师]
-    TaskPlanTeam --> AgentDevTeam[Agent开发团队]
-    
-    AgentDevTeam --> ProjectDelivery[项目交付经理]
-    ProjectDelivery --> AgentCodeDeveloper[Agent开发工程师]
-    ProjectDelivery --> PromptEngineer[提示词工程师]
-    ProjectDelivery --> ToolsDevExpert[工具开发工程师]
-    ProjectDelivery --> ContentAuditEngineer[内容审查工程师]
-    ContentAuditEngineer --> PoCEngineer[测试工程师]
-    
-    subgraph AssetReuse[智能资产复用]
-        AgentLibCheck[Agent库索引]
-        ToolLibCheck[工具库索引]
-        PromptLibCheck[提示词库索引]
-    end
-    
-    ToolsDevExpert --> AssetReuse
-    PromptEngineer --> AssetReuse
-    AgentCodeDeveloper --> AssetReuse
-    
-    PoCEngineer --> CompleteProject[完整可运行项目]
-```
+![Agent Build Workflow](architecture/Agent-Build-Workflow-v1.png)
 
 </details>
 

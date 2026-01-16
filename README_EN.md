@@ -257,37 +257,7 @@ User Request → Requirements → Architecture → Agent Design → Prompt Engin
 <details>
 <summary>📊 View Detailed Architecture</summary>
 
-```mermaid
-graph TD
-    UserReq[User Request] --> IntentRecognition[Intent Recognition]
-    IntentRecognition --> ReqAnalysisTeam[Requirements Analysis Team]
-    
-    ReqAnalysisTeam --> TaskPlanTeam[R&D Design Team]
-    ReqAnalysisTeam --> ReqAnalysisExpert[Requirements Analyst]
-    
-    TaskPlanTeam --> LLMPlanner[Agent Architect]
-    TaskPlanTeam --> AgentDesigner[Agent Designer]
-    TaskPlanTeam --> AgentDevTeam[Agent Dev Team]
-    
-    AgentDevTeam --> ProjectDelivery[Project Delivery Manager]
-    ProjectDelivery --> AgentCodeDeveloper[Agent Developer]
-    ProjectDelivery --> PromptEngineer[Prompt Engineer]
-    ProjectDelivery --> ToolsDevExpert[Tool Developer]
-    ProjectDelivery --> ContentAuditEngineer[Content Auditor]
-    ContentAuditEngineer --> PoCEngineer[Test Engineer]
-    
-    subgraph AssetReuse[Smart Asset Reuse]
-        AgentLibCheck[Agent Library Index]
-        ToolLibCheck[Tool Library Index]
-        PromptLibCheck[Prompt Library Index]
-    end
-    
-    ToolsDevExpert --> AssetReuse
-    PromptEngineer --> AssetReuse
-    AgentCodeDeveloper --> AssetReuse
-    
-    PoCEngineer --> CompleteProject[Complete Runnable Project]
-```
+![Agent Build Workflow](architecture/Agent-Build-Workflow-v1.png)
 
 </details>
 

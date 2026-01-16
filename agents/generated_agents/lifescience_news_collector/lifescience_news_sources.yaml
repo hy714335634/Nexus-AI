@@ -6,7 +6,7 @@ data_sources:
   # SerpAPI Google Search（AWS SA/BD 视角优化）
   serpapi:
     enabled: true
-    api_key: "b64547286d019790973ecdb4bd84d64ee64be4a4786f6f626625e1ac2c57ce2f"  # 支持环境变量覆盖
+    api_key: "<api key>"  # 支持环境变量覆盖
     queries:
       # AI与大模型技术突破（重点关注）
       - "AIDD AI药物发现 最新进展"
