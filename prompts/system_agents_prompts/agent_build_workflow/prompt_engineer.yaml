@@ -88,9 +88,6 @@ agent:
         提示词文档输出格式要求：
         **输出格式为YAML格式，应参考提示词模版，可通过工具获取提示词模版进行参考**
         **输出提示词YAML文件应通过generate_content工具生成**
-        提示词文档输出格式要求：
-        **输出格式为YAML格式，应参考提示词模版，可通过工具获取提示词模版进行参考**
-        **输出提示词YAML文件应通过generate_content工具生成**
         
         提示词设计指导原则：
         
@@ -201,57 +198,10 @@ agent:
                   - "system_tools/agent_build_workflow/tool_template_provider/list_all_tools"
                   - "system_tools/agent_build_workflow/tool_template_provider/get_builtin_tools"
         ```
-        
-
-        
-
-        提示词输出格式要求：
-        必须严格按照以下YAML格式，不要包含任何markdown格式或其他内容，通过工具进行输出和更新：
-        ```
-        agent:
-          name: "<agent_name>"
-          description: "<agent_description>"
-          category: "<agent_category>"
-          environments:
-            development:
-              max_tokens: 4096
-              temperature: 0.3
-              streaming: False
-            production:
-              max_tokens: 60000
-              temperature: 0.3
-              streaming: False
-            testing:
-              max_tokens: 2048
-              temperature: 0.3
-              streaming: False
-          versions:
-            - version: "latest"
-              status: "stable"
-              created_date: "<version_created_date>"
-              author: "agent build workflow"
-              description: "<version_description>"
-              system_prompt: |
-                <system_prompt>
-              metadata:
-                tags: ["<version_tags>"]
-                supported_models:
-                  - "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
-                tools_dependencies:
-                  - "strands_tools/use_aws"
-                  - "strands_tools/current_time"
-                  - "strands_tools/calculator"
-                  - "generated_tools/common/get_web_result/http_client"
-                  - "system_tools/agent_build_workflow/tool_template_provider/list_all_tools"
-                  - "system_tools/agent_build_workflow/tool_template_provider/get_builtin_tools"
-        ```
-        
 
         注意事项：
         - 确保相应内容的格式正确，可以被直接解析
-        - 确保相应内容的格式正确，可以被直接解析
         - 提示词内容要与智能体设计规格完全匹配
-        - 优先参考现有模板，避免重复开发
         - 优先参考现有模板，避免重复开发
         - 工具依赖路径要准确无误
         - 考虑不同环境下的配置差异
@@ -283,7 +233,7 @@ agent:
         5. 使用 list_project_tools 获取当前项目的所有工具路径（detailed=False，只获取工具路径列表）
         6. 分析智能体设计规格，结合现有模板和项目工具进行定制化开发
         7. 将获取到的项目工具路径添加到tools_dependencies中
-        8. 使用 generate_content 生成YAML格式的提示词模板文件（type="prompt"），输出到 prompts/generated_agents_prompts/ 目录
+        8. 使用 generate_content 生成YAML格式的提示词模板文件（type="prompt"），输出到 prompts/generated_agents_prompts/ 目录, 注意：文件名为<agent_name>.yaml 而不是 <agent_name>_prompt.yaml
         9. 使用 append_agent_artifact_path 更新文件路径到项目状态文件中
         9. 使用 update_project_stage_content 将提示词模板设计文档写入 prompt_engineer.json 文件
         10. 使用 update_project_status 将 prompt_engineer 阶段状态更新为已完成

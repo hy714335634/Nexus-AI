@@ -521,207 +521,49 @@ def run_workflow(user_input: str, session_id: Optional[str] = None):
         raise
 
 
-def run_interactive_collection() -> str:
-    """
-    运行交互式需求收集会话
-    
-    Returns:
-        收集完成的需求描述文本
-    """
-    print(f"\n{'='*60}")
-    print(f"🎯 Nexus-AI 交互式需求收集")
-    print(f"{'='*60}")
-    print(f"💡 提示：")
-    print(f"   - 输入 /done 或 /finish 完成需求收集")
-    print(f"   - 输入 /quit 或 /exit 退出（不保存）")
-    print(f"   - 按 Ctrl+C 强制退出")
-    print(f"{'='*60}\n")
-    
-    # 创建交互式需求收集Agent
-    collection_agent = create_agent_from_prompt_template(
-        agent_name="system_agents_prompts/interface_agent/information_collection",
-        env="production",
-        version="latest",
-        model_id="default",
-        enable_logging=False
-    )
-    
-    if not collection_agent:
-        print("❌ 无法创建需求收集Agent")
-        return ""
-    
-    collected_requirements = []
-    
-    # 发送开场消息
-    opening_prompt = "用户刚刚进入交互式需求收集界面，请友好地问候并开始引导用户描述他们想要构建的AI Agent。"
-    
-    try:
-        response = collection_agent(opening_prompt)
-        print("=================================\n🤖 Nexus-AI: ")
-        response_text = str(response.content) if hasattr(response, 'content') else str(response)
-        print("=================================\n")
-    except Exception as e:
-        print(f"❌ Agent响应失败: {e}")
-        return ""
-    
-    # 交互循环
-    while True:
-        try:
-            print("=================================\n")
-            user_input = input("👤 您: ").strip()
-            
-            # 检查退出命令
-            if user_input.lower() in ['/quit', '/exit', 'quit', 'exit']:
-                print("=================================\n")
-                print("\n👋 已退出，需求未保存。")
-                return ""
-            
-            # 检查完成命令
-            if user_input.lower() in ['/done', '/finish', '/完成', '完成', 'done', 'finish']:
-                print("=================================\n")
-                print("\n📋 正在整理需求...")
-                break
-            
-            if not user_input:
-                continue
-            
-            # 获取Agent响应
-            print("=================================\n")
-            print("🤖 Nexus-AI: ", end="", flush=True)
-            response = collection_agent(user_input)
-            print("\n=================================\n")
-            
-        except KeyboardInterrupt:
-            print("\n\n⚠️ 检测到中断信号...")
-            confirm = input("是否保存当前收集的需求？(y/n): ").strip().lower()
-            if confirm == 'y':
-                break
-            else:
-                print("👋 已退出，需求未保存。")
-                return ""
-        except EOFError:
-            print("\n\n⚠️ 输入流结束，正在整理需求...")
-            break
-        except Exception as e:
-            print(f"\n❌ 发生错误: {e}")
-            continue
-    
-    # 生成最终需求摘要
-    print(f"\n{'='*60}")
-    print("📝 正在生成最终需求描述...")
-    print(f"{'='*60}\n")
-    
-    summary_prompt = f"""基于之前的对话内容，请生成一份完整的Agent开发需求描述。
-请按以下格式输出最终需求（纯文本，不要markdown代码块）：
-
-项目名称：[建议的英文snake_case名称]
-
-功能概述：[一段话描述Agent的核心功能]
-
-目标用户：[使用这个Agent的人群]
-
-核心功能需求：
-1. [功能1]
-2. [功能2]
-...
-
-输入规格：
-- 类型：[输入类型]
-- 来源：[数据来源]
-
-输出规格：
-- 类型：[输出类型]
-- 格式：[输出格式]
-
-外部集成需求：
-- [需要集成的API或服务]
-
-约束条件：
-- [技术或业务约束]
-
-附加说明：
-- [其他重要信息]
-"""
-    
-    try:
-        summary_response = collection_agent(summary_prompt)
-        final_requirements = str(summary_response.content) if hasattr(summary_response, 'content') else str(summary_response)
-        
-        print("📋 最终需求描述：")
-        print(f"{'─'*60}")
-        print(final_requirements)
-        print(f"{'─'*60}\n")
-        
-        # 确认
-        confirm = input("✅ 确认使用此需求开始构建？(y/n): ").strip().lower()
-        if confirm != 'y':
-            print("❌ 已取消，请重新运行交互式收集。")
-            return ""
-        
-        return final_requirements
-        
-    except Exception as e:
-        print(f"❌ 生成需求摘要失败: {e}")
-        return ""
-
-
 if __name__ == "__main__":
     import argparse
     
     # 解析命令行参数
-    parser = argparse.ArgumentParser(description='Agent Build Workflow - AI Agent 构建工作流')
+    parser = argparse.ArgumentParser(description='工作流编排器 Agent 测试')
     parser.add_argument('-i', '--input', type=str, 
-                       help='直接指定需求输入内容')
-    parser.add_argument('-it', '--interactive', action='store_true',
-                       help='启动交互式需求收集模式')
+                       default="""
+请介绍一下你自己，并告诉我你的能力
+""",
+                       help='测试输入内容')
     parser.add_argument('-f', '--file', type=str, 
-                       help='从文件中读取需求内容')
+                       help='从文件中读取内容并添加到测试输入中')
     parser.add_argument('-s', '--session_id', type=str,
                        default=None,
                        help='可选的session_id，用于恢复之前的会话')
     args = parser.parse_args()
     
-    test_input = None
+    print(f"🎯 [SYSTEM] 开始创建并运行完整工作流...", flush=True)
     
-    # 交互式模式
-    if args.interactive:
-        print(f"🎯 [SYSTEM] 启动交互式需求收集模式...", flush=True)
-        test_input = run_interactive_collection()
-        if not test_input:
-            print("❌ [SYSTEM] 未收集到有效需求，退出。")
-            exit(0)
-    # 从文件读取
-    elif args.file:
+    # 运行完整工作流
+    test_input = args.input
+    
+    # 如果指定了文件参数，读取文件内容并添加到test_input中
+    if args.file:
         try:
             with open(args.file, 'r', encoding='utf-8') as f:
-                test_input = f.read()
-            print(f"📁 [SYSTEM] 已从文件 {args.file} 读取需求内容")
+                file_content = f.read()
+                test_input += f"\n\n从文件 {args.file} 读取的内容：\n{file_content}"
+                print(f"📁 [SYSTEM] 已从文件 {args.file} 读取内容")
         except FileNotFoundError:
             print(f"❌ [SYSTEM] 文件 {args.file} 不存在")
             exit(1)
         except Exception as e:
             print(f"❌ [SYSTEM] 读取文件 {args.file} 失败: {e}")
             exit(1)
-    # 直接输入
-    elif args.input:
-        test_input = args.input
-    # 无参数时默认进入交互模式
-    else:
-        print(f"🎯 [SYSTEM] 未指定输入，启动交互式需求收集模式...", flush=True)
-        test_input = run_interactive_collection()
-        if not test_input:
-            print("❌ [SYSTEM] 未收集到有效需求，退出。")
-            exit(0)
     
-    print(f"\n{'='*80}")
-    print(f"🎯 [SYSTEM] 开始执行Agent构建工作流...")
-    print(f"{'='*80}")
-    print(f"📝 [SYSTEM] 需求输入: {test_input[:200]}...")
+    print(f"📝 [SYSTEM] 测试输入: {test_input[:100]}...")
     if args.session_id:
         print(f"🔑 [SYSTEM] 使用指定的session_id: {args.session_id}")
     
     try:
         result = run_workflow(test_input, session_id=args.session_id)
+        # 将result持久化保存到本地文件，方便后续测试
         print(f"\n{'='*80}")
         print(f"🎉 [SYSTEM] 工作流执行完成")
         print(f"🔑 Session ID: {result['session_id']}")

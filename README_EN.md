@@ -37,7 +37,7 @@ Nexus-AI is an open-source **AI Agent development platform** that automatically 
 |---------|-------------|
 | **🗣️ Natural Language Building** | Describe requirements in plain English or Chinese, auto-generate Agents |
 | **🔄 Agent Build Agent** | 8 specialized Agents collaborate: requirements → architecture → code |
-| **⚡ Rapid Delivery** | Traditional dev: 2-6 months, Nexus-AI: 2-5 days |
+| **⚡ Rapid Delivery** | Traditional dev: 2-6 months, Nexus-AI: few hours |
 | **🧩 Modular Design** | Reusable and composable tools, prompts, and Agents |
 | **☁️ AWS Native** | Built on AWS Bedrock, supports Claude model family |
 
