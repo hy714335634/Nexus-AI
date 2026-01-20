@@ -8,11 +8,12 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import styles from './modules.module.css';
 import { toast } from 'sonner';
-import { useBuildDashboard, useProjectSummaries } from '@/hooks/use-projects';
+import { useBuildDashboard, useProjectSummaries, type ProjectSummary } from '@/hooks/use-projects';
 import { LoadingState } from '@components/feedback/loading-state';
 import { ErrorState } from '@components/feedback/error-state';
 import { formatDateTime, formatDuration } from '@/lib/formatters';
-import type { BuildDashboard, BuildDashboardStage, ProjectSummary } from '@/types/projects';
+import type { BuildDashboard, BuildDashboardStage } from '@/types/projects';
+import type { ProjectStatus } from '@/types/api';
 
 type StageStatus = BuildDashboardStage['status'];
 type FilterKey = 'all' | ProjectSummary['status'];
@@ -243,7 +244,7 @@ function extractProjectName(
   };
 
   const candidates: Array<string | undefined> = [
-    summary?.projectName,
+    summary?.name,
     dashboard?.projectName,
     metadataValue('project_name'),
     metadataValue('projectName'),
@@ -263,8 +264,8 @@ function extractProjectName(
     return requirementLead;
   }
 
-  if (summary?.projectId) {
-    return `构建任务 ${summary.projectId.slice(-6)}`;
+  if (summary?.id) {
+    return `构建任务 ${summary.id.slice(-6)}`;
   }
 
   if (dashboard?.projectId) {
@@ -279,9 +280,9 @@ function getProjectListName(project: ProjectSummary): string {
   if (candidate) {
     return candidate;
   }
-  return project.projectName && !JOB_ID_PATTERN.test(project.projectName)
-    ? project.projectName
-    : `构建任务 ${project.projectId.slice(-6)}`;
+  return project.name && !JOB_ID_PATTERN.test(project.name)
+    ? project.name
+    : `构建任务 ${project.id.slice(-6)}`;
 }
 
 function formatStatValue(value: number | undefined, options?: { readonly suffix?: string; readonly digits?: number }) {
@@ -308,11 +309,11 @@ function BuildModulesPageContent() {
     if (requestedProjectId) {
       return requestedProjectId;
     }
-    if (!projectSummaries?.length) {
+    if (!projectSummaries || !Array.isArray(projectSummaries) || projectSummaries.length === 0) {
       return undefined;
     }
     const building = projectSummaries.find((project) => project.status === 'building');
-    return building?.projectId ?? projectSummaries[0]?.projectId;
+    return building?.id ?? projectSummaries[0]?.id;
   }, [requestedProjectId, projectSummaries]);
 
   const {
@@ -330,12 +331,12 @@ function BuildModulesPageContent() {
   const allTasksRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
-    if (!projectSummaries?.length || !projectId) {
+    if (!projectSummaries || !Array.isArray(projectSummaries) || projectSummaries.length === 0 || !projectId) {
       return;
     }
-    const exists = projectSummaries.some((project) => project.projectId === projectId);
+    const exists = projectSummaries.some((project) => project.id === projectId);
     if (!exists) {
-      router.push(`/build/modules?projectId=${encodeURIComponent(projectSummaries[0].projectId)}`);
+      router.push(`/build/modules?projectId=${encodeURIComponent(projectSummaries[0].id)}`);
     }
   }, [projectSummaries, projectId, router]);
 
@@ -363,7 +364,7 @@ function BuildModulesPageContent() {
   }, []);
 
   const filteredProjects = useMemo(() => {
-    if (!projectSummaries) {
+    if (!projectSummaries || !Array.isArray(projectSummaries)) {
       return [];
     }
     const keyword = searchTerm.trim().toLowerCase();
@@ -375,29 +376,27 @@ function BuildModulesPageContent() {
       if (!keyword) {
         return true;
       }
-      const name = project.projectName?.toLowerCase() ?? '';
+      const name = project.name?.toLowerCase() ?? '';
       const tags = project.tags ?? [];
       return (
         name.includes(keyword) ||
-        project.projectId.toLowerCase().includes(keyword) ||
-        tags.some((tag) => tag.toLowerCase().includes(keyword))
+        project.id.toLowerCase().includes(keyword) ||
+        tags.some((tag: string) => tag.toLowerCase().includes(keyword))
       );
     });
   }, [projectSummaries, activeFilter, searchTerm]);
 
   const statusCounts = useMemo(() => {
-    const counts: Record<string, number> = { total: projectSummaries?.length ?? 0 };
-    if (!projectSummaries) {
-      return counts;
-    }
-    for (const project of projectSummaries) {
+    const summaries = Array.isArray(projectSummaries) ? projectSummaries : [];
+    const counts: Record<string, number> = { total: summaries.length };
+    for (const project of summaries) {
       counts[project.status] = (counts[project.status] ?? 0) + 1;
     }
     return counts;
   }, [projectSummaries]);
 
   const selectedProject = useMemo(
-    () => projectSummaries?.find((project) => project.projectId === projectId),
+    () => Array.isArray(projectSummaries) ? projectSummaries.find((project) => project.id === projectId) : undefined,
     [projectSummaries, projectId],
   );
 
@@ -409,12 +408,14 @@ function BuildModulesPageContent() {
     [dashboard?.stages],
   );
 
-  const totalProjects = projectSummaries?.length ?? 0;
+  const totalProjects = Array.isArray(projectSummaries) ? projectSummaries.length : 0;
   const buildingCount = statusCounts.building ?? 0;
   const completedCount = statusCounts.completed ?? 0;
   const failedCount = statusCounts.failed ?? 0;
 
-  const totalProgress = projectSummaries?.reduce((sum, project) => sum + (project.progressPercentage ?? 0), 0) ?? 0;
+  const totalProgress = Array.isArray(projectSummaries) 
+    ? projectSummaries.reduce((sum: number, project) => sum + (project.progress ?? 0), 0) 
+    : 0;
   const averageProgress = totalProjects ? totalProgress / totalProjects : 0;
   const successRate = totalProjects ? (completedCount / totalProjects) * 100 : 0;
 
@@ -443,7 +444,7 @@ function BuildModulesPageContent() {
     },
     {
       label: '构建状态',
-      value: dashboard ? PROJECT_STATUS_LABEL[dashboard.status] : '—',
+      value: dashboard ? PROJECT_STATUS_LABEL[dashboard.status as ProjectStatus] : '—',
     },
     {
       label: '总体进度',
@@ -459,25 +460,25 @@ function BuildModulesPageContent() {
   ];
 
   const activeStage =
-    dashboard?.stages.find((stage) => stage.status === 'running') ??
-    dashboard?.stages.find((stage) => stage.status === 'pending');
+    dashboard?.stages.find((stage: BuildDashboardStage) => stage.status === 'running') ??
+    dashboard?.stages.find((stage: BuildDashboardStage) => stage.status === 'pending');
 
   const getCurrentStageName = () => {
     if (!dashboard?.stages?.length) return '等待启动';
 
-    const runningStage = dashboard.stages.find((stage) => stage.status === 'running');
+    const runningStage = dashboard.stages.find((stage: BuildDashboardStage) => stage.status === 'running');
     if (runningStage) {
       const definition = STAGE_DEFINITIONS.find((def) => def.id === runningStage.name);
       return definition ? definition.title.split('·')[1]?.trim() || definition.title : runningStage.name;
     }
 
-    const completedCount = dashboard.stages.filter((stage) => stage.status === 'completed').length;
+    const completedCount = dashboard.stages.filter((stage: BuildDashboardStage) => stage.status === 'completed').length;
     const totalCount = dashboard.stages.length;
 
     if (completedCount === totalCount) {
       return '全部完成';
     } else if (completedCount > 0) {
-      const nextStage = dashboard.stages.find((stage) => stage.status === 'pending');
+      const nextStage = dashboard.stages.find((stage: BuildDashboardStage) => stage.status === 'pending');
       if (nextStage) {
         const definition = STAGE_DEFINITIONS.find((def) => def.id === nextStage.name);
         return `准备中: ${definition ? definition.title.split('·')[1]?.trim() || definition.title : nextStage.name}`;
@@ -488,7 +489,7 @@ function BuildModulesPageContent() {
   };
 
   const moduleMeta = [
-    { label: '构建编号', value: dashboard?.projectId ?? selectedProject?.projectId ?? '—' },
+    { label: '构建编号', value: dashboard?.projectId ?? selectedProject?.id ?? '—' },
     { label: '当前阶段', value: getCurrentStageName() },
     { label: '最近更新', value: dashboard?.updatedAt ? formatDateTime(dashboard.updatedAt) : '—' },
   ];
@@ -736,24 +737,24 @@ function BuildModulesPageContent() {
         <div className={styles.buildList}>
           {filteredProjects.length ? (
             filteredProjects.map((project) => {
-              const statusClass = PROJECT_STATUS_CLASS[project.status] ?? 'Pending';
-              const statusLabel = PROJECT_STATUS_LABEL[project.status] ?? project.status;
-              const progressValue = Math.max(0, Math.min(100, Math.round(project.progressPercentage ?? 0)));
-              const isActive = project.projectId === projectId;
+              const statusClass = PROJECT_STATUS_CLASS[project.status as ProjectStatus] ?? 'Pending';
+              const statusLabel = PROJECT_STATUS_LABEL[project.status as ProjectStatus] ?? project.status;
+              const progressValue = Math.max(0, Math.min(100, Math.round(project.progress ?? 0)));
+              const isActive = project.id === projectId;
               const displayName = getProjectListName(project);
               return (
                 <div
-                  key={project.projectId}
+                  key={project.id}
                   className={`${styles.buildItem} ${styles[`buildItem${statusClass}` as const] ?? ''} ${
                     isActive ? styles.buildItemActive : ''
                   }`}
-                  onClick={() => onSelectProject(project.projectId)}
+                  onClick={() => onSelectProject(project.id)}
                 >
                   <div className={styles.buildHeaderRow}>
                     <div>
                       <div className={styles.buildName}>{displayName}</div>
                       <div className={styles.buildMeta}>
-                        <span>项目 ID：{project.projectId}</span>
+                        <span>项目 ID：{project.id}</span>
                         <span>更新：{project.updatedAt ? formatDateTime(project.updatedAt) : '—'}</span>
                         <span>当前阶段：{project.currentStage ?? '未开始'}</span>
                       </div>
@@ -772,7 +773,7 @@ function BuildModulesPageContent() {
                   <div className={styles.buildDetails}>
                     <div className={styles.detailItem}>
                       <span className={styles.detailLabel}>负责人</span>
-                      <span className={styles.detailValue}>{project.ownerName ?? (project as any).user_name ?? '未分配'}</span>
+                      <span className={styles.detailValue}>{(project as any).ownerName ?? (project as any).user_name ?? '未分配'}</span>
                     </div>
                     <div className={styles.detailItem}>
                       <span className={styles.detailLabel}>Agent 数</span>
@@ -793,7 +794,7 @@ function BuildModulesPageContent() {
                   </div>
                   <div className={styles.buildActions}>
                     <Link
-                      href={`/build?projectId=${encodeURIComponent(project.projectId)}`}
+                      href={`/build?projectId=${encodeURIComponent(project.id)}`}
                       className={`${styles.button} ${styles.buttonPrimary} ${styles.buttonSmall}`}
                       onClick={(event) => event.stopPropagation()}
                     >

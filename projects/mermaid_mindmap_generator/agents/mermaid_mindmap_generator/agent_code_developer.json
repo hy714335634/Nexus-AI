@@ -1,0 +1,247 @@
+{
+  "agent_code_development": {
+    "development_overview": {
+      "project_name": "mermaid_mindmap_generator",
+      "version": "1.0",
+      "date": "2026-01-20",
+      "development_scope": "基于content_generator_agent模板开发Mermaid思维导图生成Agent，实现文本内容分析、层级结构识别、标准Mermaid代码生成、流式响应和完善的错误处理机制",
+      "design_principles": [
+        "单一职责原则：Agent专注于思维导图生成，功能聚焦明确",
+        "提示词驱动原则：核心功能通过精心设计的提示词实现，最小化工具依赖",
+        "流式响应原则：采用异步流式处理，提升用户体验",
+        "语法正确性原则：确保生成的Mermaid代码100%符合规范",
+        "用户友好原则：提供清晰的错误提示和使用指导",
+        "模板复用原则：基于content_generator_agent模板，继承最佳实践"
+      ],
+      "key_decisions": [
+        "决策1：使用content_generator_agent模板 - 理由：完美匹配单Agent创意生成需求，提供流式响应、环境配置、工具集成等开箱即用能力",
+        "决策2：提示词驱动实现 - 理由：Claude Sonnet 4.5的强大能力足以通过提示词实现内容分析、层级识别、代码生成，无需开发复杂工具",
+        "决策3：BedrockAgentCoreApp部署模式 - 理由：支持AgentCore平台部署，提供标准HTTP接口和流式响应能力",
+        "决策4：温度参数0.7 - 理由：平衡创意性和准确性，适合结构化内容生成",
+        "决策5：完善的输入验证 - 理由：确保输入合法性，提供友好的错误提示",
+        "决策6：详细的日志记录 - 理由：便于问题追踪和性能监控"
+      ]
+    },
+    "agent_implementation": {
+      "agent_name": "mermaid_mindmap_generator",
+      "file_path": "agents/generated_agents/mermaid_mindmap_generator/mermaid_mindmap_generator.py",
+      "main_class": "无（函数式设计）",
+      "entry_point": "handler (AgentCore部署) / main (本地测试)",
+      "dependencies": [
+        "nexus_utils.agent_factory",
+        "bedrock_agentcore.runtime",
+        "strands.telemetry",
+        "nexus_utils.config_loader"
+      ],
+      "imports": [
+        "os - 环境变量管理",
+        "json - JSON数据处理",
+        "logging - 日志记录",
+        "typing.Dict, typing.Any - 类型注解",
+        "nexus_utils.agent_factory.create_agent_from_prompt_template - Agent工厂",
+        "bedrock_agentcore.runtime.BedrockAgentCoreApp - HTTP服务器",
+        "bedrock_agentcore.runtime.context.RequestContext - 请求上下文",
+        "strands.telemetry.StrandsTelemetry - 遥测支持",
+        "nexus_utils.config_loader.ConfigLoader - 配置加载"
+      ]
+    },
+    "core_functions": [
+      {
+        "function_name": "create_mermaid_agent",
+        "purpose": "创建Mermaid思维导图生成Agent实例",
+        "parameters": [
+          {
+            "name": "env",
+            "type": "str",
+            "description": "运行环境 (development/production/testing)",
+            "required": false,
+            "default": "production"
+          },
+          {
+            "name": "version",
+            "type": "str",
+            "description": "Agent版本",
+            "required": false,
+            "default": "latest"
+          },
+          {
+            "name": "model_id",
+            "type": "str",
+            "description": "模型ID",
+            "required": false,
+            "default": "default"
+          }
+        ],
+        "return_type": "Agent",
+        "return_description": "配置好的Agent实例",
+        "implementation_notes": [
+          "使用agent_factory.create_agent_from_prompt_template创建Agent",
+          "从YAML配置文件加载提示词模板",
+          "配置环境参数（max_tokens、temperature、streaming）",
+          "启用日志记录",
+          "异常处理和错误日志记录"
+        ]
+      },
+      {
+        "function_name": "validate_input",
+        "purpose": "验证用户输入的合法性",
+        "parameters": [
+          {
+            "name": "prompt",
+            "type": "str",
+            "description": "用户输入内容",
+            "required": true
+          }
+        ],
+        "return_type": "tuple[bool, str]",
+        "return_description": "(是否有效, 错误消息)",
+        "implementation_notes": [
+          "检查输入非空",
+          "验证长度在1-2000字范围内",
+          "返回友好的错误提示"
+        ]
+      },
+      {
+        "function_name": "handler",
+        "purpose": "AgentCore标准入口点，处理HTTP请求并提供流式响应",
+        "parameters": [
+          {
+            "name": "payload",
+            "type": "Dict[str, Any]",
+            "description": "AgentCore传入的请求体，包含prompt、user_id、media等字段",
+            "required": true
+          },
+          {
+            "name": "context",
+            "type": "RequestContext",
+            "description": "请求上下文，包含session_id等信息",
+            "required": true
+          }
+        ],
+        "return_type": "AsyncGenerator[str, None]",
+        "return_description": "流式响应的文本片段",
+        "implementation_notes": [
+          "使用@app.entrypoint装饰器定义",
+          "异步函数，支持流式响应",
+          "提取prompt字段并验证",
+          "调用agent.stream_async()获取流式响应",
+          "使用yield逐步返回生成片段",
+          "完善的异常处理和错误日志",
+          "记录session_id用于追踪"
+        ]
+      }
+    ],
+    "tool_integration": {
+      "custom_tools": [],
+      "system_tools": [],
+      "strands_tools": [
+        "strands_tools/current_time - 提供时间戳信息"
+      ],
+      "integration_notes": [
+        "采用提示词驱动策略，最小化工具依赖",
+        "核心功能通过Claude Sonnet 4.5的提示词实现",
+        "current_time工具用于提供基本的时间信息",
+        "未来可根据需求添加Mermaid语法验证工具、文本预处理工具等"
+      ]
+    },
+    "configuration": {
+      "environment_variables": [
+        "BYPASS_TOOL_CONSENT=true - 跳过工具同意确认",
+        "OTEL_EXPORTER_OTLP_ENDPOINT - OpenTelemetry端点配置",
+        "DOCKER_CONTAINER - Docker环境标识"
+      ],
+      "model_configuration": {
+        "model_name": "us.anthropic.claude-sonnet-4-5-20250929-v1:0",
+        "max_tokens": {
+          "development": 4096,
+          "production": 60000,
+          "testing": 2048
+        },
+        "temperature": 0.7,
+        "streaming": true
+      },
+      "streaming_config": {
+        "enabled": true,
+        "method": "agent.stream_async()",
+        "response_type": "AsyncGenerator"
+      },
+      "logging_config": {
+        "level": "INFO",
+        "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        "logger_name": "mermaid_mindmap_generator"
+      }
+    },
+    "error_handling": {
+      "exception_types": [
+        "ValueError - 输入验证失败",
+        "RuntimeError - Agent创建失败",
+        "Exception - 通用异常处理"
+      ],
+      "error_responses": [
+        "Error: 请提供需要生成思维导图的内容 - 输入为空",
+        "Error: 输入内容过长，请控制在2000字以内 - 输入超长",
+        "Error: 生成服务异常 - Agent执行失败"
+      ],
+      "recovery_strategies": [
+        "输入验证失败：返回友好错误提示，引导用户修正输入",
+        "Agent创建失败：记录详细错误日志，抛出异常终止程序",
+        "生成异常：捕获异常，返回错误信息，记录错误日志",
+        "流式响应中断：捕获异常，返回错误信息"
+      ]
+    },
+    "testing": {
+      "test_cases": [
+        "简单主题输入：'项目管理' - 验证基本功能",
+        "详细内容输入：500字项目管理描述 - 验证复杂内容处理",
+        "中英文混合输入：'Agile敏捷开发方法' - 验证多语言支持",
+        "长文本输入：1500字内容 - 验证长文本处理",
+        "空输入：'' - 验证错误处理",
+        "超长输入：>2000字 - 验证输入验证"
+      ],
+      "test_scenarios": [
+        "本地测试模式：使用-i参数直接测试",
+        "交互式对话模式：使用-it参数多轮对话",
+        "AgentCore部署模式：Docker容器化部署，HTTP API调用",
+        "流式响应测试：验证实时输出效果",
+        "错误处理测试：验证各种异常场景",
+        "性能测试：验证响应时间和首token延迟"
+      ],
+      "validation_criteria": [
+        "语法正确性：生成的Mermaid代码100%符合语法规范",
+        "渲染兼容性：能在GitHub、Typora、Mermaid Live Editor中正常渲染",
+        "结构合理性：层级关系清晰，逻辑准确",
+        "节点质量：名称简洁清晰，长度适中",
+        "响应速度：单次生成<10秒，首token响应<1秒",
+        "成功率：对典型输入场景≥95%",
+        "错误处理：友好且具有指导性"
+      ]
+    },
+    "deployment": {
+      "deployment_requirements": [
+        "Python 3.13+运行环境",
+        "Strands SDK安装",
+        "AWS Bedrock服务访问权限",
+        "BedrockAgentCoreApp依赖",
+        "提示词配置文件（YAML格式）",
+        "环境变量配置（BYPASS_TOOL_CONSENT、OTEL_EXPORTER_OTLP_ENDPOINT）"
+      ],
+      "runtime_dependencies": [
+        "nexus_utils - 本地工具包",
+        "strands-agents - Strands Agent框架",
+        "strands-agents-tools - Strands工具框架",
+        "bedrock_agentcore.runtime - AgentCore部署支持",
+        "boto3 - AWS SDK（间接依赖）",
+        "PyYAML - YAML配置解析（间接依赖）"
+      ],
+      "performance_considerations": [
+        "响应时间优化：目标10秒内完成，首token<1秒",
+        "流式输出：使用异步流式处理，提升用户体验",
+        "并发支持：AgentCore平台支持多请求并发处理",
+        "资源限制：max_tokens根据环境配置（development: 4096, production: 60000）",
+        "日志性能：使用logging模块，避免print影响性能",
+        "输入预处理：对超长输入进行验证，避免无效请求"
+      ]
+    },
+    "development_notes": "本Agent代码开发严格遵循content_generator_agent模板的最佳实践，实现了以下关键特性：\n\n1. **模板复用**：基于content_generator_agent模板，继承了流式响应、环境配置、工具集成等成熟机制，大幅降低开发成本和风险。\n\n2. **提示词驱动**：核心功能完全通过YAML提示词配置实现，无需开发自定义工具。提示词包含详细的Mermaid语法规范、工作流程、质量标准、错误处理指导，确保生成质量。\n\n3. **BedrockAgentCoreApp集成**：使用@app.entrypoint装饰器定义异步handler函数，支持AgentCore平台部署。handler函数接收payload和context参数，通过agent.stream_async()实现流式响应，使用yield逐步返回生成片段。\n\n4. **完善的输入验证**：validate_input函数验证输入非空和长度合法性（1-2000字），返回友好的错误提示，避免无效请求浪费资源。\n\n5. **多模式支持**：支持三种运行模式：(1)AgentCore部署模式（Docker环境，启动HTTP服务器），(2)本地测试模式（-i参数直接测试），(3)交互式对话模式（-it参数多轮对话）。通过is_docker环境变量自动识别运行模式。\n\n6. **详细的日志记录**：使用logging模块记录关键操作和错误信息，便于问题追踪和性能监控。日志包含请求信息、输入验证、处理过程、流式输出、错误详情等。\n\n7. **异常处理**：所有关键操作都包含try-catch异常处理，捕获Agent创建失败、输入验证失败、生成异常等场景，返回友好错误信息并记录详细日志。\n\n8. **环境配置**：支持development、production、testing三种环境，每种环境有不同的max_tokens配置。使用ConfigLoader加载配置，支持环境变量覆盖。\n\n9. **遥测支持**：集成StrandsTelemetry，配置OpenTelemetry端点，支持分布式追踪和指标收集，便于生产环境监控。\n\n10. **代码质量**：遵循PEP 8规范，使用类型注解，提供详细的文档字符串，代码结构清晰，易于维护和扩展。\n\n关键技术决策理由：\n- **温度0.7**：平衡创意性和准确性，适合思维导图生成。既保证Mermaid语法正确性，又允许在节点命名和层级组织上有一定创意空间。\n- **最小化工具依赖**：核心功能通过提示词实现，降低系统复杂度和维护成本。Claude Sonnet 4.5的强大能力足以完成内容分析、层级识别、代码生成任务。\n- **流式响应**：使用agent.stream_async()实现异步流式处理，用户可以实时看到生成过程，显著提升用户体验。\n- **输入验证**：在handler函数中进行输入验证，避免无效请求进入Agent处理流程，节省资源和时间。\n\n测试建议：\n1. 使用-i参数进行本地测试，验证各种输入场景（简单主题、详细内容、中英文混合、长文本、空输入、超长输入）。\n2. 使用-it参数启动交互式对话，进行多轮测试，验证Agent的稳定性和用户体验。\n3. 将生成的Mermaid代码复制到Mermaid Live Editor验证渲染效果，确保语法正确性。\n4. 部署到AgentCore平台，通过HTTP API进行集成测试，验证流式响应和并发处理能力。\n5. 监控日志和遥测数据，分析响应时间、成功率、错误率等关键指标。\n\n优化方向：\n1. 如果发现提示词方案存在局限性（如语法错误率高、特定场景处理不佳），可以添加Mermaid语法验证工具、文本预处理工具等辅助工具。\n2. 实现缓存机制，对相同输入缓存生成结果，提升响应速度。\n3. 添加更详细的性能监控指标，如token使用量、生成节点数、层级深度等。\n4. 支持自定义主题和样式，增强思维导图的视觉效果。\n5. 集成可视化渲染引擎，提供即时预览功能。"
+  }
+}

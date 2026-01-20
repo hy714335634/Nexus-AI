@@ -11,7 +11,7 @@ from typing import Optional
 
 from strands import tool
 
-from api.services.agent_deployment_service import (
+from api.v2.services import (
     AgentDeploymentService,
     AgentDeploymentError,
 )

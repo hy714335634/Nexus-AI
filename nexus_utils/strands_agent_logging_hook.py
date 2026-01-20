@@ -162,15 +162,21 @@ class AgentLoggingHook(HookProvider):
             )
 
             if log_to_file:
-                # 确保日志目录存在
-                log_dir = os.path.dirname(log_file)
-                if log_dir:
-                    os.makedirs(log_dir, exist_ok=True)
+                try:
+                    # 确保日志目录存在
+                    log_dir = os.path.dirname(log_file)
+                    if log_dir:
+                        os.makedirs(log_dir, exist_ok=True)
 
-                file_handler = logging.FileHandler(log_file, encoding='utf-8')
-                file_handler.setLevel(log_level)
-                file_handler.setFormatter(formatter)
-                self.logger.addHandler(file_handler)
+                    file_handler = logging.FileHandler(log_file, encoding='utf-8')
+                    file_handler.setLevel(log_level)
+                    file_handler.setFormatter(formatter)
+                    self.logger.addHandler(file_handler)
+                except PermissionError as e:
+                    # 在容器环境中可能没有写入权限，静默处理
+                    print(f"⚠️ 无法创建日志文件 {log_file}: {e}，将仅使用控制台输出")
+                except Exception as e:
+                    print(f"⚠️ 设置文件日志失败: {e}，将仅使用控制台输出")
             
             # 可选：如有需要，也可以添加控制台 handler（当前已有 print 输出，一般不再重复）
     

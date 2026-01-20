@@ -1,11 +1,10 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { useProjectSummaries } from '@/hooks/use-projects';
+import { useProjectSummaries, type ProjectSummary } from '@/hooks/use-projects';
 import { LoadingState } from '@components/feedback/loading-state';
 import { ErrorState } from '@components/feedback/error-state';
 import { ProjectGrid } from '@components/project-grid';
-import type { ProjectSummary } from '@/types/projects';
 
 function applyFilter(projects: ProjectSummary[], statusFilter: string, keyword: string) {
   const normalized = keyword.trim().toLowerCase();
@@ -13,8 +12,8 @@ function applyFilter(projects: ProjectSummary[], statusFilter: string, keyword: 
     const statusMatch = statusFilter === 'all' || project.status === statusFilter;
     const keywordMatch =
       !normalized ||
-      project.projectId.toLowerCase().includes(normalized) ||
-      (project.projectName ?? '').toLowerCase().includes(normalized);
+      project.id.toLowerCase().includes(normalized) ||
+      (project.name ?? '').toLowerCase().includes(normalized);
     return statusMatch && keywordMatch;
   });
 }
@@ -24,7 +23,10 @@ export function ProjectsView() {
   const [searchTerm, setSearchTerm] = useState('');
   const { data, isLoading, isError, refetch, isFetching } = useProjectSummaries();
 
-  const filteredProjects = useMemo(() => applyFilter(data ?? [], statusFilter, searchTerm), [data, statusFilter, searchTerm]);
+  const filteredProjects = useMemo(() => {
+    const projects = (data ?? []) as ProjectSummary[];
+    return applyFilter(projects, statusFilter, searchTerm);
+  }, [data, statusFilter, searchTerm]);
 
   if (isLoading) {
     return <LoadingState message="加载项目列表…" />;

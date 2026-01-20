@@ -46,6 +46,9 @@ RUN if [ -f /app/nexus_utils/setup.py ]; then \
 # This matches the local environment where the project root is in PYTHONPATH
 ENV PYTHONPATH=/app:/app/nexus_utils
 
+# Create logs directory with proper permissions before switching to non-root user
+RUN mkdir -p /app/logs && chmod 777 /app/logs
+
 # Create non-root user with UID/GID 1000 to match EFS permissions
 # First create group with GID 1000, then create user with UID 1000
 RUN groupadd --gid 1000 app \
@@ -61,4 +64,4 @@ HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
 # Default command
-CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "api.v2.main:app", "--host", "0.0.0.0", "--port", "8000"]

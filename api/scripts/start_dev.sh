@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# Development startup script for Nexus-AI Platform API
+# Development startup script for Nexus-AI Platform API v2
 
-echo "🚀 Starting Nexus-AI Platform API Development Environment"
+echo "🚀 Starting Nexus-AI Platform API v2 Development Environment"
 
 # Check if .env file exists
 if [ ! -f .env ]; then
@@ -15,9 +15,9 @@ fi
 echo "📦 Installing dependencies..."
 pip install -r requirements.txt
 
-# Set up DynamoDB tables
+# Set up DynamoDB tables (v2)
 echo "🗄️  Setting up DynamoDB tables..."
-python scripts/setup_tables.py
+python scripts/init_infrastructure.py --tables-only
 
 # Start services with docker-compose
 echo "🐳 Starting services with Docker Compose..."
@@ -27,12 +27,9 @@ docker-compose up -d dynamodb-local
 echo "⏳ Waiting for services to be ready..."
 sleep 5
 
-# Note: Async tasks are handled by ThreadPoolExecutor, no separate worker needed
-
-# Start FastAPI application
+# Start FastAPI application (v2)
 echo "🌐 Starting FastAPI application..."
 echo "API will be available at: http://localhost:8000"
 echo "API documentation: http://localhost:8000/docs"
-# Note: No Celery Flower needed - tasks are handled internally
 
-uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
+uvicorn api.v2.main:app --host 0.0.0.0 --port 8000 --reload

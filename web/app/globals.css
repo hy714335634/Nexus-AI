@@ -1,50 +1,156 @@
-:root {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  --sidebar-bg: rgba(255, 255, 255, 0.95);
-  --sidebar-border: #e0e0e0;
-  --sidebar-text: #333;
-  --accent: #667eea;
-  --accent-dark: #764ba2;
-  --muted: #999;
-  --badge-bg: #ff4444;
-  --card-bg: rgba(255, 255, 255, 0.95);
-  --card-backdrop: blur(10px);
-}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-*, *::before, *::after {
-  box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-  min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: var(--sidebar-text);
-}
-
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
-button {
-  font: inherit;
-  cursor: pointer;
-}
-
-textarea, input {
-  font: inherit;
-}
-
-main {
-  width: 100%;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
+@layer base {
+  html {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+      'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
+      'Noto Color Emoji';
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
+
+  body {
+    @apply bg-gray-50 text-gray-900;
+  }
+
+  * {
+    @apply border-gray-200;
+  }
+}
+
+@layer components {
+  .page-container {
+    @apply min-h-screen;
+  }
+
+  .page-content {
+    @apply p-6;
+  }
+
+  .page-header {
+    @apply mb-6;
+  }
+
+  .page-title {
+    @apply text-2xl font-bold text-gray-900;
+  }
+
+  .page-description {
+    @apply text-gray-500 mt-1;
+  }
+
+  .section-title {
+    @apply text-lg font-semibold text-gray-900 mb-4;
+  }
+
+  .grid-cards {
+    @apply grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4;
+  }
+
+  .stat-card {
+    @apply bg-white rounded-xl border border-gray-200 p-6;
+  }
+
+  .stat-value {
+    @apply text-3xl font-bold text-gray-900;
+  }
+
+  .stat-label {
+    @apply text-sm text-gray-500 mt-1;
+  }
+
+  .stat-change {
+    @apply text-xs font-medium mt-2;
+  }
+
+  .stat-change-up {
+    @apply text-green-600;
+  }
+
+  .stat-change-down {
+    @apply text-red-600;
+  }
+
+  /* Nexus AI Brand Styles */
+  .brand-gradient {
+    @apply bg-gradient-to-r from-primary-600 via-accent-600 to-agent-500;
+  }
+
+  .brand-gradient-text {
+    @apply bg-gradient-to-r from-primary-600 via-accent-600 to-agent-500 bg-clip-text text-transparent;
+  }
+
+  .card-gradient {
+    @apply bg-gradient-to-br from-primary-50 via-accent-50 to-agent-50;
+  }
+
+  .btn-brand {
+    @apply bg-gradient-to-r from-primary-600 to-accent-600 hover:from-primary-700 hover:to-accent-700 text-white;
+  }
+
+  .agent-avatar {
+    @apply w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500 via-accent-500 to-agent-500 flex items-center justify-center;
+  }
+
+  .status-online {
+    @apply w-3 h-3 bg-green-500 rounded-full border-2 border-white animate-pulse;
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: #d1d5db transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: #d1d5db;
+    border-radius: 3px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background-color: #9ca3af;
+  }
+
+  .text-gradient {
+    @apply bg-gradient-to-r from-primary-600 to-accent-600 bg-clip-text text-transparent;
+  }
+
+  .animate-in {
+    animation: fadeIn 0.3s ease-out;
+  }
+
+  .glow-primary {
+    box-shadow: 0 0 20px rgba(12, 135, 242, 0.3);
+  }
+
+  .glow-accent {
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+  }
+}
+
+/* Custom scrollbar for code blocks */
+pre {
+  @apply scrollbar-thin;
+}
+
+/* Focus visible styles */
+:focus-visible {
+  @apply outline-none ring-2 ring-primary-500 ring-offset-2;
+}
+
+/* Selection styles */
+::selection {
+  @apply bg-primary-100 text-primary-900;
 }

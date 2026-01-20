@@ -39,8 +39,8 @@ from tools.system_tools.agent_build_workflow.stage_tracker import (
     mark_stage_failed,
     mark_stage_running,
 )
-from api.database.dynamodb_client import DynamoDBClient
-from api.models.schemas import ArtifactRecord
+# Use v2 database client
+from api.v2.database import db_client as v2_db_client
 
 from strands import Agent, tool
 
@@ -60,6 +60,7 @@ def _sync_stage_progress(
     *,
     status: bool,
     error_message: Optional[str] = None,
+    doc_path: Optional[str] = None,
 ) -> None:
     """Propagate stage progress to DynamoDB when helpers are available."""
     logger.info(f"Start _sync_stage_progress")
@@ -74,16 +75,17 @@ def _sync_stage_progress(
             return
 
         if status:
-            mark_stage_completed(project_id, stage_name)
+            mark_stage_completed(project_id, stage_name, doc_path=doc_path)
             if STAGE_SEQUENCE and stage_name == STAGE_SEQUENCE[-1][0] and mark_project_completed:
                 mark_project_completed(project_id)
                 logger.info(
                     "Remote project completion triggered: project_id=%s", project_id
                 )
             logger.info(
-                "Remote stage marked completed: project=%s stage=%s",
+                "Remote stage marked completed: project=%s stage=%s doc_path=%s",
                 project_name,
                 stage_name,
+                doc_path,
             )
         else:
             mark_stage_running(project_id, stage_name)
@@ -181,18 +183,22 @@ def _record_stage_artifacts(stage_name: str, artifact_paths: List[str]) -> None:
         return
 
     try:
-        db_client = DynamoDBClient()
-
-        timestamp = datetime.utcnow().replace(tzinfo=timezone.utc)
-        for path in artifact_paths:
-            record = ArtifactRecord(
-                artifact_id=f"{project_id}:{stage_name}:{uuid.uuid4().hex}",
-                project_id=project_id,
-                stage=stage_name,
-                file_path=path,
-                created_at=timestamp,
+        # Use v2 database - artifacts are stored as part of stage data
+        logger.info(
+            "Recording artifacts for stage %s: %s",
+            stage_name,
+            artifact_paths,
+        )
+        
+        # Normalize stage name and update stage with artifact paths using v2 API
+        from api.v2.services.stage_service import stage_service_v2
+        normalized_name = stage_service_v2._normalize_stage_name(stage_name)
+        if normalized_name:
+            v2_db_client.update_stage(
+                project_id,
+                normalized_name,
+                {'artifact_paths': artifact_paths}
             )
-            db_client.create_artifact_record(record)
     except Exception:
         logger.exception(
             "Failed to record artifact paths to remote store: stage=%s paths=%s",
@@ -365,6 +371,17 @@ nexus-ai/
             "created_date": datetime.now(timezone.utc).isoformat(),
             "reused": reused_project,
         }
+        
+        # 如果是远程模式（通过 worker 调用），更新数据库中的本地项目目录名
+        project_id = _current_project_id()
+        if project_id:
+            try:
+                v2_db_client.update_project(project_id, {
+                    'local_project_dir': project_name
+                })
+                logger.info(f"Updated local_project_dir for project {project_id}: {project_name}")
+            except Exception as e:
+                logger.warning(f"Failed to update local_project_dir: {e}")
         
         return json.dumps(result, ensure_ascii=False, indent=2)
         
@@ -839,7 +856,7 @@ def update_project_status(project_name: str, agent_name: str, stage: str, status
         with open(status_path, 'w', encoding='utf-8') as f:
             yaml.dump(status_data, f, default_flow_style=False, allow_unicode=True, indent=2)
 
-        _sync_stage_progress(project_name, stage, status=status)
+        _sync_stage_progress(project_name, stage, status=status, doc_path=doc_path)
 
         result = {
             "status": "success",

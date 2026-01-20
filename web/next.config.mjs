@@ -1,20 +1,20 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
-  // Disable typedRoutes to avoid build errors with dynamic routes
-  // experimental: {
-  //   typedRoutes: true
-  // }
-  // Disable static optimization for pages with useSearchParams
-  // This allows client components with useSearchParams to build without Suspense
-  generateBuildId: async () => {
-    // Use timestamp to ensure dynamic builds
-    return 'build-' + Date.now().toString()
-  },
+  reactStrictMode: true,
   experimental: {
-    // Disable the Suspense requirement for useSearchParams in client components
-    missingSuspenseWithCSRBailout: false
-  }
+    serverActions: {
+      bodySizeLimit: '2mb',
+    },
+  },
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/api/:path*`,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

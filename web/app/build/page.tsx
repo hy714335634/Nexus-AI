@@ -12,6 +12,7 @@ import { useBuildDashboard, useProjectSummaries } from '@/hooks/use-projects';
 import { LoadingState } from '@components/feedback/loading-state';
 import { ErrorState } from '@components/feedback/error-state';
 import { formatDateTime, formatDuration } from '@/lib/formatters';
+import type { ProjectSummary, BuildDashboardStage, BuildDashboardAlert, BuildDashboardResource } from '@/types/projects';
 
 type StepVisualStatus = 'completed' | 'current' | 'pending' | 'failed';
 
@@ -192,11 +193,12 @@ function BuildPageContent() {
     if (requestedProjectId) {
       return requestedProjectId;
     }
-    if (!projectSummaries?.length) {
+    const list = projectSummaries as ProjectSummary[] | undefined;
+    if (!list?.length) {
       return undefined;
     }
-    const building = projectSummaries.find((project) => project.status === 'building');
-    return building?.projectId ?? projectSummaries[0]?.projectId;
+    const building = list.find((project) => project.status === 'building');
+    return building?.projectId ?? list[0]?.projectId;
   }, [requestedProjectId, projectSummaries]);
 
   const {
@@ -320,7 +322,7 @@ function BuildPageContent() {
   }
 
   const orderedStages = STAGE_CATALOG.map((entry) => {
-    const stage = dashboard.stages.find((item) => item.name === entry.id);
+    const stage = dashboard.stages.find((item: BuildDashboardStage) => item.name === entry.id);
     return {
       catalog: entry,
       stage,
@@ -401,12 +403,12 @@ function BuildPageContent() {
 
   const requirementText = dashboard.requirement ?? FALLBACK_REQUIREMENT;
 
-  const resources = dashboard.resources ?? [];
-  const alertsRaw = dashboard.alerts ?? [];
+  const resources: BuildDashboardResource[] = dashboard.resources ?? [];
+  const alertsRaw: BuildDashboardAlert[] = dashboard.alerts ?? [];
   const alerts = alertsRaw
     .slice()
-    .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
-  const riskAlertCount = alerts.filter((alert) => alert.level !== 'info').length;
+    .sort((a: BuildDashboardAlert, b: BuildDashboardAlert) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+  const riskAlertCount = alerts.filter((alert: BuildDashboardAlert) => alert.level !== 'info').length;
 
   const metricsCards = [
     { label: '整体构建进度', value: `${progressValue}%` },

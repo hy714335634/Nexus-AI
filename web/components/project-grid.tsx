@@ -1,4 +1,4 @@
-import type { ProjectSummary } from '@/types/projects';
+import type { ProjectSummary } from '@/lib/projects';
 import { ProjectCard } from '@components/project-card';
 
 interface ProjectGridProps {
@@ -19,7 +19,7 @@ export function ProjectGrid({ projects }: ProjectGridProps) {
       }}
     >
       {projects.map((project) => (
-        <ProjectCard key={project.projectId} project={project} />
+        <ProjectCard key={project.id} project={project} />
       ))}
     </div>
   );

@@ -7,8 +7,7 @@ import { toast } from 'sonner';
 import styles from './new-agent.module.css';
 import { createAgent } from '@/lib/agents';
 import type { CreateAgentRequest } from '@/types/api';
-import type { ProjectSummary } from '@/types/projects';
-import { useProjectSummaries } from '@/hooks/use-projects';
+import { useProjectSummaries, type ProjectSummary } from '@/hooks/use-projects';
 
 interface FormState {
   requirement: string;
@@ -113,26 +112,26 @@ export function NewAgentView() {
   const mutation = useMutation({
     mutationFn: (payload: CreateAgentRequest) => createAgent(payload),
     onSuccess: (data, variables) => {
+      const projectId = data.project_id || data.agent_id || data.task_id;
       setSubmittedTask({ id: data.task_id, name: data.agent_name ?? variables.agent_name });
       toast.success('已提交构建任务', {
-        description: `${data.agent_name ?? variables.agent_name ?? data.project_id} 正在创建中`,
+        description: `${data.agent_name ?? variables.agent_name ?? projectId} 正在创建中`,
       });
 
       const optimistic: ProjectSummary = {
-        projectId: data.project_id,
-        projectName: variables.agent_name || variables.requirement.slice(0, 60) || data.project_id,
+        id: projectId,
+        name: variables.agent_name || variables.requirement.slice(0, 60) || projectId,
         status: 'building',
-        progressPercentage: 0,
+        progress: 0,
         currentStage: 'orchestrator',
         updatedAt: new Date().toISOString(),
         agentCount: 0,
-        ownerName: variables.user_name || undefined,
         tags: variables.tags && variables.tags.length ? variables.tags : undefined,
       };
 
       queryClient.setQueryData<ProjectSummary[] | undefined>(['projects', 'summaries'], (current) => {
         const existing = current ?? [];
-        const filtered = existing.filter((item) => item.projectId !== optimistic.projectId);
+        const filtered = existing.filter((item) => item.id !== optimistic.id);
         return [optimistic, ...filtered];
       });
       queryClient.invalidateQueries({ queryKey: ['projects', 'summaries'] });
@@ -141,7 +140,7 @@ export function NewAgentView() {
 
       // 跳转到构建详情页
       setTimeout(() => {
-        router.push(`/build?projectId=${encodeURIComponent(data.project_id)}`);
+        router.push(`/build?projectId=${encodeURIComponent(projectId)}`);
       }, 1000);
     },
     onError: (error: unknown) => {
@@ -151,7 +150,7 @@ export function NewAgentView() {
   });
 
   const stats = useMemo(() => {
-    const list = projectSummaries ?? [];
+    const list = (projectSummaries ?? []) as ProjectSummary[];
     if (!list.length) {
       return {
         total: 0,
@@ -166,7 +165,7 @@ export function NewAgentView() {
     const building = list.filter((item) => item.status === 'building').length;
     const completed = list.filter((item) => item.status === 'completed').length;
     const averageProgress =
-      list.reduce((sum, item) => sum + (item.progressPercentage ?? 0), 0) / Math.max(total, 1) / 100;
+      list.reduce((sum, item) => sum + (item.progress ?? 0), 0) / Math.max(total, 1) / 100;
     const successRate = completed / total;
 
     return {
@@ -243,10 +242,10 @@ export function NewAgentView() {
     <div className={styles.page}>
       <section className={styles.hero}>
         <div className={styles.heroLabel}>
-          <span>🚀 智能体构建中心</span>
+          <span>🚀 Agent 构建中心</span>
           <span>端到端工作流 · 60 秒即可提交</span>
         </div>
-        <h1 className={styles.heroTitle}>完成需求表述，剩下交给 Nexus-AI</h1>
+        <h1 className={styles.heroTitle}>从想法到 Agent 自动化构建</h1>
         <p className={styles.heroSubtitle}>
           只需描述业务诉求，系统将自动完成需求解析、架构设计、Agent 生成与交付验证，实现智能体的全链路构建。
         </p>
@@ -304,7 +303,7 @@ export function NewAgentView() {
       <form className={styles.formSection} onSubmit={handleSubmit}>
         <div className={styles.formHeader}>
           <div className={styles.formHeaderText}>
-            <div className={styles.formTitle}>填写需求，生成智能体方案</div>
+            <div className={styles.formTitle}>填写需求，生成 Agent 方案</div>
             <p className={styles.formSubtitle}>
               描述你要解决的问题，越具体越好。系统会自动完成需求拆解、角色设计、提示词编排与代码生成。
             </p>

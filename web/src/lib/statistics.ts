@@ -1,73 +1,31 @@
-import { apiFetch } from '@/lib/api-client';
+import { apiFetch } from './api-client';
 import type {
   StatisticsOverviewResponse,
   BuildStatisticsResponse,
   InvocationStatisticsResponse,
   TrendDataResponse,
+  StatisticsOverviewData,
+  BuildStatisticsData,
+  InvocationStatisticsData,
+  TrendData,
 } from '@/types/api';
 
-/**
- * Fetch overall statistics summary
- * @returns Overview statistics including agent counts, build metrics, and today's activity
- */
-export async function fetchStatisticsOverview() {
-  const response = await apiFetch<StatisticsOverviewResponse>('/api/v1/statistics/overview');
-
-  if (!response.success) {
-    throw new Error('Failed to fetch statistics overview');
-  }
-
+export async function fetchStatisticsOverview(): Promise<StatisticsOverviewData> {
+  const response = await apiFetch<StatisticsOverviewResponse>('/api/v2/statistics/overview');
   return response.data;
 }
 
-/**
- * Fetch build statistics over a time period
- * @param days - Number of days to look back (default: 30)
- * @returns Daily build statistics including success/failure counts and durations
- */
-export async function fetchBuildStatistics(days = 30) {
-  const response = await apiFetch<BuildStatisticsResponse>(
-    `/api/v1/statistics/builds?days=${days}`
-  );
-
-  if (!response.success) {
-    throw new Error('Failed to fetch build statistics');
-  }
-
+export async function fetchBuildStatistics(days = 30): Promise<BuildStatisticsData[]> {
+  const response = await apiFetch<BuildStatisticsResponse>(`/api/v2/statistics/builds?days=${days}`);
   return response.data;
 }
 
-/**
- * Fetch agent invocation statistics over a time period
- * @param days - Number of days to look back (default: 30)
- * @returns Daily invocation statistics including success rates and durations
- */
-export async function fetchInvocationStatistics(days = 30) {
-  const response = await apiFetch<InvocationStatisticsResponse>(
-    `/api/v1/statistics/invocations?days=${days}`
-  );
-
-  if (!response.success) {
-    throw new Error('Failed to fetch invocation statistics');
-  }
-
+export async function fetchInvocationStatistics(days = 30): Promise<InvocationStatisticsData[]> {
+  const response = await apiFetch<InvocationStatisticsResponse>(`/api/v2/statistics/invocations?days=${days}`);
   return response.data;
 }
 
-/**
- * Fetch trend data for a specific metric
- * @param metric - Metric name (e.g., 'build_count', 'success_rate', 'avg_duration')
- * @param days - Number of days to look back (default: 30)
- * @returns Trend data points for the specified metric
- */
-export async function fetchTrendData(metric: string, days = 30) {
-  const response = await apiFetch<TrendDataResponse>(
-    `/api/v1/statistics/trends/${encodeURIComponent(metric)}?days=${days}`
-  );
-
-  if (!response.success) {
-    throw new Error(`Failed to fetch trend data for metric: ${metric}`);
-  }
-
+export async function fetchTrendData(metric: string, days = 30): Promise<TrendData> {
+  const response = await apiFetch<TrendDataResponse>(`/api/v2/statistics/trends/${metric}?days=${days}`);
   return response.data;
 }

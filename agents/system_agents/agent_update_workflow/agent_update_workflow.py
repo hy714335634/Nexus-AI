@@ -27,7 +27,8 @@ from nexus_utils.workflow_rule_extract import (
     get_update_workflow_rules,
 )
 from nexus_utils.config_loader import ConfigLoader
-from api.database.dynamodb_client import DynamoDBClient
+# Use v2 database client
+from api.v2.database import db_client as v2_db_client
 from tools.system_tools.agent_build_workflow.stage_tracker import (
     mark_stage_running,
     mark_stage_completed,
@@ -226,16 +227,17 @@ def run_update_workflow(user_request: str, project_id: str, session_id: Optional
         execution_order = []
         
         mode = "remote"
-        db_client = DynamoDBClient()
         
-        # 检查 AgentProjects 表是否存在
-        if not db_client.table_exists('AgentProjects'):
-            logger.warning(f"AgentProjects表不存在，当前模式为local")
-            print(f"ℹ️ AgentProjects表不存在，当前模式为local", flush=True)
+        # 检查 v2 数据库表是否可用
+        try:
+            # 尝试使用 v2 数据库
+            v2_db_client.health_check()
+            logger.info(f"v2数据库可用，当前模式为remote")
+            print(f"ℹ️ v2数据库可用，当前模式为remote", flush=True)
+        except Exception as e:
+            logger.warning(f"v2数据库不可用，当前模式为local: {e}")
+            print(f"ℹ️ v2数据库不可用，当前模式为local", flush=True)
             mode = "local"
-        else:
-            logger.info(f"AgentProjects表存在，当前模式为remote")
-            print(f"ℹ️ AgentProjects表存在，当前模式为remote", flush=True)
 
         # 1. Update Orchestrator
         print(f"\n{'='*60}")
@@ -325,7 +327,7 @@ def run_update_workflow(user_request: str, project_id: str, session_id: Optional
 
         # 更新项目状态为 COMPLETED
         if mode == "remote":
-            from api.models.schemas import ProjectStatus
+            from api.v2.models.schemas import ProjectStatus
             from datetime import datetime, timezone
             now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
             db_client.update_project_status(

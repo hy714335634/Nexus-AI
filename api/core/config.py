@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     BUILD_TIMEOUT_MINUTES: int = 600
 
     # AgentCore Deployment Configuration
-    AGENTCORE_REGION: Optional[str] = None
+    AGENTCORE_REGION: str = "us-west-2"
     AGENTCORE_AUTO_CREATE_EXECUTION_ROLE: bool = True
     AGENTCORE_AUTO_CREATE_ECR: bool = True
     AGENTCORE_DOCKER_CONTEXT: str = "."

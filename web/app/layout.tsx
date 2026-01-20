@@ -1,24 +1,37 @@
 import type { Metadata } from 'next';
-import './globals.css';
-import 'highlight.js/styles/github-dark.css';
+import { Toaster } from 'sonner';
 import { Providers } from './providers';
-import { AppShell } from '@components/app-shell';
+import { MainLayout } from '@/components/layout';
+import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Nexus-AI 控制台',
-  description: '让 AI 帮你构建 AI，统一管理与运维智能体。',
+  title: 'Nexus AI - Agent Platform',
+  description: 'More Agent, More Intelligence, More Business Impact - 从想法到 Agent 自动化构建',
+  icons: {
+    icon: '/favicon.ico',
+  },
 };
 
-interface RootLayoutProps {
-  readonly children: React.ReactNode;
-}
-
-export default function RootLayout({ children }: RootLayoutProps) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="zh-CN">
       <body>
         <Providers>
-          <AppShell>{children}</AppShell>
+          <MainLayout>{children}</MainLayout>
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              style: {
+                background: 'white',
+                border: '1px solid #e5e7eb',
+                borderRadius: '0.75rem',
+              },
+            }}
+          />
         </Providers>
       </body>
     </html>
