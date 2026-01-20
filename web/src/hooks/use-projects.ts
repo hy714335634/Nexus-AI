@@ -10,8 +10,10 @@ import {
   controlProject,
   deleteProject,
   fetchProjectStageDetail,
+  type ProjectDetail,
+  type ProjectSummary,
+  type BuildDashboard,
 } from '@/lib/projects';
-import type { ProjectDetail, ProjectSummary, BuildDashboard } from '@/types/projects';
 import type {
   CreateProjectRequest,
   CreateProjectResponseData,
@@ -20,10 +22,13 @@ import type {
   StageData,
 } from '@/types/api';
 
+// Re-export types for convenience
+export type { ProjectDetail, ProjectSummary, BuildDashboard };
+
 export function useProjectSummaries(options?: Omit<UseQueryOptions<ProjectSummary[], Error>, 'queryKey' | 'queryFn'>) {
   return useQuery<ProjectSummary[]>({
     queryKey: ['projects', 'summaries'],
-    queryFn: fetchProjectSummaries,
+    queryFn: () => fetchProjectSummaries(),
     staleTime: 30_000,
     ...options,
   });
@@ -67,7 +72,7 @@ export function useProjectDetail(projectId: string, options?: Omit<UseQueryOptio
       return;
     }
 
-    const fingerprint = `${data.status}-${data.currentStage ?? 'none'}-${Math.round(data.progressPercentage)}`;
+    const fingerprint = `${data.status}-${data.currentStage ?? 'none'}-${Math.round(data.progress)}`;
     if (fingerprint !== lastFingerprintRef.current) {
       lastFingerprintRef.current = fingerprint;
       pollAttemptRef.current = 0;

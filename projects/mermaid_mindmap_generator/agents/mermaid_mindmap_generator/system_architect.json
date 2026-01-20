@@ -1,0 +1,324 @@
+{
+  "system_design": {
+    "design_overview": {
+      "project_name": "mermaid_mindmap_generator",
+      "version": "1.0",
+      "date": "2026-01-20",
+      "design_scope": "设计一个单Agent架构的Mermaid思维导图自动生成系统，支持文本内容分析、层级结构识别和标准Mermaid代码生成，提供流式响应能力，基于Claude Sonnet 4.5模型和Strands SDK构建",
+      "design_principles": [
+        "单一职责原则：Agent专注于思维导图生成，功能聚焦明确",
+        "简洁设计原则：单Agent架构，避免过度复杂化",
+        "提示词驱动原则：核心功能通过精心设计的提示词实现，最小化工具依赖",
+        "流式响应原则：采用异步流式处理，提升用户体验",
+        "语法正确性原则：确保生成的Mermaid代码100%符合规范",
+        "可扩展性原则：支持未来功能扩展和优化",
+        "用户友好原则：提供清晰的错误提示和使用指导"
+      ],
+      "key_decisions": [
+        "决策1：采用单Agent架构 - 理由：功能单一明确，不需要多Agent协作，简化系统复杂度",
+        "决策2：提示词驱动实现 - 理由：内容分析、层级识别、代码生成均可通过Claude Sonnet 4.5的强大能力结合提示词完成，无需开发复杂工具",
+        "决策3：使用content_generator_agent模板 - 理由：该模板完美匹配单Agent创意生成需求，提供流式响应、环境配置、工具集成等开箱即用能力",
+        "决策4：BedrockAgentCoreApp部署模式 - 理由：支持AgentCore平台部署，提供标准HTTP接口和流式响应能力",
+        "决策5：最小化工具开发 - 理由：Mermaid语法验证和格式化可通过提示词约束实现，仅在必要时添加辅助工具",
+        "决策6：温度参数设置为0.7 - 理由：平衡创意性和准确性，适合结构化内容生成"
+      ],
+      "workflow_type": "single_agent",
+      "recommended_templates": [
+        "content_generator_agent (85/100) - 强烈推荐，单Agent创意生成专家，支持流式响应",
+        "document_processor_agent (78/100) - 备选方案，更强的内容分析能力但创意生成能力较弱"
+      ]
+    },
+    "architecture": {
+      "system_context": "Mermaid思维导图生成系统是一个独立的单Agent应用，接收用户的文本输入或主题描述，通过AI能力进行内容分析和结构识别，自动生成符合Mermaid mindmap语法规范的代码。系统部署在Amazon Bedrock AgentCore平台，通过HTTP API对外提供服务，支持流式响应以提升用户体验。用户可以直接将生成的Mermaid代码用于GitHub、Typora、Mermaid Live Editor等支持Mermaid的平台进行渲染展示。",
+      "agent_topology": "单Agent拓扑结构：\n\n┌─────────────────────────────────────────┐\n│           用户输入接口                    │\n│    (HTTP API / CLI / Interactive)       │\n└──────────────┬──────────────────────────┘\n               │\n               ▼\n┌─────────────────────────────────────────┐\n│  Mermaid Mindmap Generator Agent        │\n│  ┌───────────────────────────────────┐  │\n│  │  核心能力                          │  │\n│  │  - 内容理解与分析                  │  │\n│  │  - 层级结构识别                    │  │\n│  │  - Mermaid代码生成                 │  │\n│  │  - 格式验证与优化                  │  │\n│  └───────────────────────────────────┘  │\n│  ┌───────────────────────────────────┐  │\n│  │  LLM引擎 (Claude Sonnet 4.5)       │  │\n│  └───────────────────────────────────┘  │\n│  ┌───────────────────────────────────┐  │\n│  │  提示词模板                        │  │\n│  │  - 系统提示词 (Mermaid专家)        │  │\n│  │  - 语法规范指导                    │  │\n│  │  - 层级识别规则                    │  │\n│  └───────────────────────────────────┘  │\n│  ┌───────────────────────────────────┐  │\n│  │  可选工具集                        │  │\n│  │  - 文本预处理工具                  │  │\n│  │  - 格式验证工具 (可选)             │  │\n│  └───────────────────────────────────┘  │\n└──────────────┬──────────────────────────┘\n               │\n               ▼\n┌─────────────────────────────────────────┐\n│        Mermaid代码输出                   │\n│   (流式响应 / 完整代码块)                │\n└─────────────────────────────────────────┘",
+      "interaction_model": "单Agent交互模型 - 请求-响应模式（支持流式）：\n\n1. **输入阶段**：\n   - 用户提交文本内容或主题描述\n   - 系统接收并验证输入（非空、长度检查）\n   - 构建完整的提示词上下文\n\n2. **处理阶段**：\n   - Agent加载系统提示词（Mermaid专家角色）\n   - 调用Claude Sonnet 4.5进行内容分析\n   - 识别主题、子主题和层级关系\n   - 生成Mermaid mindmap代码\n   - 内部验证语法正确性\n\n3. **输出阶段**：\n   - 流式输出生成的Mermaid代码片段\n   - 包装为markdown代码块格式\n   - 提供使用说明（可选）\n\n4. **错误处理**：\n   - 输入验证失败：返回友好错误提示\n   - 生成失败：提供重试建议\n   - 语法错误：自动修正或提示用户\n\n交互特点：\n- 同步处理：单次请求完整处理\n- 流式响应：实时输出生成过程\n- 无状态设计：每次请求独立处理\n- 快速响应：目标10秒内完成",
+      "technology_stack": {
+        "sdk": "Strands SDK",
+        "runtime": "Local / Docker Container",
+        "llm_model": "anthropic.claude-sonnet-4-5-20250929-v1:0",
+        "deployment_platform": "Amazon Bedrock AgentCore",
+        "deployment_framework": "BedrockAgentCoreApp (Starlette HTTP Server)",
+        "programming_language": "Python 3.13+",
+        "integrations": [
+          "AWS Bedrock - AI推理引擎",
+          "AWS boto3 SDK - AWS服务集成",
+          "Mermaid Live Editor - 代码验证和渲染（外部）",
+          "GitHub/Typora - 目标渲染平台（外部）"
+        ],
+        "key_libraries": [
+          "strands - Agent框架",
+          "bedrock_agentcore.runtime - AgentCore部署支持",
+          "asyncio - 异步流式处理",
+          "yaml - 配置文件管理",
+          "json - 数据交换格式"
+        ]
+      }
+    },
+    "agents": [
+      {
+        "name": "mermaid_mindmap_generator",
+        "purpose": "接收用户的文本内容或主题描述，自动分析内容结构，识别层级关系，生成符合Mermaid mindmap语法规范的思维导图代码，支持流式输出",
+        "responsibilities": [
+          "接收并验证用户输入的文本内容",
+          "分析输入内容的主题、核心概念和关键要素",
+          "识别内容中的层级关系和逻辑结构（2-5层）",
+          "生成标准的Mermaid mindmap语法代码",
+          "确保生成的代码语法正确且可渲染",
+          "优化节点命名，保持简洁清晰（建议不超过15字）",
+          "处理特殊字符和转义需求",
+          "提供流式响应以提升用户体验",
+          "处理异常情况并返回友好错误提示",
+          "包装输出为markdown代码块格式"
+        ],
+        "interfaces": {
+          "inputs": [
+            "文本内容 (str): 用户输入的主题描述或文本内容，长度1-2000字",
+            "配置参数 (可选): 最大层级、节点数量限制等",
+            "会话上下文 (可选): user_id, session_id用于日志追踪"
+          ],
+          "outputs": [
+            "Mermaid代码 (str): 符合mindmap语法的完整代码",
+            "代码块格式 (str): 包含```mermaid标记的markdown格式",
+            "使用说明 (可选str): 简要的使用指导",
+            "错误信息 (str): 处理失败时的友好错误提示"
+          ]
+        },
+        "dependencies": [
+          "AWS Bedrock服务 - Claude Sonnet 4.5模型推理",
+          "Strands SDK - Agent框架和工具支持",
+          "BedrockAgentCoreApp - HTTP服务器和流式响应支持",
+          "提示词模板 - prompts/generated_agents_prompts/mermaid_mindmap_generator/mermaid_mindmap_generator.yaml"
+        ],
+        "implementation_notes": [
+          "使用content_generator_agent模板作为基础框架",
+          "核心功能通过提示词实现，最小化工具开发",
+          "系统提示词需要包含：Mermaid专家角色、语法规范、层级识别规则、节点命名指导",
+          "温度参数设置为0.7，平衡创意性和准确性",
+          "max_tokens设置为60000，支持复杂思维导图生成",
+          "必须实现@app.entrypoint装饰的异步handler函数",
+          "使用agent.stream_async()实现流式响应",
+          "在Docker环境中自动启动HTTP服务器监听8080端口",
+          "支持本地测试模式：-i参数直接测试，-it参数交互式对话",
+          "错误处理：输入验证、生成异常、语法错误三类场景",
+          "日志记录：记录输入内容、生成过程、输出结果、错误信息",
+          "性能优化：响应时间目标10秒内，支持最多2000字输入",
+          "输出格式：必须包含```mermaid和```标记，确保可直接使用"
+        ],
+        "recommended_template": "content_generator_agent",
+        "template_customization": {
+          "system_prompt_modifications": [
+            "定义为Mermaid思维导图生成专家角色",
+            "添加Mermaid mindmap语法规范说明",
+            "添加层级识别和结构分析指导",
+            "添加节点命名优化规则（简洁、准确、不超过15字）",
+            "添加特殊字符处理和转义规则",
+            "添加输出格式要求（markdown代码块包装）",
+            "添加质量检查步骤（语法验证、结构完整性）"
+          ],
+          "parameter_adjustments": [
+            "temperature: 0.7 (平衡创意和准确性)",
+            "max_tokens: 60000 (支持复杂思维导图)",
+            "model_id: anthropic.claude-sonnet-4-5-20250929-v1:0"
+          ],
+          "tool_extensions": [
+            "可选：添加Mermaid语法验证工具（初期可通过提示词约束）",
+            "可选：添加文本预处理工具（去除噪音、格式标准化）"
+          ]
+        }
+      }
+    ],
+    "data_models": [
+      {
+        "name": "MindmapRequest",
+        "schema": "{\n  \"prompt\": \"string (required)\",\n  \"user_id\": \"string (optional)\",\n  \"session_id\": \"string (optional)\",\n  \"config\": {\n    \"max_levels\": \"integer (optional, default: 5)\",\n    \"max_nodes\": \"integer (optional, default: 30)\",\n    \"include_instructions\": \"boolean (optional, default: false)\"\n  }\n}",
+        "validation_rules": [
+          "prompt字段必填，长度1-2000字符",
+          "max_levels范围：2-5",
+          "max_nodes范围：5-50",
+          "user_id和session_id为可选字段，用于追踪"
+        ],
+        "relationships": [
+          "作为handler函数的输入payload"
+        ]
+      },
+      {
+        "name": "MindmapResponse",
+        "schema": "{\n  \"mermaid_code\": \"string\",\n  \"formatted_output\": \"string (markdown code block)\",\n  \"instructions\": \"string (optional)\",\n  \"metadata\": {\n    \"node_count\": \"integer\",\n    \"level_count\": \"integer\",\n    \"generation_time\": \"float\"\n  }\n}",
+        "validation_rules": [
+          "mermaid_code必须以'mindmap'开头",
+          "formatted_output必须包含```mermaid标记",
+          "node_count应在5-50范围内",
+          "level_count应在2-5范围内"
+        ],
+        "relationships": [
+          "作为handler函数的流式输出内容"
+        ]
+      },
+      {
+        "name": "ErrorResponse",
+        "schema": "{\n  \"error\": \"string\",\n  \"error_type\": \"string (validation_error|generation_error|syntax_error)\",\n  \"suggestion\": \"string\",\n  \"timestamp\": \"string (ISO 8601)\"\n}",
+        "validation_rules": [
+          "error字段必填，描述错误原因",
+          "error_type必须为枚举值之一",
+          "suggestion提供用户可操作的改进建议"
+        ],
+        "relationships": [
+          "异常情况下通过handler函数yield返回"
+        ]
+      }
+    ],
+    "interaction_flows": [
+      {
+        "name": "正常思维导图生成流程",
+        "description": "用户提交文本内容，系统分析并生成Mermaid思维导图代码的完整流程",
+        "steps": [
+          {
+            "step": "1. 接收用户请求",
+            "agent": "mermaid_mindmap_generator",
+            "action": "handler函数接收payload，提取prompt字段",
+            "data": "MindmapRequest对象"
+          },
+          {
+            "step": "2. 输入验证",
+            "agent": "mermaid_mindmap_generator",
+            "action": "检查prompt非空、长度合法",
+            "data": "验证结果 (bool)"
+          },
+          {
+            "step": "3. 构建提示词上下文",
+            "agent": "mermaid_mindmap_generator",
+            "action": "加载系统提示词，结合用户输入构建完整prompt",
+            "data": "完整提示词字符串"
+          },
+          {
+            "step": "4. 调用LLM进行内容分析",
+            "agent": "mermaid_mindmap_generator",
+            "action": "使用agent.stream_async()调用Claude Sonnet 4.5",
+            "data": "流式响应流"
+          },
+          {
+            "step": "5. 流式输出生成结果",
+            "agent": "mermaid_mindmap_generator",
+            "action": "逐步yield生成的Mermaid代码片段",
+            "data": "Mermaid代码片段 (str)"
+          },
+          {
+            "step": "6. 完成响应",
+            "agent": "mermaid_mindmap_generator",
+            "action": "结束流式输出，记录日志",
+            "data": "完整Mermaid代码"
+          }
+        ]
+      },
+      {
+        "name": "错误处理流程",
+        "description": "输入验证失败或生成异常时的错误处理流程",
+        "steps": [
+          {
+            "step": "1. 检测错误",
+            "agent": "mermaid_mindmap_generator",
+            "action": "捕获输入验证错误或生成异常",
+            "data": "异常对象"
+          },
+          {
+            "step": "2. 错误分类",
+            "agent": "mermaid_mindmap_generator",
+            "action": "判断错误类型（validation_error/generation_error/syntax_error）",
+            "data": "错误类型枚举"
+          },
+          {
+            "step": "3. 生成错误响应",
+            "agent": "mermaid_mindmap_generator",
+            "action": "构建ErrorResponse对象，包含友好提示和改进建议",
+            "data": "ErrorResponse对象"
+          },
+          {
+            "step": "4. 返回错误信息",
+            "agent": "mermaid_mindmap_generator",
+            "action": "yield错误信息（以'Error: '开头）",
+            "data": "错误消息字符串"
+          },
+          {
+            "step": "5. 记录错误日志",
+            "agent": "mermaid_mindmap_generator",
+            "action": "记录错误详情到日志系统",
+            "data": "日志条目"
+          }
+        ]
+      },
+      {
+        "name": "本地测试流程",
+        "description": "开发阶段的本地测试和调试流程",
+        "steps": [
+          {
+            "step": "1. 启动测试模式",
+            "agent": "mermaid_mindmap_generator",
+            "action": "通过-i参数传入测试输入",
+            "data": "测试输入字符串"
+          },
+          {
+            "step": "2. 直接调用Agent",
+            "agent": "mermaid_mindmap_generator",
+            "action": "使用agent(input)同步调用",
+            "data": "测试输入"
+          },
+          {
+            "step": "3. 输出测试结果",
+            "agent": "mermaid_mindmap_generator",
+            "action": "打印生成的Mermaid代码到控制台",
+            "data": "完整输出"
+          },
+          {
+            "step": "4. 验证输出",
+            "agent": "开发人员",
+            "action": "复制代码到Mermaid Live Editor验证渲染效果",
+            "data": "渲染结果"
+          }
+        ]
+      }
+    ],
+    "security_considerations": [
+      "输入验证：严格验证输入长度和内容，防止注入攻击",
+      "内容过滤：检测并拒绝包含恶意代码或敏感信息的输入",
+      "数据隐私：不存储用户输入内容，除非用户明确授权",
+      "访问控制：AgentCore平台提供的认证和授权机制",
+      "日志脱敏：日志中避免记录完整的用户输入内容，仅记录摘要",
+      "错误信息安全：错误提示不暴露系统内部实现细节",
+      "依赖安全：使用官方SDK和经过验证的第三方库",
+      "环境隔离：生产环境配置独立，避免敏感信息泄露"
+    ],
+    "error_handling": [
+      "输入验证错误：返回'Error: 请提供需要生成思维导图的内容'或'Error: 输入内容过长，请控制在2000字以内'",
+      "LLM调用失败：捕获异常，返回'Error: 生成服务暂时不可用，请稍后重试'",
+      "语法生成错误：在提示词中强化语法约束，必要时添加后处理验证",
+      "超时处理：设置10秒超时限制，超时返回'Error: 生成超时，请简化输入内容或稍后重试'",
+      "流式响应中断：捕获网络异常，记录日志并通知用户",
+      "资源耗尽：监控token使用量，接近限制时降级处理或拒绝请求",
+      "未知异常：捕获所有异常，返回通用错误提示并记录详细日志",
+      "降级策略：LLM服务不可用时，提供缓存的示例或引导用户稍后重试"
+    ],
+    "performance_considerations": [
+      "响应时间目标：单次生成在10秒内完成",
+      "流式输出优化：使用异步流式处理，首个token在1秒内返回",
+      "并发支持：AgentCore平台支持多请求并发处理",
+      "资源限制：max_tokens设置为60000，平衡质量和成本",
+      "缓存策略：相同输入可考虑缓存生成结果（可选功能）",
+      "输入预处理：对长文本进行预处理和摘要提取，减少token消耗",
+      "模型选择：Claude Sonnet 4.5平衡性能和成本，适合生产环境",
+      "监控指标：响应时间、成功率、token使用量、错误率"
+    ],
+    "monitoring_strategy": [
+      "日志记录：记录每次请求的输入摘要、生成时间、输出长度、错误信息",
+      "性能监控：监控响应时间、LLM调用延迟、token使用量",
+      "成功率追踪：统计生成成功率、语法正确率、用户满意度",
+      "错误监控：分类统计各类错误的发生频率和原因",
+      "资源监控：监控CPU、内存、网络使用情况",
+      "业务指标：每日请求量、活跃用户数、平均生成节点数",
+      "告警机制：成功率低于95%、响应时间超过15秒、错误率超过5%时触发告警",
+      "可观测性：集成OpenTelemetry，支持分布式追踪和指标收集",
+      "健康检查：提供/health端点，用于服务健康状态检查",
+      "日志聚合：使用CloudWatch或ELK收集和分析日志"
+    ]
+  },
+  "design_rationale": "本系统设计采用单Agent架构，是基于以下充分理由做出的决策：\n\n1. **功能复杂度评估**：Mermaid思维导图生成是一个功能明确、边界清晰的任务，包含内容分析、层级识别、代码生成三个步骤，但这些步骤在逻辑上紧密耦合，适合在一个Agent内顺序完成，无需拆分为多个专业Agent协作。\n\n2. **模板选择依据**：推荐使用content_generator_agent模板（评分85/100），该模板完美匹配需求：(1)单Agent架构，(2)创意生成导向，(3)流式响应支持，(4)生产级稳定性，(5)环境配置完整。相比document_processor_agent（评分78/100），content_generator_agent的温度参数（0.7 vs 0.3）更适合创意生成任务。\n\n3. **提示词驱动策略**：Claude Sonnet 4.5具备强大的结构化输出和代码生成能力，通过精心设计的系统提示词可以实现：(1)内容主题识别，(2)层级关系分析，(3)Mermaid语法生成，(4)节点命名优化，(5)格式验证。这避免了开发复杂的文本分析工具和语法验证工具，大幅降低开发成本和维护复杂度。\n\n4. **流式响应设计**：采用BedrockAgentCoreApp框架的异步流式处理能力，通过@app.entrypoint装饰器和agent.stream_async()方法实现实时输出。这显著提升用户体验，用户可以看到思维导图逐步生成的过程，而不是等待10秒后一次性获得结果。\n\n5. **性能与成本平衡**：(1)温度参数0.7平衡创意性和准确性，(2)max_tokens设置为60000支持复杂思维导图但控制成本，(3)10秒响应时间目标满足用户体验要求，(4)Claude Sonnet 4.5相比Claude Opus成本更低但能力足够。\n\n6. **错误处理策略**：采用三层错误处理机制：(1)输入验证层（prompt非空、长度检查），(2)生成异常捕获（LLM调用失败、超时），(3)输出质量检查（语法正确性）。所有错误返回友好提示和改进建议，避免暴露系统内部细节。\n\n7. **部署架构选择**：BedrockAgentCoreApp模式支持：(1)Docker容器化部署，(2)标准HTTP API接口，(3)AgentCore平台集成，(4)本地测试能力（-i和-it参数），(5)健康检查和监控。这确保系统可以无缝部署到生产环境并具备良好的可运维性。\n\n8. **可扩展性考虑**：虽然当前采用单Agent架构，但设计保留扩展空间：(1)提示词模板可以迭代优化，(2)可选添加Mermaid验证工具，(3)可选添加缓存机制提升性能，(4)可选支持多种思维导图格式（XMind、FreeMind），(5)可选集成图片渲染服务。\n\n9. **安全性设计**：(1)严格输入验证防止注入攻击，(2)不存储用户内容保护隐私，(3)日志脱敏避免敏感信息泄露，(4)错误信息不暴露系统细节，(5)依赖官方SDK和验证库确保供应链安全。\n\n10. **监控与可观测性**：集成OpenTelemetry支持分布式追踪，记录关键指标（响应时间、成功率、token使用量），提供健康检查端点，设置告警阈值（成功率<95%、响应时间>15秒、错误率>5%），确保生产环境问题能够快速发现和定位。\n\n综上所述，本设计在功能完整性、开发效率、用户体验、系统稳定性、可维护性之间取得了最佳平衡，是满足当前需求的最优方案。"
+}

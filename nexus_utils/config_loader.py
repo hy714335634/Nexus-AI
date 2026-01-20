@@ -55,16 +55,34 @@ class ConfigLoader:
         log_format = log_config.get("format", '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         log_file = log_config.get("file_path")
         
-        # 创建日志目录
+        # 尝试创建日志目录并配置文件日志
+        # 如果失败（如容器环境权限问题），回退到控制台日志
         if log_file:
-            os.makedirs(os.path.dirname(os.path.abspath(log_file)), exist_ok=True)
+            try:
+                log_dir = os.path.dirname(os.path.abspath(log_file))
+                os.makedirs(log_dir, exist_ok=True)
+                # 测试是否有写入权限
+                test_file = os.path.join(log_dir, '.write_test')
+                with open(test_file, 'w') as f:
+                    f.write('test')
+                os.remove(test_file)
+            except (PermissionError, OSError):
+                # 容器环境或无权限时，禁用文件日志
+                log_file = None
         
         # 配置日志
-        logging.basicConfig(
-            level=getattr(logging, log_level),
-            format=log_format,
-            filename=log_file
-        )
+        try:
+            logging.basicConfig(
+                level=getattr(logging, log_level),
+                format=log_format,
+                filename=log_file
+            )
+        except (PermissionError, OSError):
+            # 最终回退：仅控制台日志
+            logging.basicConfig(
+                level=getattr(logging, log_level),
+                format=log_format
+            )
     
     def get(self, key: str, default: Any = None) -> Any:
         """

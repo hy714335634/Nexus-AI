@@ -90,7 +90,8 @@ export function AppShell({ children }: AppShellProps) {
 
   const buildingCount = useMemo(() => {
     if (!projectSummaries) return 0;
-    return projectSummaries.filter((p) => p.status === 'building').length;
+    const projects = projectSummaries as Array<{ status: string }>;
+    return projects.filter((p) => p.status === 'building').length;
   }, [projectSummaries]);
 
   const hasBuilding = buildingCount > 0;
@@ -145,6 +146,13 @@ export function AppShell({ children }: AppShellProps) {
         <header className={styles.header}>
           <div className={styles.pageTitle}>{activeItem?.label ?? '首页概览'}</div>
           <div className={styles.userInfo}>
+            <Link 
+              href="/settings/config" 
+              className={styles.headerIcon}
+              title="系统配置"
+            >
+              ⚙️
+            </Link>
             <span>张强 [企业业务部门]</span>
             <div className={styles.userAvatar}>张</div>
           </div>

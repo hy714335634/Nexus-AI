@@ -44,10 +44,15 @@ default-config:
       - 'file_write'
   
   agentcore:
-    execution_role_prefix: 'agentcore' # Prefix for IAM execution roles
-    ecr_auto_create: True              # Auto-create ECR repositories
-    runtime_timeout_minutes: 30        # Timeout for agent runtime operations
-    enable_xray: False                 # Enable AWS X-Ray tracing
+    execution_role_arn: ''                   # Full IAM role ARN for AgentCore (leave empty to auto-create)
+    auto_create_execution_role: True         # Auto-create IAM execution role if not exists
+    ecr_auto_create: True                    # Auto-create ECR repositories
+    runtime_timeout_minutes: 30              # Timeout for agent runtime operations
+    enable_xray: False                       # Enable AWS X-Ray tracing
+    deploy_dry_run: False                    # Dry run mode (skip actual deployment)
+    default_alias: 'DEFAULT'                 # Default agent alias
+    post_deploy_test: False                  # Run test after deployment
+    post_deploy_test_prompt: 'Hello'         # Test prompt for post-deploy test
   
   bedrock:
     model_id: 'us.anthropic.claude-sonnet-4-5-20250929-v1:0'    # Default model

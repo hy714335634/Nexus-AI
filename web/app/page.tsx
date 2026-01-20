@@ -1,403 +1,294 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import styles from './home.module.css';
-import { toast } from 'sonner';
-import { useStatisticsOverview } from '@/hooks/use-statistics';
-import { useAgentsList } from '@/hooks/use-agents';
-import { useProjectSummaries } from '@/hooks/use-projects';
+import Link from 'next/link';
+import { Header } from '@/components/layout';
+import { Card, CardHeader, CardTitle, CardContent, Button, Progress } from '@/components/ui';
+import { StatusBadge } from '@/components/status-badge';
+import { useStatisticsOverviewV2 } from '@/hooks/use-statistics-v2';
+import { useProjectsV2 } from '@/hooks/use-projects-v2';
+import { useAgentsV2 } from '@/hooks/use-agents-v2';
+import { formatRelativeTime, formatNumber } from '@/lib/utils';
+import {
+  Bot,
+  FolderKanban,
+  Zap,
+  TrendingUp,
+  ArrowRight,
+  Plus,
+  Activity,
+  Sparkles,
+  Target,
+  Brain,
+} from 'lucide-react';
 
-interface TemplateItem {
-  readonly id: string;
-  readonly icon: string;
-  readonly name: string;
-  readonly description: string;
-}
+export default function DashboardPage() {
+  const { data: stats, isLoading: statsLoading } = useStatisticsOverviewV2();
+  const { data: projects, isLoading: projectsLoading } = useProjectsV2({ limit: 5 });
+  const { data: agents, isLoading: agentsLoading } = useAgentsV2({ limit: 6 });
 
-interface ModalProps {
-  readonly open: boolean;
-  readonly title: string;
-  readonly onClose: () => void;
-  readonly items: TemplateItem[];
-  readonly onSelect: (item: TemplateItem) => void;
-}
-
-function Modal({ open, title, onClose, items, onSelect }: ModalProps) {
-  if (!open) {
-    return null;
-  }
+  const recentProjects = projects || [];
+  const recentAgents = agents || [];
 
   return (
-    <div className={styles.modalOverlay}>
-      <div className={styles.modal}>
-        <div className={styles.modalHeader}>
-          <div className={styles.modalTitle}>{title}</div>
-          <button type="button" className={styles.modalClose} onClick={onClose} aria-label="关闭">
-            ×
-          </button>
-        </div>
-        <div className={styles.modalBody}>
-          <div className={styles.templateList}>
-            {items.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                className={styles.templateItem}
-                onClick={() => onSelect(item)}
-              >
-                <div className={styles.templateIcon}>{item.icon}</div>
-                <div className={styles.templateInfo}>
-                  <div className={styles.templateName}>{item.name}</div>
-                  <div className={styles.templateDesc}>{item.description}</div>
-                </div>
-                <div className={styles.templateAction}>选择</div>
-              </button>
-            ))}
+    <div className="page-container">
+      <Header
+        title="工作台"
+        description="More Agent, More Intelligence, More Business Impact"
+        actions={
+          <Link href="/agents/new">
+            <Button className="bg-gradient-to-r from-primary-600 to-accent-600 hover:from-primary-700 hover:to-accent-700">
+              <Plus className="w-4 h-4" />
+              创建 Agent
+            </Button>
+          </Link>
+        }
+      />
+
+      <div className="page-content">
+        {/* Hero Banner */}
+        <div className="mb-8 p-6 rounded-2xl bg-gradient-to-br from-primary-500 via-accent-500 to-agent-500 text-white relative overflow-hidden">
+          <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-10" />
+          <div className="relative z-10">
+            <div className="flex items-center gap-2 mb-2">
+              <Brain className="w-6 h-6" />
+              <span className="text-sm font-medium opacity-90">Agentic AI Native</span>
+            </div>
+            <h2 className="text-2xl font-bold mb-2">从想法到 Agent 自动化构建</h2>
+            <p className="text-white/80 max-w-2xl">
+              通过自然语言描述业务需求，快速构建专属 Agent。无需编程，业务人员即可创建、部署和管理智能助手。
+            </p>
           </div>
         </div>
-        <div className={styles.modalFooter}>
-          <button type="button" className={styles.modalButton} onClick={onClose}>
-            取消
-          </button>
+
+        {/* Stats Grid */}
+        <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-4 mb-8">
+          <StatCard
+            icon={Bot}
+            label="运行中 Agent"
+            value={stats?.running_agents ?? 0}
+            total={stats?.total_agents ?? 0}
+            loading={statsLoading}
+            color="primary"
+          />
+          <StatCard
+            icon={FolderKanban}
+            label="构建中项目"
+            value={stats?.building_projects ?? 0}
+            total={stats?.total_projects ?? 0}
+            loading={statsLoading}
+            color="accent"
+          />
+          <StatCard
+            icon={Zap}
+            label="今日业务处理"
+            value={stats?.today_invocations ?? 0}
+            loading={statsLoading}
+            color="agent"
+          />
+          <StatCard
+            icon={TrendingUp}
+            label="构建成功率"
+            value={`${Math.round(stats?.success_rate ?? 0)}%`}
+            loading={statsLoading}
+            color="success"
+          />
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-3">
+          {/* Recent Projects */}
+          <div className="lg:col-span-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FolderKanban className="w-5 h-5 text-primary-600" />
+                  构建进度
+                </CardTitle>
+                <Link href="/projects" className="text-sm text-primary-600 hover:text-primary-700 flex items-center gap-1">
+                  查看全部 <ArrowRight className="w-4 h-4" />
+                </Link>
+              </CardHeader>
+              <CardContent>
+                {projectsLoading ? (
+                  <div className="space-y-3">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="h-16 bg-gray-100 rounded-lg animate-pulse" />
+                    ))}
+                  </div>
+                ) : recentProjects.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <FolderKanban className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                    <p>暂无构建项目</p>
+                    <Link href="/agents/new" className="text-primary-600 hover:underline text-sm">
+                      创建第一个 Agent
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {recentProjects.map((project) => (
+                      <Link
+                        key={project.project_id}
+                        href={`/projects/${project.project_id}`}
+                        className="flex items-center justify-between p-4 rounded-lg border border-gray-100 hover:border-primary-200 hover:bg-primary-50/30 transition-all"
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary-100 to-accent-100 flex items-center justify-center">
+                            <FolderKanban className="w-5 h-5 text-primary-600" />
+                          </div>
+                          <div>
+                            <h4 className="font-medium text-gray-900">
+                              {project.project_name || `项目 ${project.project_id.slice(0, 8)}`}
+                            </h4>
+                            <p className="text-sm text-gray-500">
+                              {project.current_stage || '等待开始'} · {formatRelativeTime(project.updated_at)}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <div className="w-24">
+                            <Progress value={project.progress} size="sm" />
+                          </div>
+                          <StatusBadge status={project.status as any} size="sm" />
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Quick Actions & Recent Agents */}
+          <div className="space-y-6">
+            {/* Quick Actions */}
+            <Card>
+              <CardHeader>
+                <CardTitle>快速操作</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Link href="/agents/new" className="block">
+                  <div className="flex items-center gap-3 p-3 rounded-lg border border-gray-100 hover:border-primary-200 hover:bg-gradient-to-r hover:from-primary-50 hover:to-accent-50 transition-all">
+                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary-100 to-accent-100 flex items-center justify-center">
+                      <Sparkles className="w-5 h-5 text-primary-600" />
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-gray-900">创建 Agent</h4>
+                      <p className="text-xs text-gray-500">用自然语言描述业务需求</p>
+                    </div>
+                  </div>
+                </Link>
+                <Link href="/tools" className="block">
+                  <div className="flex items-center gap-3 p-3 rounded-lg border border-gray-100 hover:border-gray-200 hover:bg-gray-50 transition-all">
+                    <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center">
+                      <Activity className="w-5 h-5 text-gray-600" />
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-gray-900">能力工具库</h4>
+                      <p className="text-xs text-gray-500">浏览和管理可用能力</p>
+                    </div>
+                  </div>
+                </Link>
+              </CardContent>
+            </Card>
+
+            {/* Recent Agents */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Bot className="w-5 h-5 text-primary-600" />
+                  运行中 Agent
+                </CardTitle>
+                <Link href="/agents" className="text-sm text-primary-600 hover:text-primary-700">
+                  全部
+                </Link>
+              </CardHeader>
+              <CardContent>
+                {agentsLoading ? (
+                  <div className="space-y-2">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="h-12 bg-gray-100 rounded-lg animate-pulse" />
+                    ))}
+                  </div>
+                ) : recentAgents.length === 0 ? (
+                  <div className="text-center py-6 text-gray-500 text-sm">
+                    暂无 Agent
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {recentAgents.map((agent) => (
+                      <Link
+                        key={agent.agent_id}
+                        href={`/agents/${agent.agent_id}`}
+                        className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`w-2 h-2 rounded-full ${
+                            agent.status === 'running' ? 'bg-green-500 animate-pulse' : 'bg-gray-300'
+                          }`} />
+                          <span className="text-sm font-medium text-gray-900 truncate max-w-[140px]">
+                            {agent.agent_name}
+                          </span>
+                        </div>
+                        <span className="text-xs text-gray-500">
+                          {formatNumber(agent.total_invocations || 0)} 次处理
+                        </span>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-const QUICK_START = [
-  { id: 'tutorial', icon: '🎓', label: '观看5分钟入门视频' },
-  { id: 'templates', icon: '📚', label: '查看示例Agent模板' },
-  { id: 'scenarios', icon: '🛠️', label: '使用预置业务场景' },
-  { id: 'contact', icon: '📞', label: '联系解决方案架构师' },
-];
-
-const TEMPLATE_ITEMS: TemplateItem[] = [
-  {
-    id: 'customer-service',
-    icon: '📞',
-    name: '智能客服机器人',
-    description: '适用于售后服务，支持多轮对话和问题分类',
-  },
-  {
-    id: 'data-analysis',
-    icon: '📊',
-    name: '数据分析助手',
-    description: '自动生成报表，支持多种数据源和可视化',
-  },
-  {
-    id: 'finance-audit',
-    icon: '💰',
-    name: '财务审核员',
-    description: '智能发票审核，自动识别异常和风险',
-  },
-  {
-    id: 'compliance-check',
-    icon: '📋',
-    name: '合规检查器',
-    description: '文档合规性检查，支持多种标准',
-  },
-];
-
-const SCENARIO_ITEMS: TemplateItem[] = [
-  {
-    id: 'ecommerce',
-    icon: '🛒',
-    name: '电商客服场景',
-    description: '多渠道接入、售前售后统一处理',
-  },
-  {
-    id: 'finance',
-    icon: '🏦',
-    name: '金融风控场景',
-    description: '实时监控交易异常，接入风控模型',
-  },
-  {
-    id: 'operation',
-    icon: '🚀',
-    name: '运营增长场景',
-    description: '投放策略自动优化，效果追踪与复盘',
-  },
-];
-
-function getAgentStatusClass(status: 'running' | 'building' | 'warning') {
-  switch (status) {
-    case 'running':
-      return styles.statusRunning;
-    case 'building':
-      return styles.statusBuilding;
-    case 'warning':
-      return styles.statusWarning;
-    default:
-      return styles.statusRunning;
-  }
+interface StatCardProps {
+  icon: React.ElementType;
+  label: string;
+  value: number | string;
+  total?: number;
+  loading?: boolean;
+  color: 'primary' | 'accent' | 'agent' | 'success';
 }
 
-export default function HomePage() {
-  const router = useRouter();
-  const [requirement, setRequirement] = useState('');
-  const [templateModalOpen, setTemplateModalOpen] = useState(false);
-  const [scenarioModalOpen, setScenarioModalOpen] = useState(false);
-
-  // Fetch real data
-  const { data: statistics, isLoading: statsLoading } = useStatisticsOverview();
-  const { data: agents, isLoading: agentsLoading } = useAgentsList(10);
-  const { data: projects } = useProjectSummaries();
-
-  // Calculate platform statistics
-  const platformStats = useMemo(() => {
-    if (!statistics) {
-      return [
-        { label: '已构建Agent', value: '—' },
-        { label: '运行中', value: '—' },
-        { label: '平均构建时间', value: '—' },
-        { label: '成功率', value: '—' },
-      ];
-    }
-
-    const avgBuildTimeHours = statistics.avg_build_time_minutes > 0
-      ? (statistics.avg_build_time_minutes / 60).toFixed(1)
-      : '0';
-
-    return [
-      { label: '已构建Agent', value: statistics.total_agents.toString() },
-      { label: '运行中', value: statistics.running_agents.toString() },
-      { label: '平均构建时间', value: `${avgBuildTimeHours}小时` },
-      { label: '成功率', value: `${statistics.success_rate.toFixed(1)}%` },
-    ];
-  }, [statistics]);
-
-  // Transform agents to display format
-  const myAgents = useMemo(() => {
-    if (!agents || agents.length === 0) {
-      return [];
-    }
-
-    return agents.slice(0, 5).map((agent) => {
-      let status: 'running' | 'building' | 'warning';
-      let description: string;
-      let actionIcon: string;
-
-      if (agent.status === 'running') {
-        status = 'running';
-        const calls = agent.call_count ?? 0;
-        description = `运行中 • 调用 ${calls} 次`;
-        actionIcon = '⚙️';
-      } else if (agent.status === 'error') {
-        status = 'warning';
-        description = '告警 • 需要检查状态';
-        actionIcon = '⚠️';
-      } else {
-        status = 'building';
-        description = '离线';
-        actionIcon = '💤';
-      }
-
-      return {
-        id: agent.agent_id,
-        name: agent.agent_name,
-        description,
-        status,
-        actionIcon,
-      };
-    });
-  }, [agents]);
-
-  const totalAgentCount = agents?.length ?? 0;
-
-  const handleStartBuild = () => {
-    if (!requirement.trim()) {
-      toast.error('请先描述你的需求');
-      return;
-    }
-    router.push(`/agents/new?requirement=${encodeURIComponent(requirement)}`);
+function StatCard({ icon: Icon, label, value, total, loading, color }: StatCardProps) {
+  const colors = {
+    primary: 'bg-primary-50 text-primary-600',
+    accent: 'bg-accent-50 text-accent-600',
+    agent: 'bg-agent-50 text-agent-600',
+    success: 'bg-success-50 text-success-600',
   };
 
-  const handleTemplateSelect = (item: TemplateItem) => {
-    toast.success(`已选择模板：${item.name}`);
-    setTemplateModalOpen(false);
-  };
-
-  const handleScenarioSelect = (item: TemplateItem) => {
-    toast.success(`已应用场景：${item.name}`);
-    setScenarioModalOpen(false);
-  };
-
-  // Generate recent activities from projects
-  const recentActivities = useMemo(() => {
-    if (!projects || projects.length === 0) {
-      return [
-        { time: '—', description: '暂无活动记录' },
-      ];
-    }
-
-    return projects.slice(0, 3).map((project) => {
-      const timeStr = project.updatedAt
-        ? new Date(project.updatedAt).toLocaleString('zh-CN', {
-            month: 'numeric',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-          })
-        : '未知时间';
-
-      let statusText = '';
-      if (project.status === 'completed') {
-        statusText = '已完成';
-      } else if (project.status === 'building') {
-        statusText = `构建中 (${Math.round(project.progressPercentage)}%)`;
-      } else if (project.status === 'failed') {
-        statusText = '构建失败';
-      } else {
-        statusText = '等待中';
-      }
-
-      return {
-        time: timeStr,
-        description: `项目 "${project.projectName}" ${statusText}`,
-      };
-    });
-  }, [projects]);
+  if (loading) {
+    return (
+      <Card>
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-gray-100 animate-pulse" />
+          <div className="flex-1">
+            <div className="h-8 w-16 bg-gray-100 rounded animate-pulse mb-2" />
+            <div className="h-4 w-24 bg-gray-100 rounded animate-pulse" />
+          </div>
+        </div>
+      </Card>
+    );
+  }
 
   return (
-    <div className={styles.container}>
-      <section className={styles.heroSection}>
-        <h1 className={styles.heroTitle}>💡 让 AI 帮你构建 AI</h1>
-        <p className={styles.heroSubtitle}>从想法到实现，只需要一句话描述</p>
-        <p className={styles.heroDescription}>More Agent, More Intelligence, More Business Impact</p>
-      </section>
-
-      <section className={styles.inputSection}>
-        <textarea
-          className={styles.inputTextarea}
-          placeholder={`📝 描述你的需求...\n\n例如：我需要一个客服代理，能够自动处理客户投诉，根据问题严重程度分配给不同的专家，并自动生成处理报告`}
-          value={requirement}
-          onChange={(event) => setRequirement(event.target.value)}
-        />
-        <div className={styles.inputActions}>
-          <button type="button" className={styles.primaryButton} onClick={handleStartBuild}>
-            开始构建 🚀
-          </button>
-          <button type="button" className={styles.secondaryButton} onClick={() => setTemplateModalOpen(true)}>
-            选择模板 📋
-          </button>
+    <Card hover>
+      <div className="flex items-center gap-4">
+        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${colors[color]}`}>
+          <Icon className="w-6 h-6" />
         </div>
-      </section>
-
-      <section className={styles.dashboardGrid}>
-        <div className={styles.card}>
-          <h3 className={styles.cardTitle}>📊 平台统计</h3>
-          <div className={styles.statsGrid}>
-            {statsLoading ? (
-              <div className={styles.statItem}>
-                <div className={styles.statNumber}>加载中...</div>
-              </div>
-            ) : (
-              platformStats.map((stat) => (
-                <div key={stat.label} className={styles.statItem}>
-                  <div className={styles.statNumber}>{stat.value}</div>
-                  <div className={styles.statLabel}>{stat.label}</div>
-                </div>
-              ))
-            )}
+        <div>
+          <div className="text-2xl font-bold text-gray-900">{value}</div>
+          <div className="text-sm text-gray-500">
+            {label}
+            {total !== undefined && <span className="text-gray-400"> / {total}</span>}
           </div>
         </div>
-
-        <div className={`${styles.card} ${styles.quickStartCard}`}>
-          <h3 className={styles.cardTitle}>🎯 快速入门</h3>
-          <div className={styles.quickStartList}>
-            {QUICK_START.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                className={styles.quickStartItem}
-                onClick={() => {
-                  if (item.id === 'templates') {
-                    setTemplateModalOpen(true);
-                  } else if (item.id === 'scenarios') {
-                    setScenarioModalOpen(true);
-                  } else if (item.id === 'tutorial') {
-                    toast('即将推出 5 分钟入门视频');
-                  } else {
-                    toast.success('已为你连接解决方案架构师');
-                  }
-                }}
-              >
-                <span>{item.icon}</span>
-                <span className={styles.quickStartText}>{item.label}</span>
-                <span className={styles.quickStartAction}>→</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className={styles.card}>
-          <h3 className={styles.cardTitle}>🏆 我的 Agent ({totalAgentCount})</h3>
-          <div className={styles.agentList}>
-            {agentsLoading ? (
-              <div className={styles.agentItem}>
-                <div className={styles.agentInfo}>
-                  <div className={styles.agentName}>加载中...</div>
-                </div>
-              </div>
-            ) : myAgents.length === 0 ? (
-              <div className={styles.agentItem}>
-                <div className={styles.agentInfo}>
-                  <div className={styles.agentName}>暂无Agent</div>
-                  <div className={styles.agentDesc}>开始构建你的第一个Agent吧</div>
-                </div>
-              </div>
-            ) : (
-              myAgents.map((agent) => (
-                <div key={agent.id} className={styles.agentItem}>
-                  <span className={`${styles.agentStatus} ${getAgentStatusClass(agent.status)}`} />
-                  <div className={styles.agentInfo}>
-                    <div className={styles.agentName}>{agent.name}</div>
-                    <div className={styles.agentDesc}>{agent.description}</div>
-                  </div>
-                  <button
-                    type="button"
-                    className={styles.agentAction}
-                    onClick={() => router.push(`/agents/${agent.id}`)}
-                    aria-label="管理 Agent"
-                  >
-                    {agent.actionIcon}
-                  </button>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      </section>
-
-      <section className={styles.activityCard}>
-        <h3 className={styles.cardTitle}>📝 最新动态</h3>
-        <div className={styles.activityList}>
-          {recentActivities.map((activity, index) => (
-            <div key={`${activity.time}-${index}`} className={styles.activityItem}>
-              <div className={styles.activityTime}>{activity.time}</div>
-              <div className={styles.activityDesc}>{activity.description}</div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <Modal
-        open={templateModalOpen}
-        title="📋 选择 Agent 模板"
-        items={TEMPLATE_ITEMS}
-        onClose={() => setTemplateModalOpen(false)}
-        onSelect={handleTemplateSelect}
-      />
-
-      <Modal
-        open={scenarioModalOpen}
-        title="🛠️ 预置业务场景"
-        items={SCENARIO_ITEMS}
-        onClose={() => setScenarioModalOpen(false)}
-        onSelect={handleScenarioSelect}
-      />
-    </div>
+      </div>
+    </Card>
   );
 }

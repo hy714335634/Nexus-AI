@@ -5,11 +5,8 @@ import { useProjectDetail } from '@/hooks/use-projects';
 import { LoadingState } from '@components/feedback/loading-state';
 import { ErrorState } from '@components/feedback/error-state';
 import { StatusBadge } from '@components/status-badge';
-import { ProjectMetadataCard } from '@components/project-metadata-card';
-import { ProjectStageTimeline } from '@components/project-stage-timeline';
-import { StageLogViewer } from '@components/logs/stage-log-viewer';
-import { ProjectArtifactTabs } from '@components/project-artifact-tabs';
 import { formatDateTime } from '@/lib/formatters';
+import type { ProjectStatus, BuildStage } from '@/types/api';
 
 interface ProjectDetailViewProps {
   readonly projectId: string;
@@ -30,9 +27,8 @@ export function ProjectDetailView({ projectId }: ProjectDetailViewProps) {
     return <ErrorState title="未找到项目" description={`项目 ${projectId} 不存在或已被移除。`} />;
   }
 
-  const runningStage = data.stages.find((stage) => stage.status === 'running');
-  const pendingStage = data.stages.find((stage) => stage.status === 'pending');
-  const activeStage = runningStage ?? pendingStage ?? data.stages[0];
+  const projectStatus = data.status as ProjectStatus;
+  const currentStage = data.currentStage as BuildStage | undefined;
 
   return (
     <section style={{ display: 'grid', gap: '24px' }}>
@@ -47,13 +43,13 @@ export function ProjectDetailView({ projectId }: ProjectDetailViewProps) {
       >
         <div style={{ display: 'grid', gap: '8px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-            <h1 style={{ margin: 0, fontSize: '26px', fontWeight: 600 }}>{data.projectName ?? data.projectId}</h1>
-            <StatusBadge status={data.status} />
-            {data.currentStage ? <StatusBadge status={data.currentStage} /> : null}
+            <h1 style={{ margin: 0, fontSize: '26px', fontWeight: 600 }}>{data.name ?? data.id}</h1>
+            <StatusBadge status={projectStatus} />
+            {currentStage ? <StatusBadge status={currentStage} /> : null}
           </div>
           <div style={{ fontSize: '13px', color: 'var(--muted)', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-            <span>项目 ID：{data.projectId}</span>
-            <span>最近更新：{formatDateTime(data.updatedAt)}</span>
+            <span>项目 ID：{data.id}</span>
+            <span>进度：{data.progress}%</span>
           </div>
         </div>
 
@@ -87,9 +83,6 @@ export function ProjectDetailView({ projectId }: ProjectDetailViewProps) {
         </div>
       </header>
 
-      <ProjectMetadataCard project={data} />
-      <ProjectArtifactTabs artifacts={data.artifacts} />
-
       <div
         style={{
           display: 'grid',
@@ -108,87 +101,63 @@ export function ProjectDetailView({ projectId }: ProjectDetailViewProps) {
             gap: '16px',
           }}
         >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
-            <h2 style={{ margin: 0, fontSize: '20px' }}>阶段时间线</h2>
-            {activeStage ? (
-              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>
-                当前阶段：{activeStage.stage_name_cn}
-              </span>
-            ) : null}
+          <h2 style={{ margin: 0, fontSize: '20px' }}>项目信息</h2>
+          <div style={{ display: 'grid', gap: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ color: 'var(--muted)' }}>状态</span>
+              <StatusBadge status={projectStatus} />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ color: 'var(--muted)' }}>进度</span>
+              <span>{data.progress}%</span>
+            </div>
+            {currentStage && (
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--muted)' }}>当前阶段</span>
+                <span>{currentStage}</span>
+              </div>
+            )}
+            {data.currentAgent && (
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--muted)' }}>当前 Agent</span>
+                <span>{data.currentAgent}</span>
+              </div>
+            )}
+            {data.startedAt && (
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--muted)' }}>开始时间</span>
+                <span>{formatDateTime(data.startedAt)}</span>
+              </div>
+            )}
+            {data.estimatedCompletion && (
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--muted)' }}>预计完成</span>
+                <span>{formatDateTime(data.estimatedCompletion)}</span>
+              </div>
+            )}
           </div>
-          <ProjectStageTimeline stages={data.stages} activeStage={activeStage} />
         </section>
 
         <aside style={{ display: 'grid', gap: '24px' }}>
-          <StageLogViewer projectId={projectId} stages={data.stages} activeStageId={activeStage?.stage} />
-
-          <section
-            style={{
-              borderRadius: '16px',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
-              padding: '24px',
-              background: 'rgba(14, 12, 24, 0.9)',
-              display: 'grid',
-              gap: '16px',
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ margin: 0, fontSize: '20px' }}>Agent 列表</h2>
-              <Link
-                href={`/projects/${projectId}/deploy`}
-                style={{ fontSize: '13px', color: 'var(--muted)', textDecoration: 'underline' }}
-              >
-                查看部署记录
-              </Link>
-            </div>
-            <div style={{ display: 'grid', gap: '12px' }}>
-              {data.agents.map((agent) => (
-                <div
-                  key={agent.agent_id}
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: '16px 20px',
-                    borderRadius: '12px',
-                    background: 'rgba(17, 18, 28, 0.8)',
-                    border: '1px solid rgba(255, 255, 255, 0.05)',
-                  }}
-                >
-                  <div style={{ display: 'grid', gap: '4px' }}>
-                    <span style={{ fontWeight: 600 }}>{agent.agent_name}</span>
-                    <span style={{ fontSize: '12px', color: 'var(--muted)' }}>Agent ID：{agent.agent_id}</span>
-                  </div>
-                  <StatusBadge status={agent.status} />
-                </div>
-              ))}
-              {!data.agents.length ? (
-                <div style={{ fontSize: '13px', color: 'var(--muted)' }}>暂无生成的 Agent。</div>
-              ) : null}
-            </div>
-          </section>
-
-          {data.errorContext?.length ? (
+          {data.currentWork && (
             <section
               style={{
                 borderRadius: '16px',
-                border: '1px solid rgba(248, 113, 113, 0.35)',
-                background: 'rgba(127, 29, 29, 0.16)',
-                padding: '20px',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                padding: '24px',
+                background: 'rgba(14, 16, 24, 0.92)',
                 display: 'grid',
-                gap: '8px',
+                gap: '16px',
               }}
             >
-              <h3 style={{ margin: 0, fontSize: '18px', color: '#fca5a5' }}>错误上下文</h3>
-              <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '13px', lineHeight: 1.6 }}>
-                {data.errorContext.map((item, index) => (
-                  <li key={`${item}-${index}`}>{item}</li>
-                ))}
-              </ul>
+              <h2 style={{ margin: 0, fontSize: '20px' }}>当前工作</h2>
+              <p style={{ margin: 0, fontSize: '14px', lineHeight: 1.6, color: 'var(--muted)' }}>
+                {data.currentWork}
+              </p>
             </section>
-          ) : null}
+          )}
 
-          {data.lastError ? (
+          {data.errorInfo && Object.keys(data.errorInfo).length > 0 && (
             <section
               style={{
                 borderRadius: '16px',
@@ -199,10 +168,12 @@ export function ProjectDetailView({ projectId }: ProjectDetailViewProps) {
                 gap: '8px',
               }}
             >
-              <h3 style={{ margin: 0, fontSize: '18px', color: '#fca5a5' }}>最近错误</h3>
-              <p style={{ margin: 0, fontSize: '14px', lineHeight: 1.6 }}>{data.lastError}</p>
+              <h3 style={{ margin: 0, fontSize: '18px', color: '#fca5a5' }}>错误信息</h3>
+              <pre style={{ margin: 0, fontSize: '12px', lineHeight: 1.6, overflow: 'auto' }}>
+                {JSON.stringify(data.errorInfo, null, 2)}
+              </pre>
             </section>
-          ) : null}
+          )}
         </aside>
       </div>
     </section>

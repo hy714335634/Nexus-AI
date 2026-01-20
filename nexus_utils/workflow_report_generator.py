@@ -1068,38 +1068,10 @@ def extract_project_name_from_agent_results(execution_results: Dict[str, Any]) -
         项目名称
     """
     try:
-        # 优先从环境变量获取 project_id（最可靠的方式）
         import os
-        project_id_from_env = os.environ.get("NEXUS_STAGE_TRACKER_PROJECT_ID")
-        if project_id_from_env and not project_id_from_env.startswith("job_"):
-            # 如果不是 job_xxx 格式，直接使用
-            return project_id_from_env
-
-        # 尝试从 projects 目录下读取最近创建的项目
-        projects_dir = "./projects"
-        if os.path.exists(projects_dir):
-            projects = [d for d in os.listdir(projects_dir)
-                       if os.path.isdir(os.path.join(projects_dir, d))
-                       and d != "unknown_project"
-                       and not d.startswith('.')]
-            if projects:
-                # 按照修改时间排序，取最新的
-                projects.sort(key=lambda x: os.path.getmtime(os.path.join(projects_dir, x)), reverse=True)
-                latest_project = projects[0]
-                # 验证是否有 config.yaml
-                config_path = os.path.join(projects_dir, latest_project, "config.yaml")
-                if os.path.exists(config_path):
-                    try:
-                        import yaml
-                        with open(config_path, 'r', encoding='utf-8') as f:
-                            config = yaml.safe_load(f)
-                            if config and 'project' in config and 'name' in config['project']:
-                                return config['project']['name']
-                    except Exception:
-                        pass
-                return latest_project
-
-        # 尝试从orchestrator的工具调用中提取项目名称
+        import re
+        
+        # 首先尝试从orchestrator的工具调用中提取项目名称（最准确的方式）
         if "orchestrator" in execution_results:
             orchestrator_result = execution_results["orchestrator"]
             if hasattr(orchestrator_result, 'metrics') and hasattr(orchestrator_result.metrics, 'tool_metrics'):
@@ -1119,8 +1091,32 @@ def extract_project_name_from_agent_results(execution_results: Dict[str, Any]) -
                                 if project_name:
                                     return project_name
 
+        # 尝试从 projects 目录下读取最近创建的项目
+        projects_dir = "./projects"
+        if os.path.exists(projects_dir):
+            projects = [d for d in os.listdir(projects_dir)
+                       if os.path.isdir(os.path.join(projects_dir, d))
+                       and d != "unknown_project"
+                       and not d.startswith('.')
+                       and not d.startswith('proj_')]  # 排除数据库ID格式的目录
+            if projects:
+                # 按照修改时间排序，取最新的
+                projects.sort(key=lambda x: os.path.getmtime(os.path.join(projects_dir, x)), reverse=True)
+                latest_project = projects[0]
+                # 验证是否有 config.yaml
+                config_path = os.path.join(projects_dir, latest_project, "config.yaml")
+                if os.path.exists(config_path):
+                    try:
+                        import yaml
+                        with open(config_path, 'r', encoding='utf-8') as f:
+                            config = yaml.safe_load(f)
+                            if config and 'project' in config and 'name' in config['project']:
+                                return config['project']['name']
+                    except Exception:
+                        pass
+                return latest_project
+
         # 如果无法从工具调用中提取，尝试从内容中搜索
-        import re
         for stage_name, agent_result in execution_results.items():
             content = str(agent_result.content) if hasattr(agent_result, 'content') else str(agent_result)
             # 查找项目名称模式
@@ -1134,6 +1130,11 @@ def extract_project_name_from_agent_results(execution_results: Dict[str, Any]) -
                 for match in matches:
                     if len(match) > 3 and not match.startswith('_') and not match.startswith('unknown'):
                         return match
+
+        # 最后才从环境变量获取 project_id（可能是数据库ID）
+        project_id_from_env = os.environ.get("NEXUS_STAGE_TRACKER_PROJECT_ID")
+        if project_id_from_env and not project_id_from_env.startswith("job_") and not project_id_from_env.startswith("proj_"):
+            return project_id_from_env
 
         return "unknown_project"
 

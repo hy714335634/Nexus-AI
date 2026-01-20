@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { StatusBadge } from './status-badge';
-import type { ProjectSummary } from '@/types/projects';
+import type { ProjectSummary } from '@/lib/projects';
+import type { ProjectStatus, BuildStage } from '@/types/api';
 
 interface ProjectCardProps {
   readonly project: ProjectSummary;
@@ -19,8 +20,10 @@ function formatDate(input?: string) {
 }
 
 export function ProjectCard({ project }: ProjectCardProps) {
-  const progressLabel = `${Math.round(project.progressPercentage)}%`;
+  const progressLabel = `${Math.round(project.progress)}%`;
   const updatedAt = formatDate(project.updatedAt);
+  const projectStatus = project.status as ProjectStatus;
+  const currentStage = project.currentStage as BuildStage | undefined;
 
   return (
     <article
@@ -35,15 +38,15 @@ export function ProjectCard({ project }: ProjectCardProps) {
     >
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'grid', gap: '8px' }}>
-          <div style={{ fontSize: '18px', fontWeight: 600 }}>{project.projectName ?? project.projectId}</div>
+          <div style={{ fontSize: '18px', fontWeight: 600 }}>{project.name ?? project.id}</div>
           <div style={{ fontSize: '13px', color: 'var(--muted)' }}>最新更新：{updatedAt}</div>
         </div>
-        <StatusBadge status={project.status} />
+        <StatusBadge status={projectStatus} />
       </header>
 
       <div style={{ display: 'grid', gap: '8px' }}>
         <div style={{ fontSize: '13px', color: 'var(--muted)' }}>当前阶段</div>
-        {project.currentStage ? <StatusBadge status={project.currentStage} /> : <span>未知阶段</span>}
+        {currentStage ? <StatusBadge status={currentStage} /> : <span>未知阶段</span>}
       </div>
 
       <div style={{ display: 'grid', gap: '6px' }}>
@@ -79,12 +82,11 @@ export function ProjectCard({ project }: ProjectCardProps) {
         }}
       >
         <span style={{ fontSize: '13px', color: 'var(--muted)' }}>
-          Agents：{project.agentCount ?? 0}{' '}
-          {project.ownerName ? `• Owner：${project.ownerName}` : null}
+          Agents：{project.agentCount ?? 0}
         </span>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           <Link
-            href={`/projects/${project.projectId}`}
+            href={`/projects/${project.id}`}
             style={{
               padding: '8px 16px',
               borderRadius: '999px',
@@ -95,7 +97,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
             查看详情
           </Link>
           <Link
-            href={`/projects/${project.projectId}/deploy`}
+            href={`/projects/${project.id}/deploy`}
             style={{
               padding: '8px 16px',
               borderRadius: '999px',

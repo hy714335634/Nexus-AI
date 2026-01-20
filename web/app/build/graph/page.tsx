@@ -9,7 +9,7 @@ import { useBuildDashboard, useProjectSummaries } from '@/hooks/use-projects';
 import { LoadingState } from '@components/feedback/loading-state';
 import { ErrorState } from '@components/feedback/error-state';
 import { formatDateTime, formatDuration } from '@/lib/formatters';
-import type { BuildDashboardGraphEdge, BuildDashboardGraphNode, BuildDashboardStage } from '@/types/projects';
+import type { BuildDashboardGraphEdge, BuildDashboardGraphNode, BuildDashboardStage, BuildDashboardAlert, ProjectSummary } from '@/types/projects';
 
 type StageStatus = BuildDashboardStage['status'];
 
@@ -141,11 +141,12 @@ function BuildGraphPageContent() {
     if (requestedProjectId) {
       return requestedProjectId;
     }
-    if (!projectSummaries?.length) {
+    const list = projectSummaries as ProjectSummary[] | undefined;
+    if (!list?.length) {
       return undefined;
     }
-    const building = projectSummaries.find((project) => project.status === 'building');
-    return building?.projectId ?? projectSummaries[0]?.projectId;
+    const building = list.find((project) => project.status === 'building');
+    return building?.projectId ?? list[0]?.projectId;
   }, [requestedProjectId, projectSummaries]);
 
   const {
@@ -206,7 +207,7 @@ function BuildGraphPageContent() {
   }
 
   const stageMap = new Map<string, BuildDashboardStage>();
-  dashboard.stages.forEach((stage) => stageMap.set(stage.name, stage));
+  dashboard.stages.forEach((stage: BuildDashboardStage) => stageMap.set(stage.name, stage));
 
   const graphSource =
     dashboard.workflowGraphNodes.length || dashboard.workflowGraphEdges.length
@@ -216,14 +217,14 @@ function BuildGraphPageContent() {
         }
       : buildFallbackGraph();
 
-  const nodeViews: NodeView[] = graphSource.nodes.map((node) => {
+  const nodeViews: NodeView[] = graphSource.nodes.map((node: BuildDashboardGraphNode) => {
     const stage = stageMap.get(node.id);
     const fallbackTitle =
       STAGE_DEFINITIONS.find((definition) => definition.id === node.id)?.title ?? node.id;
     return mapNode(node, stage, fallbackTitle);
   });
 
-  const edgeViews: EdgeView[] = graphSource.edges.map((edge, index) => ({
+  const edgeViews: EdgeView[] = graphSource.edges.map((edge: BuildDashboardGraphEdge, index: number) => ({
     id: `${edge.source}->${edge.target}-${index}`,
     source: edge.source,
     target: edge.target,
@@ -234,7 +235,7 @@ function BuildGraphPageContent() {
     (definition) => definition.title.split('·')[0]?.trim() ?? definition.title,
   );
 
-  const riskAlerts = dashboard.alerts.filter((alert) => alert.level !== 'info');
+  const riskAlerts = dashboard.alerts.filter((alert: BuildDashboardAlert) => alert.level !== 'info');
   const metricsList = [
     `累计耗时：${
       dashboard.metrics?.totalDurationSeconds
@@ -310,7 +311,7 @@ function BuildGraphPageContent() {
           <div className={styles.cardTitle}>风险与回滚策略</div>
           <div className={styles.list}>
             {riskAlerts.length ? (
-              riskAlerts.map((alert) => (
+              riskAlerts.map((alert: BuildDashboardAlert) => (
                 <div key={alert.id}>• {alert.message}</div>
               ))
             ) : (

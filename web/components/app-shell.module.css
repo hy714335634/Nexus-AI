@@ -142,6 +142,22 @@
   color: #555;
 }
 
+.headerIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.headerIcon:hover {
+  background: rgba(102, 126, 234, 0.15);
+}
+
 .userAvatar {
   width: 40px;
   height: 40px;

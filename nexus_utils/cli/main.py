@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 Nexus-AI Backend Management CLI
 
@@ -7,94 +8,106 @@ A kubectl-style CLI tool for managing Nexus-AI backend artifacts.
 
 import click
 import sys
+import os
+import json
 from pathlib import Path
+from typing import Optional, Dict, Any, List
+
+# Ensure UTF-8 encoding for stdout/stderr
+if sys.stdout.encoding != 'utf-8':
+    sys.stdout.reconfigure(encoding='utf-8')
+if sys.stderr.encoding != 'utf-8':
+    sys.stderr.reconfigure(encoding='utf-8')
+
+# Set environment variable for child processes
+os.environ.setdefault('PYTHONIOENCODING', 'utf-8')
 
 from .adapters.filesystem import FileSystemAdapter
 from .adapters.config_loader import ConfigLoader
 from .managers.project_manager import ProjectManager
 from .managers.agent_manager import AgentManager
 from .managers.build_manager import BuildManager
+from .managers.infrastructure_manager import InfrastructureManager
+from .managers.cloud_resource_manager import CloudResourceManager
+from .managers.deployment_manager import DeploymentManager
 from .models.build import BuildOptions
 from .utils.formatters import format_output
+from .utils.styles import styled, header, command, success, warning, error, muted, Style
+from .i18n import t, set_language
+
+
+def json_dumps_utf8(obj: Any, indent: int = 2) -> str:
+    """JSON dumps with UTF-8 encoding (no ASCII escaping)"""
+    return json.dumps(obj, indent=indent, default=str, ensure_ascii=False)
+
+
+def decode_unicode_escapes(obj: Any) -> Any:
+    """Recursively decode Unicode escape sequences in strings"""
+    if isinstance(obj, str):
+        try:
+            # Try to decode Unicode escapes like \u4e2d\u6587
+            return obj.encode('utf-8').decode('unicode_escape').encode('latin1').decode('utf-8')
+        except (UnicodeDecodeError, UnicodeEncodeError):
+            return obj
+    elif isinstance(obj, dict):
+        return {k: decode_unicode_escapes(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [decode_unicode_escapes(item) for item in obj]
+    return obj
 
 
 # Global context
 class CLIContext:
     """CLI context object"""
-    def __init__(self, base_path: str = "."):
+    def __init__(self, base_path: str = ".", language: str = "en"):
         self.base_path = base_path
+        self.language = language
+        set_language(language)
         self.fs_adapter = FileSystemAdapter(base_path)
         self.config_loader = ConfigLoader(self.fs_adapter)
         self.project_manager = ProjectManager(self.fs_adapter, self.config_loader)
         self.agent_manager = AgentManager(self.fs_adapter, self.config_loader)
         self.build_manager = BuildManager(self.fs_adapter, self.config_loader)
+        self.cloud_resource_manager = CloudResourceManager()
+        self.infrastructure_manager = InfrastructureManager.from_settings()
+        self.deployment_manager = DeploymentManager(base_path)
 
 
 @click.group()
-@click.version_option(version="2.1.0")
+@click.version_option(version="2.1.0", prog_name="nexus-cli")
 @click.option('--base-path', default=".", help='Base path to Nexus-AI installation')
+@click.option('--lang', type=click.Choice(['en', 'zh']), default='en', help='Language (en/zh)')
 @click.pass_context
-def cli(ctx, base_path):
+def cli(ctx, base_path, lang):
     """Nexus-AI Backend Management CLI
     
-    A kubectl-style CLI tool for managing Nexus-AI backend artifacts including
-    Projects, Agents, Templates, Prompts, and Tools.
+    A kubectl-style CLI for managing Nexus-AI backend artifacts.
     
     \b
-    CORE COMMANDS:
-      project     Manage projects (init, list, describe, build, backup, restore, delete)
-      agents      Manage AI agents (list, describe, delete)
-      backup      Manage backups (list, describe, validate, delete)
-      overview    Display system-wide overview
+    COMMANDS:
+      project   Manage projects (init, list, describe, build, backup, restore, delete)
+      agents    Manage AI agents (list, describe, build, delete)
+      backup    Manage project backups (list, describe, validate, delete)
+      job       Manage tasks and queues (list, view, clear, delete)
+      init      Initialize infrastructure (DynamoDB tables, SQS queues)
+      overview  Display system-wide overview
     
     \b
     QUICK START:
-      # List all projects
-      nexus-cli project list
-      
-      # Create a new project
-      nexus-cli project init my-project
-      
-      # Backup a project
-      nexus-cli project backup my-project
-      
-      # Restore from backup
-      nexus-cli project restore my-project --from-backup backup.tar.gz
-      
-      # List all backups
-      nexus-cli backup list
+      nexus-cli project list              # List all projects
+      nexus-cli project init my-project   # Create a new project
+      nexus-cli project backup my-project # Backup a project
+      nexus-cli agents list               # List all agents
+      nexus-cli agents build my-project   # Deploy agent to AgentCore
+      nexus-cli job list                  # List tasks
+      nexus-cli init                      # Initialize infrastructure
     
     \b
-    BACKUP & RESTORE:
-      The CLI provides comprehensive backup and restore functionality:
-      
-      • Complete project backups with all resources (agents, prompts, tools)
-      • SHA-256 checksums for integrity verification
-      • Automatic safety backups before overwrite
-      • Project cloning by restoring to different name
-      • Dry-run mode for preview
-      • Detailed validation and error reporting
-    
-    \b
-    EXAMPLES:
-      # Backup workflow
-      nexus-cli project backup production-agent
-      nexus-cli backup list
-      nexus-cli backup validate backups/production-agent_*.tar.gz
-      
-      # Clone a project
-      nexus-cli project restore dev-agent --from-backup backups/production-agent_*.tar.gz
-      
-      # Disaster recovery
-      nexus-cli project restore my-project --from-backup backup.tar.gz --force
-    
-    \b
-    For more information on a specific command:
-      nexus-cli <command> --help
-    
-    Documentation: See README.md for comprehensive guide
+    MORE INFO:
+      nexus-cli <command> --help          # Help for specific command
+      nexus-cli --lang zh <command>       # Use Chinese language
     """
-    ctx.obj = CLIContext(base_path)
+    ctx.obj = CLIContext(base_path, lang)
 
 
 # ============================================================================
@@ -106,29 +119,21 @@ def project():
     """Manage Nexus-AI projects
     
     \b
-    COMMANDS:
-      init        Create a new project
-      list        List all projects
-      describe    Show detailed project information
-      build       Build Docker images for project
-      backup      Create a backup of a project
-      restore     Restore a project from backup
-      delete      Delete a project and all resources
+    SUBCOMMANDS:
+      init      Create a new project
+      list      List all projects
+      describe  Show project details
+      build     Build Docker images
+      backup    Create project backup
+      restore   Restore from backup
+      delete    Delete project
     
     \b
     EXAMPLES:
-      # Create and manage projects
-      nexus-cli project init my-project --description "My AI project"
-      nexus-cli project list --output json
-      nexus-cli project describe my-project
-      
-      # Backup and restore
+      nexus-cli project init my-project
+      nexus-cli project list
       nexus-cli project backup my-project
       nexus-cli project restore my-project --from-backup backup.tar.gz
-      
-      # Preview operations
-      nexus-cli project backup my-project --dry-run
-      nexus-cli project delete my-project --dry-run
     """
     pass
 
@@ -956,29 +961,219 @@ def agents():
     """Manage Nexus-AI agents
     
     \b
-    COMMANDS:
-      list        List all agents
-      describe    Show detailed agent information
-      delete      Delete an agent and all resources
+    SUBCOMMANDS:
+      list      List all agents
+      describe  Show agent details
+      build     Build and deploy agent to AgentCore
+      delete    Delete an agent
     
     \b
     EXAMPLES:
-      # List all agents
       nexus-cli agents list
-      
-      # List agents for a specific project
       nexus-cli agents list --project my-project
-      
-      # Show agent details
       nexus-cli agents describe my-agent
-      
-      # Delete an agent
-      nexus-cli agents delete my-agent
-      
-      # Preview deletion
+      nexus-cli agents build my-project
       nexus-cli agents delete my-agent --dry-run
     """
     pass
+
+
+@agents.command('build')
+@click.argument('project_name')
+@click.option('--region', '-r', help='AWS region for deployment')
+@click.option('--dry-run', is_flag=True, help='Validate without deploying')
+@click.option('--yes', '-y', is_flag=True, help='Skip confirmation prompt')
+@click.option('--output', '-o', type=click.Choice(['detail', 'json']), default='detail', help='Output format')
+@click.pass_obj
+def agents_build(ctx, project_name, region, dry_run, yes, output):
+    """Build and deploy an agent to AgentCore
+    
+    Packages an existing project and deploys it to Amazon Bedrock AgentCore.
+    This command will:
+    
+    \b
+    1. Check project status in DynamoDB
+    2. Validate project readiness (config, scripts, requirements)
+    3. Build Docker image with agent code
+    4. Deploy to AgentCore
+    5. Update deployment status in DynamoDB
+    
+    \b
+    EXAMPLES:
+      # Deploy with confirmation
+      nexus-cli agents build my-project
+      
+      # Validate without deploying
+      nexus-cli agents build my-project --dry-run
+      
+      # Deploy to specific region
+      nexus-cli agents build my-project --region us-east-1
+      
+      # Skip confirmation
+      nexus-cli agents build my-project --yes
+    """
+    try:
+        deploy_mgr = ctx.deployment_manager
+        
+        click.secho("=" * 60, fg='cyan')
+        click.secho(t('agents_build.title'), fg='cyan', bold=True)
+        click.secho("=" * 60, fg='cyan')
+        click.echo()
+        
+        # Step 1: Check project status in DynamoDB
+        click.secho(f"🔍 {t('agents_build.checking_project', name=project_name)}", fg='cyan')
+        click.echo()
+        
+        project_status = deploy_mgr.get_project_status(project_name)
+        
+        if project_status.get('error'):
+            click.secho(f"⚠ {t('common.warning')}: {project_status['error']}", fg='yellow')
+        
+        if project_status.get('found'):
+            click.secho(f"📋 {t('agents_build.project_status')}", fg='cyan', bold=True)
+            click.echo(f"   {t('agents_build.project_id', id=project_status.get('project_id', 'N/A'))}")
+            click.echo(f"   {t('agents_build.current_stage', stage=project_status.get('current_stage', 'N/A'))}")
+            click.echo(f"   {t('agents_build.db_status', status=project_status.get('status', 'N/A'))}")
+            
+            # Show existing deployment info
+            if project_status.get('deployment_type'):
+                click.echo()
+                click.secho(f"📦 {t('agents_build.existing_deployment')}", fg='cyan', bold=True)
+                click.echo(f"   {t('agents_build.deployment_type', type=project_status.get('deployment_type'))}")
+                click.echo(f"   {t('agents_build.deployment_status', status=project_status.get('deployment_status', 'N/A'))}")
+                if project_status.get('agent_runtime_arn'):
+                    click.echo(f"   {t('agents_build.agent_runtime_arn', arn=project_status.get('agent_runtime_arn'))}")
+        else:
+            click.secho(f"ℹ {t('agents_build.project_not_found', name=project_name)} (will create new record)", fg='yellow')
+        
+        click.echo()
+        
+        # Step 2: Check project readiness
+        click.secho(f"✅ {t('agents_build.readiness_check')}", fg='cyan', bold=True)
+        readiness = deploy_mgr.check_project_ready(project_name)
+        
+        checks = [
+            ('Project directory exists', readiness['project_exists']),
+            ('Project config (project_config.json)', readiness['has_config']),
+            ('Agent script', readiness['has_agent_script']),
+            ('Requirements file', readiness['has_requirements']),
+        ]
+        
+        for item, passed in checks:
+            if passed:
+                click.secho(f"   {t('agents_build.check_passed', item=item)}", fg='green')
+            else:
+                click.secho(f"   {t('agents_build.check_failed', item=item)}", fg='red')
+        
+        click.echo()
+        
+        if not readiness['ready']:
+            click.secho(f"❌ {t('agents_build.project_not_ready')}", fg='red')
+            if readiness['issues']:
+                click.secho(f"   {t('agents_build.issues_found')}", fg='yellow')
+                for issue in readiness['issues']:
+                    click.echo(f"     • {issue}")
+            sys.exit(1)
+        
+        click.secho(f"✓ {t('agents_build.project_ready')}", fg='green')
+        click.echo()
+        
+        # Dry run mode
+        if dry_run:
+            click.secho("=" * 60, fg='green')
+            click.secho(f"✅ {t('agents_build.dry_run_complete')}", fg='green', bold=True)
+            click.secho("=" * 60, fg='green')
+            click.echo()
+            click.secho(t('agents_build.dry_run_details'), bold=True)
+            click.echo(f"   Project: {project_name}")
+            click.echo(f"   Directory: {readiness['project_dir']}")
+            click.echo(f"   Region: {region or 'default'}")
+            
+            if output == 'json':
+                result = {
+                    'status': 'dry_run',
+                    'project_name': project_name,
+                    'project_dir': readiness['project_dir'],
+                    'region': region,
+                    'readiness': readiness,
+                    'project_status': project_status
+                }
+                click.echo()
+                click.echo(json_dumps_utf8(result))
+            return
+        
+        # Confirmation
+        if not yes:
+            # Check if already deployed
+            if project_status.get('deployment_type') == 'agentcore' and project_status.get('agent_runtime_arn'):
+                if not click.confirm(f"\n{t('agents_build.confirm_redeploy')}"):
+                    click.echo(t('common.operation_cancelled'))
+                    return
+            else:
+                if not click.confirm(f"\n{t('agents_build.confirm_deploy')}"):
+                    click.echo(t('common.operation_cancelled'))
+                    return
+        
+        # Step 3: Deploy to AgentCore
+        click.echo()
+        click.secho(f"🚀 {t('agents_build.deploying', name=project_name)}", fg='cyan', bold=True)
+        if region:
+            click.echo(f"   {t('agents_build.deploy_region', region=region)}")
+        click.secho(f"   {t('agents_build.deploy_progress')}", fg='yellow')
+        click.echo()
+        
+        result = deploy_mgr.deploy_to_agentcore(
+            project_name=project_name,
+            region=region,
+            dry_run=False
+        )
+        
+        if not result.success:
+            click.echo()
+            click.secho("=" * 60, fg='red')
+            click.secho(f"❌ {t('agents_build.deploy_failed')}", fg='red', bold=True)
+            click.secho("=" * 60, fg='red')
+            click.echo()
+            click.secho(f"Error: {result.error}", fg='red')
+            sys.exit(1)
+        
+        # Success
+        click.echo()
+        click.secho("=" * 60, fg='green')
+        click.secho(f"✅ {t('agents_build.deploy_success')}", fg='green', bold=True)
+        click.secho("=" * 60, fg='green')
+        click.echo()
+        
+        if result.agent_id:
+            click.echo(f"   {t('agents_build.result_agent_id', id=result.agent_id)}")
+        if result.agent_runtime_arn:
+            click.echo(f"   {t('agents_build.result_runtime_arn', arn=result.agent_runtime_arn)}")
+        if result.agent_alias_arn:
+            click.echo(f"   {t('agents_build.result_alias_arn', arn=result.agent_alias_arn)}")
+        click.echo(f"   {t('agents_build.result_status', status=result.deployment_status)}")
+        
+        if output == 'json':
+            click.echo()
+            output_data = {
+                'success': True,
+                'agent_id': result.agent_id,
+                'project_id': result.project_id,
+                'deployment_type': result.deployment_type,
+                'deployment_status': result.deployment_status,
+                'agent_runtime_arn': result.agent_runtime_arn,
+                'agent_alias_arn': result.agent_alias_arn,
+                'region': result.region,
+                'details': result.details
+            }
+            click.echo(json_dumps_utf8(output_data))
+        
+    except ImportError as e:
+        click.secho(f"{t('common.error')}: {t('common.missing_dependency', error=str(e))}", fg='red', err=True)
+        click.echo("Make sure you are in the Nexus-AI directory and dependencies are installed.", err=True)
+        sys.exit(1)
+    except Exception as e:
+        click.secho(f"{t('common.error')}: {e}", fg='red', err=True)
+        sys.exit(1)
 
 
 @agents.command('list')
@@ -1035,8 +1230,9 @@ def agents_list(ctx, project, output):
 @click.argument('name')
 @click.option('--force', '-f', is_flag=True, help='Skip confirmation')
 @click.option('--dry-run', is_flag=True, help='Show what would be done without executing')
+@click.option('--include-cloud', is_flag=True, help='Also delete cloud resources (AgentCore runtime, ECR)')
 @click.pass_obj
-def agents_delete(ctx, name, force, dry_run):
+def agents_delete(ctx, name, force, dry_run, include_cloud):
     """Delete an agent and all related resources
     
     Permanently removes an agent and ALL associated resources including:
@@ -1044,6 +1240,7 @@ def agents_delete(ctx, name, force, dry_run):
     - Prompt configurations (prompts/generated_agents_prompts/<name>/)
     - Custom tools (tools/generated_tools/<name>/)
     - Project files (projects/<name>/)
+    - Cloud resources (AgentCore runtime, ECR images) with --include-cloud
     
     \b
     WARNING: This operation is irreversible! Consider using 'project backup'
@@ -1060,6 +1257,9 @@ def agents_delete(ctx, name, force, dry_run):
       # Force delete (skip confirmation)
       nexus-cli agents delete my-agent --force
       
+      # Delete including cloud resources
+      nexus-cli agents delete my-agent --include-cloud
+      
       # Backup before delete
       nexus-cli project backup my-agent
       nexus-cli agents delete my-agent --force
@@ -1070,6 +1270,7 @@ def agents_delete(ctx, name, force, dry_run):
       • Dry-run mode for preview
       • Shows detailed list of what will be deleted
       • Handles missing directories gracefully
+      • Cloud resources require explicit --include-cloud flag
     """
     try:
         # Define all directories that may need to be deleted
@@ -1077,6 +1278,7 @@ def agents_delete(ctx, name, force, dry_run):
         prompts_dir = f"prompts/generated_agents_prompts/{name}"
         tools_dir = f"tools/generated_tools/{name}"
         project_dir = f"projects/{name}"
+        deployment_dir = f"deployment/{name}"
         
         # Check which directories exist
         existing_dirs = []
@@ -1088,92 +1290,163 @@ def agents_delete(ctx, name, force, dry_run):
             existing_dirs.append(('prompts', prompts_dir))
         if ctx.fs_adapter.exists(tools_dir):
             existing_dirs.append(('tools', tools_dir))
+        if ctx.fs_adapter.exists(deployment_dir):
+            existing_dirs.append(('deployment', deployment_dir))
+        
+        # Check for cloud resources using CloudResourceManager
+        cloud_resources = ctx.cloud_resource_manager.detect_resources(name)
+        has_cloud_resources = cloud_resources.has_resources()
         
         # Check if agent exists at all
-        if not existing_dirs:
-            click.echo(f"Error: Agent '{name}' not found (no related directories exist)", err=True)
+        if not existing_dirs and not has_cloud_resources:
+            click.echo(t('agents_delete.not_found', name=name), err=True)
             click.echo()
-            click.echo("Checked locations:")
+            click.echo(t('agents_delete.checked_locations'))
             click.echo(f"  • {project_dir}/")
             click.echo(f"  • {agents_dir}/")
             click.echo(f"  • {prompts_dir}/")
             click.echo(f"  • {tools_dir}/")
+            click.echo(f"  • {deployment_dir}/")
+            click.echo(f"  • AgentCore runtime")
+            click.echo(f"  • ECR repository")
             sys.exit(1)
         
         if dry_run:
-            click.echo("[DRY RUN] Would perform the following operations:")
+            click.echo(t('common.dry_run_header'))
             click.echo()
-            click.echo(f"Deleting agent '{name}' and all related resources...")
+            click.echo(t('agents_delete.deleting', name=name))
             click.echo()
-            click.echo("Directories to be deleted:")
             
-            for dir_type, dir_path in existing_dirs:
-                click.echo(f"  ✓ {dir_path}/")
-                # List contents for detailed preview
-                try:
-                    contents = ctx.fs_adapter.list_directory(dir_path)
-                    for item in contents[:5]:
-                        click.echo(f"    - {item.name}")
-                    if len(contents) > 5:
-                        click.echo(f"    ... and {len(contents) - 5} more items")
-                except:
-                    pass
+            if existing_dirs:
+                click.echo(t('agents_delete.local_dirs_to_delete'))
+                for dir_type, dir_path in existing_dirs:
+                    click.echo(f"  ✓ {dir_path}/")
+                    # List contents for detailed preview
+                    try:
+                        contents = ctx.fs_adapter.list_directory(dir_path)
+                        for item in contents[:5]:
+                            click.echo(f"    - {item.name}")
+                        if len(contents) > 5:
+                            click.echo(f"    ... and {len(contents) - 5} more items")
+                    except:
+                        pass
+                click.echo()
             
-            click.echo()
-            click.echo("Directories that do not exist (will be skipped):")
+            # Show cloud resources status
+            if has_cloud_resources:
+                click.echo(t('agents_delete.cloud_resources_detected'))
+                if cloud_resources.agentcore_runtime:
+                    runtime = cloud_resources.agentcore_runtime
+                    click.echo(t('agents_delete.agentcore_runtime', arn=runtime.arn))
+                    click.echo(f"    {t('cloud.region', region=runtime.region)}")
+                    click.echo(f"    {t('cloud.status', status=runtime.status)}")
+                if cloud_resources.ecr_repository:
+                    ecr = cloud_resources.ecr_repository
+                    click.echo(t('agents_delete.ecr_repository', name=ecr.repository_name))
+                    click.echo(f"    {t('cloud.uri', uri=ecr.repository_uri)}")
+                    click.echo(f"    {t('cloud.images', count=ecr.image_count)}")
+                click.echo()
+                
+                if include_cloud:
+                    click.echo(f"  → {t('agents_delete.cloud_will_delete')}")
+                else:
+                    click.echo(f"  ⚠️  {t('agents_delete.cloud_will_not_delete')}")
+                click.echo()
+            
+            click.echo(t('agents_delete.dirs_not_exist'))
             all_dirs = [
                 ('project', project_dir),
                 ('agents', agents_dir),
                 ('prompts', prompts_dir),
-                ('tools', tools_dir)
+                ('tools', tools_dir),
+                ('deployment', deployment_dir)
             ]
             non_existing = [d for d in all_dirs if d not in existing_dirs]
             if non_existing:
                 for dir_type, dir_path in non_existing:
                     click.echo(f"  - {dir_path}/ (not found)")
             else:
-                click.echo("  (all directories exist)")
+                click.echo(f"  {t('agents_delete.all_dirs_exist')}")
             
             click.echo()
-            click.echo("Run without --dry-run to execute these operations.")
+            click.echo(t('common.run_without_dry_run'))
             return
         
-        if not force:
-            click.echo(f"⚠️  WARNING: This will permanently delete agent '{name}' and ALL related resources")
+        # Show cloud resources warning if detected but not included
+        if has_cloud_resources and not include_cloud:
+            click.echo(t('agents_delete.cloud_warning_header'))
+            if cloud_resources.agentcore_runtime:
+                click.echo(t('agents_delete.agentcore_runtime', arn=cloud_resources.agentcore_runtime.arn))
+            if cloud_resources.ecr_repository:
+                click.echo(t('agents_delete.ecr_repository', name=cloud_resources.ecr_repository.repository_name))
             click.echo()
-            click.echo("The following directories will be deleted:")
+            click.echo(t('agents_delete.cloud_not_deleted_hint'))
+            click.echo(t('agents_delete.cloud_use_flag_hint'))
+            click.echo()
+        
+        if not force:
+            click.echo(t('agents_delete.delete_warning', name=name))
+            click.echo()
+            click.echo(t('agents_delete.dirs_to_delete'))
             for dir_type, dir_path in existing_dirs:
                 click.echo(f"  • {dir_path}/")
             
+            if include_cloud and has_cloud_resources:
+                click.echo()
+                click.echo(t('agents_delete.cloud_to_delete'))
+                if cloud_resources.agentcore_runtime:
+                    click.echo(t('agents_delete.agentcore_runtime', arn=cloud_resources.agentcore_runtime.arn))
+                if cloud_resources.ecr_repository:
+                    click.echo(t('agents_delete.ecr_repository', name=cloud_resources.ecr_repository.repository_name))
+            
             click.echo()
-            if not click.confirm("Are you sure you want to continue?"):
-                click.echo("Aborted.")
+            if not click.confirm(t('common.confirm_continue')):
+                click.echo(t('common.aborted'))
                 return
         
         # Perform deletion
-        click.echo(f"Deleting agent '{name}' and all related resources...")
+        click.echo(t('agents_delete.deleting', name=name))
         click.echo()
         
         deleted_items = []
         
-        # Delete in order: project, agents, prompts, tools
+        # Delete cloud resources first if requested
+        if include_cloud and has_cloud_resources:
+            click.echo(t('agents_delete.deleting_cloud'))
+            results = ctx.cloud_resource_manager.delete_all_resources(cloud_resources)
+            for result in results:
+                if result.success:
+                    if result.resource_type == 'agentcore_runtime':
+                        deleted_items.append(t('agents_delete.deleted_agentcore', name=result.resource_name))
+                    elif result.resource_type == 'ecr_repository':
+                        ecr = cloud_resources.ecr_repository
+                        deleted_items.append(t('agents_delete.deleted_ecr', name=result.resource_name, count=ecr.image_count if ecr else 0))
+                else:
+                    if result.resource_type == 'agentcore_runtime':
+                        click.echo(f"  ⚠️  {t('agents_delete.failed_delete_agentcore', error=result.error)}", err=True)
+                    elif result.resource_type == 'ecr_repository':
+                        click.echo(f"  ⚠️  {t('agents_delete.failed_delete_ecr', error=result.error)}", err=True)
+            click.echo()
+        
+        # Delete local directories
+        click.echo(t('agents_delete.deleting_local'))
         for dir_type, dir_path in existing_dirs:
             try:
                 ctx.fs_adapter.delete_directory(dir_path)
-                deleted_items.append(f"✓ Deleted {dir_type}: {dir_path}/")
+                deleted_items.append(t('agents_delete.deleted_dir', type=dir_type, path=dir_path))
             except Exception as e:
-                click.echo(f"  ✗ Failed to delete {dir_path}/: {e}", err=True)
+                click.echo(f"  ✗ {t('agents_delete.failed_delete_dir', path=dir_path, error=str(e))}", err=True)
         
         # Show what was deleted
         for item in deleted_items:
             click.echo(f"  {item}")
         
         click.echo()
-        click.echo(f"✓ Agent '{name}' and all related resources deleted successfully")
-        click.echo(f"  Total: {len(deleted_items)} directories removed")
+        click.echo(t('agents_delete.delete_success', name=name))
+        click.echo(t('common.total_items_removed', count=len(deleted_items)))
     
     except Exception as e:
-        click.echo(f"Error: {e}", err=True)
+        click.echo(f"{t('common.error')}: {e}", err=True)
         sys.exit(1)
 
 
@@ -1317,47 +1590,18 @@ def backup():
     """Manage project backups
     
     \b
-    COMMANDS:
-      list        List all available backups
-      describe    Show detailed backup information
-      validate    Verify backup integrity
-      delete      Delete a backup file
-    
-    \b
-    BACKUP FEATURES:
-      • Complete project snapshots with all resources
-      • SHA-256 checksums for integrity verification
-      • Compressed tar.gz format for efficient storage
-      • Detailed manifests with metadata
-      • Automatic validation and error detection
-      • Support for project cloning via restore
+    SUBCOMMANDS:
+      list      List all backups
+      describe  Show backup details
+      validate  Verify backup integrity
+      delete    Delete a backup file
     
     \b
     EXAMPLES:
-      # List and inspect backups
       nexus-cli backup list
-      nexus-cli backup describe my-project_20241125_143022.tar.gz
-      
-      # Validate backup integrity
-      nexus-cli backup validate backups/my-project_20241125.tar.gz
-      
-      # Clean up old backups
+      nexus-cli backup describe my-project_20241125.tar.gz
+      nexus-cli backup validate backups/my-project.tar.gz
       nexus-cli backup delete old-backup.tar.gz
-      
-      # Backup workflow
-      nexus-cli project backup my-project
-      nexus-cli backup list
-      nexus-cli backup validate backups/my-project_*.tar.gz
-      nexus-cli project restore my-project --from-backup backup.tar.gz
-    
-    \b
-    BACKUP STRUCTURE:
-      Each backup contains:
-      • manifest.json - Metadata and checksums
-      • projects/<name>/ - Project configuration
-      • agents/generated_agents/<name>/ - Agent implementations
-      • prompts/generated_agents_prompts/<name>/ - Agent prompts
-      • tools/generated_tools/<name>/ - Custom tools
     """
     pass
 
@@ -1693,6 +1937,561 @@ def overview(ctx, output):
     
     except Exception as e:
         click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+
+
+
+# ============================================================================
+# INIT COMMAND
+# ============================================================================
+
+@cli.command()
+@click.option('--tables-only', is_flag=True, help='Only initialize DynamoDB tables')
+@click.option('--queues-only', is_flag=True, help='Only initialize SQS queues')
+@click.pass_obj
+def init(ctx, tables_only, queues_only):
+    """Initialize infrastructure (DynamoDB tables and SQS queues)
+    
+    Creates the required DynamoDB tables and SQS queues for Nexus-AI.
+    Skips resources that already exist.
+    
+    \b
+    EXAMPLES:
+      # Initialize all infrastructure
+      nexus-cli init
+      
+      # Initialize only DynamoDB tables
+      nexus-cli init --tables-only
+      
+      # Initialize only SQS queues
+      nexus-cli init --queues-only
+    
+    \b
+    RESOURCES CREATED:
+      DynamoDB Tables:
+        • nexus_projects
+        • nexus_stages
+        • nexus_agents
+        • nexus_invocations
+        • nexus_sessions
+        • nexus_messages
+        • nexus_tasks
+        • nexus_tools
+      
+      SQS Queues:
+        • nexus-build-queue
+        • nexus-deploy-queue
+        • nexus-notification-queue
+        • nexus-build-dlq
+        • nexus-deploy-dlq
+    """
+    try:
+        infra = ctx.infrastructure_manager
+        
+        click.echo("=" * 50)
+        click.echo(t('init.title'))
+        click.echo("=" * 50)
+        
+        tables_created = 0
+        queues_created = 0
+        
+        if not queues_only:
+            click.echo()
+            click.echo(f"📦 {t('init.init_tables')}")
+            click.echo(f"   {t('init.region', region=infra.region)}")
+            if infra.dynamodb_endpoint:
+                click.echo(f"   {t('init.endpoint', endpoint=infra.dynamodb_endpoint)}")
+            
+            for table_def in infra.get_table_definitions():
+                created, status = infra.create_table(table_def)
+                if created:
+                    click.echo(f"  ✓ {t('init.table_created', name=table_def.table_name)}")
+                    tables_created += 1
+                elif status == 'exists':
+                    click.echo(f"  ⚠ {t('init.table_exists', name=table_def.table_name)}")
+                else:
+                    click.echo(f"  ✗ {table_def.table_name}: {status}", err=True)
+            
+            click.echo(f"\n   {t('init.tables_created_count', count=tables_created)}")
+        
+        if not tables_only:
+            click.echo()
+            click.echo(f"📬 {t('init.init_queues')}")
+            click.echo(f"   {t('init.region', region=infra.region)}")
+            if infra.sqs_endpoint:
+                click.echo(f"   {t('init.endpoint', endpoint=infra.sqs_endpoint)}")
+            
+            for queue_name in infra.get_queue_names():
+                created, status = infra.create_queue(queue_name)
+                if created:
+                    click.echo(f"  ✓ {t('init.queue_created', name=queue_name)}")
+                    queues_created += 1
+                elif status == 'exists':
+                    click.echo(f"  ⚠ {t('init.queue_exists', name=queue_name)}")
+                else:
+                    click.echo(f"  ✗ {queue_name}: {status}", err=True)
+            
+            click.echo(f"\n   {t('init.queues_created_count', count=queues_created)}")
+        
+        click.echo()
+        click.echo("=" * 50)
+        click.echo(f"✅ {t('init.complete')}")
+        click.echo("=" * 50)
+        
+    except ImportError as e:
+        click.echo(f"{t('common.error')}: {t('common.missing_dependency', error=str(e))}", err=True)
+        click.echo("Make sure boto3 is installed: pip install boto3", err=True)
+        sys.exit(1)
+    except Exception as e:
+        click.echo(f"{t('common.error')}: {e}", err=True)
+        sys.exit(1)
+
+
+# ============================================================================
+# JOB COMMANDS
+# ============================================================================
+
+@cli.group()
+def job():
+    """Manage tasks and queues
+    
+    \b
+    SUBCOMMANDS:
+      list    List tasks or queue statistics
+      view    View task details
+      clear   Clear all data (tables/queues)
+      delete  Delete data for specific agent
+    
+    \b
+    EXAMPLES:
+      nexus-cli job list
+      nexus-cli job list --status running
+      nexus-cli job list --queues
+      nexus-cli job view task-123
+      nexus-cli job clear --yes
+      nexus-cli job delete my-agent
+    """
+    pass
+
+
+@job.command('clear')
+@click.option('--tables-only', is_flag=True, help='Only clear DynamoDB tables')
+@click.option('--queues-only', is_flag=True, help='Only clear SQS queues')
+@click.option('--yes', '-y', is_flag=True, help='Skip confirmation prompt')
+@click.pass_obj
+def job_clear(ctx, tables_only, queues_only, yes):
+    """Clear all data from DynamoDB tables and SQS queues
+    
+    \b
+    WARNING: This will delete ALL data and cannot be undone!
+    
+    \b
+    EXAMPLES:
+      nexus-cli job clear
+      nexus-cli job clear --tables-only
+      nexus-cli job clear --queues-only
+      nexus-cli job clear --yes
+    """
+    try:
+        infra = ctx.infrastructure_manager
+        
+        click.secho("=" * 50, fg='cyan')
+        click.secho(t('job.clear_title'), fg='cyan', bold=True)
+        click.secho("=" * 50, fg='cyan')
+        
+        # Confirmation
+        if not yes:
+            click.echo()
+            click.secho(f"⚠️  {t('job.clear_warning')}", fg='yellow')
+            if not click.confirm(f"\n{t('common.confirm_continue')}"):
+                click.echo(t('common.operation_cancelled'))
+                return
+        
+        total_deleted = 0
+        cleared_queues = 0
+        
+        # Clear tables
+        if not queues_only:
+            click.echo()
+            click.secho(f"📦 {t('job.clearing_tables')}", fg='cyan')
+            click.echo(f"   {t('init.region', region=infra.region)}")
+            if infra.dynamodb_endpoint:
+                click.echo(f"   {t('init.endpoint', endpoint=infra.dynamodb_endpoint)}")
+            
+            for table_def in infra.get_table_definitions():
+                key_names = [k['AttributeName'] for k in table_def.key_schema]
+                click.echo(f"  {t('job.clearing_table', name=table_def.table_name, keys=key_names)}")
+                
+                deleted_count, status = infra.clear_table(table_def.table_name)
+                
+                if status == 'not_found':
+                    click.secho(f"    ⚠ {t('job.table_not_found')}", fg='yellow')
+                elif status == 'cleared':
+                    click.secho(f"    ✓ {t('job.deleted_records', count=deleted_count)}", fg='green')
+                    total_deleted += deleted_count
+                else:
+                    click.secho(f"    ⚠ {status}", fg='yellow')
+            
+            click.echo(f"\n   {t('job.total_deleted', count=total_deleted)}")
+        
+        # Clear queues
+        if not tables_only:
+            click.echo()
+            click.secho(f"📬 {t('job.clearing_queues')}", fg='cyan')
+            click.echo(f"   {t('init.region', region=infra.region)}")
+            if infra.sqs_endpoint:
+                click.echo(f"   {t('init.endpoint', endpoint=infra.sqs_endpoint)}")
+            
+            for queue_name in infra.get_queue_names():
+                click.echo(f"  {t('job.clearing_queue', name=queue_name)}")
+                
+                purge_success, status = infra.purge_queue(queue_name)
+                
+                if status == 'not_found':
+                    click.echo(f"    ⚠ {t('job.queue_not_found')}")
+                elif status == 'purge_in_progress':
+                    click.echo(f"    ⚠ {t('job.queue_purge_in_progress')}")
+                elif status == 'purged':
+                    click.secho(f"    ✓ {t('job.queue_cleared')}", fg='green')
+                    cleared_queues += 1
+                else:
+                    click.secho(f"    ⚠ {status}", fg='yellow')
+            
+            click.echo(f"\n   {t('job.queues_cleared', count=cleared_queues)}")
+        
+        click.echo()
+        click.secho("=" * 50, fg='green')
+        click.secho(f"✅ {t('job.cleanup_complete')}", fg='green', bold=True)
+        click.secho("=" * 50, fg='green')
+        
+    except ImportError as e:
+        click.secho(f"{t('common.error')}: {t('common.missing_dependency', error=str(e))}", fg='red', err=True)
+        sys.exit(1)
+    except Exception as e:
+        click.secho(f"{t('common.error')}: {e}", fg='red', err=True)
+        sys.exit(1)
+
+
+@job.command('delete')
+@click.argument('agent_name')
+@click.option('--yes', '-y', is_flag=True, help='Skip confirmation prompt')
+@click.pass_obj
+def job_delete(ctx, agent_name, yes):
+    """Delete all data for a specific agent
+    
+    \b
+    EXAMPLES:
+      nexus-cli job delete my-agent
+      nexus-cli job delete my-agent --yes
+    """
+    try:
+        infra = ctx.infrastructure_manager
+        
+        click.secho("=" * 50, fg='cyan')
+        click.secho(t('job.delete_title', name=agent_name), fg='cyan', bold=True)
+        click.secho("=" * 50, fg='cyan')
+        
+        # Confirmation
+        if not yes:
+            click.echo()
+            click.secho(f"⚠️  {t('job.delete_warning', name=agent_name)}", fg='yellow')
+            if not click.confirm(f"\n{t('common.confirm_continue')}"):
+                click.echo(t('common.operation_cancelled'))
+                return
+        
+        click.echo()
+        click.secho(f"🔍 {t('job.finding_agent', name=agent_name)}", fg='cyan')
+        
+        # Use infrastructure manager to delete agent data
+        results = infra.delete_agent_data(agent_name)
+        
+        # Report results
+        if results['agent_ids']:
+            if 'local_' in results['agent_ids'][0] and len(results['agent_ids']) == 1:
+                click.secho(f"  {t('job.no_exact_match', name=results['agent_ids'][0])}", fg='yellow')
+            else:
+                click.echo(f"  {t('job.found_agents', count=len(results['agent_ids']))}")
+        
+        # Report agents deleted
+        if results['agents_deleted'] > 0:
+            click.echo()
+            click.secho(f"📦 {t('job.deleting_from_table', table='agents')}", fg='cyan')
+            for agent_id in results['agent_ids']:
+                click.secho(f"  ✓ {t('job.deleted_agent', id=agent_id)}", fg='green')
+        
+        # Report invocations deleted
+        if results['invocations_deleted'] > 0:
+            click.echo()
+            click.secho(f"📦 {t('job.deleting_from_table', table='invocations')}", fg='cyan')
+            click.secho(f"  ✓ {t('job.deleted_invocations', count=results['invocations_deleted'], id=agent_name)}", fg='green')
+        
+        # Report sessions deleted
+        if results['sessions_deleted'] > 0:
+            click.echo()
+            click.secho(f"📦 {t('job.deleting_from_table', table='sessions')}", fg='cyan')
+            click.secho(f"  ✓ {t('job.deleted_sessions', count=results['sessions_deleted'], id=agent_name)}", fg='green')
+        
+        # Report messages deleted
+        if results['messages_deleted'] > 0:
+            click.echo()
+            click.secho(f"📦 {t('job.deleting_from_table', table='messages')}", fg='cyan')
+            click.secho(f"  ✓ {t('job.deleted_messages', count=results['messages_deleted'])}", fg='green')
+        
+        # Report errors
+        if results['errors']:
+            click.echo()
+            for err in results['errors']:
+                click.secho(f"  ⚠ {err}", fg='red', err=True)
+        
+        total_deleted = (
+            results['agents_deleted'] +
+            results['invocations_deleted'] +
+            results['sessions_deleted'] +
+            results['messages_deleted']
+        )
+        
+        click.echo()
+        click.secho("=" * 50, fg='green')
+        click.secho(f"✅ {t('job.delete_complete', count=total_deleted, name=agent_name)}", fg='green', bold=True)
+        click.secho("=" * 50, fg='green')
+        
+    except ImportError as e:
+        click.secho(f"{t('common.error')}: {t('common.missing_dependency', error=str(e))}", fg='red', err=True)
+        sys.exit(1)
+    except Exception as e:
+        click.secho(f"{t('common.error')}: {e}", fg='red', err=True)
+        sys.exit(1)
+
+
+@job.command('list')
+@click.option('--status', '-s', type=click.Choice(['pending', 'queued', 'running', 'completed', 'failed', 'cancelled']),
+              help='Filter by task status')
+@click.option('--type', '-t', 'task_type', type=click.Choice(['build_agent', 'deploy_agent', 'invoke_agent']),
+              help='Filter by task type')
+@click.option('--limit', '-n', default=20, help='Maximum number of tasks to show')
+@click.option('--output', '-o', type=click.Choice(['table', 'json']), default='table', help='Output format')
+@click.option('--queues', '-q', is_flag=True, help='Show queue statistics instead of tasks')
+@click.pass_obj
+def job_list(ctx, status, task_type, limit, output, queues):
+    """List tasks or queue statistics
+    
+    \b
+    EXAMPLES:
+      nexus-cli job list
+      nexus-cli job list --status running
+      nexus-cli job list --type build_agent
+      nexus-cli job list --queues
+      nexus-cli job list --output json
+    """
+    try:
+        infra = ctx.infrastructure_manager
+        
+        if queues:
+            # Show queue statistics
+            click.secho("=" * 60, fg='cyan')
+            click.secho(t('job.queue_stats_title'), fg='cyan', bold=True)
+            click.secho("=" * 60, fg='cyan')
+            click.echo(f"   {t('init.region', region=infra.region)}")
+            if infra.sqs_endpoint:
+                click.echo(f"   {t('init.endpoint', endpoint=infra.sqs_endpoint)}")
+            click.echo()
+            
+            results = infra.get_queue_stats()
+            
+            if output == 'json':
+                click.echo(json_dumps_utf8(results))
+            else:
+                for q in results['queues']:
+                    if q['exists']:
+                        click.secho(f"📬 {t('job.queue_name', name=q['name'])}", fg='cyan')
+                        click.echo(f"   {t('job.queue_messages', available=q['messages_available'], in_flight=q['messages_in_flight'], delayed=q['messages_delayed'])}")
+                    else:
+                        click.secho(f"📬 {t('job.queue_name', name=q['name'])}", fg='cyan')
+                        click.secho(f"   ⚠ {t('job.queue_not_exists')}", fg='yellow')
+                    click.echo()
+            return
+        
+        # List tasks
+        click.secho("=" * 60, fg='cyan')
+        click.secho(t('job.list_title'), fg='cyan', bold=True)
+        click.secho("=" * 60, fg='cyan')
+        
+        if status:
+            click.echo(f"   {t('job.filter_status', status=status)}")
+        if task_type:
+            click.echo(f"   {t('job.filter_type', type=task_type)}")
+        click.echo()
+        
+        results = infra.list_tasks(status=status, task_type=task_type, limit=limit)
+        
+        if results['errors']:
+            for err in results['errors']:
+                if err == 'table_not_found':
+                    click.secho(f"⚠ {t('job.table_not_found')}", fg='yellow')
+                else:
+                    click.secho(f"⚠ {err}", fg='red', err=True)
+            return
+        
+        if not results['tasks']:
+            click.secho(t('job.no_tasks'), fg='yellow')
+            return
+        
+        click.echo(t('job.tasks_found', count=results['count']))
+        click.echo()
+        
+        if output == 'json':
+            click.echo(json_dumps_utf8(results['tasks']))
+        else:
+            # Table format with colors
+            status_colors = {
+                'pending': 'yellow',
+                'queued': 'blue',
+                'running': 'cyan',
+                'completed': 'green',
+                'failed': 'red',
+                'cancelled': 'bright_black'
+            }
+            
+            for task in results['tasks']:
+                task_id = task.get('task_id', 'N/A')
+                task_status = task.get('status', 'unknown')
+                task_type_val = task.get('task_type', 'unknown')
+                created = task.get('created_at', 'N/A')
+                project_id = task.get('project_id', '')
+                
+                # Status emoji
+                status_emoji = {
+                    'pending': '⏳',
+                    'queued': '📋',
+                    'running': '🔄',
+                    'completed': '✅',
+                    'failed': '❌',
+                    'cancelled': '🚫'
+                }.get(task_status, '❓')
+                
+                color = status_colors.get(task_status, None)
+                click.secho(f"{status_emoji} {task_id}", fg=color, bold=True)
+                click.echo(f"   Type: {task_type_val} | Status: {task_status}")
+                if project_id:
+                    click.echo(f"   Project: {project_id}")
+                click.echo(f"   Created: {created}")
+                click.echo()
+        
+    except ImportError as e:
+        click.secho(f"{t('common.error')}: {t('common.missing_dependency', error=str(e))}", fg='red', err=True)
+        sys.exit(1)
+    except Exception as e:
+        click.secho(f"{t('common.error')}: {e}", fg='red', err=True)
+        sys.exit(1)
+
+
+@job.command('view')
+@click.argument('task_id')
+@click.option('--output', '-o', type=click.Choice(['detail', 'json']), default='detail', help='Output format')
+@click.pass_obj
+def job_view(ctx, task_id, output):
+    """View details of a specific task
+    
+    \b
+    EXAMPLES:
+      nexus-cli job view task-123
+      nexus-cli job view task-123 --output json
+    """
+    try:
+        infra = ctx.infrastructure_manager
+        
+        result = infra.get_task(task_id)
+        
+        if result['error']:
+            if result['error'] == 'table_not_found':
+                click.secho(f"⚠ {t('job.table_not_found')}", fg='yellow')
+            else:
+                click.secho(f"{t('common.error')}: {result['error']}", fg='red', err=True)
+            sys.exit(1)
+        
+        if not result['found']:
+            click.secho(t('job.task_not_found', id=task_id), fg='yellow')
+            sys.exit(1)
+        
+        task = result['task']
+        
+        if output == 'json':
+            click.echo(json_dumps_utf8(task))
+        else:
+            click.secho("=" * 60, fg='cyan')
+            click.secho(t('job.view_title', id=task_id), fg='cyan', bold=True)
+            click.secho("=" * 60, fg='cyan')
+            click.echo()
+            
+            # Status with color
+            task_status = task.get('status', 'unknown')
+            status_colors = {
+                'pending': 'yellow',
+                'queued': 'blue',
+                'running': 'cyan',
+                'completed': 'green',
+                'failed': 'red',
+                'cancelled': 'bright_black'
+            }
+            status_emoji = {
+                'pending': '⏳',
+                'queued': '📋',
+                'running': '🔄',
+                'completed': '✅',
+                'failed': '❌',
+                'cancelled': '🚫'
+            }.get(task_status, '❓')
+            
+            click.echo(f"Task ID:     {click.style(task.get('task_id', 'N/A'), fg='cyan', bold=True)}")
+            click.echo(f"Status:      {status_emoji} {click.style(task_status, fg=status_colors.get(task_status))}")
+            click.echo(f"Type:        {task.get('task_type', 'N/A')}")
+            click.echo(f"Priority:    {task.get('priority', 'N/A')}")
+            click.echo()
+            
+            if task.get('project_id'):
+                click.echo(f"Project ID:  {task.get('project_id')}")
+            if task.get('worker_id'):
+                click.echo(f"Worker ID:   {task.get('worker_id')}")
+            if task.get('project_id') or task.get('worker_id'):
+                click.echo()
+            
+            click.secho("Timestamps:", bold=True)
+            click.echo(f"  Created:   {task.get('created_at', 'N/A')}")
+            if task.get('started_at'):
+                click.echo(f"  Started:   {task.get('started_at')}")
+            if task.get('completed_at'):
+                click.echo(f"  Completed: {task.get('completed_at')}")
+            if task.get('updated_at'):
+                click.echo(f"  Updated:   {task.get('updated_at')}")
+            
+            if task.get('retry_count', 0) > 0:
+                click.echo()
+                click.secho(f"Retries:     {task.get('retry_count')}", fg='yellow')
+            
+            if task.get('error_message'):
+                click.echo()
+                click.secho("Error:", fg='red', bold=True)
+                click.secho(f"  {task.get('error_message')}", fg='red')
+            
+            if task.get('payload'):
+                click.echo()
+                click.secho("Payload:", bold=True)
+                payload_str = json_dumps_utf8(task['payload'])
+                for line in payload_str.split('\n'):
+                    click.echo(f"  {line}")
+            
+            if task.get('result'):
+                click.echo()
+                click.secho("Result:", fg='green', bold=True)
+                result_str = json_dumps_utf8(task['result'])
+                for line in result_str.split('\n'):
+                    click.echo(f"  {line}")
+        
+    except ImportError as e:
+        click.echo(f"{t('common.error')}: {t('common.missing_dependency', error=str(e))}", err=True)
+        sys.exit(1)
+    except Exception as e:
+        click.echo(f"{t('common.error')}: {e}", err=True)
         sys.exit(1)
 
 

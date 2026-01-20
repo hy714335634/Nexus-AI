@@ -9,7 +9,7 @@ import uuid
 import json
 import re
 import logging
-from typing import Optional
+from typing import Optional, Dict, Any, List
 
 logger = logging.getLogger(__name__)
 from nexus_utils.agent_factory import create_agent_from_prompt_template
@@ -21,7 +21,6 @@ from tools.system_tools.agent_build_workflow.stage_tracker import (
     mark_stage_completed,
     mark_stage_failed,
 )
-from api.database.dynamodb_client import DynamoDBClient
 from strands.telemetry import StrandsTelemetry
 from nexus_utils.workflow_rule_extract import (
     get_base_rules,
@@ -49,11 +48,134 @@ agent_params = {
 }
 
 
+def _parse_stage_output(content: str) -> Optional[Dict[str, Any]]:
+    """
+    解析阶段输出内容，尝试提取 JSON 数据
+    
+    Args:
+        content: 阶段输出的原始内容
+        
+    Returns:
+        解析后的字典，如果无法解析则返回 None
+    """
+    if not content:
+        return None
+    
+    try:
+        # 尝试直接解析 JSON
+        return json.loads(content)
+    except json.JSONDecodeError:
+        pass
+    
+    # 尝试从 markdown 代码块中提取 JSON
+    json_patterns = [
+        r'```json\s*([\s\S]*?)\s*```',
+        r'```\s*([\s\S]*?)\s*```',
+    ]
+    
+    for pattern in json_patterns:
+        matches = re.findall(pattern, content)
+        for match in matches:
+            try:
+                # 清理可能的前后空白
+                cleaned = match.strip()
+                if cleaned.startswith('{') or cleaned.startswith('['):
+                    parsed = json.loads(cleaned)
+                    # 验证解析结果是有效的结构化数据
+                    if isinstance(parsed, dict) and len(parsed) > 0:
+                        return parsed
+            except json.JSONDecodeError:
+                continue
+    
+    # 尝试查找最大的 JSON 对象（从 { 开始到匹配的 } 结束）
+    json_objects = _extract_json_objects(content)
+    if json_objects:
+        # 返回最大的有效 JSON 对象
+        largest_obj = max(json_objects, key=lambda x: len(json.dumps(x, ensure_ascii=False)))
+        return largest_obj
+    
+    # 如果无法解析为 JSON，返回包含原始内容的字典
+    return {"raw_content": content[:10000]}  # 限制大小
+
+
+def _extract_json_objects(content: str) -> List[Dict[str, Any]]:
+    """
+    从文本中提取所有有效的 JSON 对象
+    
+    Args:
+        content: 包含 JSON 的文本内容
+        
+    Returns:
+        提取到的 JSON 对象列表
+    """
+    json_objects = []
+    
+    # 查找所有可能的 JSON 起始位置
+    i = 0
+    while i < len(content):
+        if content[i] == '{':
+            # 尝试找到匹配的结束括号
+            depth = 0
+            start = i
+            in_string = False
+            escape_next = False
+            
+            for j in range(i, len(content)):
+                char = content[j]
+                
+                if escape_next:
+                    escape_next = False
+                    continue
+                
+                if char == '\\' and in_string:
+                    escape_next = True
+                    continue
+                
+                if char == '"' and not escape_next:
+                    in_string = not in_string
+                    continue
+                
+                if in_string:
+                    continue
+                
+                if char == '{':
+                    depth += 1
+                elif char == '}':
+                    depth -= 1
+                    if depth == 0:
+                        # 找到完整的 JSON 对象
+                        json_str = content[start:j+1]
+                        try:
+                            obj = json.loads(json_str)
+                            if isinstance(obj, dict) and len(obj) > 0:
+                                # 检查是否包含有意义的键（不只是 raw_content）
+                                meaningful_keys = [k for k in obj.keys() if k not in ['raw_content']]
+                                if meaningful_keys:
+                                    json_objects.append(obj)
+                        except json.JSONDecodeError:
+                            pass
+                        break
+            
+            i = j + 1 if depth == 0 else i + 1
+        else:
+            i += 1
+    
+    return json_objects
+
+
 def _get_project_id():
-    """获取当前项目ID"""
-    if os.environ.get("NEXUS_STAGE_TRACKER_PROJECT_ID") is None:
-        return str(uuid.uuid4())
-    return os.environ.get("NEXUS_STAGE_TRACKER_PROJECT_ID")
+    """获取当前项目ID（从环境变量或生成新的）"""
+    return os.environ.get("NEXUS_STAGE_TRACKER_PROJECT_ID") or str(uuid.uuid4())
+
+
+def _is_remote_mode():
+    """
+    检查是否为远程模式（通过 worker 调用）
+    
+    如果设置了 NEXUS_STAGE_TRACKER_PROJECT_ID 环境变量，
+    说明是通过 worker 调用的，使用 v2 API 更新状态。
+    """
+    return os.environ.get("NEXUS_STAGE_TRACKER_PROJECT_ID") is not None
 
 
 def _load_build_rules() -> str:
@@ -284,33 +406,10 @@ def run_workflow(user_input: str, session_id: Optional[str] = None):
         execution_order = []
         project_id = _get_project_id()
         
-        mode = "remote"
-
-        db_client = DynamoDBClient()
-        # 检查 AgentProjects 表是否存在，而不是仅检查连接
-        if not db_client.table_exists('AgentProjects'):
-            logger.warning(f"AgentProjects表不存在，当前模式为local")
-            print(f"ℹ️ AgentProjects表不存在，当前模式为local", flush=True)
-            mode = "local"
-        else:
-            logger.info(f"AgentProjects表存在，当前模式为remote")
-            print(f"ℹ️ AgentProjects表存在，当前模式为remote", flush=True)
-            existing_project = db_client.get_project(project_id)
-            
-            if existing_project:
-                logger.info(f"项目记录已存在，跳过初始化: {project_id}")
-                print(f"ℹ️ 项目记录已存在，跳过初始化: {project_id}", flush=True)
-            else:
-                try:
-                    initialize_project_record(
-                        project_id,
-                        requirement=user_input,
-                        project_name=intent_structured_result.project_name if hasattr(intent_structured_result, 'project_name') else None,
-                    )
-                    print(f"✅ 项目记录已初始化: {project_id}", flush=True)
-                except Exception as e:
-                    logger.error(f"初始化项目记录失败: {str(e)}")
-                    print(f"⚠️ 项目记录初始化警告: {str(e)}", flush=True)
+        # 检查是否为远程模式（通过 worker 调用，使用 v2 API）
+        mode = "remote" if _is_remote_mode() else "local"
+        logger.info(f"工作流模式: {mode}, project_id: {project_id}")
+        print(f"ℹ️ 工作流模式: {mode}, project_id: {project_id}", flush=True)
         
         # 1. Orchestrator
         print(f"\n{'='*60}")
@@ -323,7 +422,7 @@ def run_workflow(user_input: str, session_id: Optional[str] = None):
             execution_order.append("orchestrator")
             orchestrator_content = str(orchestrator_result.content) if hasattr(orchestrator_result, 'content') else str(orchestrator_result)
             current_context = base_context + "\n===\nOrchestrator Agent: " + orchestrator_content + "\n===\n"
-            mark_stage_completed(project_id, 'orchestrator') if mode == "remote" else None
+            mark_stage_completed(project_id, 'orchestrator', _parse_stage_output(orchestrator_content)) if mode == "remote" else None
         except Exception as e:
             mark_stage_failed(project_id, 'orchestrator', str(e)) if mode == "remote" else None
             raise
@@ -339,7 +438,7 @@ def run_workflow(user_input: str, session_id: Optional[str] = None):
             execution_order.append("requirements_analyzer")
             requirements_content = str(requirements_result.content) if hasattr(requirements_result, 'content') else str(requirements_result)
             current_context = base_context + "\n===\nRequirements Analyzer Agent: " + requirements_content + "\n===\n"
-            mark_stage_completed(project_id, 'requirements_analysis') if mode == "remote" else None
+            mark_stage_completed(project_id, 'requirements_analysis', _parse_stage_output(requirements_content)) if mode == "remote" else None
         except Exception as e:
             mark_stage_failed(project_id, 'requirements_analysis', str(e)) if mode == "remote" else None
             raise
@@ -355,7 +454,7 @@ def run_workflow(user_input: str, session_id: Optional[str] = None):
             execution_order.append("system_architect")
             architect_content = str(architect_result.content) if hasattr(architect_result, 'content') else str(architect_result)
             current_context = base_context + "\n===\nSystem Architect Agent: " + architect_content + "\n===\n"
-            mark_stage_completed(project_id, 'system_architecture') if mode == "remote" else None
+            mark_stage_completed(project_id, 'system_architecture', _parse_stage_output(architect_content)) if mode == "remote" else None
         except Exception as e:
             mark_stage_failed(project_id, 'system_architecture', str(e)) if mode == "remote" else None
             raise
@@ -371,7 +470,7 @@ def run_workflow(user_input: str, session_id: Optional[str] = None):
             execution_order.append("agent_designer")
             designer_content = str(designer_result.content) if hasattr(designer_result, 'content') else str(designer_result)
             current_context = base_context + "\n===\nAgent Designer Agent: " + designer_content + "\n===\n"
-            mark_stage_completed(project_id, 'agent_design') if mode == "remote" else None
+            mark_stage_completed(project_id, 'agent_design', _parse_stage_output(designer_content)) if mode == "remote" else None
         except Exception as e:
             mark_stage_failed(project_id, 'agent_design', str(e)) if mode == "remote" else None
             raise
@@ -387,7 +486,7 @@ def run_workflow(user_input: str, session_id: Optional[str] = None):
             execution_order.append("tool_developer")
             tool_developer_content = str(tool_developer_result.content) if hasattr(tool_developer_result, 'content') else str(tool_developer_result)
             current_context = current_context + "\n===\nTool Developer Agent: " + tool_developer_content + "\n===\n"
-            mark_stage_completed(project_id, 'tools_developer') if mode == "remote" else None
+            mark_stage_completed(project_id, 'tools_developer', _parse_stage_output(tool_developer_content)) if mode == "remote" else None
         except Exception as e:
             mark_stage_failed(project_id, 'tools_developer', str(e)) if mode == "remote" else None
             raise
@@ -403,7 +502,7 @@ def run_workflow(user_input: str, session_id: Optional[str] = None):
             execution_order.append("prompt_engineer")
             prompt_engineer_content = str(prompt_engineer_result.content) if hasattr(prompt_engineer_result, 'content') else str(prompt_engineer_result)
             current_context = current_context + "\n===\nPrompt Engineer Agent: " + prompt_engineer_content + "\n===\n"
-            mark_stage_completed(project_id, 'prompt_engineer') if mode == "remote" else None
+            mark_stage_completed(project_id, 'prompt_engineer', _parse_stage_output(prompt_engineer_content)) if mode == "remote" else None
         except Exception as e:
             mark_stage_failed(project_id, 'prompt_engineer', str(e)) if mode == "remote" else None
             raise
@@ -419,7 +518,7 @@ def run_workflow(user_input: str, session_id: Optional[str] = None):
             execution_order.append("agent_code_developer")
             agent_code_developer_content = str(agent_code_developer_result.content) if hasattr(agent_code_developer_result, 'content') else str(agent_code_developer_result)
             current_context = current_context + "\n===\nAgent Code Developer Agent: " + agent_code_developer_content + "\n===\n"
-            mark_stage_completed(project_id, 'agent_code_developer') if mode == "remote" else None
+            mark_stage_completed(project_id, 'agent_code_developer', _parse_stage_output(agent_code_developer_content)) if mode == "remote" else None
         except Exception as e:
             mark_stage_failed(project_id, 'agent_code_developer', str(e)) if mode == "remote" else None
             raise
@@ -435,7 +534,7 @@ def run_workflow(user_input: str, session_id: Optional[str] = None):
             execution_order.append("agent_developer_manager")
             developer_manager_content = str(developer_manager_result.content) if hasattr(developer_manager_result, 'content') else str(developer_manager_result)
             current_context = base_context + "\n===\nAgent Developer Manager Agent: " + developer_manager_content + "\n===\n"
-            mark_stage_completed(project_id, 'agent_developer_manager') if mode == "remote" else None
+            mark_stage_completed(project_id, 'agent_developer_manager', _parse_stage_output(developer_manager_content)) if mode == "remote" else None
         except Exception as e:
             mark_stage_failed(project_id, 'agent_developer_manager', str(e)) if mode == "remote" else None
             raise
@@ -450,7 +549,8 @@ def run_workflow(user_input: str, session_id: Optional[str] = None):
                 deployer_result = agents["agent_deployer"](current_context)
                 execution_results["agent_deployer"] = deployer_result
                 execution_order.append("agent_deployer")
-                mark_stage_completed(project_id, 'agent_deployer')
+                deployer_content = str(deployer_result.content) if hasattr(deployer_result, 'content') else str(deployer_result)
+                mark_stage_completed(project_id, 'agent_deployer', _parse_stage_output(deployer_content))
             except Exception as e:
                 mark_stage_failed(project_id, 'agent_deployer', str(e))
                 raise
@@ -463,17 +563,10 @@ def run_workflow(user_input: str, session_id: Optional[str] = None):
 
         print("✅ 工作流执行完成")
 
-        # 更新项目状态为 COMPLETED
+        # 更新项目状态为 COMPLETED（由 build_handler 处理，这里不需要重复更新）
+        # 项目状态更新已在 build_handler._update_project_status 中完成
         if mode == "remote":
-            from api.models.schemas import ProjectStatus
-            from datetime import datetime, timezone
-            now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
-            db_client.update_project_status(
-                project_id,
-                ProjectStatus.COMPLETED,
-                completed_at=now
-            )
-            print(f"✅ 项目状态已更新为 COMPLETED")
+            print(f"✅ 项目状态将由 worker 更新为 COMPLETED")
 
         # 生成工作流总结报告
         print(f"\n{'='*80}")
@@ -503,6 +596,35 @@ def run_workflow(user_input: str, session_id: Optional[str] = None):
         )
         if report_path:
             print(f"📄 报告路径: {report_path}")
+        
+        # 采集项目信息并同步到 DynamoDB
+        if mode == "remote":
+            try:
+                from nexus_utils.project_info_collector import collect_project_info_after_workflow
+                from nexus_utils.workflow_report_generator import extract_project_name_from_agent_results
+                
+                # 提取项目名称
+                local_project_name = extract_project_name_from_agent_results(execution_results)
+                
+                print(f"📊 [INFO] 开始采集项目信息并同步到 DynamoDB...")
+                collect_result = collect_project_info_after_workflow(
+                    project_name=local_project_name,
+                    project_id=project_id,
+                    project_root_path='./projects'
+                )
+                
+                if collect_result.get("success"):
+                    print(f"✅ [INFO] 项目信息已同步到 DynamoDB")
+                    if collect_result.get("sync_status", {}).get("stages_updated", 0) > 0:
+                        print(f"   - 更新了 {collect_result['sync_status']['stages_updated']} 个阶段的指标数据")
+                else:
+                    errors = collect_result.get("errors", [])
+                    print(f"⚠️ [WARN] 项目信息同步部分失败: {errors}")
+            except Exception as e:
+                print(f"⚠️ [WARN] 采集项目信息失败: {e}")
+                import traceback
+                traceback.print_exc()
+        
         print(f"{'='*80}")
 
         return {

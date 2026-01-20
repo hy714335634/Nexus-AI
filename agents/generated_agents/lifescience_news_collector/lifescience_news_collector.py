@@ -135,8 +135,9 @@ async def handler(payload: Dict[str, Any], context: RequestContext):
         stream = news_collector_agent.stream_async(prompt)
         
         async for event in stream:
-            # 每个event包含流式响应的片段
-            logger.debug(f"📤 流式输出: {event[:100]}...")
+            # 每个event包含流式响应的片段（可能是dict或str）
+            event_preview = str(event)[:100] if event else ""
+            logger.debug(f"📤 流式输出: {event_preview}...")
             yield event
             
     except Exception as e:
