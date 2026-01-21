@@ -331,8 +331,9 @@ async def stream_chat(
             agentcore_config.get("region")
         )
         agent_path = agent.get("agent_path")
+        prompt_path = agent.get("prompt_path")
         
-        logger.info(f"Agent runtime config: arn={runtime_arn}, alias={runtime_alias}, region={runtime_region}, path={agent_path}")
+        logger.info(f"Agent runtime config: arn={runtime_arn}, alias={runtime_alias}, region={runtime_region}, path={agent_path}, prompt={prompt_path}")
         
         def _format_sse(data: dict) -> str:
             """格式化 SSE 数据"""
@@ -418,15 +419,16 @@ async def stream_chat(
                         elif event_type == "done":
                             yield _format_sse({"event": "done"})
                 
-                elif agent_path:
+                elif agent_path or prompt_path:
                     # 使用本地 Agent
-                    logger.info(f"Using local agent: {agent_path}")
+                    logger.info(f"Using local agent: path={agent_path}, prompt={prompt_path}")
                     
                     async for event in invoke_local_agent_stream(
                         agent_id=agent_id,
                         agent_path=agent_path,
                         session_id=session_id,
                         message=request.content,
+                        prompt_path=prompt_path,
                     ):
                         event_type = event.get("event")
                         
@@ -449,7 +451,7 @@ async def stream_chat(
                 
                 else:
                     # 没有配置运行时，返回模拟响应
-                    logger.warning(f"Agent {agent_id} has no runtime configured, using mock response")
+                    logger.warning(f"Agent {agent_id} has no runtime configured (no arn, path, or prompt), using mock response")
                     
                     yield _format_sse({"event": "connected", "session_id": session_id})
                     

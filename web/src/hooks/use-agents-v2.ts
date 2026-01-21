@@ -8,6 +8,7 @@ import type {
   InvokeAgentRequest,
   SessionRecord,
 } from '@/types/api-v2';
+import type { AgentContext } from '@/lib/api-v2';
 
 // ============== Query Keys ==============
 export const agentKeys = {
@@ -16,6 +17,7 @@ export const agentKeys = {
   list: (filters: Record<string, unknown>) => [...agentKeys.lists(), filters] as const,
   details: () => [...agentKeys.all, 'detail'] as const,
   detail: (id: string) => [...agentKeys.details(), id] as const,
+  context: (id: string) => [...agentKeys.all, 'context', id] as const,
   sessions: (id: string) => [...agentKeys.all, 'sessions', id] as const,
 };
 
@@ -48,6 +50,23 @@ export function useAgentDetailV2(
     },
     enabled: Boolean(agentId),
     staleTime: 10_000,
+    ...options,
+  });
+}
+
+// ============== Agent Context ==============
+export function useAgentContextV2(
+  agentId: string,
+  options?: Omit<UseQueryOptions<AgentContext | null, Error>, 'queryKey' | 'queryFn'>
+) {
+  return useQuery<AgentContext | null>({
+    queryKey: agentKeys.context(agentId),
+    queryFn: async () => {
+      const response = await apiV2.getAgentContext(agentId);
+      return response.data || null;
+    },
+    enabled: Boolean(agentId),
+    staleTime: 30_000,
     ...options,
   });
 }

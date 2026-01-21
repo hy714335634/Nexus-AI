@@ -14,7 +14,7 @@ from typing import Any, Dict, Optional, List
 import yaml
 
 from api.v2.config import settings
-from api.core.exceptions import APIException
+from api.v2.core.exceptions import APIException
 from api.v2.database import db_client
 from api.v2.models.schemas import AgentStatus, AgentRecord, AgentCoreConfig
 

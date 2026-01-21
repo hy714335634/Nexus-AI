@@ -269,7 +269,31 @@ export interface StreamEvent {
 }
 
 /**
- * 流式对话
+ * Agent 上下文信息
+ */
+export interface AgentContext {
+  agent_id: string;
+  display_name?: string;
+  system_prompt_path?: string;
+  code_path?: string;
+  tools_path?: string;
+  description?: string;
+  tags?: string[];
+  runtime_model_id?: string;
+  agentcore_runtime_arn?: string;
+  agentcore_runtime_alias?: string;
+  agentcore_region?: string;
+}
+
+/**
+ * 获取 Agent 上下文信息
+ */
+export async function getAgentContext(agentId: string): Promise<APIResponse<AgentContext>> {
+  return apiFetch<APIResponse<AgentContext>>(`/agents/${agentId}/context`);
+}
+
+/**
+ * 流式对话（通过后端代理）
  */
 export async function* streamChat(
   sessionId: string,
@@ -283,6 +307,69 @@ export async function* streamChat(
   
   if (!response.ok) {
     throw new ApiError(response.status, '流式对话失败');
+  }
+  
+  const reader = response.body?.getReader();
+  if (!reader) {
+    throw new Error('无法读取响应流');
+  }
+  
+  const decoder = new TextDecoder();
+  let buffer = '';
+  
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n\n');
+    buffer = lines.pop() || '';
+    
+    for (const chunk of lines) {
+      const dataLine = chunk.split('\n').find(line => line.startsWith('data: '));
+      if (dataLine) {
+        try {
+          const data = JSON.parse(dataLine.slice(6));
+          yield data as StreamEvent;
+        } catch {
+          // 忽略解析错误
+        }
+      }
+    }
+  }
+}
+
+/**
+ * 直接调用 AgentCore 流式对话（前端直连）
+ * 
+ * 用于已部署到 AgentCore 的 Agent，前端直接与 AgentCore Runtime 交互
+ * 需要 AWS 凭证配置
+ */
+export async function* streamChatDirect(
+  runtimeArn: string,
+  sessionId: string,
+  content: string,
+  options?: {
+    runtimeAlias?: string;
+    region?: string;
+  }
+): AsyncGenerator<StreamEvent> {
+  // 通过后端的代理端点调用 AgentCore
+  // 这样可以复用后端的 AWS 凭证，同时保持流式传输
+  const response = await fetch(`${API_BASE}/agentcore/stream`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      runtime_arn: runtimeArn,
+      session_id: sessionId,
+      content,
+      runtime_alias: options?.runtimeAlias || 'DEFAULT',
+      region: options?.region,
+    }),
+  });
+  
+  if (!response.ok) {
+    throw new ApiError(response.status, 'AgentCore 流式对话失败');
   }
   
   const reader = response.body?.getReader();

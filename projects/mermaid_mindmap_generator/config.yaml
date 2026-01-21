@@ -1,6 +1,0 @@
-project:
-  created_date: '2026-01-20T16:22:26.786989+00:00'
-  description: 一个智能Agent，能够根据用户输入自动生成符合Mermaid语法的思维导图，支持多层级结构、自动布局和格式化输出
-  name: mermaid_mindmap_generator
-  updated_date: '2026-01-20T16:22:37.537368+00:00'
-  version: 1.0.0

@@ -1230,7 +1230,7 @@ def agents_list(ctx, project, output):
 @click.argument('name')
 @click.option('--force', '-f', is_flag=True, help='Skip confirmation')
 @click.option('--dry-run', is_flag=True, help='Show what would be done without executing')
-@click.option('--include-cloud', is_flag=True, help='Also delete cloud resources (AgentCore runtime, ECR)')
+@click.option('--include-cloud', is_flag=True, help='Also delete cloud resources (AgentCore runtime, ECR, DynamoDB)')
 @click.pass_obj
 def agents_delete(ctx, name, force, dry_run, include_cloud):
     """Delete an agent and all related resources
@@ -1240,7 +1240,7 @@ def agents_delete(ctx, name, force, dry_run, include_cloud):
     - Prompt configurations (prompts/generated_agents_prompts/<name>/)
     - Custom tools (tools/generated_tools/<name>/)
     - Project files (projects/<name>/)
-    - Cloud resources (AgentCore runtime, ECR images) with --include-cloud
+    - Cloud resources (AgentCore runtime, ECR images, DynamoDB records) with --include-cloud
     
     \b
     WARNING: This operation is irreversible! Consider using 'project backup'
@@ -1273,14 +1273,14 @@ def agents_delete(ctx, name, force, dry_run, include_cloud):
       • Cloud resources require explicit --include-cloud flag
     """
     try:
-        # Define all directories that may need to be deleted
+        # 定义所有可能需要删除的目录
         agents_dir = f"agents/generated_agents/{name}"
         prompts_dir = f"prompts/generated_agents_prompts/{name}"
         tools_dir = f"tools/generated_tools/{name}"
         project_dir = f"projects/{name}"
         deployment_dir = f"deployment/{name}"
         
-        # Check which directories exist
+        # 检查哪些目录存在
         existing_dirs = []
         if ctx.fs_adapter.exists(project_dir):
             existing_dirs.append(('project', project_dir))
@@ -1293,11 +1293,14 @@ def agents_delete(ctx, name, force, dry_run, include_cloud):
         if ctx.fs_adapter.exists(deployment_dir):
             existing_dirs.append(('deployment', deployment_dir))
         
-        # Check for cloud resources using CloudResourceManager
+        # 使用 CloudResourceManager 检测云资源
         cloud_resources = ctx.cloud_resource_manager.detect_resources(name)
         has_cloud_resources = cloud_resources.has_resources()
         
-        # Check if agent exists at all
+        # 获取检测过程中的错误信息
+        detection_errors = ctx.cloud_resource_manager.get_detection_errors()
+        
+        # 检查 Agent 是否存在
         if not existing_dirs and not has_cloud_resources:
             click.echo(t('agents_delete.not_found', name=name), err=True)
             click.echo()
@@ -1309,6 +1312,15 @@ def agents_delete(ctx, name, force, dry_run, include_cloud):
             click.echo(f"  • {deployment_dir}/")
             click.echo(f"  • AgentCore runtime")
             click.echo(f"  • ECR repository")
+            click.echo(f"  • DynamoDB records")
+            
+            # 显示检测错误信息
+            if detection_errors:
+                click.echo()
+                click.echo(t('agents_delete.detection_errors'))
+                for resource_type, error_msg in detection_errors.items():
+                    click.echo(f"  ⚠️  {resource_type}: {error_msg}")
+            
             sys.exit(1)
         
         if dry_run:
@@ -1321,7 +1333,7 @@ def agents_delete(ctx, name, force, dry_run, include_cloud):
                 click.echo(t('agents_delete.local_dirs_to_delete'))
                 for dir_type, dir_path in existing_dirs:
                     click.echo(f"  ✓ {dir_path}/")
-                    # List contents for detailed preview
+                    # 列出目录内容预览
                     try:
                         contents = ctx.fs_adapter.list_directory(dir_path)
                         for item in contents[:5]:
@@ -1332,7 +1344,7 @@ def agents_delete(ctx, name, force, dry_run, include_cloud):
                         pass
                 click.echo()
             
-            # Show cloud resources status
+            # 显示云资源状态
             if has_cloud_resources:
                 click.echo(t('agents_delete.cloud_resources_detected'))
                 if cloud_resources.agentcore_runtime:
@@ -1345,6 +1357,17 @@ def agents_delete(ctx, name, force, dry_run, include_cloud):
                     click.echo(t('agents_delete.ecr_repository', name=ecr.repository_name))
                     click.echo(f"    {t('cloud.uri', uri=ecr.repository_uri)}")
                     click.echo(f"    {t('cloud.images', count=ecr.image_count)}")
+                # 显示 DynamoDB 记录
+                if cloud_resources.dynamodb_agents:
+                    click.echo(t('agents_delete.dynamodb_agents', count=len(cloud_resources.dynamodb_agents)))
+                    for agent in cloud_resources.dynamodb_agents:
+                        click.echo(t('agents_delete.dynamodb_agent_detail', 
+                                   agent_id=agent.agent_id, 
+                                   agent_name=agent.agent_name,
+                                   status=agent.status))
+                        click.echo(t('agents_delete.dynamodb_agent_sessions',
+                                   count=agent.session_count,
+                                   invocations=agent.invocation_count))
                 click.echo()
                 
                 if include_cloud:
@@ -1372,13 +1395,15 @@ def agents_delete(ctx, name, force, dry_run, include_cloud):
             click.echo(t('common.run_without_dry_run'))
             return
         
-        # Show cloud resources warning if detected but not included
+        # 如果检测到云资源但未指定 --include-cloud，显示警告
         if has_cloud_resources and not include_cloud:
             click.echo(t('agents_delete.cloud_warning_header'))
             if cloud_resources.agentcore_runtime:
                 click.echo(t('agents_delete.agentcore_runtime', arn=cloud_resources.agentcore_runtime.arn))
             if cloud_resources.ecr_repository:
                 click.echo(t('agents_delete.ecr_repository', name=cloud_resources.ecr_repository.repository_name))
+            if cloud_resources.dynamodb_agents:
+                click.echo(t('agents_delete.dynamodb_agents', count=len(cloud_resources.dynamodb_agents)))
             click.echo()
             click.echo(t('agents_delete.cloud_not_deleted_hint'))
             click.echo(t('agents_delete.cloud_use_flag_hint'))
@@ -1398,19 +1423,26 @@ def agents_delete(ctx, name, force, dry_run, include_cloud):
                     click.echo(t('agents_delete.agentcore_runtime', arn=cloud_resources.agentcore_runtime.arn))
                 if cloud_resources.ecr_repository:
                     click.echo(t('agents_delete.ecr_repository', name=cloud_resources.ecr_repository.repository_name))
+                if cloud_resources.dynamodb_agents:
+                    click.echo(t('agents_delete.dynamodb_agents', count=len(cloud_resources.dynamodb_agents)))
+                    for agent in cloud_resources.dynamodb_agents:
+                        click.echo(t('agents_delete.dynamodb_agent_detail',
+                                   agent_id=agent.agent_id,
+                                   agent_name=agent.agent_name,
+                                   status=agent.status))
             
             click.echo()
             if not click.confirm(t('common.confirm_continue')):
                 click.echo(t('common.aborted'))
                 return
         
-        # Perform deletion
+        # 执行删除
         click.echo(t('agents_delete.deleting', name=name))
         click.echo()
         
         deleted_items = []
         
-        # Delete cloud resources first if requested
+        # 首先删除云资源（如果指定了 --include-cloud）
         if include_cloud and has_cloud_resources:
             click.echo(t('agents_delete.deleting_cloud'))
             results = ctx.cloud_resource_manager.delete_all_resources(cloud_resources)
@@ -1421,14 +1453,24 @@ def agents_delete(ctx, name, force, dry_run, include_cloud):
                     elif result.resource_type == 'ecr_repository':
                         ecr = cloud_resources.ecr_repository
                         deleted_items.append(t('agents_delete.deleted_ecr', name=result.resource_name, count=ecr.image_count if ecr else 0))
+                    elif result.resource_type == 'dynamodb_agent':
+                        # 查找对应的 agent 获取会话数
+                        agent_sessions = 0
+                        for agent in cloud_resources.dynamodb_agents:
+                            if agent.agent_id == result.resource_name:
+                                agent_sessions = agent.session_count
+                                break
+                        deleted_items.append(t('agents_delete.deleted_dynamodb', agent_id=result.resource_name, sessions=agent_sessions))
                 else:
                     if result.resource_type == 'agentcore_runtime':
                         click.echo(f"  ⚠️  {t('agents_delete.failed_delete_agentcore', error=result.error)}", err=True)
                     elif result.resource_type == 'ecr_repository':
                         click.echo(f"  ⚠️  {t('agents_delete.failed_delete_ecr', error=result.error)}", err=True)
+                    elif result.resource_type == 'dynamodb_agent':
+                        click.echo(f"  ⚠️  {t('agents_delete.failed_delete_dynamodb', error=result.error)}", err=True)
             click.echo()
         
-        # Delete local directories
+        # 删除本地目录
         click.echo(t('agents_delete.deleting_local'))
         for dir_type, dir_path in existing_dirs:
             try:
@@ -1437,7 +1479,7 @@ def agents_delete(ctx, name, force, dry_run, include_cloud):
             except Exception as e:
                 click.echo(f"  ✗ {t('agents_delete.failed_delete_dir', path=dir_path, error=str(e))}", err=True)
         
-        # Show what was deleted
+        # 显示删除结果
         for item in deleted_items:
             click.echo(f"  {item}")
         

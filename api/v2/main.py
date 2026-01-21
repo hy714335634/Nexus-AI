@@ -19,6 +19,7 @@ from api.v2.routers import (
     statistics_router,
 )
 from api.v2.routers.config import router as config_router
+from api.v2.routers.agentcore import router as agentcore_router
 from api.v2.database import db_client, sqs_client
 
 # 配置日志
@@ -86,6 +87,7 @@ app.include_router(sessions_router, prefix="/api/v2")
 app.include_router(tasks_router, prefix="/api/v2")
 app.include_router(statistics_router, prefix="/api/v2")
 app.include_router(config_router, prefix="/api/v2")
+app.include_router(agentcore_router, prefix="/api/v2")
 
 
 # ============== 健康检查 ==============

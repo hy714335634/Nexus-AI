@@ -7,10 +7,10 @@ import { Header } from '@/components/layout';
 import { Card, Button, Badge, Input, Empty } from '@/components/ui';
 import { MessageContent } from '@components/viewer';
 import { StatusBadge } from '@/components/status-badge';
-import { useAgentsV2 } from '@/hooks/use-agents-v2';
+import { useAgentsV2, useAgentContextV2 } from '@/hooks/use-agents-v2';
 import { useAgentSessionsV2, useCreateSessionV2 } from '@/hooks/use-sessions-v2';
 import { useSessionMessagesV2 } from '@/hooks/use-sessions-v2';
-import { streamChat } from '@/lib/api-v2';
+import { streamChat, streamChatDirect, StreamEvent } from '@/lib/api-v2';
 import { formatRelativeTime, truncate } from '@/lib/utils';
 import { toast } from 'sonner';
 import {
@@ -184,6 +184,9 @@ function ChatPageContent() {
   const abortControllerRef = useRef<AbortController | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // 获取选中 Agent 的上下文信息（包含 AgentCore 配置）
+  const { data: agentContext } = useAgentContextV2(selectedAgentId || '');
+
   const selectedAgent = useMemo(() => {
     return agents?.find((a) => a.agent_id === selectedAgentId) || null;
   }, [agents, selectedAgentId]);
@@ -315,60 +318,86 @@ function ChatPageContent() {
     };
     setChatMessages((prev) => [...prev, assistantMessage]);
 
-    try {
-      abortControllerRef.current = new AbortController();
-
-      for await (const event of streamChat(activeSessionId, content)) {
-        if (event.event === 'message') {
-          if (event.type === 'text' && event.data) {
-            setChatMessages((prev) =>
-              prev.map((msg) =>
-                msg.id === assistantMessageId
-                  ? { ...msg, content: msg.content + event.data }
-                  : msg
-              )
-            );
-          } else if (event.type === 'tool_use') {
-            setCurrentToolCall({
-              name: event.tool_name || 'unknown',
-              id: event.tool_id || '',
-              input: '',
-            });
-            setChatMessages((prev) =>
-              prev.map((msg) =>
-                msg.id === assistantMessageId
-                  ? {
-                      ...msg,
-                      toolCalls: [
-                        ...(msg.toolCalls || []),
-                        { name: event.tool_name || 'unknown', id: event.tool_id || '' },
-                      ],
-                    }
-                  : msg
-              )
-            );
-          } else if (event.type === 'tool_input' && event.data) {
-            setCurrentToolCall((prev) =>
-              prev ? { ...prev, input: prev.input + event.data } : null
-            );
-          } else if (event.type === 'tool_end') {
-            setCurrentToolCall(null);
-          }
-        } else if (event.event === 'error') {
-          toast.error(event.error || '对话出错');
+    // 处理流式事件的通用函数
+    const handleStreamEvent = (event: StreamEvent) => {
+      if (event.event === 'message') {
+        if (event.type === 'text' && event.data) {
           setChatMessages((prev) =>
             prev.map((msg) =>
               msg.id === assistantMessageId
-                ? { ...msg, content: msg.content || `错误: ${event.error}`, isStreaming: false }
+                ? { ...msg, content: msg.content + event.data }
                 : msg
             )
           );
-        } else if (event.event === 'done') {
+        } else if (event.type === 'tool_use') {
+          setCurrentToolCall({
+            name: event.tool_name || 'unknown',
+            id: event.tool_id || '',
+            input: '',
+          });
           setChatMessages((prev) =>
             prev.map((msg) =>
-              msg.id === assistantMessageId ? { ...msg, isStreaming: false } : msg
+              msg.id === assistantMessageId
+                ? {
+                    ...msg,
+                    toolCalls: [
+                      ...(msg.toolCalls || []),
+                      { name: event.tool_name || 'unknown', id: event.tool_id || '' },
+                    ],
+                  }
+                : msg
             )
           );
+        } else if (event.type === 'tool_input' && event.data) {
+          setCurrentToolCall((prev) =>
+            prev ? { ...prev, input: prev.input + event.data } : null
+          );
+        } else if (event.type === 'tool_end') {
+          setCurrentToolCall(null);
+        }
+      } else if (event.event === 'error') {
+        toast.error(event.error || '对话出错');
+        setChatMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === assistantMessageId
+              ? { ...msg, content: msg.content || `错误: ${event.error}`, isStreaming: false }
+              : msg
+          )
+        );
+      } else if (event.event === 'done') {
+        setChatMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === assistantMessageId ? { ...msg, isStreaming: false } : msg
+          )
+        );
+      }
+    };
+
+    try {
+      abortControllerRef.current = new AbortController();
+
+      // 根据 Agent 类型选择不同的流式调用方式
+      // 如果有 AgentCore Runtime ARN，使用直连方式
+      if (agentContext?.agentcore_runtime_arn) {
+        console.log('Using AgentCore direct streaming:', agentContext.agentcore_runtime_arn);
+        
+        for await (const event of streamChatDirect(
+          agentContext.agentcore_runtime_arn,
+          activeSessionId,
+          content,
+          {
+            runtimeAlias: agentContext.agentcore_runtime_alias || 'DEFAULT',
+            region: agentContext.agentcore_region,
+          }
+        )) {
+          handleStreamEvent(event);
+        }
+      } else {
+        // 本地 Agent，使用后端代理流式调用
+        console.log('Using local agent streaming via backend');
+        
+        for await (const event of streamChat(activeSessionId, content)) {
+          handleStreamEvent(event);
         }
       }
     } catch (error) {
@@ -387,7 +416,7 @@ function ChatPageContent() {
       abortControllerRef.current = null;
       refetchMessages();
     }
-  }, [inputValue, activeSessionId, isStreaming, refetchMessages]);
+  }, [inputValue, activeSessionId, isStreaming, refetchMessages, agentContext]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {

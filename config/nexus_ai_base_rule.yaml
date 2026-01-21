@@ -70,7 +70,7 @@ workflows:
              app = BedrockAgentCoreApp()
              ```
 
-          2. **必须使用@app.entrypoint装饰器定义异步handler函数（支持流式响应）**：
+          2. **必须使用@app.entrypoint装饰器定义异步handler函数（支持流式响应），此段代码无需修改，可直接使用**：
              ```python
              @app.entrypoint
              async def handler(payload: Dict[str, Any]):

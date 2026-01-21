@@ -47,21 +47,24 @@ def _parse_stream_event(chunk: str) -> Optional[Dict[str, Any]]:
     
     chunk = chunk.strip()
     
-    # 忽略内部事件（但保留工具结果相关的事件）
-    internal_markers = ["'agent':", "'event_loop_cycle_id':", "AgentResult(", "event_loop_metrics"]
-    if any(marker in chunk for marker in internal_markers):
-        # 检查是否包含工具结果
-        if "'tool_result'" not in chunk and '"tool_result"' not in chunk:
-            return None
-    
-    # 忽略初始化事件
-    init_markers = ["init_event_loop", "start_event_loop", '"start": true']
-    if any(marker in chunk for marker in init_markers):
-        return None
-    
     # 尝试解析 JSON
     try:
         data = json.loads(chunk)
+        
+        # 如果解析结果是字符串，检查是否是 Python repr 格式的调试输出
+        # 这些字符串包含 'agent': <strands.agent.agent.Agent object 等内容
+        if isinstance(data, str):
+            # 忽略包含 Agent 对象引用的调试输出
+            if "'agent':" in data or "Agent object at" in data:
+                return None
+            # 忽略包含 AgentResult 的调试输出
+            if "AgentResult(" in data or "'result':" in data:
+                return None
+            # 忽略包含 event_loop_cycle_id 的调试输出
+            if "'event_loop_cycle_id':" in data:
+                return None
+            # 其他字符串作为文本内容返回
+            return {"type": "text", "content": data}
         
         # 处理 AgentCore 格式的事件
         if isinstance(data, dict):
@@ -69,7 +72,7 @@ def _parse_stream_event(chunk: str) -> Optional[Dict[str, Any]]:
             if 'event' in data:
                 event_data = data['event']
                 
-                # 文本内容
+                # 文本内容增量
                 if 'contentBlockDelta' in event_data:
                     delta = event_data['contentBlockDelta'].get('delta', {})
                     text = delta.get('text', '')
@@ -91,7 +94,7 @@ def _parse_stream_event(chunk: str) -> Optional[Dict[str, Any]]:
                             "tool_id": tool_use.get('toolUseId', ''),
                         }
                 
-                # 内容块结束（可能是工具调用结束）
+                # 内容块结束
                 if 'contentBlockStop' in event_data:
                     return {"type": "content_block_stop"}
                 
@@ -99,16 +102,18 @@ def _parse_stream_event(chunk: str) -> Optional[Dict[str, Any]]:
                 if 'messageStop' in event_data:
                     return {"type": "message_stop", "stop_reason": event_data['messageStop'].get('stopReason')}
                 
-                # 元数据
+                # 元数据（包含 token 使用量）
                 if 'metadata' in event_data:
                     return {"type": "metadata", "usage": event_data['metadata'].get('usage', {})}
             
-            # 处理 Strands SDK 格式
-            # 文本内容
+            # 忽略完整消息（我们已经通过 delta 获取了内容）
+            if 'message' in data:
+                return None
+            
+            # 处理 Strands SDK 格式（本地 Agent）
             if 'text' in data:
                 return {"type": "text", "content": data['text']}
             
-            # 工具调用
             if 'tool_use' in data:
                 tool_data = data['tool_use']
                 return {
@@ -118,20 +123,13 @@ def _parse_stream_event(chunk: str) -> Optional[Dict[str, Any]]:
                     "tool_input": tool_data.get('input', '')
                 }
             
-            # 工具结果 - 重要：这表示工具执行完成，Agent 可能会继续输出
             if 'tool_result' in data:
                 tool_result = data['tool_result']
                 content = tool_result.get('content', '') if isinstance(tool_result, dict) else str(tool_result)
                 return {"type": "tool_result", "content": content}
             
-            # 元数据
             if 'usage' in data:
                 return {"type": "metadata", "usage": data['usage']}
-            
-            # 消息格式
-            if 'message' in data:
-                # 完整消息，忽略（我们已经通过 delta 获取了内容）
-                return None
             
             if 'content' in data and isinstance(data['content'], list):
                 items = []
@@ -152,15 +150,10 @@ def _parse_stream_event(chunk: str) -> Optional[Dict[str, Any]]:
                         })
                 if items:
                     return {"type": "multi_content", "items": items}
-        
-        # 纯文本
-        if isinstance(data, str):
-            return {"type": "text", "content": data}
             
     except json.JSONDecodeError:
-        # 非 JSON，作为纯文本处理
-        if len(chunk) > 0 and not chunk.startswith('{'):
-            return {"type": "text", "content": chunk}
+        # 非 JSON 格式，忽略
+        pass
     
     return None
 
@@ -282,18 +275,45 @@ async def invoke_agentcore_stream(
             def _read_stream_to_queue():
                 """在后台线程中读取流并放入队列"""
                 try:
+                    logger.info(f"Starting stream read, stream type: {type(response_stream)}")
+                    logger.info(f"Stream has iter_lines: {hasattr(response_stream, 'iter_lines')}")
+                    logger.info(f"Stream has iter_chunks: {hasattr(response_stream, 'iter_chunks')}")
+                    
+                    # 优先使用 iter_lines 进行真正的流式读取
                     if hasattr(response_stream, 'iter_lines'):
-                        for line in response_stream.iter_lines(chunk_size=1):
+                        line_count = 0
+                        for line in response_stream.iter_lines():
                             if line:
                                 line_str = line.decode('utf-8') if isinstance(line, bytes) else line
+                                line_count += 1
+                                logger.debug(f"Stream line {line_count}: {line_str[:100]}...")
                                 event_queue.put(('data', line_str))
+                        logger.info(f"Stream read complete, total lines: {line_count}")
+                    # 回退：使用 iter_chunks 逐块读取
+                    elif hasattr(response_stream, 'iter_chunks'):
+                        buffer = ""
+                        for chunk in response_stream.iter_chunks():
+                            if chunk:
+                                chunk_str = chunk.decode('utf-8') if isinstance(chunk, bytes) else chunk
+                                buffer += chunk_str
+                                # 按行分割并处理
+                                while '\n' in buffer:
+                                    line, buffer = buffer.split('\n', 1)
+                                    if line.strip():
+                                        event_queue.put(('data', line))
+                        # 处理剩余内容
+                        if buffer.strip():
+                            event_queue.put(('data', buffer))
+                    # 最后回退：一次性读取（非流式）
                     elif hasattr(response_stream, 'read'):
+                        logger.warning("Using non-streaming read() as fallback")
                         raw = response_stream.read()
                         content = raw.decode('utf-8') if isinstance(raw, bytes) else raw
                         for line in content.split('\n'):
                             if line.strip():
                                 event_queue.put(('data', line))
                 except Exception as e:
+                    logger.error(f"Stream read error: {e}", exc_info=True)
                     event_queue.put(('error', str(e)))
                 finally:
                     read_complete.set()
@@ -314,8 +334,19 @@ async def invoke_agentcore_stream(
                     elif event_type == 'error':
                         yield {"event": "error", "error": data}
                         break
-                    elif event_type == 'data' and data.startswith('data: '):
-                        data_content = data[6:]
+                    elif event_type == 'data':
+                        # 处理 SSE 格式的数据行
+                        data_content = data
+                        if data.startswith('data: '):
+                            data_content = data[6:]
+                        elif data.startswith('data:'):
+                            data_content = data[5:]
+                        
+                        # 跳过空数据
+                        if not data_content or not data_content.strip():
+                            continue
+                        
+                        logger.debug(f"Processing event data: {data_content[:100]}...")
                         
                         # 解析事件
                         parsed = _parse_stream_event(data_content)
@@ -433,19 +464,209 @@ async def invoke_local_agent_stream(
     agent_path: str,
     session_id: str,
     message: str,
+    prompt_path: Optional[str] = None,
 ) -> AsyncGenerator[Dict[str, Any], None]:
     """
     调用本地 Agent（流式）
     
-    TODO: 实现本地 Agent 调用
+    使用 create_agent_from_prompt_template 创建 agent 实例，
+    并通过 stream_async 实现真正的流式输出
+    
+    参数:
+        agent_id: Agent ID
+        agent_path: Agent 代码路径（可选，用于回退）
+        session_id: 会话 ID
+        message: 用户消息
+        prompt_path: 提示词模板路径（优先使用）
     """
     yield {"event": "connected", "session_id": session_id}
     
-    # 模拟响应
-    response = f"[本地 Agent {agent_id}] 收到消息: {message}\n\n这是本地 Agent 的模拟响应。"
+    try:
+        # 尝试从提示词模板创建 Agent
+        agent = None
+        
+        if prompt_path:
+            logger.info(f"Creating agent from prompt template: {prompt_path}")
+            try:
+                # 在线程池中执行同步的 agent 创建
+                loop = asyncio.get_event_loop()
+                agent = await loop.run_in_executor(
+                    None,
+                    _create_agent_from_template,
+                    prompt_path
+                )
+            except Exception as e:
+                logger.warning(f"Failed to create agent from prompt template: {e}")
+        
+        if not agent:
+            # 回退：返回错误信息
+            logger.warning(f"No valid agent configuration found for {agent_id}")
+            yield {
+                "event": "error",
+                "error": f"Agent {agent_id} 未配置有效的提示词模板路径"
+            }
+            return
+        
+        logger.info(f"Successfully created agent for {agent_id}, starting stream...")
+        
+        # 使用队列实现异步流式传输
+        import queue
+        import threading
+        
+        event_queue = queue.Queue()
+        stream_complete = threading.Event()
+        
+        def _run_agent_stream():
+            """在后台线程中运行 agent 流式调用"""
+            try:
+                import asyncio as async_lib
+                
+                # 创建新的事件循环用于后台线程
+                new_loop = async_lib.new_event_loop()
+                async_lib.set_event_loop(new_loop)
+                
+                async def _stream_agent():
+                    """异步流式调用 agent"""
+                    try:
+                        async for event in agent.stream_async(message):
+                            # 解析 strands agent 的流式事件
+                            if isinstance(event, dict):
+                                # 处理文本内容
+                                if "data" in event:
+                                    event_queue.put(("text", event["data"]))
+                                # 处理工具调用
+                                elif "tool_use" in event:
+                                    tool_data = event["tool_use"]
+                                    event_queue.put(("tool_use", {
+                                        "name": tool_data.get("name", "unknown"),
+                                        "id": tool_data.get("id", ""),
+                                    }))
+                                elif "tool_input" in event:
+                                    event_queue.put(("tool_input", event["tool_input"]))
+                                elif "tool_result" in event:
+                                    event_queue.put(("tool_end", {
+                                        "result": event["tool_result"]
+                                    }))
+                                # 处理 contentBlockDelta 格式
+                                elif "contentBlockDelta" in event:
+                                    delta = event["contentBlockDelta"].get("delta", {})
+                                    text = delta.get("text", "")
+                                    if text:
+                                        event_queue.put(("text", text))
+                                # 处理 content 格式
+                                elif "content" in event:
+                                    content = event["content"]
+                                    if isinstance(content, str):
+                                        event_queue.put(("text", content))
+                                    elif isinstance(content, list):
+                                        for item in content:
+                                            if isinstance(item, dict):
+                                                if item.get("type") == "text":
+                                                    event_queue.put(("text", item.get("text", "")))
+                                # 处理 message 格式
+                                elif "message" in event:
+                                    msg = event["message"]
+                                    if isinstance(msg, dict) and "content" in msg:
+                                        for item in msg.get("content", []):
+                                            if isinstance(item, dict) and item.get("type") == "text":
+                                                event_queue.put(("text", item.get("text", "")))
+                            elif isinstance(event, str):
+                                event_queue.put(("text", event))
+                    except Exception as e:
+                        logger.error(f"Agent stream error: {e}", exc_info=True)
+                        event_queue.put(("error", str(e)))
+                
+                new_loop.run_until_complete(_stream_agent())
+                
+            except Exception as e:
+                logger.error(f"Agent thread error: {e}", exc_info=True)
+                event_queue.put(("error", str(e)))
+            finally:
+                stream_complete.set()
+                event_queue.put(("done", None))
+        
+        # 启动后台线程
+        stream_thread = threading.Thread(target=_run_agent_stream, daemon=True)
+        stream_thread.start()
+        
+        # 从队列中读取并 yield 事件
+        current_tool_name = None
+        
+        while True:
+            try:
+                event_type, data = event_queue.get(timeout=0.1)
+                
+                if event_type == "done":
+                    break
+                elif event_type == "error":
+                    yield {"event": "error", "error": data}
+                    break
+                elif event_type == "text":
+                    yield {
+                        "event": "message",
+                        "type": "text",
+                        "data": data
+                    }
+                elif event_type == "tool_use":
+                    current_tool_name = data.get("name", "unknown")
+                    yield {
+                        "event": "message",
+                        "type": "tool_use",
+                        "tool_name": current_tool_name,
+                        "tool_id": data.get("id", "")
+                    }
+                elif event_type == "tool_input":
+                    yield {
+                        "event": "message",
+                        "type": "tool_input",
+                        "data": data
+                    }
+                elif event_type == "tool_end":
+                    yield {
+                        "event": "message",
+                        "type": "tool_end",
+                        "tool_name": current_tool_name or "",
+                        "tool_result": data.get("result", "")
+                    }
+                    current_tool_name = None
+                
+                # 让出控制权
+                await asyncio.sleep(0)
+                
+            except queue.Empty:
+                if stream_complete.is_set():
+                    break
+                await asyncio.sleep(0.01)
+        
+        yield {"event": "done"}
+        
+    except Exception as e:
+        logger.error(f"Local agent stream error: {e}", exc_info=True)
+        yield {"event": "error", "error": str(e)}
+
+
+def _create_agent_from_template(prompt_path: str):
+    """
+    从提示词模板创建 Agent（同步函数，用于线程池执行）
     
-    for char in response:
-        yield {"event": "message", "type": "text", "data": char}
-        await asyncio.sleep(0.01)
+    参数:
+        prompt_path: 提示词模板路径
     
-    yield {"event": "done"}
+    返回:
+        Agent 实例
+    """
+    try:
+        from nexus_utils.agent_factory import create_agent_from_prompt_template
+        
+        # 创建 agent 实例
+        agent = create_agent_from_prompt_template(
+            agent_name=prompt_path,
+            env="production",
+            nocallback=True  # 禁用回调以避免干扰流式输出
+        )
+        
+        return agent
+        
+    except Exception as e:
+        logger.error(f"Failed to create agent from template {prompt_path}: {e}", exc_info=True)
+        raise

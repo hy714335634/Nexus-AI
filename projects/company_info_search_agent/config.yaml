@@ -1,6 +1,0 @@
-project:
-  created_date: '2025-09-30T08:11:28.967062+00:00'
-  description: 一个能够读取Excel表格中的公司信息，通过多种搜索引擎查询公司详细信息，并将结果输出为Excel表格的智能体。支持多搜索引擎集成、深度检索、缓存机制和分批处理输出。
-  name: company_info_search_agent
-  updated_date: '2025-09-30T08:11:35.520059+00:00'
-  version: 1.0.0

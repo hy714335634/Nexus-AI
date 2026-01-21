@@ -23,6 +23,7 @@
     "recharts": "^2.12.2",
     "rehype-highlight": "^7.0.0",
     "remark-gfm": "^4.0.0",
+    "sharp": "^0.34.5",
     "sonner": "^1.4.1",
     "tailwind-merge": "^2.2.1"
   },
