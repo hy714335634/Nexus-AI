@@ -406,6 +406,13 @@ export interface StatisticsOverviewData {
   success_rate: number;
   avg_build_time_minutes: number;
   today_calls: number;
+  // 新增字段 - 与后端 statistics_service.py 同步
+  total_projects: number;
+  building_projects: number;
+  completed_projects: number;
+  failed_projects: number;
+  total_invocations: number;
+  today_invocations: number;
 }
 
 export type StatisticsOverviewResponse = ApiResponse<StatisticsOverviewData>;

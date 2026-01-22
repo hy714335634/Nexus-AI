@@ -1,1282 +1,913 @@
 #!/usr/bin/env python3
 """
-FDA API Integration Tools
+FDA API集成工具
 
-Provides tools for querying openFDA API endpoints, managing cache,
-parsing queries, formatting data, and tracking data sources.
+提供与FDA openFDA API交互的核心工具函数，支持药物、医疗设备、食品、
+不良事件和召回数据的查询。所有工具自动处理数据解析、来源标注和错误处理。
 """
 
 import json
 import hashlib
-import os
 import time
-from typing import Dict, List, Any, Optional
-from datetime import datetime, timedelta
-from pathlib import Path
+from typing import Dict, List, Any, Optional, Union
+from urllib.parse import urlencode, quote
 from strands import tool
 
-
-# Cache configuration
-CACHE_DIR = ".cache/fda_data_query_agent"
-CACHE_EXPIRATION_HOURS = 24
-
-
-def _get_cache_key(query_type: str, query_params: Dict[str, Any]) -> str:
-    """Generate cache key from query parameters"""
-    # Normalize and sort parameters for consistent hashing
-    normalized = json.dumps(query_params, sort_keys=True)
-    hash_value = hashlib.md5(f"{query_type}_{normalized}".encode()).hexdigest()
-    return hash_value
+try:
+    import requests
+except ImportError:
+    requests = None
 
 
-def _get_cache_path(query_type: str, cache_key: str) -> Path:
-    """Get cache file path"""
-    cache_dir = Path(CACHE_DIR) / query_type
-    cache_dir.mkdir(parents=True, exist_ok=True)
-    return cache_dir / f"{cache_key}.json"
+# FDA API基础配置
+FDA_API_BASE_URL = "https://api.fda.gov"
+FDA_API_TIMEOUT = 10  # 秒
+FDA_API_RETRY_TIMES = 3
+FDA_API_RETRY_DELAY = 1  # 秒
 
 
-def _read_cache(cache_path: Path) -> Optional[Dict[str, Any]]:
-    """Read from cache if exists and not expired"""
-    try:
-        if not cache_path.exists():
-            return None
+def _build_fda_url(endpoint: str, params: Dict[str, Any]) -> str:
+    """
+    构建FDA API完整URL
+    
+    Args:
+        endpoint: API端点路径
+        params: 查询参数
         
-        with open(cache_path, 'r', encoding='utf-8') as f:
-            cached_data = json.load(f)
-        
-        # Check expiration
-        cached_time = cached_data.get("cached_at", 0)
-        if time.time() - cached_time > CACHE_EXPIRATION_HOURS * 3600:
-            return None
-        
-        return cached_data
-    except Exception:
-        return None
+    Returns:
+        完整的API URL
+    """
+    # 过滤空参数
+    filtered_params = {k: v for k, v in params.items() if v is not None and v != ""}
+    
+    if not filtered_params:
+        return f"{FDA_API_BASE_URL}{endpoint}"
+    
+    # 构建查询字符串
+    query_string = urlencode(filtered_params)
+    return f"{FDA_API_BASE_URL}{endpoint}?{query_string}"
 
 
-def _write_cache(cache_path: Path, data: Dict[str, Any]) -> None:
-    """Write data to cache"""
-    try:
-        cache_path.parent.mkdir(parents=True, exist_ok=True)
-        cached_data = {
-            "cached_at": time.time(),
-            "data": data
-        }
-        with open(cache_path, 'w', encoding='utf-8') as f:
-            json.dump(cached_data, f, ensure_ascii=False, indent=2)
-    except Exception as e:
-        print(f"Warning: Failed to write cache: {e}")
+def _call_fda_api(url: str, retry_times: int = FDA_API_RETRY_TIMES) -> Dict[str, Any]:
+    """
+    调用FDA API并处理重试
+    
+    Args:
+        url: API URL
+        retry_times: 重试次数
+        
+    Returns:
+        API响应数据
+        
+    Raises:
+        Exception: API调用失败
+    """
+    if not requests:
+        raise ImportError("requests库未安装，请安装: pip install requests")
+    
+    last_error = None
+    for attempt in range(retry_times):
+        try:
+            response = requests.get(
+                url,
+                headers={
+                    "User-Agent": "FDA-Data-Query-Agent/1.0",
+                    "Accept": "application/json",
+                    "Accept-Encoding": "gzip"
+                },
+                timeout=FDA_API_TIMEOUT
+            )
+            
+            # 检查HTTP状态码
+            if response.status_code == 200:
+                return response.json()
+            elif response.status_code == 404:
+                return {"meta": {"results": {"total": 0}}, "results": []}
+            elif response.status_code == 429:
+                # 限流错误，等待更长时间
+                if attempt < retry_times - 1:
+                    time.sleep(60)
+                    continue
+                raise Exception("FDA API限流，请稍后重试")
+            else:
+                raise Exception(f"FDA API返回错误状态码: {response.status_code}")
+                
+        except requests.exceptions.Timeout:
+            last_error = Exception("FDA API请求超时")
+            if attempt < retry_times - 1:
+                time.sleep(FDA_API_RETRY_DELAY * (2 ** attempt))  # 指数退避
+                continue
+        except requests.exceptions.ConnectionError:
+            last_error = Exception("无法连接到FDA API")
+            if attempt < retry_times - 1:
+                time.sleep(FDA_API_RETRY_DELAY * (2 ** attempt))
+                continue
+        except Exception as e:
+            last_error = e
+            if attempt < retry_times - 1:
+                time.sleep(FDA_API_RETRY_DELAY * (2 ** attempt))
+                continue
+    
+    # 所有重试都失败
+    raise last_error if last_error else Exception("FDA API调用失败")
+
+
+def _annotate_source(data: Dict[str, Any], data_type: str, query_params: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    为数据自动注入来源标注
+    
+    Args:
+        data: 原始数据
+        data_type: 数据类型（drugs/devices/food/adverse_events/recalls）
+        query_params: 查询参数
+        
+    Returns:
+        标注后的数据
+    """
+    # 构建FDA官方链接
+    base_urls = {
+        "drugs": "https://open.fda.gov/apis/drug/",
+        "devices": "https://open.fda.gov/apis/device/",
+        "food": "https://open.fda.gov/apis/food/",
+        "adverse_events": "https://open.fda.gov/apis/drug/event/",
+        "recalls": "https://open.fda.gov/apis/"
+    }
+    
+    source_info = {
+        "source": "FDA openFDA API",
+        "data_type": data_type,
+        "api_url": base_urls.get(data_type, "https://open.fda.gov/apis/"),
+        "query_timestamp": time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime()),
+        "query_params": query_params
+    }
+    
+    # 为结果数组中的每个项目添加来源信息
+    if "results" in data and isinstance(data["results"], list):
+        for item in data["results"]:
+            if isinstance(item, dict):
+                item["_fda_source"] = source_info.copy()
+                
+                # 添加具体记录的官方链接
+                if data_type == "drugs":
+                    if "application_number" in item:
+                        item["_fda_source"]["official_link"] = f"https://www.accessdata.fda.gov/scripts/cder/daf/index.cfm?event=overview.process&ApplNo={item['application_number']}"
+                elif data_type == "devices":
+                    if "k_number" in item:
+                        item["_fda_source"]["official_link"] = f"https://www.accessdata.fda.gov/scripts/cdrh/cfdocs/cfpmn/pmn.cfm?ID={item['k_number']}"
+                elif data_type in ["adverse_events", "recalls"]:
+                    if "report_number" in item or "recall_number" in item:
+                        item["_fda_source"]["official_link"] = "https://www.fda.gov/safety/recalls-market-withdrawals-safety-alerts"
+    
+    # 在顶层添加来源元数据
+    data["_metadata"] = {
+        "source": source_info,
+        "retrieved_at": source_info["query_timestamp"],
+        "total_results": data.get("meta", {}).get("results", {}).get("total", 0)
+    }
+    
+    return data
 
 
 @tool
-def fda_api_query(
-    endpoint: str,
-    search_params: Optional[Dict[str, Any]] = None,
+def query_fda_drugs(
+    search_term: str,
+    search_field: str = "openfda.brand_name",
     limit: int = 10,
     skip: int = 0,
-    use_cache: bool = True,
-    timeout: int = 30
+    sort_field: Optional[str] = None,
+    sort_order: str = "desc"
 ) -> str:
     """
-    Query openFDA API endpoint with search parameters.
+    查询FDA药物批准信息、标签、NDC代码等数据
     
-    This tool provides access to various openFDA API endpoints including:
-    - drug/label: Drug product labeling
-    - drug/event: Adverse drug events (FAERS)
-    - drug/nda: New drug application approvals
-    - device/classification: Medical device classifications
-    - device/recall: Medical device recalls
-    - device/event: Medical device adverse events (MAUDE)
-    - food/enforcement: Food enforcement reports
-    - food/event: Food adverse events
+    此工具调用FDA openFDA Drug API，支持按品牌名、通用名、活性成分、
+    制造商、NDC代码、申请号等多种方式查询药物信息。
     
     Args:
-        endpoint (str): FDA API endpoint (e.g., "drug/label", "device/recall")
-        search_params (Dict[str, Any], optional): Search parameters as key-value pairs
-            Example: {"brand_name": "Aspirin", "active_ingredient": "acetylsalicylic acid"}
-        limit (int): Maximum number of results to return (default: 10, max: 100)
-        skip (int): Number of results to skip for pagination (default: 0)
-        use_cache (bool): Whether to use cached results (default: True)
-        timeout (int): Request timeout in seconds (default: 30)
+        search_term (str): 搜索词，如药品名称、活性成分等
+        search_field (str): 搜索字段，可选值:
+            - openfda.brand_name: 品牌名（商品名）
+            - openfda.generic_name: 通用名
+            - openfda.substance_name: 活性成分
+            - openfda.manufacturer_name: 制造商
+            - openfda.product_ndc: NDC代码
+            - application_number: 申请号
+        limit (int): 返回结果数量限制，默认10，最大100
+        skip (int): 跳过的结果数量，用于分页
+        sort_field (Optional[str]): 排序字段，如"receivedate"
+        sort_order (str): 排序顺序，"asc"或"desc"
         
     Returns:
-        str: JSON string containing query results, including:
-            - results: List of matching records
-            - total: Total number of matching records
-            - endpoint: The API endpoint used
-            - query_url: Full API request URL
-            - cached: Whether results came from cache
-            - timestamp: Query timestamp
+        str: JSON格式的查询结果，包含药物数据和来源标注
+        
+    Example:
+        >>> result = query_fda_drugs("aspirin", "openfda.brand_name", limit=5)
+        >>> data = json.loads(result)
+        >>> print(data["results"][0]["openfda"]["brand_name"])
     """
     try:
-        import requests
+        # 验证和清理参数
+        limit = min(max(1, limit), 100)
+        skip = max(0, skip)
         
-        # Validate endpoint
-        valid_endpoints = [
-            "drug/label", "drug/event", "drug/nda",
-            "device/classification", "device/recall", "device/event",
-            "food/enforcement", "food/event"
-        ]
-        if endpoint not in valid_endpoints:
-            return json.dumps({
-                "error": f"Invalid endpoint: {endpoint}",
-                "valid_endpoints": valid_endpoints
-            }, ensure_ascii=False, indent=2)
-        
-        # Build query parameters
-        if search_params is None:
-            search_params = {}
-        
-        # Generate cache key
-        cache_key = _get_cache_key(endpoint, {**search_params, "limit": limit, "skip": skip})
-        cache_path = _get_cache_path(endpoint, cache_key)
-        
-        # Check cache
-        if use_cache:
-            cached_result = _read_cache(cache_path)
-            if cached_result:
-                result = cached_result["data"]
-                result["cached"] = True
-                result["cache_age_hours"] = (time.time() - cached_result["cached_at"]) / 3600
-                return json.dumps(result, ensure_ascii=False, indent=2)
-        
-        # Build search query string
-        search_parts = []
-        for key, value in search_params.items():
-            if isinstance(value, str):
-                # Escape quotes and build search term
-                escaped_value = value.replace('"', '\\"')
-                search_parts.append(f'{key}:"{escaped_value}"')
-            else:
-                search_parts.append(f'{key}:{value}')
-        
-        search_query = " AND ".join(search_parts) if search_parts else ""
-        
-        # Build API URL
-        base_url = f"https://api.fda.gov/{endpoint}.json"
+        # 构建查询参数
+        search_query = f'{search_field}:"{search_term}"'
         params = {
-            "limit": min(limit, 100),
+            "search": search_query,
+            "limit": limit,
             "skip": skip
         }
-        if search_query:
-            params["search"] = search_query
         
-        # Make API request
-        response = requests.get(base_url, params=params, timeout=timeout)
+        # 添加排序参数
+        if sort_field:
+            params["sort"] = f"{sort_field}:{sort_order}"
         
-        # Handle response
-        if response.status_code == 200:
-            api_data = response.json()
-            result = {
-                "success": True,
-                "endpoint": endpoint,
-                "query_url": response.url,
-                "total": api_data.get("meta", {}).get("results", {}).get("total", 0),
-                "results": api_data.get("results", []),
-                "cached": False,
-                "timestamp": datetime.utcnow().isoformat()
-            }
-            
-            # Write to cache
-            if use_cache:
-                _write_cache(cache_path, result)
-            
-            return json.dumps(result, ensure_ascii=False, indent=2)
+        # 构建URL
+        url = _build_fda_url("/drug/label.json", params)
         
-        elif response.status_code == 404:
-            return json.dumps({
-                "success": False,
-                "error": "No results found",
-                "endpoint": endpoint,
-                "search_params": search_params,
-                "message": "未找到匹配的记录。建议：1) 检查搜索参数是否正确；2) 尝试使用更通用的关键词；3) 访问FDA官网进行人工查询。"
-            }, ensure_ascii=False, indent=2)
+        # 调用API
+        response_data = _call_fda_api(url)
         
-        elif response.status_code == 400:
-            return json.dumps({
-                "success": False,
-                "error": "Invalid request parameters",
-                "endpoint": endpoint,
-                "search_params": search_params,
-                "status_code": 400,
-                "message": "查询参数有误。请检查参数格式是否正确。"
-            }, ensure_ascii=False, indent=2)
+        # 标注来源
+        annotated_data = _annotate_source(response_data, "drugs", params)
         
-        elif response.status_code == 429:
-            return json.dumps({
-                "success": False,
-                "error": "Rate limit exceeded",
-                "status_code": 429,
-                "message": "API请求频率超限。请稍后重试，或使用缓存数据。"
-            }, ensure_ascii=False, indent=2)
-        
-        else:
-            return json.dumps({
-                "success": False,
-                "error": f"API request failed with status code {response.status_code}",
-                "status_code": response.status_code,
-                "response": response.text[:500]
-            }, ensure_ascii=False, indent=2)
-    
-    except requests.exceptions.Timeout:
-        return json.dumps({
-            "success": False,
-            "error": "Request timeout",
-            "endpoint": endpoint,
-            "timeout": timeout,
-            "message": "API请求超时。请稍后重试，或使用缓存数据。"
-        }, ensure_ascii=False, indent=2)
-    
-    except Exception as e:
-        return json.dumps({
-            "success": False,
-            "error": f"Unexpected error: {str(e)}",
-            "endpoint": endpoint
-        }, ensure_ascii=False, indent=2)
-
-
-@tool
-def fda_drug_search(
-    brand_name: Optional[str] = None,
-    generic_name: Optional[str] = None,
-    active_ingredient: Optional[str] = None,
-    manufacturer: Optional[str] = None,
-    limit: int = 10,
-    use_cache: bool = True
-) -> str:
-    """
-    Search FDA drug database with flexible parameters.
-    
-    Searches drug/label endpoint for drug product labeling information.
-    
-    Args:
-        brand_name (str, optional): Brand/trade name of the drug
-        generic_name (str, optional): Generic name of the drug
-        active_ingredient (str, optional): Active ingredient name
-        manufacturer (str, optional): Manufacturer name
-        limit (int): Maximum number of results (default: 10)
-        use_cache (bool): Whether to use cached results (default: True)
-        
-    Returns:
-        str: JSON string containing drug information including:
-            - Product name and manufacturer
-            - Active ingredients
-            - Indications and usage
-            - Warnings and precautions
-            - Adverse reactions
-            - Data source information
-    """
-    try:
-        # Build search parameters
-        search_params = {}
-        if brand_name:
-            search_params["openfda.brand_name"] = brand_name
-        if generic_name:
-            search_params["openfda.generic_name"] = generic_name
-        if active_ingredient:
-            search_params["openfda.substance_name"] = active_ingredient
-        if manufacturer:
-            search_params["openfda.manufacturer_name"] = manufacturer
-        
-        if not search_params:
-            return json.dumps({
-                "error": "At least one search parameter is required",
-                "available_params": ["brand_name", "generic_name", "active_ingredient", "manufacturer"]
-            }, ensure_ascii=False, indent=2)
-        
-        # Query API
-        result_str = fda_api_query(
-            endpoint="drug/label",
-            search_params=search_params,
-            limit=limit,
-            use_cache=use_cache
-        )
-        
-        result = json.loads(result_str)
-        
-        if not result.get("success"):
-            return result_str
-        
-        # Format drug information
-        formatted_results = []
-        for item in result.get("results", []):
-            openfda = item.get("openfda", {})
-            formatted_item = {
-                "brand_name": openfda.get("brand_name", ["N/A"])[0],
-                "generic_name": openfda.get("generic_name", ["N/A"])[0],
-                "manufacturer": openfda.get("manufacturer_name", ["N/A"])[0],
-                "active_ingredients": openfda.get("substance_name", []),
-                "indications": item.get("indications_and_usage", ["N/A"])[0][:500] if item.get("indications_and_usage") else "N/A",
-                "warnings": item.get("warnings", ["N/A"])[0][:500] if item.get("warnings") else "N/A",
-                "adverse_reactions": item.get("adverse_reactions", ["N/A"])[0][:500] if item.get("adverse_reactions") else "N/A",
-                "dosage": item.get("dosage_and_administration", ["N/A"])[0][:500] if item.get("dosage_and_administration") else "N/A"
-            }
-            formatted_results.append(formatted_item)
-        
-        return json.dumps({
-            "success": True,
-            "query_type": "drug_search",
-            "search_params": search_params,
-            "total": result.get("total", 0),
-            "results": formatted_results,
-            "data_source": {
-                "api_endpoint": "https://api.fda.gov/drug/label.json",
-                "query_url": result.get("query_url"),
-                "timestamp": result.get("timestamp")
-            },
-            "cached": result.get("cached", False)
-        }, ensure_ascii=False, indent=2)
-    
-    except Exception as e:
-        return json.dumps({
-            "success": False,
-            "error": f"Drug search failed: {str(e)}"
-        }, ensure_ascii=False, indent=2)
-
-
-@tool
-def fda_device_search(
-    device_name: Optional[str] = None,
-    device_class: Optional[str] = None,
-    manufacturer: Optional[str] = None,
-    search_type: str = "classification",
-    limit: int = 10,
-    use_cache: bool = True
-) -> str:
-    """
-    Search FDA medical device database.
-    
-    Args:
-        device_name (str, optional): Device name or description
-        device_class (str, optional): Device class (1, 2, or 3)
-        manufacturer (str, optional): Manufacturer name
-        search_type (str): Type of device data to search
-            - "classification": Device classifications (default)
-            - "recall": Device recalls
-            - "event": Adverse events (MAUDE)
-        limit (int): Maximum number of results (default: 10)
-        use_cache (bool): Whether to use cached results (default: True)
-        
-    Returns:
-        str: JSON string containing device information
-    """
-    try:
-        # Validate search type
-        valid_types = ["classification", "recall", "event"]
-        if search_type not in valid_types:
-            return json.dumps({
-                "error": f"Invalid search_type: {search_type}",
-                "valid_types": valid_types
-            }, ensure_ascii=False, indent=2)
-        
-        # Build search parameters
-        search_params = {}
-        if search_type == "classification":
-            if device_name:
-                search_params["device_name"] = device_name
-            if device_class:
-                search_params["device_class"] = device_class
-        elif search_type == "recall":
-            if device_name:
-                search_params["product_description"] = device_name
-            if manufacturer:
-                search_params["firm_fei_number"] = manufacturer
-        elif search_type == "event":
-            if device_name:
-                search_params["device.generic_name"] = device_name
-            if manufacturer:
-                search_params["device.manufacturer_d_name"] = manufacturer
-        
-        if not search_params:
-            return json.dumps({
-                "error": "At least one search parameter is required",
-                "available_params": ["device_name", "device_class", "manufacturer"]
-            }, ensure_ascii=False, indent=2)
-        
-        # Query API
-        endpoint_map = {
-            "classification": "device/classification",
-            "recall": "device/recall",
-            "event": "device/event"
+        # 构建返回结果
+        result = {
+            "status": "success",
+            "query_type": "drugs",
+            "search_term": search_term,
+            "search_field": search_field,
+            "total_results": annotated_data.get("meta", {}).get("results", {}).get("total", 0),
+            "returned_count": len(annotated_data.get("results", [])),
+            "data": annotated_data,
+            "from_cache": False
         }
         
-        result_str = fda_api_query(
-            endpoint=endpoint_map[search_type],
-            search_params=search_params,
-            limit=limit,
-            use_cache=use_cache
-        )
+        return json.dumps(result, ensure_ascii=False, indent=2)
         
-        result = json.loads(result_str)
-        
-        if not result.get("success"):
-            return result_str
-        
-        # Format device information
-        formatted_results = []
-        for item in result.get("results", []):
-            if search_type == "classification":
-                formatted_item = {
-                    "device_name": item.get("device_name", "N/A"),
-                    "device_class": item.get("device_class", "N/A"),
-                    "medical_specialty": item.get("medical_specialty_description", "N/A"),
-                    "regulation_number": item.get("regulation_number", "N/A"),
-                    "product_code": item.get("product_code", "N/A")
-                }
-            elif search_type == "recall":
-                formatted_item = {
-                    "product_description": item.get("product_description", "N/A"),
-                    "recall_reason": item.get("reason_for_recall", "N/A"),
-                    "recall_date": item.get("recall_initiation_date", "N/A"),
-                    "firm_name": item.get("recalling_firm", "N/A"),
-                    "classification": item.get("classification", "N/A")
-                }
-            else:  # event
-                device_info = item.get("device", [{}])[0] if item.get("device") else {}
-                formatted_item = {
-                    "device_name": device_info.get("generic_name", "N/A"),
-                    "manufacturer": device_info.get("manufacturer_d_name", "N/A"),
-                    "event_type": item.get("event_type", "N/A"),
-                    "date_received": item.get("date_received", "N/A"),
-                    "device_problem": device_info.get("device_problem_codes", [])
-                }
-            
-            formatted_results.append(formatted_item)
-        
-        return json.dumps({
-            "success": True,
-            "query_type": f"device_{search_type}",
-            "search_params": search_params,
-            "total": result.get("total", 0),
-            "results": formatted_results,
-            "data_source": {
-                "api_endpoint": f"https://api.fda.gov/{endpoint_map[search_type]}.json",
-                "query_url": result.get("query_url"),
-                "timestamp": result.get("timestamp")
-            },
-            "cached": result.get("cached", False)
-        }, ensure_ascii=False, indent=2)
-    
     except Exception as e:
-        return json.dumps({
-            "success": False,
-            "error": f"Device search failed: {str(e)}"
-        }, ensure_ascii=False, indent=2)
+        error_result = {
+            "status": "error",
+            "query_type": "drugs",
+            "search_term": search_term,
+            "error_type": type(e).__name__,
+            "error_message": str(e),
+            "suggestions": [
+                "检查药品名称拼写是否正确",
+                "尝试使用通用名而非商品名",
+                "使用更简单的搜索词",
+                "稍后重试（可能是API临时故障）"
+            ]
+        }
+        return json.dumps(error_result, ensure_ascii=False, indent=2)
 
 
 @tool
-def fda_food_search(
-    product_name: Optional[str] = None,
-    manufacturer: Optional[str] = None,
-    search_type: str = "enforcement",
+def query_fda_devices(
+    search_term: str,
+    search_field: str = "device_name",
     limit: int = 10,
-    use_cache: bool = True
+    skip: int = 0,
+    device_class: Optional[str] = None
 ) -> str:
     """
-    Search FDA food database for enforcement actions and adverse events.
+    查询FDA医疗设备分类、批准、510(k)/PMA信息等
+    
+    此工具调用FDA openFDA Device API，支持按设备名称、制造商、
+    产品代码、510(k)号等查询医疗设备信息。
     
     Args:
-        product_name (str, optional): Food product name or description
-        manufacturer (str, optional): Manufacturer or distributor name
-        search_type (str): Type of food data to search
-            - "enforcement": Food enforcement reports (recalls, market withdrawals)
-            - "event": Food adverse events
-        limit (int): Maximum number of results (default: 10)
-        use_cache (bool): Whether to use cached results (default: True)
+        search_term (str): 搜索词，如设备名称、制造商等
+        search_field (str): 搜索字段，可选值:
+            - device_name: 设备名称
+            - openfda.device_name: openFDA设备名称
+            - applicant: 申请人/制造商
+            - product_code: 产品代码
+            - k_number: 510(k)号
+        limit (int): 返回结果数量限制，默认10，最大100
+        skip (int): 跳过的结果数量，用于分页
+        device_class (Optional[str]): 设备分类过滤，可选值: "1", "2", "3"
         
     Returns:
-        str: JSON string containing food safety information
+        str: JSON格式的查询结果，包含设备数据和来源标注
+        
+    Example:
+        >>> result = query_fda_devices("pacemaker", "device_name", limit=5)
+        >>> data = json.loads(result)
+        >>> print(data["results"][0]["device_name"])
     """
     try:
-        # Validate search type
-        valid_types = ["enforcement", "event"]
-        if search_type not in valid_types:
-            return json.dumps({
-                "error": f"Invalid search_type: {search_type}",
-                "valid_types": valid_types
-            }, ensure_ascii=False, indent=2)
+        # 验证和清理参数
+        limit = min(max(1, limit), 100)
+        skip = max(0, skip)
         
-        # Build search parameters
-        search_params = {}
-        if search_type == "enforcement":
-            if product_name:
-                search_params["product_description"] = product_name
-            if manufacturer:
-                search_params["recalling_firm"] = manufacturer
-        elif search_type == "event":
-            if product_name:
-                search_params["products.name_brand"] = product_name
+        # 构建查询参数
+        search_query = f'{search_field}:"{search_term}"'
         
-        if not search_params:
-            return json.dumps({
-                "error": "At least one search parameter is required",
-                "available_params": ["product_name", "manufacturer"]
-            }, ensure_ascii=False, indent=2)
+        # 添加设备分类过滤
+        if device_class and device_class in ["1", "2", "3"]:
+            search_query += f' AND device_class:"{device_class}"'
         
-        # Query API
-        endpoint_map = {
-            "enforcement": "food/enforcement",
-            "event": "food/event"
+        params = {
+            "search": search_query,
+            "limit": limit,
+            "skip": skip
         }
         
-        result_str = fda_api_query(
-            endpoint=endpoint_map[search_type],
-            search_params=search_params,
-            limit=limit,
-            use_cache=use_cache
-        )
+        # 构建URL（使用510k端点）
+        url = _build_fda_url("/device/510k.json", params)
         
-        result = json.loads(result_str)
+        # 调用API
+        response_data = _call_fda_api(url)
         
-        if not result.get("success"):
-            return result_str
+        # 标注来源
+        annotated_data = _annotate_source(response_data, "devices", params)
         
-        # Format food information
-        formatted_results = []
-        for item in result.get("results", []):
-            if search_type == "enforcement":
-                formatted_item = {
-                    "product_description": item.get("product_description", "N/A"),
-                    "reason_for_recall": item.get("reason_for_recall", "N/A"),
-                    "recall_date": item.get("recall_initiation_date", "N/A"),
-                    "firm_name": item.get("recalling_firm", "N/A"),
-                    "classification": item.get("classification", "N/A"),
-                    "status": item.get("status", "N/A")
-                }
-            else:  # event
-                products = item.get("products", [])
-                formatted_item = {
-                    "product_name": products[0].get("name_brand", "N/A") if products else "N/A",
-                    "event_date": item.get("date_created", "N/A"),
-                    "reactions": item.get("consumer.age", "N/A"),
-                    "outcomes": item.get("outcomes", [])
-                }
-            
-            formatted_results.append(formatted_item)
+        # 构建返回结果
+        result = {
+            "status": "success",
+            "query_type": "devices",
+            "search_term": search_term,
+            "search_field": search_field,
+            "device_class": device_class,
+            "total_results": annotated_data.get("meta", {}).get("results", {}).get("total", 0),
+            "returned_count": len(annotated_data.get("results", [])),
+            "data": annotated_data,
+            "from_cache": False
+        }
         
-        return json.dumps({
-            "success": True,
-            "query_type": f"food_{search_type}",
-            "search_params": search_params,
-            "total": result.get("total", 0),
-            "results": formatted_results,
-            "data_source": {
-                "api_endpoint": f"https://api.fda.gov/{endpoint_map[search_type]}.json",
-                "query_url": result.get("query_url"),
-                "timestamp": result.get("timestamp")
-            },
-            "cached": result.get("cached", False)
-        }, ensure_ascii=False, indent=2)
-    
+        return json.dumps(result, ensure_ascii=False, indent=2)
+        
     except Exception as e:
-        return json.dumps({
-            "success": False,
-            "error": f"Food search failed: {str(e)}"
-        }, ensure_ascii=False, indent=2)
+        error_result = {
+            "status": "error",
+            "query_type": "devices",
+            "search_term": search_term,
+            "error_type": type(e).__name__,
+            "error_message": str(e),
+            "suggestions": [
+                "检查设备名称拼写是否正确",
+                "尝试使用设备的通用名称",
+                "提供制造商名称以缩小搜索范围",
+                "稍后重试（可能是API临时故障）"
+            ]
+        }
+        return json.dumps(error_result, ensure_ascii=False, indent=2)
 
 
 @tool
-def fda_adverse_events_search(
-    product_name: str,
+def query_fda_food(
+    search_term: str,
+    search_field: str = "product_description",
+    data_type: str = "recall",
+    limit: int = 10,
+    skip: int = 0,
+    recall_class: Optional[str] = None
+) -> str:
+    """
+    查询FDA食品召回、执法行动、不良事件等数据
+    
+    此工具调用FDA openFDA Food API，支持查询食品召回信息、
+    执法行动和不良事件报告。
+    
+    Args:
+        search_term (str): 搜索词，如产品名称、公司名等
+        search_field (str): 搜索字段，可选值:
+            - product_description: 产品描述
+            - recalling_firm: 召回公司
+            - recall_number: 召回编号
+            - reason_for_recall: 召回原因
+        data_type (str): 数据类型，可选值:
+            - recall: 召回信息（默认）
+            - enforcement: 执法行动
+            - event: 不良事件
+        limit (int): 返回结果数量限制，默认10，最大100
+        skip (int): 跳过的结果数量，用于分页
+        recall_class (Optional[str]): 召回级别过滤，可选值: "Class I", "Class II", "Class III"
+        
+    Returns:
+        str: JSON格式的查询结果，包含食品数据和来源标注
+        
+    Example:
+        >>> result = query_fda_food("salmonella", "reason_for_recall", limit=5)
+        >>> data = json.loads(result)
+        >>> print(data["results"][0]["product_description"])
+    """
+    try:
+        # 验证和清理参数
+        limit = min(max(1, limit), 100)
+        skip = max(0, skip)
+        
+        # 构建查询参数
+        search_query = f'{search_field}:"{search_term}"'
+        
+        # 添加召回级别过滤
+        if recall_class and data_type == "recall":
+            search_query += f' AND classification:"{recall_class}"'
+        
+        params = {
+            "search": search_query,
+            "limit": limit,
+            "skip": skip
+        }
+        
+        # 根据数据类型选择端点
+        endpoint_map = {
+            "recall": "/food/recall.json",
+            "enforcement": "/food/enforcement.json",
+            "event": "/food/event.json"
+        }
+        endpoint = endpoint_map.get(data_type, "/food/recall.json")
+        
+        # 构建URL
+        url = _build_fda_url(endpoint, params)
+        
+        # 调用API
+        response_data = _call_fda_api(url)
+        
+        # 标注来源
+        annotated_data = _annotate_source(response_data, "food", params)
+        
+        # 构建返回结果
+        result = {
+            "status": "success",
+            "query_type": "food",
+            "data_type": data_type,
+            "search_term": search_term,
+            "search_field": search_field,
+            "recall_class": recall_class,
+            "total_results": annotated_data.get("meta", {}).get("results", {}).get("total", 0),
+            "returned_count": len(annotated_data.get("results", [])),
+            "data": annotated_data,
+            "from_cache": False
+        }
+        
+        return json.dumps(result, ensure_ascii=False, indent=2)
+        
+    except Exception as e:
+        error_result = {
+            "status": "error",
+            "query_type": "food",
+            "data_type": data_type,
+            "search_term": search_term,
+            "error_type": type(e).__name__,
+            "error_message": str(e),
+            "suggestions": [
+                "检查产品名称或召回原因的拼写",
+                "尝试使用更通用的搜索词",
+                "检查召回级别是否正确（Class I/II/III）",
+                "稍后重试（可能是API临时故障）"
+            ]
+        }
+        return json.dumps(error_result, ensure_ascii=False, indent=2)
+
+
+@tool
+def query_fda_adverse_events(
+    search_term: str,
+    search_field: str = "patient.drug.openfda.brand_name",
     product_type: str = "drug",
-    date_range: Optional[Dict[str, str]] = None,
     limit: int = 10,
-    use_cache: bool = True
+    skip: int = 0,
+    serious_only: bool = False,
+    date_range: Optional[str] = None
 ) -> str:
     """
-    Search FDA adverse events database for drugs, devices, or foods.
+    查询FDA药物或设备的不良事件报告数据
+    
+    此工具调用FDA openFDA Adverse Events API，支持查询药物和
+    医疗设备相关的不良事件报告。
     
     Args:
-        product_name (str): Product name to search for
-        product_type (str): Type of product - "drug", "device", or "food"
-        date_range (Dict[str, str], optional): Date range filter
-            Example: {"start": "20230101", "end": "20231231"}
-        limit (int): Maximum number of results (default: 10)
-        use_cache (bool): Whether to use cached results (default: True)
+        search_term (str): 搜索词，如产品名称
+        search_field (str): 搜索字段，可选值:
+            - patient.drug.openfda.brand_name: 药品品牌名
+            - patient.drug.openfda.generic_name: 药品通用名
+            - patient.drug.medicinalproduct: 药品名称
+            - device.brand_name: 设备品牌名
+            - device.generic_name: 设备通用名
+        product_type (str): 产品类型，可选值: "drug" 或 "device"
+        limit (int): 返回结果数量限制，默认10，最大100
+        skip (int): 跳过的结果数量，用于分页
+        serious_only (bool): 是否仅返回严重不良事件，默认False
+        date_range (Optional[str]): 日期范围过滤，格式: "20200101:20231231"
         
     Returns:
-        str: JSON string containing adverse event information
+        str: JSON格式的查询结果，包含不良事件数据和来源标注
+        
+    Example:
+        >>> result = query_fda_adverse_events("aspirin", serious_only=True, limit=5)
+        >>> data = json.loads(result)
+        >>> print(data["results"][0]["patient"]["reaction"])
     """
     try:
-        # Validate product type
-        valid_types = ["drug", "device", "food"]
-        if product_type not in valid_types:
-            return json.dumps({
-                "error": f"Invalid product_type: {product_type}",
-                "valid_types": valid_types
-            }, ensure_ascii=False, indent=2)
+        # 验证和清理参数
+        limit = min(max(1, limit), 100)
+        skip = max(0, skip)
         
-        # Build search parameters
-        search_params = {}
-        if product_type == "drug":
-            search_params["patient.drug.medicinalproduct"] = product_name
-        elif product_type == "device":
-            search_params["device.generic_name"] = product_name
-        elif product_type == "food":
-            search_params["products.name_brand"] = product_name
+        # 构建查询参数
+        search_query = f'{search_field}:"{search_term}"'
         
-        # Add date range if provided
+        # 添加严重性过滤
+        if serious_only:
+            search_query += ' AND serious:"1"'
+        
+        # 添加日期范围过滤
         if date_range:
-            start_date = date_range.get("start")
-            end_date = date_range.get("end")
-            if start_date and end_date:
-                search_params["receivedate"] = f"[{start_date} TO {end_date}]"
+            search_query += f' AND receivedate:[{date_range}]'
         
-        # Query API
-        endpoint = f"{product_type}/event"
-        result_str = fda_api_query(
-            endpoint=endpoint,
-            search_params=search_params,
-            limit=limit,
-            use_cache=use_cache
-        )
+        params = {
+            "search": search_query,
+            "limit": limit,
+            "skip": skip
+        }
         
-        result = json.loads(result_str)
+        # 根据产品类型选择端点
+        endpoint = "/drug/event.json" if product_type == "drug" else "/device/event.json"
         
-        if not result.get("success"):
-            return result_str
+        # 构建URL
+        url = _build_fda_url(endpoint, params)
         
-        # Format adverse event information
-        formatted_results = []
-        for item in result.get("results", []):
-            if product_type == "drug":
-                reactions = item.get("patient", {}).get("reaction", [])
-                formatted_item = {
-                    "product_name": product_name,
-                    "report_date": item.get("receivedate", "N/A"),
-                    "serious": item.get("serious", "N/A"),
-                    "reactions": [r.get("reactionmeddrapt", "N/A") for r in reactions[:5]],
-                    "patient_age": item.get("patient", {}).get("patientonsetage", "N/A"),
-                    "patient_sex": item.get("patient", {}).get("patientsex", "N/A")
-                }
-            elif product_type == "device":
-                formatted_item = {
-                    "device_name": product_name,
-                    "event_date": item.get("date_received", "N/A"),
-                    "event_type": item.get("event_type", "N/A"),
-                    "device_problems": item.get("device", [{}])[0].get("device_problem_codes", [])[:3] if item.get("device") else [],
-                    "patient_problems": item.get("patient", [{}])[0].get("patient_problems", [])[:3] if item.get("patient") else []
-                }
-            else:  # food
-                formatted_item = {
-                    "product_name": product_name,
-                    "event_date": item.get("date_created", "N/A"),
-                    "reactions": item.get("reactions", [])[:5],
-                    "outcomes": item.get("outcomes", [])
-                }
-            
-            formatted_results.append(formatted_item)
+        # 调用API
+        response_data = _call_fda_api(url)
         
-        return json.dumps({
-            "success": True,
-            "query_type": f"{product_type}_adverse_events",
-            "product_name": product_name,
-            "total": result.get("total", 0),
-            "results": formatted_results,
-            "data_source": {
-                "api_endpoint": f"https://api.fda.gov/{endpoint}.json",
-                "query_url": result.get("query_url"),
-                "timestamp": result.get("timestamp")
-            },
-            "cached": result.get("cached", False)
-        }, ensure_ascii=False, indent=2)
-    
+        # 标注来源
+        annotated_data = _annotate_source(response_data, "adverse_events", params)
+        
+        # 构建返回结果
+        result = {
+            "status": "success",
+            "query_type": "adverse_events",
+            "product_type": product_type,
+            "search_term": search_term,
+            "search_field": search_field,
+            "serious_only": serious_only,
+            "date_range": date_range,
+            "total_results": annotated_data.get("meta", {}).get("results", {}).get("total", 0),
+            "returned_count": len(annotated_data.get("results", [])),
+            "data": annotated_data,
+            "from_cache": False
+        }
+        
+        return json.dumps(result, ensure_ascii=False, indent=2)
+        
     except Exception as e:
-        return json.dumps({
-            "success": False,
-            "error": f"Adverse events search failed: {str(e)}"
-        }, ensure_ascii=False, indent=2)
+        error_result = {
+            "status": "error",
+            "query_type": "adverse_events",
+            "product_type": product_type,
+            "search_term": search_term,
+            "error_type": type(e).__name__,
+            "error_message": str(e),
+            "suggestions": [
+                "检查产品名称是否正确",
+                "尝试使用更通用的产品名称",
+                "检查日期范围格式（应为YYYYMMDD:YYYYMMDD）",
+                "稍后重试（可能是API临时故障）"
+            ]
+        }
+        return json.dumps(error_result, ensure_ascii=False, indent=2)
 
 
 @tool
-def fda_recall_search(
-    product_name: str,
+def query_fda_recalls(
+    search_term: str,
+    search_field: str = "product_description",
     product_type: str = "drug",
-    classification: Optional[str] = None,
     limit: int = 10,
-    use_cache: bool = True
+    skip: int = 0,
+    recall_status: Optional[str] = None,
+    recall_class: Optional[str] = None
 ) -> str:
     """
-    Search FDA recall database for drugs, devices, or foods.
+    查询FDA召回信息（药物、设备、食品）
+    
+    此工具调用FDA openFDA Recall API，支持查询药物、医疗设备
+    和食品的召回信息。
     
     Args:
-        product_name (str): Product name to search for
-        product_type (str): Type of product - "drug", "device", or "food"
-        classification (str, optional): Recall classification (Class I, II, or III)
-        limit (int): Maximum number of results (default: 10)
-        use_cache (bool): Whether to use cached results (default: True)
+        search_term (str): 搜索词，如产品名称、公司名等
+        search_field (str): 搜索字段，可选值:
+            - product_description: 产品描述
+            - recalling_firm: 召回公司
+            - recall_number: 召回编号
+            - reason_for_recall: 召回原因
+        product_type (str): 产品类型，可选值: "drug", "device", "food"
+        limit (int): 返回结果数量限制，默认10，最大100
+        skip (int): 跳过的结果数量，用于分页
+        recall_status (Optional[str]): 召回状态过滤，可选值:
+            - "Ongoing": 进行中
+            - "Completed": 已完成
+            - "Terminated": 已终止
+        recall_class (Optional[str]): 召回级别过滤，可选值: "Class I", "Class II", "Class III"
         
     Returns:
-        str: JSON string containing recall information
+        str: JSON格式的查询结果，包含召回数据和来源标注
+        
+    Example:
+        >>> result = query_fda_recalls("insulin", "product_description", product_type="drug", limit=5)
+        >>> data = json.loads(result)
+        >>> print(data["results"][0]["recall_number"])
     """
     try:
-        # Validate product type
-        valid_types = ["drug", "device", "food"]
-        if product_type not in valid_types:
-            return json.dumps({
-                "error": f"Invalid product_type: {product_type}",
-                "valid_types": valid_types
-            }, ensure_ascii=False, indent=2)
+        # 验证和清理参数
+        limit = min(max(1, limit), 100)
+        skip = max(0, skip)
         
-        # Build search parameters
-        search_params = {"product_description": product_name}
-        if classification:
-            search_params["classification"] = classification
+        # 构建查询参数
+        search_query = f'{search_field}:"{search_term}"'
         
-        # Query API
-        endpoint = f"{product_type}/enforcement" if product_type == "food" else f"{product_type}/recall"
+        # 添加召回状态过滤
+        if recall_status:
+            search_query += f' AND status:"{recall_status}"'
         
-        result_str = fda_api_query(
-            endpoint=endpoint,
-            search_params=search_params,
-            limit=limit,
-            use_cache=use_cache
-        )
+        # 添加召回级别过滤
+        if recall_class:
+            search_query += f' AND classification:"{recall_class}"'
         
-        result = json.loads(result_str)
-        
-        if not result.get("success"):
-            return result_str
-        
-        # Format recall information
-        formatted_results = []
-        for item in result.get("results", []):
-            formatted_item = {
-                "product_description": item.get("product_description", "N/A"),
-                "reason_for_recall": item.get("reason_for_recall", "N/A"),
-                "recall_date": item.get("recall_initiation_date", "N/A"),
-                "firm_name": item.get("recalling_firm", "N/A"),
-                "classification": item.get("classification", "N/A"),
-                "status": item.get("status", "N/A"),
-                "distribution_pattern": item.get("distribution_pattern", "N/A")
-            }
-            formatted_results.append(formatted_item)
-        
-        return json.dumps({
-            "success": True,
-            "query_type": f"{product_type}_recall",
-            "product_name": product_name,
-            "total": result.get("total", 0),
-            "results": formatted_results,
-            "data_source": {
-                "api_endpoint": f"https://api.fda.gov/{endpoint}.json",
-                "query_url": result.get("query_url"),
-                "timestamp": result.get("timestamp")
-            },
-            "cached": result.get("cached", False)
-        }, ensure_ascii=False, indent=2)
-    
-    except Exception as e:
-        return json.dumps({
-            "success": False,
-            "error": f"Recall search failed: {str(e)}"
-        }, ensure_ascii=False, indent=2)
-
-
-@tool
-def fda_nda_search(
-    application_number: Optional[str] = None,
-    sponsor_name: Optional[str] = None,
-    brand_name: Optional[str] = None,
-    limit: int = 10,
-    use_cache: bool = True
-) -> str:
-    """
-    Search FDA New Drug Application (NDA) approvals database.
-    
-    Args:
-        application_number (str, optional): NDA application number
-        sponsor_name (str, optional): Sponsor/company name
-        brand_name (str, optional): Brand name of the drug
-        limit (int): Maximum number of results (default: 10)
-        use_cache (bool): Whether to use cached results (default: True)
-        
-    Returns:
-        str: JSON string containing NDA approval information
-    """
-    try:
-        # Build search parameters
-        search_params = {}
-        if application_number:
-            search_params["application_number"] = application_number
-        if sponsor_name:
-            search_params["sponsor_name"] = sponsor_name
-        if brand_name:
-            search_params["openfda.brand_name"] = brand_name
-        
-        if not search_params:
-            return json.dumps({
-                "error": "At least one search parameter is required",
-                "available_params": ["application_number", "sponsor_name", "brand_name"]
-            }, ensure_ascii=False, indent=2)
-        
-        # Query API
-        result_str = fda_api_query(
-            endpoint="drug/nda",
-            search_params=search_params,
-            limit=limit,
-            use_cache=use_cache
-        )
-        
-        result = json.loads(result_str)
-        
-        if not result.get("success"):
-            return result_str
-        
-        # Format NDA information
-        formatted_results = []
-        for item in result.get("results", []):
-            openfda = item.get("openfda", {})
-            formatted_item = {
-                "application_number": item.get("application_number", "N/A"),
-                "sponsor_name": item.get("sponsor_name", "N/A"),
-                "brand_name": openfda.get("brand_name", ["N/A"])[0],
-                "generic_name": openfda.get("generic_name", ["N/A"])[0],
-                "approval_date": item.get("submissions", [{}])[0].get("submission_status_date", "N/A") if item.get("submissions") else "N/A",
-                "application_type": item.get("application_type", "N/A")
-            }
-            formatted_results.append(formatted_item)
-        
-        return json.dumps({
-            "success": True,
-            "query_type": "nda_approval",
-            "search_params": search_params,
-            "total": result.get("total", 0),
-            "results": formatted_results,
-            "data_source": {
-                "api_endpoint": "https://api.fda.gov/drug/nda.json",
-                "query_url": result.get("query_url"),
-                "timestamp": result.get("timestamp")
-            },
-            "cached": result.get("cached", False)
-        }, ensure_ascii=False, indent=2)
-    
-    except Exception as e:
-        return json.dumps({
-            "success": False,
-            "error": f"NDA search failed: {str(e)}"
-        }, ensure_ascii=False, indent=2)
-
-
-@tool
-def clear_fda_cache(
-    query_type: Optional[str] = None,
-    older_than_hours: Optional[int] = None
-) -> str:
-    """
-    Clear FDA API cache.
-    
-    Args:
-        query_type (str, optional): Specific query type to clear
-            (e.g., "drug/label", "device/recall"). If None, clears all cache.
-        older_than_hours (int, optional): Only clear cache older than specified hours.
-            If None, clears all cache regardless of age.
-        
-    Returns:
-        str: JSON string containing cache clearing results
-    """
-    try:
-        cache_base = Path(CACHE_DIR)
-        if not cache_base.exists():
-            return json.dumps({
-                "success": True,
-                "message": "Cache directory does not exist",
-                "cleared_files": 0
-            }, ensure_ascii=False, indent=2)
-        
-        cleared_count = 0
-        total_size = 0
-        current_time = time.time()
-        cutoff_time = current_time - (older_than_hours * 3600) if older_than_hours else 0
-        
-        # Determine which directories to clear
-        if query_type:
-            # Clear specific query type
-            cache_dirs = [cache_base / query_type.replace("/", "_")]
-        else:
-            # Clear all query types
-            cache_dirs = [d for d in cache_base.iterdir() if d.is_dir()]
-        
-        # Clear cache files
-        for cache_dir in cache_dirs:
-            if not cache_dir.exists():
-                continue
-            
-            for cache_file in cache_dir.glob("*.json"):
-                try:
-                    # Check file age if older_than_hours is specified
-                    if older_than_hours:
-                        file_mtime = cache_file.stat().st_mtime
-                        if file_mtime > cutoff_time:
-                            continue
-                    
-                    # Get file size before deletion
-                    file_size = cache_file.stat().st_size
-                    total_size += file_size
-                    
-                    # Delete file
-                    cache_file.unlink()
-                    cleared_count += 1
-                except Exception as e:
-                    print(f"Warning: Failed to delete {cache_file}: {e}")
-        
-        return json.dumps({
-            "success": True,
-            "cleared_files": cleared_count,
-            "total_size_bytes": total_size,
-            "query_type": query_type or "all",
-            "older_than_hours": older_than_hours
-        }, ensure_ascii=False, indent=2)
-    
-    except Exception as e:
-        return json.dumps({
-            "success": False,
-            "error": f"Cache clearing failed: {str(e)}"
-        }, ensure_ascii=False, indent=2)
-
-
-@tool
-def get_cache_stats() -> str:
-    """
-    Get FDA API cache statistics.
-    
-    Returns:
-        str: JSON string containing cache statistics including:
-            - Total cache size
-            - Number of cached queries by type
-            - Cache hit rate (if available)
-            - Oldest and newest cache entries
-    """
-    try:
-        cache_base = Path(CACHE_DIR)
-        if not cache_base.exists():
-            return json.dumps({
-                "success": True,
-                "total_files": 0,
-                "total_size_bytes": 0,
-                "cache_by_type": {}
-            }, ensure_ascii=False, indent=2)
-        
-        stats = {
-            "total_files": 0,
-            "total_size_bytes": 0,
-            "cache_by_type": {},
-            "oldest_cache": None,
-            "newest_cache": None
+        params = {
+            "search": search_query,
+            "limit": limit,
+            "skip": skip
         }
         
-        oldest_time = None
-        newest_time = None
+        # 根据产品类型选择端点
+        endpoint_map = {
+            "drug": "/drug/enforcement.json",
+            "device": "/device/recall.json",
+            "food": "/food/enforcement.json"
+        }
+        endpoint = endpoint_map.get(product_type, "/drug/enforcement.json")
         
-        # Scan cache directories
-        for cache_dir in cache_base.iterdir():
-            if not cache_dir.is_dir():
-                continue
-            
-            query_type = cache_dir.name
-            type_files = 0
-            type_size = 0
-            
-            for cache_file in cache_dir.glob("*.json"):
-                try:
-                    file_stat = cache_file.stat()
-                    type_files += 1
-                    type_size += file_stat.st_size
-                    
-                    # Track oldest and newest
-                    if oldest_time is None or file_stat.st_mtime < oldest_time:
-                        oldest_time = file_stat.st_mtime
-                        stats["oldest_cache"] = datetime.fromtimestamp(file_stat.st_mtime).isoformat()
-                    
-                    if newest_time is None or file_stat.st_mtime > newest_time:
-                        newest_time = file_stat.st_mtime
-                        stats["newest_cache"] = datetime.fromtimestamp(file_stat.st_mtime).isoformat()
+        # 构建URL
+        url = _build_fda_url(endpoint, params)
+        
+        # 调用API
+        response_data = _call_fda_api(url)
+        
+        # 标注来源
+        annotated_data = _annotate_source(response_data, "recalls", params)
+        
+        # 构建返回结果
+        result = {
+            "status": "success",
+            "query_type": "recalls",
+            "product_type": product_type,
+            "search_term": search_term,
+            "search_field": search_field,
+            "recall_status": recall_status,
+            "recall_class": recall_class,
+            "total_results": annotated_data.get("meta", {}).get("results", {}).get("total", 0),
+            "returned_count": len(annotated_data.get("results", [])),
+            "data": annotated_data,
+            "from_cache": False
+        }
+        
+        return json.dumps(result, ensure_ascii=False, indent=2)
+        
+    except Exception as e:
+        error_result = {
+            "status": "error",
+            "query_type": "recalls",
+            "product_type": product_type,
+            "search_term": search_term,
+            "error_type": type(e).__name__,
+            "error_message": str(e),
+            "suggestions": [
+                "检查产品名称或召回编号是否正确",
+                "尝试使用更通用的搜索词",
+                "检查召回级别和状态是否正确",
+                "稍后重试（可能是API临时故障）"
+            ]
+        }
+        return json.dumps(error_result, ensure_ascii=False, indent=2)
+
+
+@tool
+def search_fda_comprehensive(
+    search_term: str,
+    search_types: List[str] = None,
+    limit_per_type: int = 5,
+    include_adverse_events: bool = True,
+    include_recalls: bool = True
+) -> str:
+    """
+    综合搜索FDA数据（跨多个数据类型）
+    
+    此工具执行跨多个FDA数据类型的综合搜索，适用于用户不确定
+    数据类型或需要全面信息的场景。
+    
+    Args:
+        search_term (str): 搜索词，如产品名称
+        search_types (List[str]): 要搜索的数据类型列表，可选值:
+            - "drugs": 药物
+            - "devices": 医疗设备
+            - "food": 食品
+            如果不提供，则搜索所有类型
+        limit_per_type (int): 每种类型返回的结果数量，默认5
+        include_adverse_events (bool): 是否包含不良事件数据，默认True
+        include_recalls (bool): 是否包含召回数据，默认True
+        
+    Returns:
+        str: JSON格式的综合查询结果，包含各类型数据和来源标注
+        
+    Example:
+        >>> result = search_fda_comprehensive("aspirin", search_types=["drugs"], limit_per_type=3)
+        >>> data = json.loads(result)
+        >>> print(data["drugs"]["total_results"])
+    """
+    try:
+        # 默认搜索所有类型
+        if not search_types:
+            search_types = ["drugs", "devices", "food"]
+        
+        # 验证参数
+        limit_per_type = min(max(1, limit_per_type), 20)
+        
+        # 存储各类型的查询结果
+        comprehensive_results = {
+            "status": "success",
+            "search_term": search_term,
+            "search_types": search_types,
+            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime()),
+            "results": {}
+        }
+        
+        # 查询药物数据
+        if "drugs" in search_types:
+            try:
+                drugs_result = query_fda_drugs(search_term, limit=limit_per_type)
+                drugs_data = json.loads(drugs_result)
+                comprehensive_results["results"]["drugs"] = drugs_data
                 
-                except Exception as e:
-                    print(f"Warning: Failed to stat {cache_file}: {e}")
-            
-            if type_files > 0:
-                stats["cache_by_type"][query_type] = {
-                    "files": type_files,
-                    "size_bytes": type_size
+                # 如果需要，查询药物相关的不良事件
+                if include_adverse_events and drugs_data.get("status") == "success":
+                    ae_result = query_fda_adverse_events(
+                        search_term,
+                        product_type="drug",
+                        limit=limit_per_type
+                    )
+                    ae_data = json.loads(ae_result)
+                    comprehensive_results["results"]["drugs_adverse_events"] = ae_data
+                
+                # 如果需要，查询药物召回
+                if include_recalls and drugs_data.get("status") == "success":
+                    recall_result = query_fda_recalls(
+                        search_term,
+                        product_type="drug",
+                        limit=limit_per_type
+                    )
+                    recall_data = json.loads(recall_result)
+                    comprehensive_results["results"]["drugs_recalls"] = recall_data
+            except Exception as e:
+                comprehensive_results["results"]["drugs"] = {
+                    "status": "error",
+                    "error_message": str(e)
                 }
-                stats["total_files"] += type_files
-                stats["total_size_bytes"] += type_size
         
-        stats["success"] = True
-        return json.dumps(stats, ensure_ascii=False, indent=2)
-    
-    except Exception as e:
-        return json.dumps({
-            "success": False,
-            "error": f"Failed to get cache stats: {str(e)}"
-        }, ensure_ascii=False, indent=2)
-
-
-@tool
-def format_fda_response(
-    raw_response: str,
-    format_type: str = "summary"
-) -> str:
-    """
-    Format raw FDA API response into user-friendly format.
-    
-    Args:
-        raw_response (str): Raw JSON response from FDA API query tools
-        format_type (str): Format type - "summary", "detailed", or "raw"
-            - "summary": Brief summary with key information
-            - "detailed": Comprehensive information with all fields
-            - "raw": Original API response
+        # 查询设备数据
+        if "devices" in search_types:
+            try:
+                devices_result = query_fda_devices(search_term, limit=limit_per_type)
+                devices_data = json.loads(devices_result)
+                comprehensive_results["results"]["devices"] = devices_data
+                
+                # 如果需要，查询设备相关的不良事件
+                if include_adverse_events and devices_data.get("status") == "success":
+                    ae_result = query_fda_adverse_events(
+                        search_term,
+                        search_field="device.brand_name",
+                        product_type="device",
+                        limit=limit_per_type
+                    )
+                    ae_data = json.loads(ae_result)
+                    comprehensive_results["results"]["devices_adverse_events"] = ae_data
+                
+                # 如果需要，查询设备召回
+                if include_recalls and devices_data.get("status") == "success":
+                    recall_result = query_fda_recalls(
+                        search_term,
+                        product_type="device",
+                        limit=limit_per_type
+                    )
+                    recall_data = json.loads(recall_result)
+                    comprehensive_results["results"]["devices_recalls"] = recall_data
+            except Exception as e:
+                comprehensive_results["results"]["devices"] = {
+                    "status": "error",
+                    "error_message": str(e)
+                }
         
-    Returns:
-        str: JSON string containing formatted response
-    """
-    try:
-        response_data = json.loads(raw_response)
+        # 查询食品数据
+        if "food" in search_types:
+            try:
+                food_result = query_fda_food(search_term, limit=limit_per_type)
+                food_data = json.loads(food_result)
+                comprehensive_results["results"]["food"] = food_data
+            except Exception as e:
+                comprehensive_results["results"]["food"] = {
+                    "status": "error",
+                    "error_message": str(e)
+                }
         
-        if not response_data.get("success"):
-            return raw_response
+        # 统计成功和失败的查询
+        success_count = sum(1 for r in comprehensive_results["results"].values() 
+                          if isinstance(r, dict) and r.get("status") == "success")
+        total_count = len(comprehensive_results["results"])
         
-        if format_type == "raw":
-            return raw_response
-        
-        query_type = response_data.get("query_type", "unknown")
-        results = response_data.get("results", [])
-        
-        if format_type == "summary":
-            # Generate brief summaries
-            summaries = []
-            for idx, item in enumerate(results, 1):
-                if "drug" in query_type:
-                    summary = f"{idx}. {item.get('brand_name', 'N/A')} ({item.get('generic_name', 'N/A')}) - {item.get('manufacturer', 'N/A')}"
-                elif "device" in query_type:
-                    summary = f"{idx}. {item.get('device_name', item.get('product_description', 'N/A'))}"
-                elif "food" in query_type:
-                    summary = f"{idx}. {item.get('product_name', item.get('product_description', 'N/A'))}"
-                else:
-                    summary = f"{idx}. {str(item)[:100]}..."
-                summaries.append(summary)
-            
-            return json.dumps({
-                "success": True,
-                "format": "summary",
-                "query_type": query_type,
-                "total_results": response_data.get("total", 0),
-                "summaries": summaries,
-                "data_source": response_data.get("data_source")
-            }, ensure_ascii=False, indent=2)
-        
-        else:  # detailed
-            return json.dumps({
-                "success": True,
-                "format": "detailed",
-                "query_type": query_type,
-                "total_results": response_data.get("total", 0),
-                "results": results,
-                "data_source": response_data.get("data_source")
-            }, ensure_ascii=False, indent=2)
-    
-    except Exception as e:
-        return json.dumps({
-            "success": False,
-            "error": f"Failed to format response: {str(e)}"
-        }, ensure_ascii=False, indent=2)
-
-
-@tool
-def extract_data_fields(
-    fda_response: str,
-    fields: List[str]
-) -> str:
-    """
-    Extract specific fields from FDA API response.
-    
-    Args:
-        fda_response (str): JSON response from FDA API query tools
-        fields (List[str]): List of field names to extract
-            Example: ["brand_name", "manufacturer", "indications"]
-        
-    Returns:
-        str: JSON string containing extracted fields
-    """
-    try:
-        response_data = json.loads(fda_response)
-        
-        if not response_data.get("success"):
-            return fda_response
-        
-        results = response_data.get("results", [])
-        extracted_results = []
-        
-        for item in results:
-            extracted_item = {}
-            for field in fields:
-                # Handle nested fields with dot notation
-                if "." in field:
-                    parts = field.split(".")
-                    value = item
-                    for part in parts:
-                        if isinstance(value, dict):
-                            value = value.get(part)
-                        else:
-                            value = None
-                            break
-                    extracted_item[field] = value
-                else:
-                    extracted_item[field] = item.get(field)
-            
-            extracted_results.append(extracted_item)
-        
-        return json.dumps({
-            "success": True,
-            "extracted_fields": fields,
-            "results": extracted_results,
-            "total": len(extracted_results),
-            "data_source": response_data.get("data_source")
-        }, ensure_ascii=False, indent=2)
-    
-    except Exception as e:
-        return json.dumps({
-            "success": False,
-            "error": f"Failed to extract fields: {str(e)}"
-        }, ensure_ascii=False, indent=2)
-
-
-@tool
-def validate_fda_data(
-    fda_response: str
-) -> str:
-    """
-    Validate FDA API response data quality and completeness.
-    
-    Checks for:
-    - Missing required fields
-    - Empty or null values
-    - Data consistency
-    - Completeness score
-    
-    Args:
-        fda_response (str): JSON response from FDA API query tools
-        
-    Returns:
-        str: JSON string containing validation results
-    """
-    try:
-        response_data = json.loads(fda_response)
-        
-        if not response_data.get("success"):
-            return json.dumps({
-                "success": False,
-                "error": "Cannot validate unsuccessful response"
-            }, ensure_ascii=False, indent=2)
-        
-        results = response_data.get("results", [])
-        query_type = response_data.get("query_type", "unknown")
-        
-        # Define required fields by query type
-        required_fields_map = {
-            "drug_search": ["brand_name", "generic_name", "manufacturer"],
-            "device_classification": ["device_name", "device_class"],
-            "device_recall": ["product_description", "reason_for_recall"],
-            "food_enforcement": ["product_description", "reason_for_recall"],
-            "drug_adverse_events": ["report_date", "reactions"],
-            "nda_approval": ["application_number", "sponsor_name"]
+        comprehensive_results["summary"] = {
+            "total_queries": total_count,
+            "successful_queries": success_count,
+            "failed_queries": total_count - success_count
         }
         
-        required_fields = required_fields_map.get(query_type, [])
+        return json.dumps(comprehensive_results, ensure_ascii=False, indent=2)
         
-        # Validate each result
-        validation_results = []
-        for idx, item in enumerate(results):
-            missing_fields = []
-            empty_fields = []
-            
-            for field in required_fields:
-                if field not in item:
-                    missing_fields.append(field)
-                elif item[field] in [None, "", "N/A", []]:
-                    empty_fields.append(field)
-            
-            completeness = 1.0 - (len(missing_fields) + len(empty_fields)) / max(len(required_fields), 1)
-            
-            validation_results.append({
-                "result_index": idx,
-                "completeness_score": round(completeness * 100, 2),
-                "missing_fields": missing_fields,
-                "empty_fields": empty_fields,
-                "is_complete": len(missing_fields) == 0 and len(empty_fields) == 0
-            })
-        
-        # Overall statistics
-        avg_completeness = sum(v["completeness_score"] for v in validation_results) / max(len(validation_results), 1)
-        complete_count = sum(1 for v in validation_results if v["is_complete"])
-        
-        return json.dumps({
-            "success": True,
-            "query_type": query_type,
-            "total_results": len(results),
-            "complete_results": complete_count,
-            "average_completeness": round(avg_completeness, 2),
-            "validation_results": validation_results,
-            "data_quality": "high" if avg_completeness >= 90 else "medium" if avg_completeness >= 70 else "low"
-        }, ensure_ascii=False, indent=2)
-    
     except Exception as e:
-        return json.dumps({
-            "success": False,
-            "error": f"Validation failed: {str(e)}"
-        }, ensure_ascii=False, indent=2)
+        error_result = {
+            "status": "error",
+            "query_type": "comprehensive",
+            "search_term": search_term,
+            "error_type": type(e).__name__,
+            "error_message": str(e),
+            "suggestions": [
+                "检查搜索词是否正确",
+                "尝试指定具体的数据类型（drugs/devices/food）",
+                "稍后重试（可能是API临时故障）"
+            ]
+        }
+        return json.dumps(error_result, ensure_ascii=False, indent=2)
 
 
 @tool
-def generate_data_source_info(
-    fda_response: str
-) -> str:
+def get_fda_api_stats() -> str:
     """
-    Generate comprehensive data source information for FDA query results.
+    获取FDA API统计信息和健康状态
     
-    Creates DataSource objects with full traceability including:
-    - API endpoint
-    - Complete request URL
-    - Query parameters
-    - Timestamp
-    - Cache status
+    此工具用于检查FDA API的可用性和响应性能。
     
-    Args:
-        fda_response (str): JSON response from FDA API query tools
-        
     Returns:
-        str: JSON string containing data source information
+        str: JSON格式的API统计信息
+        
+    Example:
+        >>> result = get_fda_api_stats()
+        >>> data = json.loads(result)
+        >>> print(data["api_status"])
     """
     try:
-        response_data = json.loads(fda_response)
+        # 测试各个端点的可用性
+        endpoints = {
+            "drugs": "/drug/label.json?limit=1",
+            "devices": "/device/510k.json?limit=1",
+            "food": "/food/recall.json?limit=1",
+            "drug_events": "/drug/event.json?limit=1"
+        }
         
-        if not response_data.get("success"):
-            return fda_response
+        endpoint_status = {}
+        for name, endpoint in endpoints.items():
+            try:
+                start_time = time.time()
+                url = f"{FDA_API_BASE_URL}{endpoint}"
+                response = requests.get(url, timeout=5)
+                response_time = time.time() - start_time
+                
+                endpoint_status[name] = {
+                    "status": "available" if response.status_code == 200 else "error",
+                    "status_code": response.status_code,
+                    "response_time_ms": round(response_time * 1000, 2)
+                }
+            except Exception as e:
+                endpoint_status[name] = {
+                    "status": "unavailable",
+                    "error": str(e)
+                }
         
-        data_source = response_data.get("data_source", {})
+        # 判断整体状态
+        available_count = sum(1 for s in endpoint_status.values() if s.get("status") == "available")
+        total_count = len(endpoint_status)
         
-        source_info = {
-            "success": True,
-            "data_source": {
-                "api_name": "openFDA API",
-                "api_endpoint": data_source.get("api_endpoint"),
-                "query_url": data_source.get("query_url"),
-                "timestamp": data_source.get("timestamp"),
-                "cached": response_data.get("cached", False),
-                "query_type": response_data.get("query_type"),
-                "total_results": response_data.get("total", 0),
-                "verification_url": "https://open.fda.gov/apis/",
-                "data_freshness": "Real-time" if not response_data.get("cached") else f"Cached (age: {response_data.get('cache_age_hours', 0):.1f} hours)",
-                "reliability": "Official FDA data source"
+        overall_status = "healthy" if available_count == total_count else \
+                        "degraded" if available_count > 0 else "unavailable"
+        
+        result = {
+            "status": "success",
+            "api_status": overall_status,
+            "base_url": FDA_API_BASE_URL,
+            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime()),
+            "endpoints": endpoint_status,
+            "summary": {
+                "total_endpoints": total_count,
+                "available_endpoints": available_count,
+                "unavailable_endpoints": total_count - available_count
             }
         }
         
-        return json.dumps(source_info, ensure_ascii=False, indent=2)
-    
+        return json.dumps(result, ensure_ascii=False, indent=2)
+        
     except Exception as e:
-        return json.dumps({
-            "success": False,
-            "error": f"Failed to generate source info: {str(e)}"
-        }, ensure_ascii=False, indent=2)
+        error_result = {
+            "status": "error",
+            "error_type": type(e).__name__,
+            "error_message": str(e)
+        }
+        return json.dumps(error_result, ensure_ascii=False, indent=2)

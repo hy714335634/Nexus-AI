@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-初始化 DynamoDB 表和 SQS 队列
+初始化 DynamoDB 表、SQS 队列和 S3 存储桶
 
 用法:
-    python scripts/init_infrastructure.py [--tables-only] [--queues-only]
+    python scripts/init_infrastructure.py [--tables-only] [--queues-only] [--s3-only]
 """
 import argparse
 import sys
@@ -28,6 +28,8 @@ from api.v2.config import (
     ALL_QUEUES,
 )
 
+from nexus_utils.config_loader import get_config
+
 
 def get_dynamodb_client():
     """获取 DynamoDB 客户端"""
@@ -43,6 +45,17 @@ def get_sqs_client():
     if settings.SQS_ENDPOINT_URL:
         kwargs['endpoint_url'] = settings.SQS_ENDPOINT_URL
     return boto3.client('sqs', **kwargs)
+
+
+def get_s3_client():
+    """获取 S3 客户端"""
+    return boto3.client('s3', region_name=settings.AWS_REGION)
+
+
+# 获取配置
+_config = get_config()
+ARTIFACTS_S3_BUCKET = _config.get_nested('nexus_ai', 'artifacts_s3_bucket', default='nexus-ai-artifacts')
+TABLE_ARTIFACTS = f"{settings.DYNAMODB_TABLE_PREFIX}artifacts"
 
 
 # 表定义
@@ -119,6 +132,30 @@ TABLE_DEFINITIONS = [
         'KeySchema': [{'AttributeName': 'tool_id', 'KeyType': 'HASH'}],
         'AttributeDefinitions': [{'AttributeName': 'tool_id', 'AttributeType': 'S'}],
     },
+    # Artifacts表 - 存储Agent版本和S3同步信息
+    {
+        'TableName': TABLE_ARTIFACTS,
+        'KeySchema': [
+            {'AttributeName': 'agent_name', 'KeyType': 'HASH'},
+            {'AttributeName': 'version_uuid', 'KeyType': 'RANGE'}
+        ],
+        'AttributeDefinitions': [
+            {'AttributeName': 'agent_name', 'AttributeType': 'S'},
+            {'AttributeName': 'version_uuid', 'AttributeType': 'S'},
+            {'AttributeName': 'workspace_uuid', 'AttributeType': 'S'},
+            {'AttributeName': 'created_at', 'AttributeType': 'S'}
+        ],
+        'GlobalSecondaryIndexes': [
+            {
+                'IndexName': 'WorkspaceIndex',
+                'KeySchema': [
+                    {'AttributeName': 'workspace_uuid', 'KeyType': 'HASH'},
+                    {'AttributeName': 'created_at', 'KeyType': 'RANGE'}
+                ],
+                'Projection': {'ProjectionType': 'ALL'},
+            }
+        ],
+    },
 ]
 
 
@@ -187,6 +224,47 @@ def create_queue(client, queue_name: str, is_dlq: bool = False) -> bool:
     return True
 
 
+def create_s3_bucket(client, bucket_name: str, region: str) -> bool:
+    """创建 S3 存储桶"""
+    try:
+        # 检查桶是否存在
+        client.head_bucket(Bucket=bucket_name)
+        print(f"  ⚠ S3桶已存在: {bucket_name}")
+        return False
+        
+    except ClientError as e:
+        error_code = e.response.get('Error', {}).get('Code', '')
+        if error_code == '404':
+            # 桶不存在，创建
+            try:
+                if region == 'us-east-1':
+                    client.create_bucket(Bucket=bucket_name)
+                else:
+                    client.create_bucket(
+                        Bucket=bucket_name,
+                        CreateBucketConfiguration={'LocationConstraint': region}
+                    )
+                print(f"  ✓ 创建S3桶: {bucket_name}")
+                
+                # 启用版本控制
+                client.put_bucket_versioning(
+                    Bucket=bucket_name,
+                    VersioningConfiguration={'Status': 'Enabled'}
+                )
+                print(f"  ✓ 启用版本控制: {bucket_name}")
+                
+                return True
+            except ClientError as create_error:
+                print(f"  ✗ 创建S3桶失败: {create_error}")
+                return False
+        elif error_code == '403':
+            print(f"  ⚠ S3桶存在但无访问权限: {bucket_name}")
+            return False
+        else:
+            print(f"  ✗ 检查S3桶失败: {e}")
+            return False
+
+
 def init_tables():
     """初始化所有 DynamoDB 表"""
     print("\n📦 初始化 DynamoDB 表...")
@@ -224,10 +302,27 @@ def init_queues():
     return created_count
 
 
+def init_s3():
+    """初始化 S3 存储桶"""
+    print("\n🪣 初始化 S3 存储桶...")
+    print(f"   Region: {settings.AWS_REGION}")
+    print(f"   Bucket: {ARTIFACTS_S3_BUCKET}")
+    
+    client = get_s3_client()
+    created_count = 0
+    
+    if create_s3_bucket(client, ARTIFACTS_S3_BUCKET, settings.AWS_REGION):
+        created_count += 1
+    
+    print(f"\n   新建 {created_count} 个S3桶")
+    return created_count
+
+
 def main():
-    parser = argparse.ArgumentParser(description='初始化 DynamoDB 表和 SQS 队列')
+    parser = argparse.ArgumentParser(description='初始化 DynamoDB 表、SQS 队列和 S3 存储桶')
     parser.add_argument('--tables-only', action='store_true', help='仅初始化 DynamoDB 表')
     parser.add_argument('--queues-only', action='store_true', help='仅初始化 SQS 队列')
+    parser.add_argument('--s3-only', action='store_true', help='仅初始化 S3 存储桶')
     args = parser.parse_args()
     
     print("=" * 50)
@@ -239,9 +334,12 @@ def main():
             init_queues()
         elif args.tables_only:
             init_tables()
+        elif args.s3_only:
+            init_s3()
         else:
             init_tables()
             init_queues()
+            init_s3()
         
         print("\n" + "=" * 50)
         print("✅ 初始化完成！")

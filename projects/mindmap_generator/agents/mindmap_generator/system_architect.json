@@ -1,0 +1,330 @@
+{
+  "system_design": {
+    "design_overview": {
+      "project_name": "mindmap_generator",
+      "version": "1.0",
+      "date": "2026-01-22",
+      "design_scope": "设计一个智能思维导图生成Agent系统，能够接收用户的话题或文本内容，通过AI分析理解内容结构和逻辑关系，自动生成清晰、层次分明的思维导图，支持Markdown、Mermaid、JSON三种输出格式，并提供流式响应以提升用户体验。系统采用单Agent架构，基于Nexus-AI平台和AWS Bedrock AgentCore部署。",
+      "design_principles": [
+        "单一职责原则：Agent专注于思维导图生成，功能聚焦明确",
+        "流式响应优先：采用异步流式输出，提供实时反馈和更好的用户体验",
+        "多格式支持：同时支持Markdown、Mermaid、JSON三种格式，满足不同使用场景",
+        "内容驱动设计：通过提示词工程实现内容分析和创意生成，无需复杂工具",
+        "可扩展性：基于模板架构，便于后续功能扩展和格式增加",
+        "生产就绪：遵循AWS Bedrock AgentCore规范，确保可靠部署"
+      ],
+      "key_decisions": [
+        "决策1：采用单Agent架构而非多Agent架构，理由是功能需求聚焦且逻辑清晰，单Agent通过提示词工程即可完成所有功能，避免多Agent协调的复杂性",
+        "决策2：基于content_generator_agent模板进行定制，理由是该模板原生支持流式响应、创意生成、高token限制，与需求高度匹配（评分82/100）",
+        "决策3：使用Claude Sonnet 4.5模型（anthropic.claude-sonnet-4-5-20250929-v1:0），理由是该模型具备强大的内容分析和创意生成能力，且是项目指定模型",
+        "决策4：优先通过提示词工程实现功能，最小化工具开发，理由是思维导图生成主要依赖AI的理解和创意能力，过多工具会增加复杂性",
+        "决策5：采用BedrockAgentCoreApp框架的流式handler模式，理由是符合AgentCore部署规范，支持流式响应和生产环境部署",
+        "决策6：输出格式限定为Markdown、Mermaid、JSON三种，理由是这三种格式覆盖了文本、可视化、数据交换三大场景，且易于实现"
+      ],
+      "workflow_type": "single_agent",
+      "recommended_templates": [
+        "content_generator_agent (评分: 82/100) - 主推荐模板，原生支持流式响应和创意生成",
+        "document_processor_agent (评分: 75/100) - 备选模板，适合内容分析场景"
+      ]
+    },
+    "architecture": {
+      "system_context": "本系统是一个基于AI的思维导图生成服务，部署在AWS Bedrock AgentCore平台上。用户通过HTTP接口提交话题或文本内容，系统通过Claude Sonnet 4.5模型进行内容分析和思维导图生成，以流式方式返回多种格式的思维导图结果。系统采用单Agent架构，所有功能由mindmap_generator Agent独立完成。系统与AWS Bedrock服务集成，使用boto3 SDK进行模型调用，通过Strands SDK构建Agent，支持OTLP遥测数据收集。",
+      "agent_topology": "单Agent拓扑结构：\n\n[用户] <--HTTP--> [AgentCore HTTP Server (Port 8080)]\n                        |\n                        v\n                  [handler入口点]\n                        |\n                        v\n              [mindmap_generator Agent]\n                        |\n                        +-- [内容接收与预处理]\n                        +-- [内容结构分析]\n                        +-- [思维导图节点生成]\n                        +-- [多格式输出]\n                        |     +-- Markdown格式\n                        |     +-- Mermaid格式\n                        |     +-- JSON格式\n                        +-- [流式响应输出]\n                        |\n                        v\n              [Claude Sonnet 4.5 Model]\n                        |\n                        v\n                  [AWS Bedrock API]\n\n核心特点：\n- 单一Agent负责所有功能\n- 流式响应贯穿整个处理流程\n- 基于提示词工程实现核心逻辑\n- 无需Agent间协调和数据传递",
+      "interaction_model": "用户交互模型：\n\n1. 同步请求-流式响应模式：\n   - 用户发送HTTP POST请求到/invocations端点\n   - handler函数接收payload（包含prompt）\n   - Agent使用stream_async()方法处理请求\n   - 通过yield逐步返回生成的思维导图内容\n   - 用户实时接收流式响应片段\n\n2. 数据流向：\n   用户输入 → handler → Agent.stream_async() → LLM流式调用 → yield输出 → 用户\n\n3. 会话管理：\n   - 通过RequestContext.session_id支持会话跟踪\n   - 每次请求独立处理，无状态设计\n   - 可选支持多轮对话（通过会话ID关联）\n\n4. 错误处理流：\n   异常发生 → 捕获异常 → yield错误信息 → 用户接收友好提示\n\n5. 本地测试模式：\n   - 支持-i参数进行单次测试\n   - 支持-it参数进入交互式对话\n   - 支持-e和-v参数切换环境和版本",
+      "technology_stack": {
+        "sdk": "Strands SDK",
+        "runtime": "AWS Bedrock AgentCore (Docker容器) / Local Python 3.13+",
+        "ai_model": "anthropic.claude-sonnet-4-5-20250929-v1:0",
+        "framework": "BedrockAgentCoreApp (Starlette HTTP Server)",
+        "agent_factory": "nexus_utils.agent_factory.create_agent_from_prompt_template",
+        "telemetry": "StrandsTelemetry + OTLP Exporter",
+        "integrations": [
+          "AWS Bedrock API (通过boto3 SDK)",
+          "OTLP遥测服务 (默认http://localhost:4318)",
+          "ConfigLoader配置管理"
+        ]
+      }
+    },
+    "agents": [
+      {
+        "name": "mindmap_generator",
+        "purpose": "根据用户提供的话题或文本内容，智能分析内容结构和逻辑关系，生成清晰、层次分明的思维导图，支持多种输出格式",
+        "responsibilities": [
+          "接收和解析用户输入的话题或文本内容",
+          "分析内容的主题、子主题和关键概念",
+          "识别内容的层次结构和逻辑关系",
+          "生成思维导图的节点和连接关系",
+          "输出Markdown格式的层次化文本",
+          "输出Mermaid mindmap格式的图表代码",
+          "输出JSON格式的数据结构",
+          "提供流式响应以实时反馈生成进度",
+          "处理异常情况并返回友好的错误提示"
+        ],
+        "interfaces": {
+          "inputs": [
+            "prompt: 用户输入的话题或文本内容（字符串，不超过10000字）",
+            "format_preference: 可选的输出格式偏好（默认输出所有格式）",
+            "max_nodes: 可选的最大节点数限制（默认50）",
+            "max_depth: 可选的最大层级深度（默认5）"
+          ],
+          "outputs": [
+            "markdown_mindmap: Markdown格式的思维导图（使用缩进和列表符号）",
+            "mermaid_code: Mermaid mindmap格式的图表代码（包含```mermaid代码块）",
+            "json_structure: JSON格式的思维导图数据结构（包含节点ID、标题、层级、关系）",
+            "metadata: 生成元数据（节点数量、层级深度、生成时间等）",
+            "error_message: 错误信息（仅在异常时返回）"
+          ]
+        },
+        "dependencies": [
+          "AWS Bedrock API (Claude Sonnet 4.5模型)",
+          "nexus_utils.agent_factory (Agent创建)",
+          "nexus_utils.config_loader (配置管理)",
+          "StrandsTelemetry (遥测数据收集)"
+        ],
+        "implementation_notes": [
+          "基于content_generator_agent模板进行定制",
+          "使用create_agent_from_prompt_template工厂方法创建Agent",
+          "Agent配置路径：prompts/generated_agents_prompts/mindmap_generator/mindmap_generator.yaml",
+          "Agent脚本路径：agents/generated_agents/mindmap_generator/mindmap_generator.py",
+          "必须实现async handler(payload, context)入口点函数",
+          "handler函数使用@app.entrypoint装饰器",
+          "使用agent.stream_async()方法获取流式响应",
+          "通过yield产生流式输出片段",
+          "支持DOCKER_CONTAINER环境变量判断运行模式",
+          "生产环境参数：env=production, version=latest, model_id=default",
+          "温度参数建议：0.7（兼顾创意性和准确性）",
+          "最大token限制：60000（生产环境）"
+        ],
+        "recommended_template": "content_generator_agent"
+      }
+    ],
+    "data_models": [
+      {
+        "name": "MindmapNode",
+        "schema": "{\n  \"id\": \"string (唯一节点标识符，如'node_1')\",\n  \"title\": \"string (节点标题，不超过20字)\",\n  \"level\": \"integer (节点层级，0为根节点)\",\n  \"parent_id\": \"string | null (父节点ID，根节点为null)\",\n  \"children\": \"array of string (子节点ID列表)\",\n  \"order\": \"integer (同级节点的顺序)\",\n  \"description\": \"string | null (可选的节点详细描述)\"\n}",
+        "validation_rules": [
+          "id必须唯一且非空",
+          "title长度在1-20字符之间",
+          "level必须为非负整数，且不超过max_depth",
+          "parent_id必须指向已存在的节点（根节点除外）",
+          "children数组中的ID必须都存在于节点集合中",
+          "同一父节点下的子节点order值不重复",
+          "根节点有且仅有一个（level=0, parent_id=null）"
+        ],
+        "relationships": [
+          "父子关系：通过parent_id和children建立树形结构",
+          "层级关系：通过level表示节点深度",
+          "顺序关系：通过order控制同级节点的显示顺序"
+        ]
+      },
+      {
+        "name": "MindmapOutput",
+        "schema": "{\n  \"metadata\": {\n    \"topic\": \"string (中心主题)\",\n    \"total_nodes\": \"integer (总节点数)\",\n    \"max_depth\": \"integer (最大层级深度)\",\n    \"generated_at\": \"string (生成时间戳)\",\n    \"formats\": \"array of string (包含的输出格式)\"\n  },\n  \"markdown\": \"string (Markdown格式的思维导图)\",\n  \"mermaid\": \"string (Mermaid代码块)\",\n  \"json\": {\n    \"nodes\": \"array of MindmapNode (所有节点列表)\",\n    \"root_id\": \"string (根节点ID)\"\n  }\n}",
+        "validation_rules": [
+          "metadata.total_nodes必须等于json.nodes数组长度",
+          "metadata.max_depth必须等于nodes中最大的level值",
+          "markdown、mermaid、json至少包含一种格式",
+          "json.root_id必须指向level=0的节点"
+        ],
+        "relationships": [
+          "metadata描述整个思维导图的统计信息",
+          "markdown、mermaid、json是同一思维导图的不同表示形式",
+          "三种格式的内容结构必须保持一致"
+        ]
+      }
+    ],
+    "interaction_flows": [
+      {
+        "name": "标准思维导图生成流程",
+        "description": "用户输入话题或文本，系统分析并生成思维导图，以流式方式返回多种格式的结果",
+        "steps": [
+          {
+            "step": "1. 接收用户请求",
+            "agent": "AgentCore HTTP Server",
+            "action": "接收HTTP POST请求到/invocations端点",
+            "data": "payload = {prompt: '用户输入的话题或内容', user_id: 'optional', session_id: 'optional'}"
+          },
+          {
+            "step": "2. 调用handler入口点",
+            "agent": "BedrockAgentCoreApp",
+            "action": "调用@app.entrypoint装饰的handler函数",
+            "data": "payload + RequestContext(session_id)"
+          },
+          {
+            "step": "3. 提取和验证输入",
+            "agent": "handler函数",
+            "action": "从payload中提取prompt，验证非空",
+            "data": "prompt: string"
+          },
+          {
+            "step": "4. 启动流式处理",
+            "agent": "mindmap_generator Agent",
+            "action": "调用agent.stream_async(prompt)获取异步流",
+            "data": "async generator stream"
+          },
+          {
+            "step": "5. 内容分析",
+            "agent": "Claude Sonnet 4.5 Model",
+            "action": "分析输入内容，识别主题、子主题、关键概念和层次关系",
+            "data": "分析结果：主题结构、概念列表、层级关系"
+          },
+          {
+            "step": "6. 生成思维导图结构",
+            "agent": "Claude Sonnet 4.5 Model",
+            "action": "基于分析结果，构建思维导图节点和连接关系",
+            "data": "节点列表、父子关系、层级信息"
+          },
+          {
+            "step": "7. 输出Markdown格式",
+            "agent": "Claude Sonnet 4.5 Model",
+            "action": "生成Markdown格式的层次化文本（使用缩进和列表符号）",
+            "data": "Markdown文本片段（流式输出）"
+          },
+          {
+            "step": "8. 输出Mermaid格式",
+            "agent": "Claude Sonnet 4.5 Model",
+            "action": "生成Mermaid mindmap格式的图表代码",
+            "data": "Mermaid代码片段（流式输出）"
+          },
+          {
+            "step": "9. 输出JSON格式",
+            "agent": "Claude Sonnet 4.5 Model",
+            "action": "生成JSON格式的数据结构",
+            "data": "JSON数据片段（流式输出）"
+          },
+          {
+            "step": "10. 流式返回结果",
+            "agent": "handler函数",
+            "action": "通过yield逐步返回生成的内容片段",
+            "data": "每个event包含一个文本片段"
+          },
+          {
+            "step": "11. 用户接收响应",
+            "agent": "用户客户端",
+            "action": "实时接收并显示流式响应内容",
+            "data": "完整的思维导图（多种格式）"
+          }
+        ]
+      },
+      {
+        "name": "错误处理流程",
+        "description": "处理输入无效、模型调用失败等异常情况",
+        "steps": [
+          {
+            "step": "1. 检测到异常",
+            "agent": "handler函数或Agent",
+            "action": "捕获Exception异常",
+            "data": "异常对象（包含错误信息）"
+          },
+          {
+            "step": "2. 记录错误日志",
+            "agent": "handler函数",
+            "action": "打印错误信息到标准输出",
+            "data": "print(f'❌ Error: {str(e)}')"
+          },
+          {
+            "step": "3. 生成友好错误提示",
+            "agent": "handler函数",
+            "action": "根据异常类型生成用户友好的错误信息",
+            "data": "错误提示字符串"
+          },
+          {
+            "step": "4. 返回错误响应",
+            "agent": "handler函数",
+            "action": "通过yield返回以'Error: '开头的错误信息",
+            "data": "yield f'Error: {错误描述}'"
+          },
+          {
+            "step": "5. 用户接收错误提示",
+            "agent": "用户客户端",
+            "action": "显示错误信息并提供改进建议",
+            "data": "错误提示和改进建议"
+          }
+        ]
+      },
+      {
+        "name": "本地测试流程",
+        "description": "开发者在本地环境测试Agent功能",
+        "steps": [
+          {
+            "step": "1. 启动脚本",
+            "agent": "开发者",
+            "action": "运行python mindmap_generator.py -i '测试话题' -e development",
+            "data": "命令行参数"
+          },
+          {
+            "step": "2. 解析参数",
+            "agent": "__main__",
+            "action": "使用argparse解析命令行参数",
+            "data": "args对象"
+          },
+          {
+            "step": "3. 创建Agent实例",
+            "agent": "create_mindmap_generator_agent",
+            "action": "调用agent_factory创建Agent",
+            "data": "Agent对象"
+          },
+          {
+            "step": "4. 执行测试",
+            "agent": "mindmap_generator Agent",
+            "action": "调用agent(test_input)处理测试输入",
+            "data": "测试结果"
+          },
+          {
+            "step": "5. 输出结果",
+            "agent": "__main__",
+            "action": "打印响应结果到控制台",
+            "data": "print(f'📋 响应: {result}')"
+          }
+        ]
+      }
+    ],
+    "security_considerations": [
+      "输入验证：检查prompt非空且长度在合理范围内（不超过10000字），防止过长输入导致资源耗尽",
+      "输出安全：生成的Mermaid和JSON代码进行格式验证，防止代码注入攻击",
+      "数据隐私：不在日志或遥测数据中记录用户的敏感输入内容，仅记录元数据（长度、格式等）",
+      "API密钥保护：AWS Bedrock API密钥通过环境变量或AWS IAM角色管理，不硬编码在代码中",
+      "访问控制：AgentCore部署时通过AWS IAM策略控制访问权限",
+      "错误信息安全：错误提示不暴露系统内部细节（如堆栈跟踪、文件路径等）",
+      "OTLP遥测安全：遥测数据传输使用HTTP/HTTPS协议，敏感数据不包含在遥测中",
+      "环境变量保护：BYPASS_TOOL_CONSENT等敏感环境变量仅在可信环境中设置"
+    ],
+    "error_handling": [
+      "输入验证错误：prompt为空或None时，返回'Error: Missing prompt in request'",
+      "内容过长错误：输入超过10000字时，提示'内容过长，请缩短至10000字以内或分段处理'",
+      "模型调用失败：捕获AWS Bedrock API异常，返回'模型调用失败，请稍后重试'",
+      "流式响应中断：捕获stream_async异常，记录错误并返回已生成的部分内容",
+      "格式生成错误：某种格式生成失败时，继续生成其他格式，并在错误部分标注'该格式生成失败'",
+      "JSON解析错误：JSON格式验证失败时，返回原始JSON字符串并提示'JSON格式可能不完整'",
+      "Mermaid语法错误：Mermaid代码验证失败时，提示'Mermaid代码可能包含语法错误，请手动检查'",
+      "超时处理：单次请求处理超过60秒时，返回超时错误并建议简化输入",
+      "资源耗尽：内存或CPU使用过高时，拒绝新请求并返回'系统繁忙，请稍后重试'",
+      "异常兜底：所有未预期的异常都被捕获，返回通用错误提示并记录完整堆栈到日志"
+    ],
+    "performance_considerations": [
+      "流式响应优化：使用stream_async()方法，首个token在3秒内返回，提升用户感知性能",
+      "Token限制管理：生产环境max_tokens=60000，足以生成复杂思维导图，避免token不足导致截断",
+      "温度参数调优：temperature=0.7，平衡创意性和准确性，避免过高导致输出不稳定",
+      "并发处理能力：单Agent实例支持多个并发请求，通过async/await实现异步处理",
+      "内存优化：流式输出避免一次性加载大量数据到内存，单次处理内存控制在500MB以内",
+      "缓存策略：相同输入的结果可缓存（可选功能，后续版本实现），减少重复计算",
+      "响应时间目标：简单话题生成时间<10秒，复杂文本分析时间<30秒",
+      "节点数量优化：建议单层不超过7个节点，总节点数不超过50个，避免生成过大的思维导图",
+      "模型选择：使用Claude Sonnet 4.5（高性能版本），相比Opus更快且成本更低",
+      "遥测开销控制：OTLP遥测数据异步发送，不阻塞主流程，开销控制在5%以内"
+    ],
+    "monitoring_strategy": [
+      "请求监控：记录每个请求的session_id、输入长度、处理时间、输出格式",
+      "性能指标：监控首token响应时间、总处理时间、token使用量、内存使用",
+      "错误率监控：统计各类错误的发生频率和占比，重点关注模型调用失败和超时",
+      "OTLP遥测集成：通过StrandsTelemetry收集trace、metric、log数据，发送到OTLP endpoint",
+      "日志记录：使用结构化日志记录关键事件（请求接收、处理开始、格式生成、响应完成、错误发生）",
+      "健康检查：提供/health端点（AgentCore自带），监控服务可用性",
+      "资源监控：监控CPU、内存、网络使用情况，设置告警阈值",
+      "用户行为分析：统计最常用的话题类型、输出格式偏好、平均节点数量",
+      "模型性能监控：监控Claude模型的响应时间、成功率、token消耗",
+      "告警机制：错误率>5%、响应时间>60秒、内存使用>80%时触发告警"
+    ]
+  },
+  "design_rationale": "本系统设计基于以下核心考量和决策理由：\n\n1. **单Agent架构选择**：\n   需求分析显示，思维导图生成是一个功能聚焦、逻辑清晰的任务，涉及内容分析、结构生成、格式转换三个步骤，这些步骤之间是线性依赖关系，不需要多个专业角色的并行协作。单Agent架构可以避免多Agent协调的复杂性（如消息传递、状态同步、错误传播），降低系统复杂度，提升性能和可维护性。通过精心设计的提示词工程，单个Claude Sonnet 4.5模型完全可以胜任内容分析和创意生成的双重任务。\n\n2. **基于content_generator_agent模板定制**：\n   经过模板搜索和评估，content_generator_agent模板获得82/100的高分，主要原因是：(1) 原生支持流式响应（streaming: true），完美契合需求；(2) 专注于创意内容生成，系统提示词已包含'创意内容和故事'生成指导；(3) 生产环境max_tokens=60000，足以生成复杂思维导图；(4) temperature=0.7的参数设置兼顾创意性和准确性；(5) 已在生产环境验证，稳定可靠。相比从零开始开发，基于该模板定制可节省60%以上的开发工作量，且继承了成熟的架构模式和最佳实践。\n\n3. **提示词工程优先策略**：\n   本设计遵循'功能需求分析'原则，即能通过Agent提示词实现的功能，优先通过提示词实现，避免开发额外工具。思维导图生成的核心能力（内容分析、结构识别、创意扩展、格式转换）都可以通过精心设计的提示词引导Claude模型完成。这种方法的优势是：(1) 开发成本低，无需编写和维护工具代码；(2) 灵活性高，通过调整提示词即可优化效果；(3) 可靠性高，减少工具代码引入的bug；(4) 易于迭代，提示词修改比代码修改更快。因此，本设计不引入任何自定义工具，所有功能通过提示词工程实现。\n\n4. **流式响应机制**：\n   流式响应是本设计的核心特性之一，理由是：(1) 思维导图生成可能需要10-30秒，流式输出可显著提升用户感知性能；(2) 用户可实时看到生成过程（先Markdown，后Mermaid，最后JSON），增强交互体验；(3) 符合现代AI应用的最佳实践（如ChatGPT的流式输出）；(4) BedrockAgentCoreApp框架原生支持流式handler，实现成本低。设计采用async/await模式，通过agent.stream_async()获取异步流，使用yield逐步返回结果，确保响应的实时性和连续性。\n\n5. **多格式输出设计**：\n   支持Markdown、Mermaid、JSON三种格式是基于不同使用场景的考虑：(1) Markdown适合文档编辑和快速查看，是最通用的文本格式；(2) Mermaid适合可视化展示，可在GitHub、Notion等平台直接渲染；(3) JSON适合数据交换和二次开发，为未来集成预留接口。三种格式的内容结构保持一致，通过统一的思维导图数据模型（MindmapNode）生成，确保格式间的一致性。默认输出所有格式，用户也可通过提示词指定特定格式，提供灵活性。\n\n6. **数据模型设计**：\n   MindmapNode和MindmapOutput两个数据模型是思维导图系统的核心抽象。MindmapNode采用树形结构设计，通过id、parent_id、children建立节点关系，通过level表示层级深度，通过order控制显示顺序。这种设计的优势是：(1) 结构清晰，易于理解和维护；(2) 支持任意层级深度（最多5层）；(3) 支持节点重排序和插入；(4) 便于JSON序列化和反序列化；(5) 为未来功能扩展（如节点编辑、合并、拆分）预留空间。MindmapOutput作为输出容器，统一管理元数据和三种格式的内容，确保输出的完整性和一致性。\n\n7. **错误处理策略**：\n   本设计采用分层错误处理机制：(1) 输入层：验证prompt非空和长度合理，防止无效输入；(2) 处理层：捕获模型调用异常和流式响应中断，提供降级处理；(3) 输出层：验证生成的格式正确性，对错误部分进行标注；(4) 用户层：返回友好的错误提示和改进建议，避免暴露技术细节。所有异常都被捕获并转换为以'Error: '开头的错误信息，通过yield返回给用户。这种设计确保系统不会因为单个请求失败而崩溃，同时为用户提供清晰的错误反馈。\n\n8. **性能优化考虑**：\n   性能优化贯穿整个设计：(1) 流式响应减少首字节延迟（TTFB），首token在3秒内返回；(2) 异步处理支持并发请求，提升吞吐量；(3) max_tokens=60000避免token不足导致截断；(4) temperature=0.7平衡创意性和稳定性；(5) 节点数量限制（最多50个）避免生成过大的思维导图；(6) 内存控制在500MB以内，避免OOM；(7) OTLP遥测异步发送，不阻塞主流程。这些优化措施确保系统在高负载下仍能保持稳定的性能。\n\n9. **安全性设计**：\n   安全性是生产系统的基础要求：(1) 输入验证防止恶意输入和资源耗尽攻击；(2) 输出验证防止代码注入和XSS攻击；(3) 数据隐私保护，不记录用户敏感内容；(4) API密钥通过环境变量管理，不硬编码；(5) 错误信息不暴露系统内部细节；(6) AWS IAM策略控制访问权限。这些措施确保系统在开放网络环境中的安全性。\n\n10. **可观测性设计**：\n    可观测性是运维和优化的基础：(1) OTLP遥测集成提供完整的trace、metric、log数据；(2) 结构化日志记录关键事件和性能指标；(3) 监控请求时间、错误率、资源使用等核心指标；(4) 告警机制及时发现异常情况；(5) 用户行为分析支持产品迭代。这些措施确保系统的运行状态透明可控，问题可快速定位和解决。\n\n11. **可扩展性设计**：\n    虽然当前是单Agent架构，但设计预留了扩展空间：(1) 基于模板架构，可快速添加新Agent；(2) JSON输出为第三方集成预留接口；(3) 数据模型支持节点编辑和扩展；(4) 提示词工程易于迭代优化；(5) 多环境配置支持开发、测试、生产分离。这些设计确保系统可随业务需求演进。\n\n综上所述，本系统设计在功能完整性、性能、安全性、可维护性之间取得了良好的平衡，是一个生产就绪的解决方案。通过单Agent架构和提示词工程优先策略，最小化了系统复杂度，同时通过流式响应和多格式输出，最大化了用户体验和适用场景。基于成熟的content_generator_agent模板，确保了快速交付和稳定运行。"
+}

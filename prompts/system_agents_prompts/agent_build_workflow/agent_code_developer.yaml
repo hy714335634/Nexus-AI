@@ -75,6 +75,7 @@ agent:
         - `nexus` - 不存在，使用 `./nexus_utils` 代替
         - `nexus_ai` - 不存在，使用 `./nexus_utils` 代替
         - `strands` - 已弃用，使用 `strands-agents` 代替
+        - `logging` - 禁止使用，禁止记录日志，已有专门模块替代
 
         ❌ **禁止包含Python内置模块**（这些是标准库，不需要安装）：
         - `os`, `sys`, `json`, `argparse`, `logging`, `typing`, `re`, `datetime`, `time`

@@ -1,0 +1,95 @@
+{
+  "project_name": "mindmap_generator",
+  "validation_timestamp": "2026-01-22T06:09:56.873954+00:00",
+  "overall_status": "success",
+  "agent_scripts": [
+    {
+      "script_path": "agents/generated_agents/mindmap_generator/mindmap_generator.py",
+      "syntax_valid": true,
+      "dependencies": [
+        "os",
+        "json",
+        "typing",
+        "nexus_utils.agent_factory",
+        "bedrock_agentcore.runtime",
+        "bedrock_agentcore.runtime.context",
+        "strands.telemetry",
+        "nexus_utils.config_loader",
+        "argparse"
+      ],
+      "execution_params": [],
+      "argparse_params": [
+        {
+          "name": "-i",
+          "type": "str",
+          "description": "测试输入（话题或文本内容）",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "-e",
+          "type": "str",
+          "description": "指定Agent运行环境（默认: production）",
+          "required": false,
+          "default": "production",
+          "action": null
+        },
+        {
+          "name": "-v",
+          "type": "str",
+          "description": "指定Agent版本（默认: latest）",
+          "required": false,
+          "default": "latest",
+          "action": null
+        },
+        {
+          "name": "-it",
+          "type": "str",
+          "description": "启动交互式多轮对话模式",
+          "required": false,
+          "default": null,
+          "action": "store_true"
+        }
+      ],
+      "error_message": ""
+    }
+  ],
+  "prompt_files": [
+    {
+      "prompt_path": "generated_agents_prompts/mindmap_generator/mindmap_generator_prompt.yaml",
+      "tool_count": 1,
+      "valid": true,
+      "error_message": "",
+      "metadata": {
+        "tags": [
+          "mindmap",
+          "content_generation",
+          "visualization",
+          "structure_analysis"
+        ],
+        "supported_models": [
+          "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
+        ],
+        "tools_dependencies": [
+          "strands_tools/current_time"
+        ]
+      },
+      "agent_info": {
+        "name": "mindmap_generator",
+        "description": "专业的思维导图生成助手，能够将任意话题或文本内容转化为结构化、可视化的思维导图",
+        "category": "content_generation"
+      }
+    }
+  ],
+  "generated_tools": [],
+  "total_tools": 1,
+  "summary": {
+    "agent_scripts_count": 1,
+    "prompt_files_count": 1,
+    "generated_tool_files_count": 0,
+    "all_scripts_valid": true,
+    "all_tools_valid": true,
+    "all_prompts_valid": true
+  }
+}

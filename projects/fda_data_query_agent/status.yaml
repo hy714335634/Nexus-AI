@@ -1,57 +1,58 @@
 agents: {}
-created_at: '2025-12-28T04:47:53.827186+00:00'
-last_updated: '2025-12-28T04:47:53.827191+00:00'
+created_at: '2026-01-22T16:10:23.115546+00:00'
+last_updated: '2026-01-22T16:10:23.115554+00:00'
 project: fda_data_query_agent
 project_info:
 - agents:
-  - created_date: '2025-12-28T04:49:50.427382+00:00'
+  - created_date: '2026-01-22T16:13:34.028487+00:00'
     description: 智能体：fda_data_query_agent
-    last_updated: '2025-12-28T05:08:47.497610+00:00'
+    last_updated: '2026-01-22T16:39:43.135558+00:00'
     name: fda_data_query_agent
     pipeline:
     - description: 需求分析阶段 - 分析用户需求，定义功能规格
       doc_path: projects/fda_data_query_agent/agents/fda_data_query_agent/requirements_analyzer.json
       stage: requirements_analyzer
       status: true
-      updated_date: '2025-12-28T04:49:50.427401+00:00'
+      updated_date: '2026-01-22T16:13:34.028502+00:00'
     - description: 系统架构设计阶段 - 设计系统架构和技术方案
       doc_path: projects/fda_data_query_agent/agents/fda_data_query_agent/system_architect.json
       stage: system_architect
       status: true
-      updated_date: '2025-12-28T04:52:41.341322+00:00'
+      updated_date: '2026-01-22T16:18:17.643864+00:00'
     - description: Agent设计阶段 - 设计智能体结构和交互模式
-      doc_path: projects/fda_data_query_agent/agents/fda_data_query_agent/agent_designer.json
+      doc_path: ''
       stage: agent_designer
       status: true
-      updated_date: '2025-12-28T04:54:48.989006+00:00'
+      updated_date: '2026-01-22T16:20:55.796236+00:00'
     - agent_artifact_path:
       - prompts/generated_agents_prompts/fda_data_query_agent/fda_data_query_agent_prompt.yaml
       description: 提示词工程阶段 - 设计和优化提示词模板
-      doc_path: projects/fda_data_query_agent/agents/fda_data_query_agent/prompt_engineer.json
+      doc_path: ''
       stage: prompt_engineer
       status: true
-      updated_date: '2025-12-28T05:03:57.346980+00:00'
+      updated_date: '2026-01-22T16:32:41.275491+00:00'
     - agent_artifact_path:
       - tools/generated_tools/fda_data_query_agent/fda_api_tools.py
+      - tools/generated_tools/fda_data_query_agent/fda_support_tools.py
       description: 工具开发阶段 - 开发必要的工具和函数
       doc_path: projects/fda_data_query_agent/agents/fda_data_query_agent/tools_developer.json
       stage: tools_developer
       status: true
-      updated_date: '2025-12-28T05:00:29.617897+00:00'
+      updated_date: '2026-01-22T16:27:45.197389+00:00'
     - agent_artifact_path:
-      - agents/generated_agents/fda_data_query_agent/fda_data_query_agent.py
+      - generated_agents/fda_data_query_agent/fda_data_query_agent.py
       description: Agent代码开发阶段 - 实现智能体代码
-      doc_path: projects/fda_data_query_agent/agents/fda_data_query_agent/agent_code_developer.json
+      doc_path: ''
       stage: agent_code_developer
       status: true
-      updated_date: '2025-12-28T05:06:08.663770+00:00'
+      updated_date: '2026-01-22T16:36:17.048121+00:00'
     - description: Agent开发管理阶段 - 管理和协调开发流程
-      doc_path: projects/fda_data_query_agent/README.md
+      doc_path: ''
       stage: agent_developer_manager
       status: true
-      updated_date: '2025-12-28T05:08:47.497613+00:00'
-  description: FDA数据查询智能体 - 支持实时查询FDA药物、医疗设备、食品等公开数据，提供自然语言交互、专业问答和数据来源追溯功能
-  last_updated: '2025-12-28T05:08:47.497598+00:00'
+      updated_date: '2026-01-22T16:39:43.135562+00:00'
+  description: FDA数据查询智能Agent - 支持实时FDA数据库交互、官方API访问、药物/医疗设备/食品等多类型数据查询、自然语言查询接口、专业问题回答、来源引用、数据不足时的智能提示
+  last_updated: '2026-01-22T16:39:43.135544+00:00'
   name: fda_data_query_agent
   progress:
   - completed: 7

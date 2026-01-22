@@ -33,6 +33,10 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["Sessions"])
 
+# 工具调用数据大小限制（字符数）
+TOOL_INPUT_MAX_LENGTH = 2000
+TOOL_RESULT_MAX_LENGTH = 5000
+
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
@@ -40,6 +44,36 @@ def _now() -> str:
 
 def _request_id() -> str:
     return str(uuid.uuid4())
+
+
+def _truncate_tool_calls(tool_calls: List[dict]) -> List[dict]:
+    """
+    截断工具调用数据，防止超过 DynamoDB 大小限制
+    
+    参数:
+        tool_calls: 工具调用列表
+    
+    返回:
+        截断后的工具调用列表
+    """
+    if not tool_calls:
+        return tool_calls
+    
+    truncated = []
+    for tc in tool_calls:
+        truncated_tc = tc.copy()
+        
+        # 截断 input
+        if truncated_tc.get("input") and len(truncated_tc["input"]) > TOOL_INPUT_MAX_LENGTH:
+            truncated_tc["input"] = truncated_tc["input"][:TOOL_INPUT_MAX_LENGTH] + f"... [truncated, total {len(tc['input'])} chars]"
+        
+        # 截断 result
+        if truncated_tc.get("result") and len(truncated_tc["result"]) > TOOL_RESULT_MAX_LENGTH:
+            truncated_tc["result"] = truncated_tc["result"][:TOOL_RESULT_MAX_LENGTH] + f"... [truncated, total {len(tc['result'])} chars]"
+        
+        truncated.append(truncated_tc)
+    
+    return truncated
 
 
 # ============== Agent Sessions ==============
@@ -343,7 +377,10 @@ async def stream_chat(
             """生成流式响应"""
             assistant_chunks = []
             current_tool_name = None
+            current_tool_id = ""
             current_tool_input = ""
+            # 用于保存工具调用信息到数据库
+            tool_calls_for_db = []
             
             try:
                 if runtime_arn:
@@ -378,16 +415,29 @@ async def stream_chat(
                             
                             elif msg_type == "tool_use":
                                 current_tool_name = event.get("tool_name", "unknown")
+                                current_tool_id = event.get("tool_id", "")
+                                current_tool_input = ""
+                                # 添加新的工具调用记录
+                                tool_calls_for_db.append({
+                                    "name": current_tool_name,
+                                    "id": current_tool_id,
+                                    "input": "",
+                                    "result": "",
+                                    "status": "running"
+                                })
                                 yield _format_sse({
                                     "event": "message",
                                     "type": "tool_use",
                                     "tool_name": current_tool_name,
-                                    "tool_id": event.get("tool_id", "")
+                                    "tool_id": current_tool_id
                                 })
                             
                             elif msg_type == "tool_input":
                                 input_chunk = event.get("data", "")
                                 current_tool_input += input_chunk
+                                # 更新最后一个工具调用的输入
+                                if tool_calls_for_db:
+                                    tool_calls_for_db[-1]["input"] = current_tool_input
                                 yield _format_sse({
                                     "event": "message",
                                     "type": "tool_input",
@@ -395,13 +445,21 @@ async def stream_chat(
                                 })
                             
                             elif msg_type == "tool_end":
+                                tool_result = event.get("tool_result", "")
+                                # 更新最后一个工具调用的结果和状态
+                                if tool_calls_for_db:
+                                    tool_calls_for_db[-1]["input"] = current_tool_input or event.get("tool_input", "")
+                                    tool_calls_for_db[-1]["result"] = tool_result
+                                    tool_calls_for_db[-1]["status"] = "success"
                                 yield _format_sse({
                                     "event": "message",
                                     "type": "tool_end",
                                     "tool_name": current_tool_name or event.get("tool_name", ""),
-                                    "tool_input": current_tool_input or event.get("tool_input", "")
+                                    "tool_input": current_tool_input or event.get("tool_input", ""),
+                                    "tool_result": tool_result
                                 })
                                 current_tool_name = None
+                                current_tool_id = ""
                                 current_tool_input = ""
                         
                         elif event_type == "metrics":
@@ -437,6 +495,7 @@ async def stream_chat(
                         
                         elif event_type == "message":
                             msg_type = event.get("type")
+                            
                             if msg_type == "text":
                                 text_content = event.get("data", "")
                                 assistant_chunks.append(text_content)
@@ -445,6 +504,64 @@ async def stream_chat(
                                     "type": "text",
                                     "data": text_content
                                 })
+                            
+                            elif msg_type == "tool_use":
+                                # 工具调用开始
+                                current_tool_name = event.get("tool_name", "unknown")
+                                current_tool_id = event.get("tool_id", "")
+                                current_tool_input = ""
+                                # 添加新的工具调用记录
+                                tool_calls_for_db.append({
+                                    "name": current_tool_name,
+                                    "id": current_tool_id,
+                                    "input": "",
+                                    "result": "",
+                                    "status": "running"
+                                })
+                                yield _format_sse({
+                                    "event": "message",
+                                    "type": "tool_use",
+                                    "tool_name": current_tool_name,
+                                    "tool_id": current_tool_id
+                                })
+                            
+                            elif msg_type == "tool_input":
+                                # 工具输入增量
+                                input_chunk = event.get("data", "")
+                                current_tool_input += input_chunk
+                                # 更新最后一个工具调用的输入
+                                if tool_calls_for_db:
+                                    tool_calls_for_db[-1]["input"] = current_tool_input
+                                yield _format_sse({
+                                    "event": "message",
+                                    "type": "tool_input",
+                                    "data": input_chunk
+                                })
+                            
+                            elif msg_type == "tool_end":
+                                # 工具调用结束
+                                tool_result = event.get("tool_result", "")
+                                # 更新最后一个工具调用的结果和状态
+                                if tool_calls_for_db:
+                                    tool_calls_for_db[-1]["input"] = current_tool_input or event.get("tool_input", "")
+                                    tool_calls_for_db[-1]["result"] = tool_result
+                                    tool_calls_for_db[-1]["status"] = "success"
+                                yield _format_sse({
+                                    "event": "message",
+                                    "type": "tool_end",
+                                    "tool_name": current_tool_name or event.get("tool_name", ""),
+                                    "tool_input": current_tool_input or event.get("tool_input", ""),
+                                    "tool_result": tool_result
+                                })
+                                current_tool_name = None
+                                current_tool_id = ""
+                                current_tool_input = ""
+                        
+                        elif event_type == "error":
+                            yield _format_sse({
+                                "event": "error",
+                                "error": event.get("error", "Unknown error")
+                            })
                         
                         elif event_type == "done":
                             yield _format_sse({"event": "done"})
@@ -476,13 +593,24 @@ async def stream_chat(
                 })
             
             finally:
-                # 保存助手消息
+                # 保存助手消息（包含工具调用信息）
                 if assistant_chunks:
-                    session_service.add_message(
-                        session_id=session_id,
-                        role='assistant',
-                        content="".join(assistant_chunks)
-                    )
+                    # 构建消息元数据，包含工具调用信息（截断大型数据）
+                    message_metadata = {}
+                    if tool_calls_for_db:
+                        # 截断工具调用数据，防止超过 DynamoDB 大小限制
+                        message_metadata["tool_calls"] = _truncate_tool_calls(tool_calls_for_db)
+                    
+                    try:
+                        session_service.add_message(
+                            session_id=session_id,
+                            role='assistant',
+                            content="".join(assistant_chunks),
+                            metadata=message_metadata if message_metadata else None
+                        )
+                    except Exception as save_error:
+                        # 如果保存失败，记录错误但不影响流式响应
+                        logger.error(f"Failed to save assistant message: {save_error}")
         
         return StreamingResponse(
             generate(),

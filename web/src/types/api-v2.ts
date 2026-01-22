@@ -123,6 +123,18 @@ export interface AgentCoreConfig {
   agent_alias_arn?: string;
 }
 
+// AgentCore 运行时信息
+export interface AgentCoreRuntimeInfo {
+  runtime_id?: string;
+  runtime_arn?: string;
+  runtime_alias?: string;
+  region?: string;
+  // AWS Console 链接
+  console_url?: string;
+  logs_url?: string;
+  trace_url?: string;
+}
+
 export interface AgentRecord {
   agent_id: string;
   project_id?: string;
@@ -133,6 +145,10 @@ export interface AgentRecord {
   status: AgentStatus;
   deployment_type: string;
   agentcore_config?: AgentCoreConfig;
+  // AgentCore 运行时扩展信息
+  agentcore_runtime_arn?: string;
+  agentcore_runtime_alias?: string;
+  agentcore_region?: string;
   capabilities: string[];
   tools: string[];
   prompt_path?: string;
@@ -329,3 +345,118 @@ export type TaskStatusResponse = APIResponse<TaskRecord>;
 export type StatisticsOverviewResponse = APIResponse<StatisticsOverview>;
 export type BuildStatisticsResponse = APIResponse<BuildStatistics[]>;
 export type InvocationStatisticsResponse = APIResponse<InvocationStatistics[]>;
+
+// ============== Agent Files 类型 ==============
+
+export interface FileInfo {
+  path: string;
+  name: string;
+  language: string;
+  content?: string;
+  size?: number;
+  exists: boolean;
+}
+
+export interface ToolFileInfo {
+  path: string;
+  name: string;
+  language: string;
+  content?: string;
+  size?: number;
+  exists: boolean;
+}
+
+export interface AgentFilesData {
+  agent_id: string;
+  agent_name?: string;
+  code_file?: FileInfo;
+  prompt_file?: FileInfo;
+  tool_files: ToolFileInfo[];
+}
+
+export interface SaveFileRequest {
+  content: string;
+  file_type: 'code' | 'prompt' | 'tool';
+  tool_path?: string;
+}
+
+export type AgentFilesResponse = APIResponse<AgentFilesData>;
+export type AgentFileResponse = APIResponse<FileInfo>;
+export type AgentToolFilesResponse = APIResponse<ToolFileInfo[]>;
+
+
+// ============== Agent Tools 类型 ==============
+
+export interface ToolParameter {
+  name: string;
+  type: string;
+  description?: string;
+  required: boolean;
+  default?: unknown;
+}
+
+export interface ToolInfo {
+  name: string;
+  type: 'builtin' | 'generated' | 'system' | 'template' | 'mcp';
+  category?: string;
+  description?: string;
+  file_path?: string;
+  parameters: ToolParameter[];
+  package?: string;
+  enabled: boolean;
+  mcp_server?: string;
+  source_code?: string;
+  return_type?: string;  // 返回值类型
+}
+
+export interface MCPServerInfo {
+  name: string;
+  command: string;
+  args: string[];
+  env: Record<string, string>;
+  disabled: boolean;
+  auto_approve: string[];
+  tools: string[];
+}
+
+export interface ToolTestRequest {
+  parameters: Record<string, unknown>;
+}
+
+export interface ToolTestResult {
+  success: boolean;
+  output?: string;
+  error?: string;
+  duration_ms?: number;
+}
+
+export interface ToolListData {
+  tools: ToolInfo[];
+  total: number;
+  by_type: {
+    builtin: number;
+    generated: number;
+    system: number;
+    template: number;
+    mcp: number;
+  };
+}
+
+export interface MCPServerListData {
+  servers: MCPServerInfo[];
+  total: number;
+  enabled: number;
+  disabled: number;
+}
+
+export interface ToolCategoriesData {
+  categories: string[];
+  total: number;
+}
+
+export type ToolListResponse = APIResponse<ToolListData>;
+export type ToolDetailResponse = APIResponse<ToolInfo>;
+export type ToolTestResponse = APIResponse<ToolTestResult>;
+export type ToolCategoriesResponse = APIResponse<ToolCategoriesData>;
+export type MCPServerListResponse = APIResponse<MCPServerListData>;
+export type MCPServerDetailResponse = APIResponse<MCPServerInfo>;

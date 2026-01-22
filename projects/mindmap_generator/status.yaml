@@ -1,0 +1,58 @@
+agents: {}
+created_at: '2026-01-22T05:53:43.221187+00:00'
+last_updated: '2026-01-22T05:53:43.221206+00:00'
+project: mindmap_generator
+project_info:
+- agents:
+  - created_date: '2026-01-22T05:55:48.084398+00:00'
+    description: 智能体：mindmap_generator
+    last_updated: '2026-01-22T06:11:36.066765+00:00'
+    name: mindmap_generator
+    pipeline:
+    - description: 需求分析阶段 - 分析用户需求，定义功能规格
+      doc_path: projects/mindmap_generator/agents/mindmap_generator/requirements_analyzer.json
+      stage: requirements_analyzer
+      status: true
+      updated_date: '2026-01-22T05:55:48.084415+00:00'
+    - description: 系统架构设计阶段 - 设计系统架构和技术方案
+      doc_path: projects/mindmap_generator/agents/mindmap_generator/system_architect.json
+      stage: system_architect
+      status: true
+      updated_date: '2026-01-22T05:59:24.009097+00:00'
+    - description: Agent设计阶段 - 设计智能体结构和交互模式
+      doc_path: ''
+      stage: agent_designer
+      status: true
+      updated_date: '2026-01-22T06:01:49.874485+00:00'
+    - agent_artifact_path:
+      - prompts/generated_agents_prompts/mindmap_generator/mindmap_generator_prompt.yaml
+      description: 提示词工程阶段 - 设计和优化提示词模板
+      doc_path: ''
+      stage: prompt_engineer
+      status: true
+      updated_date: '2026-01-22T06:06:12.430825+00:00'
+    - description: 工具开发阶段 - 开发必要的工具和函数
+      doc_path: ''
+      stage: tools_developer
+      status: true
+      updated_date: '2026-01-22T06:02:58.126083+00:00'
+    - agent_artifact_path:
+      - generated_agents/mindmap_generator/mindmap_generator.py
+      description: Agent代码开发阶段 - 实现智能体代码
+      doc_path: ''
+      stage: agent_code_developer
+      status: true
+      updated_date: '2026-01-22T06:09:01.180152+00:00'
+    - description: Agent开发管理阶段 - 管理和协调开发流程
+      doc_path: projects/mindmap_generator/README.md
+      stage: agent_developer_manager
+      status: true
+      updated_date: '2026-01-22T06:11:36.066768+00:00'
+  description: 智能思维导图生成Agent，能够根据用户提供的话题或文本内容自动分析结构并生成可视化思维导图，支持多种输出格式（Markdown、Mermaid、JSON等）
+  last_updated: '2026-01-22T06:11:36.066739+00:00'
+  name: mindmap_generator
+  progress:
+  - completed: 7
+    total: 7
+  version: 1.0.0
+status: initialized

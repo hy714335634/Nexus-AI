@@ -1,0 +1,6 @@
+project:
+  created_date: '2026-01-22T05:53:43.220059+00:00'
+  description: 智能思维导图生成Agent，能够根据用户提供的话题或文本内容自动分析结构并生成可视化思维导图，支持多种输出格式（Markdown、Mermaid、JSON等）
+  name: mindmap_generator
+  updated_date: '2026-01-22T06:10:21.548012+00:00'
+  version: 1.0.0

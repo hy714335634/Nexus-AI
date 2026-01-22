@@ -1,0 +1,188 @@
+# ============================================
+# Nexus-AI 生产环境编排配置
+# ============================================
+# 用于生产环境部署，不包含本地开发依赖
+# 使用方法: docker-compose -f docker-compose.prod.yml up -d
+
+version: '3.8'
+
+services:
+  # ============================================
+  # API 服务
+  # ============================================
+  api:
+    image: ${ECR_REGISTRY}/nexus-api:${IMAGE_TAG:-latest}
+    container_name: nexus-api
+    ports:
+      - "8000:8000"
+    environment:
+      # AWS 配置（从 ECS Task Role 或环境变量获取）
+      - AWS_REGION=${AWS_REGION:-us-west-2}
+      # 应用配置
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - DEBUG=false
+      # CORS 配置
+      - CORS_ORIGINS=${CORS_ORIGINS:-*}
+      # 可观测性
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_ENDPOINT:-http://jaeger:4318}
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: '1'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: awslogs
+      options:
+        awslogs-group: /nexus-ai/api
+        awslogs-region: ${AWS_REGION:-us-west-2}
+        awslogs-stream-prefix: api
+    networks:
+      - nexus-network
+
+  # ============================================
+  # Worker 服务 (构建队列)
+  # ============================================
+  worker-build:
+    image: ${ECR_REGISTRY}/nexus-worker:${IMAGE_TAG:-latest}
+    container_name: nexus-worker-build
+    environment:
+      - AWS_REGION=${AWS_REGION:-us-west-2}
+      - WORKER_QUEUE_TYPE=build
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_ENDPOINT:-http://jaeger:4318}
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+        reservations:
+          cpus: '1'
+          memory: 2G
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+    volumes:
+      # EFS 挂载点用于持久化项目文件
+      - nexus-efs:/app/projects
+      - nexus-efs-logs:/app/logs
+    logging:
+      driver: awslogs
+      options:
+        awslogs-group: /nexus-ai/worker
+        awslogs-region: ${AWS_REGION:-us-west-2}
+        awslogs-stream-prefix: worker-build
+    networks:
+      - nexus-network
+
+  # ============================================
+  # Worker 服务 (部署队列)
+  # ============================================
+  worker-deploy:
+    image: ${ECR_REGISTRY}/nexus-worker:${IMAGE_TAG:-latest}
+    container_name: nexus-worker-deploy
+    environment:
+      - AWS_REGION=${AWS_REGION:-us-west-2}
+      - WORKER_QUEUE_TYPE=deploy
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_ENDPOINT:-http://jaeger:4318}
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: '1'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+    logging:
+      driver: awslogs
+      options:
+        awslogs-group: /nexus-ai/worker
+        awslogs-region: ${AWS_REGION:-us-west-2}
+        awslogs-stream-prefix: worker-deploy
+    networks:
+      - nexus-network
+
+  # ============================================
+  # Web 前端服务
+  # ============================================
+  web:
+    image: ${ECR_REGISTRY}/nexus-web:${IMAGE_TAG:-latest}
+    container_name: nexus-web
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=${API_URL:-http://api:8000}
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: awslogs
+      options:
+        awslogs-group: /nexus-ai/web
+        awslogs-region: ${AWS_REGION:-us-west-2}
+        awslogs-stream-prefix: web
+    networks:
+      - nexus-network
+
+# ============================================
+# 网络配置
+# ============================================
+networks:
+  nexus-network:
+    driver: bridge
+    name: nexus-network
+
+# ============================================
+# 数据卷 (EFS 挂载)
+# ============================================
+volumes:
+  nexus-efs:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${EFS_DNS_NAME},nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2
+      device: ":/"
+  nexus-efs-logs:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${EFS_DNS_NAME},nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2
+      device: ":/logs"

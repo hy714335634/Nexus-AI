@@ -26,7 +26,23 @@ import {
   ChevronDown,
   X,
   Trash2,
+  CheckCircle2,
+  AlertCircle,
+  ChevronRight,
+  Code,
 } from 'lucide-react';
+
+// 工具调用状态
+type ToolCallStatus = 'pending' | 'running' | 'success' | 'error';
+
+// 工具调用信息
+interface ToolCallInfo {
+  name: string;
+  id: string;
+  input: string;
+  result?: string;
+  status: ToolCallStatus;
+}
 
 interface ChatMessage {
   id: string;
@@ -34,11 +50,131 @@ interface ChatMessage {
   content: string;
   timestamp: string;
   isStreaming?: boolean;
-  toolCalls?: Array<{
-    name: string;
-    id: string;
-    input?: string;
-  }>;
+  toolCalls?: ToolCallInfo[];
+}
+
+// 工具调用卡片组件
+function ToolCallCard({ toolCall, isExpanded, onToggle }: { 
+  toolCall: ToolCallInfo; 
+  isExpanded: boolean;
+  onToggle: () => void;
+}) {
+  const statusConfig = {
+    pending: { icon: Loader2, color: 'text-gray-400', bg: 'bg-gray-50', label: '等待中' },
+    running: { icon: Loader2, color: 'text-blue-500', bg: 'bg-blue-50', label: '执行中' },
+    success: { icon: CheckCircle2, color: 'text-green-500', bg: 'bg-green-50', label: '完成' },
+    error: { icon: AlertCircle, color: 'text-red-500', bg: 'bg-red-50', label: '失败' },
+  };
+  
+  const config = statusConfig[toolCall.status];
+  const StatusIcon = config.icon;
+  
+  // 尝试格式化 JSON 输入
+  const formatInput = (input: string) => {
+    try {
+      const parsed = JSON.parse(input);
+      return JSON.stringify(parsed, null, 2);
+    } catch {
+      return input;
+    }
+  };
+  
+  // 截断结果显示
+  const truncateResult = (result: string, maxLength: number = 500) => {
+    if (result.length <= maxLength) return result;
+    return result.slice(0, maxLength) + '...';
+  };
+
+  return (
+    <div className={`rounded-lg border ${config.bg} border-gray-200 overflow-hidden my-2`}>
+      {/* 工具调用头部 */}
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-100/50 transition-colors"
+      >
+        <StatusIcon className={`w-4 h-4 ${config.color} ${toolCall.status === 'running' ? 'animate-spin' : ''}`} />
+        <Wrench className="w-3.5 h-3.5 text-gray-500" />
+        <span className="text-sm font-medium text-gray-700 flex-1 text-left truncate">
+          {toolCall.name}
+        </span>
+        <span className={`text-xs px-1.5 py-0.5 rounded ${config.bg} ${config.color}`}>
+          {config.label}
+        </span>
+        <ChevronRight className={`w-4 h-4 text-gray-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+      </button>
+      
+      {/* 展开的详情 */}
+      {isExpanded && (
+        <div className="border-t border-gray-200 bg-white">
+          {/* 输入参数 */}
+          {toolCall.input && (
+            <div className="p-3 border-b border-gray-100">
+              <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-1.5">
+                <Code className="w-3 h-3" />
+                <span>输入参数</span>
+              </div>
+              <pre className="text-xs bg-gray-50 rounded p-2 overflow-x-auto text-gray-700 max-h-40 overflow-y-auto">
+                {formatInput(toolCall.input)}
+              </pre>
+            </div>
+          )}
+          
+          {/* 执行结果 */}
+          {toolCall.result && (
+            <div className="p-3">
+              <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-1.5">
+                <CheckCircle2 className="w-3 h-3" />
+                <span>执行结果</span>
+              </div>
+              <pre className="text-xs bg-gray-50 rounded p-2 overflow-x-auto text-gray-700 max-h-60 overflow-y-auto whitespace-pre-wrap break-words">
+                {truncateResult(toolCall.result)}
+              </pre>
+            </div>
+          )}
+          
+          {/* 执行中状态 */}
+          {toolCall.status === 'running' && !toolCall.result && (
+            <div className="p-3 flex items-center gap-2 text-sm text-gray-500">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span>正在执行...</span>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// 工具调用列表组件
+function ToolCallsList({ toolCalls }: { toolCalls: ToolCallInfo[] }) {
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  
+  const toggleExpand = (id: string) => {
+    setExpandedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+  
+  if (!toolCalls || toolCalls.length === 0) return null;
+  
+  return (
+    <div className="space-y-1">
+      {toolCalls.map((tool) => (
+        <ToolCallCard
+          key={tool.id}
+          toolCall={tool}
+          isExpanded={expandedIds.has(tool.id)}
+          onToggle={() => toggleExpand(tool.id)}
+        />
+      ))}
+    </div>
+  );
 }
 
 // Typewriter effect hook
@@ -228,12 +364,23 @@ function ChatPageContent() {
   // Sync database messages to chat messages when session changes
   useEffect(() => {
     if (messages && messages.length > 0) {
-      const dbMessages: ChatMessage[] = messages.map((msg) => ({
-        id: msg.message_id,
-        role: msg.role as 'user' | 'assistant' | 'system',
-        content: msg.content,
-        timestamp: msg.created_at,
-      }));
+      const dbMessages: ChatMessage[] = messages.map((msg) => {
+        // 从 metadata 中提取工具调用信息
+        const toolCalls = msg.metadata?.tool_calls as ToolCallInfo[] | undefined;
+        return {
+          id: msg.message_id,
+          role: msg.role as 'user' | 'assistant' | 'system',
+          content: msg.content,
+          timestamp: msg.created_at,
+          toolCalls: toolCalls?.map(tc => ({
+            name: tc.name,
+            id: tc.id,
+            input: tc.input || '',
+            result: tc.result,
+            status: (tc.status || 'success') as ToolCallStatus,
+          })),
+        };
+      });
       setChatMessages(dbMessages);
     } else {
       setChatMessages([]);
@@ -330,9 +477,16 @@ function ChatPageContent() {
             )
           );
         } else if (event.type === 'tool_use') {
-          setCurrentToolCall({
+          // 工具调用开始
+          const newToolCall: ToolCallInfo = {
             name: event.tool_name || 'unknown',
-            id: event.tool_id || '',
+            id: event.tool_id || `tool-${Date.now()}`,
+            input: '',
+            status: 'running',
+          };
+          setCurrentToolCall({
+            name: newToolCall.name,
+            id: newToolCall.id,
             input: '',
           });
           setChatMessages((prev) =>
@@ -340,29 +494,70 @@ function ChatPageContent() {
               msg.id === assistantMessageId
                 ? {
                     ...msg,
-                    toolCalls: [
-                      ...(msg.toolCalls || []),
-                      { name: event.tool_name || 'unknown', id: event.tool_id || '' },
-                    ],
+                    toolCalls: [...(msg.toolCalls || []), newToolCall],
                   }
                 : msg
             )
           );
         } else if (event.type === 'tool_input' && event.data) {
+          // 工具输入增量
           setCurrentToolCall((prev) =>
             prev ? { ...prev, input: prev.input + event.data } : null
           );
+          // 更新消息中的工具调用输入
+          setChatMessages((prev) =>
+            prev.map((msg) => {
+              if (msg.id !== assistantMessageId) return msg;
+              const toolCalls = msg.toolCalls || [];
+              if (toolCalls.length === 0) return msg;
+              // 更新最后一个工具调用的输入
+              const updatedToolCalls = [...toolCalls];
+              const lastIdx = updatedToolCalls.length - 1;
+              updatedToolCalls[lastIdx] = {
+                ...updatedToolCalls[lastIdx],
+                input: updatedToolCalls[lastIdx].input + event.data,
+              };
+              return { ...msg, toolCalls: updatedToolCalls };
+            })
+          );
         } else if (event.type === 'tool_end') {
+          // 工具调用结束
+          const toolResult = event.tool_result || event.tool_input || '';
+          setChatMessages((prev) =>
+            prev.map((msg) => {
+              if (msg.id !== assistantMessageId) return msg;
+              const toolCalls = msg.toolCalls || [];
+              if (toolCalls.length === 0) return msg;
+              // 更新最后一个工具调用的状态和结果
+              const updatedToolCalls = [...toolCalls];
+              const lastIdx = updatedToolCalls.length - 1;
+              updatedToolCalls[lastIdx] = {
+                ...updatedToolCalls[lastIdx],
+                status: 'success',
+                result: toolResult,
+              };
+              return { ...msg, toolCalls: updatedToolCalls };
+            })
+          );
           setCurrentToolCall(null);
         }
       } else if (event.event === 'error') {
         toast.error(event.error || '对话出错');
+        // 如果有正在执行的工具调用，标记为失败
         setChatMessages((prev) =>
-          prev.map((msg) =>
-            msg.id === assistantMessageId
-              ? { ...msg, content: msg.content || `错误: ${event.error}`, isStreaming: false }
-              : msg
-          )
+          prev.map((msg) => {
+            if (msg.id !== assistantMessageId) return msg;
+            const toolCalls = msg.toolCalls || [];
+            const updatedToolCalls = toolCalls.map((tc) =>
+              tc.status === 'running' ? { ...tc, status: 'error' as ToolCallStatus, result: event.error } : tc
+            );
+            return {
+              ...msg,
+              content: msg.content || `错误: ${event.error}`,
+              isStreaming: false,
+              toolCalls: updatedToolCalls,
+            };
+          })
         );
       } else if (event.event === 'done') {
         setChatMessages((prev) =>
@@ -659,45 +854,74 @@ function ChatPageContent() {
                         </div>
                       )}
                       <div
-                        className={`max-w-[75%] rounded-2xl ${
+                        className={`max-w-[75%] ${
                           message.role === 'user'
-                            ? 'bg-primary-500 text-white px-4 py-3'
-                            : 'bg-gray-50 border border-gray-100 px-4 py-3'
+                            ? 'bg-primary-500 text-white rounded-2xl px-4 py-3'
+                            : ''
                         }`}
                       >
-                        {message.toolCalls && message.toolCalls.length > 0 && (
-                          <div className="mb-2 space-y-1">
-                            {message.toolCalls.map((tool, idx) => (
-                              <div
-                                key={idx}
-                                className="flex items-center gap-2 text-xs text-gray-500 bg-gray-200 rounded px-2 py-1"
-                              >
-                                <Wrench className="w-3 h-3" />
-                                <span>调用工具: {tool.name}</span>
+                        {/* 用户消息 */}
+                        {message.role === 'user' && (
+                          <>
+                            <MessageContent
+                              content={message.content}
+                              isStreaming={false}
+                              variant="user"
+                            />
+                            <div className="text-xs mt-2 text-primary-100">
+                              {formatRelativeTime(message.timestamp)}
+                            </div>
+                          </>
+                        )}
+                        
+                        {/* 助手消息 */}
+                        {message.role === 'assistant' && (
+                          <div className="space-y-2">
+                            {/* 工具调用列表 - 使用新的可展开组件 */}
+                            {message.toolCalls && message.toolCalls.length > 0 && (
+                              <ToolCallsList toolCalls={message.toolCalls} />
+                            )}
+                            
+                            {/* 思考中状态 - 流式输出但还没有内容和工具调用时显示 */}
+                            {message.isStreaming && !message.content && (!message.toolCalls || message.toolCalls.length === 0) && (
+                              <div className="bg-gray-50 border border-gray-100 rounded-2xl px-4 py-3">
+                                <div className="flex items-center gap-2 text-gray-500">
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                  <span className="text-sm">思考中...</span>
+                                </div>
                               </div>
-                            ))}
+                            )}
+                            
+                            {/* 文本内容 */}
+                            {message.content && (
+                              <div className="bg-gray-50 border border-gray-100 rounded-2xl px-4 py-3">
+                                {message.isStreaming ? (
+                                  <TypewriterMessage
+                                    content={message.content}
+                                    isStreaming={message.isStreaming}
+                                    variant="assistant"
+                                  />
+                                ) : (
+                                  <MessageContent
+                                    content={message.content}
+                                    isStreaming={false}
+                                    variant="assistant"
+                                  />
+                                )}
+                                <div className="text-xs mt-2 text-gray-400">
+                                  {formatRelativeTime(message.timestamp)}
+                                </div>
+                              </div>
+                            )}
+                            
+                            {/* 如果只有工具调用没有文本，显示时间戳 */}
+                            {!message.content && message.toolCalls && message.toolCalls.length > 0 && (
+                              <div className="text-xs text-gray-400 px-1">
+                                {formatRelativeTime(message.timestamp)}
+                              </div>
+                            )}
                           </div>
                         )}
-                        {message.role === 'assistant' && message.isStreaming ? (
-                          <TypewriterMessage
-                            content={message.content}
-                            isStreaming={message.isStreaming}
-                            variant="assistant"
-                          />
-                        ) : (
-                          <MessageContent
-                            content={message.content}
-                            isStreaming={false}
-                            variant={message.role === 'user' ? 'user' : 'assistant'}
-                          />
-                        )}
-                        <div
-                          className={`text-xs mt-2 ${
-                            message.role === 'user' ? 'text-primary-100' : 'text-gray-400'
-                          }`}
-                        >
-                          {formatRelativeTime(message.timestamp)}
-                        </div>
                       </div>
                       {message.role === 'user' && (
                         <div className="w-8 h-8 rounded-lg bg-gray-200 flex items-center justify-center flex-shrink-0 mt-1">
@@ -713,12 +937,6 @@ function ChatPageContent() {
               {/* Input Area */}
               {activeSessionId && (
                 <div className="p-4 border-t border-gray-100 flex-shrink-0">
-                  {currentToolCall && (
-                    <div className="mb-2 flex items-center gap-2 text-sm text-gray-500">
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>正在执行工具: {currentToolCall.name}</span>
-                    </div>
-                  )}
                   <div className="flex gap-3">
                     <textarea
                       value={inputValue}

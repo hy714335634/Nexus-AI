@@ -19,6 +19,15 @@
   - Amazon Bedrock AgentCore 部署
   - Docker Compose 方案
 
+## 存储与同步
+
+- **[S3_ARTIFACT_SYNC.md](S3_ARTIFACT_SYNC.md)** - S3 Artifact 同步系统
+  - S3 目录结构设计
+  - DynamoDB 版本管理
+  - CLI 命令使用
+  - Agent Build Workflow 集成
+  - Python API 参考
+
 ## 故障排查 (troubleshooting/)
 
 - **[FIXES.md](troubleshooting/FIXES.md)** - 已知问题和修复方案

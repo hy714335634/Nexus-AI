@@ -255,6 +255,10 @@ class AgentRecord(TimestampMixin):
     prompt_path: Optional[str] = None
     code_path: Optional[str] = None
     deployed_at: Optional[str] = None
+    # AgentCore Runtime 信息 (从DynamoDB获取)
+    agentcore_runtime_arn: Optional[str] = None
+    agentcore_runtime_alias: Optional[str] = None
+    agentcore_region: Optional[str] = None
     # Runtime stats
     total_invocations: int = 0
     successful_invocations: int = 0

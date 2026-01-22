@@ -1,0 +1,205 @@
+# ============================================
+# Nexus-AI 本地开发环境编排
+# ============================================
+# 使用方法: docker-compose up -d
+
+version: '3.8'
+
+services:
+  # ============================================
+  # API 服务
+  # ============================================
+  api:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/api/Dockerfile
+    image: nexus-api:dev
+    container_name: nexus-api
+    ports:
+      - "8000:8000"
+    environment:
+      # AWS 配置
+      - AWS_REGION=${AWS_REGION:-us-west-2}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      # 本地开发使用 LocalStack
+      - DYNAMODB_ENDPOINT_URL=${DYNAMODB_ENDPOINT_URL:-http://localstack:4566}
+      - SQS_ENDPOINT_URL=${SQS_ENDPOINT_URL:-http://localstack:4566}
+      # 应用配置
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - DEBUG=true
+      # CORS 配置
+      - CORS_ORIGINS=*
+    volumes:
+      # 开发时挂载代码目录，支持热重载
+      - ../../api:/app/api:ro
+      - ../../nexus_utils:/app/nexus_utils:ro
+      - ../../config:/app/config:ro
+      - ../../logs:/app/logs
+    depends_on:
+      localstack:
+        condition: service_healthy
+    networks:
+      - nexus-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+  # ============================================
+  # Worker 服务 (构建队列)
+  # ============================================
+  worker-build:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/worker/Dockerfile
+    image: nexus-worker:dev
+    container_name: nexus-worker-build
+    environment:
+      # AWS 配置
+      - AWS_REGION=${AWS_REGION:-us-west-2}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      # 本地开发使用 LocalStack
+      - DYNAMODB_ENDPOINT_URL=${DYNAMODB_ENDPOINT_URL:-http://localstack:4566}
+      - SQS_ENDPOINT_URL=${SQS_ENDPOINT_URL:-http://localstack:4566}
+      # Worker 配置
+      - WORKER_QUEUE_TYPE=build
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    volumes:
+      # 开发时挂载代码目录
+      - ../../worker:/app/worker:ro
+      - ../../api:/app/api:ro
+      - ../../nexus_utils:/app/nexus_utils:ro
+      - ../../agents:/app/agents:ro
+      - ../../tools:/app/tools:ro
+      - ../../prompts:/app/prompts:ro
+      - ../../config:/app/config:ro
+      - ../../projects:/app/projects
+      - ../../logs:/app/logs
+    depends_on:
+      localstack:
+        condition: service_healthy
+    networks:
+      - nexus-network
+    restart: unless-stopped
+
+  # ============================================
+  # Worker 服务 (部署队列)
+  # ============================================
+  worker-deploy:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/worker/Dockerfile
+    image: nexus-worker:dev
+    container_name: nexus-worker-deploy
+    environment:
+      # AWS 配置
+      - AWS_REGION=${AWS_REGION:-us-west-2}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      # 本地开发使用 LocalStack
+      - DYNAMODB_ENDPOINT_URL=${DYNAMODB_ENDPOINT_URL:-http://localstack:4566}
+      - SQS_ENDPOINT_URL=${SQS_ENDPOINT_URL:-http://localstack:4566}
+      # Worker 配置
+      - WORKER_QUEUE_TYPE=deploy
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    volumes:
+      - ../../worker:/app/worker:ro
+      - ../../api:/app/api:ro
+      - ../../nexus_utils:/app/nexus_utils:ro
+      - ../../config:/app/config:ro
+      - ../../logs:/app/logs
+    depends_on:
+      localstack:
+        condition: service_healthy
+    networks:
+      - nexus-network
+    restart: unless-stopped
+
+  # ============================================
+  # Web 前端服务
+  # ============================================
+  web:
+    build:
+      context: ../../web
+      dockerfile: Dockerfile
+    image: nexus-web:dev
+    container_name: nexus-web
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=http://api:8000
+    depends_on:
+      - api
+    networks:
+      - nexus-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+  # ============================================
+  # LocalStack (本地 AWS 服务模拟)
+  # ============================================
+  localstack:
+    image: localstack/localstack:latest
+    container_name: nexus-localstack
+    ports:
+      - "4566:4566"
+      - "4510-4559:4510-4559"
+    environment:
+      - SERVICES=dynamodb,sqs,s3
+      - DEBUG=0
+      - DATA_DIR=/var/lib/localstack/data
+      - DOCKER_HOST=unix:///var/run/docker.sock
+    volumes:
+      - localstack-data:/var/lib/localstack
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - nexus-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ============================================
+  # Jaeger (分布式追踪)
+  # ============================================
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: nexus-jaeger
+    ports:
+      - "16686:16686"  # Jaeger UI
+      - "4317:4317"    # OTLP gRPC
+      - "4318:4318"    # OTLP HTTP
+      - "6831:6831/udp"  # Thrift compact
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    networks:
+      - nexus-network
+    restart: unless-stopped
+
+# ============================================
+# 网络配置
+# ============================================
+networks:
+  nexus-network:
+    driver: bridge
+    name: nexus-network
+
+# ============================================
+# 数据卷
+# ============================================
+volumes:
+  localstack-data:
+    name: nexus-localstack-data

@@ -103,6 +103,16 @@ class AgentService:
             # 检查是否有 agentcore 配置
             agentcore_config = config.get('agentcore')
             
+            # 提取 AgentCore 运行时信息
+            agentcore_runtime_arn = None
+            agentcore_runtime_alias = None
+            agentcore_region = None
+            
+            if agentcore_config:
+                agentcore_runtime_arn = agentcore_config.get('agent_arn') or agentcore_config.get('agent_runtime_arn')
+                agentcore_runtime_alias = agentcore_config.get('agent_alias_id') or agentcore_config.get('alias') or 'DEFAULT'
+                agentcore_region = agentcore_config.get('region') or 'us-west-2'
+            
             # 检查构建状态
             summary = config.get('summary', {})
             all_valid = (
@@ -114,7 +124,7 @@ class AgentService:
             deployment_type = 'agentcore' if agentcore_config else 'local'
             
             # 确定状态
-            if agentcore_config and agentcore_config.get('agent_arn'):
+            if agentcore_config and agentcore_runtime_arn:
                 status = AgentStatus.RUNNING.value
             elif all_valid and script_path:
                 status = AgentStatus.RUNNING.value
@@ -131,6 +141,10 @@ class AgentService:
                 'status': status,
                 'deployment_type': deployment_type,
                 'agentcore_config': agentcore_config,
+                # AgentCore 运行时信息（顶层字段，方便前端访问）
+                'agentcore_runtime_arn': agentcore_runtime_arn,
+                'agentcore_runtime_alias': agentcore_runtime_alias,
+                'agentcore_region': agentcore_region,
                 'agent_path': script_path,
                 'prompt_path': prompt_path,
                 'code_path': script_path,
@@ -291,19 +305,106 @@ class AgentService:
         return agent_data
     
     def get_agent(self, agent_id: str) -> Optional[Dict[str, Any]]:
-        """获取 Agent 详情"""
+        """
+        获取 Agent 详情
+        
+        优先从数据库查找，本地 agent 直接返回不合并云端信息
+        """
         # 先从数据库查找
         agent = self.db.get_agent(agent_id)
         if agent:
             return agent
         
         # 从本地 agents 查找
+        # 注意：不再合并云端信息，保持本地和云端 agent 独立
         local_agents = self._get_local_agents()
-        for agent in local_agents:
-            if agent['agent_id'] == agent_id:
-                return agent
+        for local_agent in local_agents:
+            if local_agent['agent_id'] == agent_id:
+                return local_agent
         
         return None
+    
+    def _find_agent_by_project_id(self, project_id: str, agent_name: str = None) -> Optional[Dict[str, Any]]:
+        """
+        通过 project_id 或 agent_name 在数据库中查找 agent
+        
+        用于查找已部署到 AgentCore 的 agent 记录
+        支持多种匹配方式：
+        1. 精确匹配 project_id
+        2. agent_id 包含 project_id（如 proj_xxx:agent_name）
+        3. 通过 agent_name 匹配
+        """
+        try:
+            result = self.db.list_agents(limit=100)
+            agents = result.get('items', [])
+            
+            for agent in agents:
+                db_project_id = agent.get('project_id', '')
+                db_agent_id = agent.get('agent_id', '')
+                db_agent_name = agent.get('agent_name', '')
+                
+                # 精确匹配 project_id
+                if db_project_id == project_id:
+                    return agent
+                
+                # agent_id 包含本地 project_id（目录名）
+                # 例如：db_agent_id = "proj_xxx:mindmap_generator", project_id = "mindmap_generator"
+                if project_id and f":{project_id}" in db_agent_id:
+                    return agent
+                
+                # 通过 agent_name 匹配
+                if agent_name and db_agent_name == agent_name:
+                    return agent
+            
+            return None
+        except Exception as e:
+            logger.warning(f"Failed to find agent by project_id {project_id}: {e}")
+            return None
+    
+    def _merge_agentcore_info(self, local_agent: Dict[str, Any], db_agent: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        将数据库中的 agentcore 信息合并到本地 agent
+        
+        保留本地 agent 的基本信息，添加数据库中的 agentcore 部署信息
+        """
+        # 复制本地 agent 数据
+        merged = dict(local_agent)
+        
+        # 合并 agentcore 相关字段
+        agentcore_fields = [
+            'agentcore_runtime_arn',
+            'agentcore_runtime_alias', 
+            'agentcore_region',
+            'agentcore_config',
+            'deployment_type',
+            'deployment_status',
+            'deployed_at',
+            'last_deployed_at',
+        ]
+        
+        for field in agentcore_fields:
+            if db_agent.get(field):
+                merged[field] = db_agent[field]
+        
+        # 如果数据库中有 agentcore_runtime_arn，更新状态和部署类型
+        if db_agent.get('agentcore_runtime_arn'):
+            merged['deployment_type'] = 'agentcore'
+            merged['status'] = db_agent.get('status', 'running')
+        
+        # 合并运行时统计信息
+        stats_fields = [
+            'total_invocations',
+            'successful_invocations',
+            'failed_invocations',
+            'avg_duration_ms',
+            'last_invoked_at',
+        ]
+        
+        for field in stats_fields:
+            if db_agent.get(field):
+                merged[field] = db_agent[field]
+        
+        return merged
     
     def list_agents(
         self,
@@ -312,30 +413,84 @@ class AgentService:
         page: int = 1,
         limit: int = 20
     ) -> Dict[str, Any]:
-        """列表 Agent - 合并数据库和本地 agents"""
+        """
+        列表 Agent - 合并数据库和本地 agents
+        
+        对于本地 agent，尝试合并数据库中的 agentcore 部署信息
+        如果数据库中已有同名 agent（通过 agent_name 或 project_id 匹配），则跳过本地记录
+        """
         # 从数据库获取
         db_result = self.db.list_agents(
             status=status,
             category=category,
-            limit=limit
+            limit=100  # 获取更多以便匹配
         )
         
         db_agents = db_result.get('items', [])
         db_agent_ids = {a.get('agent_id') for a in db_agents}
         
+        # 构建多维度映射，用于去重和快速查找
+        # 分别记录云端和本地的 agent，同类型同名才去重
+        db_agentcore_names = set()  # 云端 agent 名称
+        db_local_names = set()       # 数据库中的本地 agent 名称
+        
+        for db_agent in db_agents:
+            agent_name = db_agent.get('agent_name')
+            # 判断是否为云端部署（有 agentcore_runtime_arn 或 deployment_type 为 agentcore）
+            is_agentcore = (
+                db_agent.get('agentcore_runtime_arn') or 
+                db_agent.get('deployment_type') == 'agentcore'
+            )
+            
+            if agent_name:
+                if is_agentcore:
+                    db_agentcore_names.add(agent_name)
+                else:
+                    db_local_names.add(agent_name)
+        
         # 获取本地 agents
         local_agents = self._get_local_agents()
         
-        # 合并，避免重复
+        # 合并，只对同类型同名去重
+        # 云端+云端同名去重，本地+本地同名去重，云端+本地同名可共存
         all_agents = list(db_agents)
+        seen_local_names = set()  # 记录已添加的本地 agent 名称
+        
         for local_agent in local_agents:
-            if local_agent['agent_id'] not in db_agent_ids:
-                # 应用筛选条件
-                if status and local_agent.get('status') != status:
+            local_agent_id = local_agent.get('agent_id')
+            local_agent_name = local_agent.get('agent_name')
+            
+            # 判断本地 agent 是否已部署到云端（有 agentcore 配置）
+            local_is_agentcore = (
+                local_agent.get('agentcore_runtime_arn') or 
+                local_agent.get('deployment_type') == 'agentcore'
+            )
+            
+            # 检查是否需要去重
+            # 1. agent_id 完全匹配（避免完全重复）
+            if local_agent_id in db_agent_ids:
+                continue
+            
+            # 2. 同类型同名去重
+            if local_is_agentcore:
+                # 本地 agent 已部署到云端，与数据库中的云端 agent 同名则去重
+                if local_agent_name and local_agent_name in db_agentcore_names:
                     continue
-                if category and local_agent.get('category') != category:
+            else:
+                # 本地 agent 未部署到云端，与数据库中的本地 agent 同名则去重
+                if local_agent_name and local_agent_name in db_local_names:
                     continue
-                all_agents.append(local_agent)
+                # 同一批本地 agents 中同名也去重
+                if local_agent_name and local_agent_name in seen_local_names:
+                    continue
+                seen_local_names.add(local_agent_name)
+            
+            # 应用筛选条件
+            if status and local_agent.get('status') != status:
+                continue
+            if category and local_agent.get('category') != category:
+                continue
+            all_agents.append(local_agent)
         
         total = len(all_agents)
         pages = (total + limit - 1) // limit if total > 0 else 0

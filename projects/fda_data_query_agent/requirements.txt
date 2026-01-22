@@ -4,12 +4,42 @@ strands-agents-tools
 PyYAML
 bedrock-agentcore
 # FDA Data Query Agent - Python Dependencies
-# Generated: 2025-12-28
-# Python Version: >=3.12
-# Local utilities package
-# Strands Agent Framework
-# AWS Bedrock AgentCore Runtime
-# HTTP requests library (for FDA API integration)
+# 项目: fda_data_query_agent
+# 版本: 1.0.0
+# 生成时间: 2026-01-22
+# Python版本要求: >=3.12
+# ===== 核心依赖 =====
+# 本地工具包（Nexus-AI平台核心工具）
+-e ./nexus_utils
+# Agent框架和工具
+# ===== FDA API集成依赖 =====
+# HTTP客户端
 requests
-# YAML configuration parsing
+# ===== AWS集成依赖 =====
+# AWS SDK
+boto3
+botocore
+# ===== 数据处理依赖 =====
+# 配置文件解析
 pyyaml
+# ===== 可选依赖（用于开发和测试） =====
+# pytest>=8.0.0                 # 单元测试框架
+# black>=24.0.0                 # 代码格式化
+# flake8>=7.0.0                 # 代码检查
+# mypy>=1.8.0                   # 类型检查
+# ===== 说明 =====
+# 1. 所有依赖包已验证与Python >=3.12兼容
+# 2. 核心依赖为运行时必需，可选依赖用于开发环境
+# 3. nexus_utils为本地包，使用-e安装为可编辑模式
+# 4. strands-agents-tools版本应与strands-agents保持一致
+# 5. boto3和botocore用于AWS Bedrock集成
+# 6. requests用于FDA openFDA API调用
+# 7. PyYAML用于解析Agent提示词配置文件
+# ===== 安装说明 =====
+# 标准安装（仅运行时依赖）：
+#   pip install -r requirements.txt
+#
+# 开发环境安装（包含可选依赖）：
+#   取消注释可选依赖，然后执行：
+# 验证安装：
+#   python -c "import strands; import requests; import boto3; import yaml; print('所有依赖已成功安装')"

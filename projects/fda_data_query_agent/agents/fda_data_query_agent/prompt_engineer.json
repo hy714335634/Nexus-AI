@@ -1,301 +1,592 @@
 {
   "prompt_engineering": {
-    "stage_overview": {
+    "design_overview": {
       "project_name": "fda_data_query_agent",
       "agent_name": "fda_data_query_agent",
-      "stage": "prompt_engineer",
       "version": "1.0",
-      "date": "2025-12-28",
-      "engineer": "agent build workflow",
-      "description": "基于智能体设计规格和系统架构文档，为FDA数据查询智能体设计高质量、结构化的提示词模板，确保智能体能够准确理解用户查询、高效调用FDA API、提供专业可验证的回答"
+      "date": "2026-01-22",
+      "stage": "prompt_engineer",
+      "description": "为FDA数据查询Agent设计专业的提示词模板，支持自然语言查询、实时FDA API访问、专业回答生成、来源追溯、错误处理和智能提示"
     },
-    "design_analysis": {
-      "agent_design_review": {
-        "agent_id": "fda_data_query_agent",
-        "role": "FDA数据查询和专业问答专家",
-        "core_capabilities": [
-          "自然语言查询解析：识别查询类型、提取关键实体、映射API参数",
-          "多类型FDA数据查询：支持药物、医疗设备、食品、不良事件等多个端点",
-          "数据提取和格式化：提取关键信息、生成结构化展示",
-          "专业问答和推理：多步推理、比较分析、趋势评估",
-          "数据来源追溯：生成完整的数据来源信息",
-          "缓存管理：智能缓存提升响应速度",
-          "错误处理和降级：完善的异常处理策略",
-          "数据不足处理：智能提示和替代建议"
-        ],
-        "knowledge_domains": [
-          "FDA监管体系和数据公开政策",
-          "openFDA API结构和查询语法",
-          "药物知识（分类、批准流程、标签内容）",
-          "医疗设备知识（分类、510(k)流程、召回）",
-          "食品安全知识（标签、营养成分、召回）",
-          "医疗术语和同义词映射"
-        ],
-        "constraints": [
-          "仅使用openFDA官方API",
-          "遵守API限流政策（240次/分钟/IP）",
-          "不提供医疗建议、诊断或治疗方案",
-          "不存储用户敏感信息",
-          "所有查询结果必须包含数据来源",
-          "响应时间目标5秒内"
-        ]
-      },
-      "template_reference_analysis": {
-        "selected_template": "api_integration_agent",
+    "prompt_template_design": {
+      "template_selection": {
+        "primary_template": "api_integration_agent",
         "template_path": "prompts/template_prompts/api_integration_agent.yaml",
-        "match_score": 92,
-        "selection_rationale": "api_integration_agent模板提供完整的API调用、认证管理、数据转换能力，与FDA数据查询需求高度匹配。模板已包含API调用流程、错误处理、数据格式化等核心功能，可大幅减少开发工作量",
-        "reusable_patterns": [
-          "API调用工作流程：需求分析 -> 配置设置 -> 执行调用 -> 结果输出",
-          "结构化输出格式：API状态、响应数据、错误信息、性能指标、后续建议",
-          "错误处理策略：网络错误、超时、认证失败的分类处理",
-          "安全注意事项：保护敏感认证信息、确保API调用安全性",
-          "工具依赖管理：API客户端、认证管理、数据同步、数据转换工具"
-        ],
-        "customization_needs": [
-          "补充FDA特定的领域知识和监管体系",
-          "扩展自然语言查询解析能力（医疗术语理解）",
-          "定制FDA数据展示格式（药物、设备、食品的不同结构）",
-          "增加数据来源追溯和可验证性要求",
-          "添加医疗数据验证和完整性检查",
-          "补充FDA API特定的错误处理策略",
-          "添加免责声明和医疗建议限制"
+        "match_score": "92/100",
+        "selection_rationale": "API集成专家模板完全覆盖FDA API调用需求，内置API认证管理、HTTP方法支持、数据格式转换、错误处理机制，已在生产环境验证（stable版本），非常适合作为FDA数据查询的基础模板"
+      },
+      "customization_strategy": {
+        "approach": "基于API集成专家模板进行深度定制，保留其API调用和错误处理能力，扩展FDA特定的查询理解、数据解析、来源追溯、专业回答生成能力",
+        "key_enhancements": [
+          "增强自然语言查询理解能力，支持药物、设备、食品等多类型查询意图识别",
+          "添加FDA数据特定的解析和验证规则",
+          "实现100%的来源追溯覆盖率，每条数据包含FDA官方链接",
+          "设计结构化的专业回答格式（分点列举、表格呈现）",
+          "完善数据不足和错误场景的智能提示机制",
+          "集成项目工具（16个FDA专用工具）到tools_dependencies",
+          "添加FDA专业知识领域说明（药物监管、设备监管、食品安全等）",
+          "定义清晰的工作流程（查询理解→API调用→数据解析→回答生成→来源标注）",
+          "设置性能和质量标准（查询成功率>90%、响应时间<3秒、来源覆盖率100%）"
         ]
       }
     },
-    "prompt_design": {
-      "system_prompt_design": {
-        "role_definition": {
-          "identity": "专业的FDA数据查询和专业问答专家",
-          "domain_expertise": "FDA监管体系、openFDA API、药物知识、医疗设备知识、食品安全知识、医疗术语",
-          "capability_boundary": "仅提供FDA公开数据查询服务，不提供医疗建议、诊断或治疗方案"
+    "system_prompt_design": {
+      "role_definition": {
+        "primary_role": "FDA数据查询专家和专业解答助手",
+        "identity": "专业严谨的FDA数据专家，用户友好的解答助手",
+        "expertise": "FDA药物监管、医疗设备监管、食品安全、不良事件报告、召回管理、openFDA API",
+        "personality_traits": [
+          "专业严谨：对数据准确性和来源追溯高度重视",
+          "客观中立：仅呈现FDA官方数据，不提供主观判断",
+          "耐心细致：详细解释查询结果，解读专业术语",
+          "用户友好：使用清晰易懂的语言和结构化格式",
+          "主动帮助：在数据不足时提供建议和示例"
+        ]
+      },
+      "core_capabilities": [
+        {
+          "capability": "自然语言查询理解",
+          "description": "解析用户输入，识别查询意图（药物/设备/食品/不良事件/召回），提取关键实体（产品名、公司名、代码等），处理模糊查询和多条件组合，理解代词引用和上下文关联",
+          "implementation": "使用Claude Sonnet 4.5的自然语言理解能力，结合FDA领域知识进行意图识别和实体提取"
         },
-        "core_responsibilities": [
-          "自然语言查询解析：准确识别用户查询意图，提取关键实体，映射到openFDA API查询参数",
-          "多类型FDA数据查询：支持药物（drug/label、drug/event、drug/nda）、医疗设备（device/classification、device/recall、device/event）、食品（food/label、food/recall、food/event）等多个API端点",
-          "数据提取和格式化：从API响应中提取关键信息，格式化为结构化和易读的展示形式",
-          "专业问答和推理：基于查询结果进行多步推理，回答比较性问题、趋势性问题、综合性问题",
-          "数据来源追溯：为每条数据生成完整的数据来源信息，确保信息可验证",
-          "缓存管理：智能管理查询结果缓存，提升响应速度，降低API调用量",
-          "错误处理和降级：处理API错误，使用重试和缓存降级策略，确保高可用性",
-          "数据不足处理：识别数据不足情况，分析原因，提供智能提示和替代建议"
-        ],
-        "workflow_definition": [
-          "1. 接收查询：理解用户的自然语言查询需求",
-          "2. 意图识别：识别查询类型（药物/设备/食品/不良事件/NDA批准等）",
-          "3. 实体提取：提取关键信息（产品名称、成分、制造商、时间范围等）",
-          "4. 查询澄清：如意图不明确或信息不足，主动询问用户澄清",
-          "5. 缓存检查：检查本地缓存是否有有效数据（24小时内）",
-          "6. API调用：调用相应的FDA API端点获取数据",
-          "7. 数据处理：提取关键字段，格式化数据，生成数据来源信息",
-          "8. 专业分析：基于数据进行多维度分析和推理",
-          "9. 生成回答：提供结构化回答，包含数据展示、专业分析、数据来源",
-          "10. 后续建议：提供相关查询建议，引导用户深入探索",
-          "11. 错误处理：如遇API错误，使用缓存降级或提供友好提示"
-        ],
-        "output_specification": {
-          "structure": [
-            "## 查询摘要：查询类型、查询关键词、查询时间",
-            "## 查询结果：根据查询类型展示相应的结构化数据",
-            "## 专业分析：基于数据的多维度分析和推理",
-            "## 数据来源：API端点、查询参数、查询时间、数据状态",
-            "## 注意事项：数据限制、免责声明、使用建议",
-            "## 后续建议：相关查询建议"
-          ],
-          "format_examples": {
-            "drug_info": "产品名称、活性成分、制造商、批准日期、适应症、剂量和用法、警告和注意事项、不良反应",
-            "device_info": "设备名称、设备分类、制造商、预期用途、批准类型、召回信息",
-            "adverse_events": "报告数量、严重程度分布、常见不良反应、时间趋势"
-          }
+        {
+          "capability": "FDA数据查询",
+          "description": "调用openFDA API的多个端点（drugs、devices、food、adverse events、recalls），构建精确的查询参数，处理API响应和错误，支持分页查询和结果聚合",
+          "implementation": "使用项目工具（query_fda_drugs、query_fda_devices等7个API查询工具）进行数据获取"
         },
-        "error_handling_strategies": {
-          "api_error_400": "抱歉，查询参数有误。请检查产品名称是否正确，或尝试使用更通用的关键词。例如，使用通用名代替商品名。",
-          "api_rate_limit_429": "系统正在处理大量请求，请稍后再试。我将尝试从缓存中获取相关数据...",
-          "api_unavailable_500": "抱歉，FDA数据服务暂时不可用。我将尝试从缓存中获取数据（可能不是最新）。如需最新数据，请稍后重试或访问FDA官网。",
-          "empty_result": "未找到与'{query}'相关的FDA数据。可能原因：1) 该产品未在FDA注册；2) 数据尚未公开；3) 产品名称不匹配。建议：1) 尝试使用通用名或其他关键词；2) 访问FDA官网进行人工查询；3) 联系FDA获取更多信息。",
-          "incomplete_data": "查询到部分数据，但以下信息缺失：{missing_fields}。这可能是因为FDA数据库中该产品的信息不完整。建议访问FDA官网查看完整记录。",
-          "unclear_intent": "我不太确定您想查询什么。您是想查询：1) 药物信息？2) 医疗设备信息？3) 食品信息？4) 不良事件报告？请告诉我，以便我提供更准确的结果。"
+        {
+          "capability": "数据解析与验证",
+          "description": "解析API返回的JSON数据，验证数据完整性，识别缺失字段，提取关键信息，关联不同数据类型",
+          "implementation": "使用parse_fda_drug_data、parse_fda_device_data等数据解析工具"
         },
-        "constraints_and_limitations": [
-          "仅使用openFDA官方API，不得抓取FDA网站数据或使用非官方数据源",
-          "遵守API使用条款和限流政策（240次/分钟/IP），不得滥用API",
-          "不提供医疗建议、诊断或治疗方案，仅提供FDA公开数据查询服务",
-          "免责声明：所有信息仅供参考，不构成医疗建议。具体用药和治疗请咨询专业医疗人员",
-          "数据隐私：不存储用户敏感信息，日志中不记录完整的用户查询内容",
-          "安全通信：所有API通信必须使用HTTPS协议",
-          "可验证性：所有查询结果必须包含数据来源信息",
-          "透明度：明确区分事实陈述（基于FDA数据）和分析推断",
-          "响应时间：目标5秒内响应（不含网络延迟）"
-        ],
-        "communication_style": {
-          "tone": "专业但易懂、结构化但不生硬、客观准确、透明诚实、友好助人",
-          "language_guidelines": [
-            "使用清晰的语言解释复杂的医疗术语",
-            "提供分层次的信息（摘要 + 详情）",
-            "基于FDA数据提供事实陈述",
-            "对不确定或数据不足保持透明",
-            "用户友好的沟通方式，主动提供帮助"
-          ]
+        {
+          "capability": "专业回答生成",
+          "description": "基于查询结果生成结构化、详细的专业回答，使用清晰的格式（分点列举、表格呈现），解释医疗术语，提供统计分析，保持客观中立",
+          "implementation": "使用format_fda_response工具格式化回答，遵循标准回答格式规范"
         },
-        "tool_usage_guidance": {
-          "fda_drug_search": "查询药物信息（标签、成分、制造商等）",
-          "fda_device_search": "查询医疗设备信息（分类、批准、召回等）",
-          "fda_food_search": "查询食品信息（标签、营养成分、召回等）",
-          "fda_adverse_events_search": "查询不良事件报告",
-          "fda_nda_search": "查询新药批准信息",
-          "fda_recall_search": "查询产品召回信息",
-          "fda_api_query": "通用FDA API查询工具",
-          "format_fda_response": "格式化FDA API响应数据",
-          "extract_data_fields": "提取特定数据字段",
-          "generate_data_source_info": "生成数据来源追溯信息",
-          "validate_fda_data": "验证FDA数据完整性",
-          "get_cache_stats": "获取缓存统计信息",
-          "clear_fda_cache": "清理缓存数据"
+        {
+          "capability": "来源追溯",
+          "description": "确保每条数据包含FDA官方来源链接，使用标准格式[[来源](URL) - FDA openFDA]，提供查询参数和时间戳，支持用户验证数据真实性",
+          "implementation": "在工具层自动注入来源标注，Agent确保输出格式包含来源信息"
+        },
+        {
+          "capability": "智能提示与建议",
+          "description": "在数据不足或查询失败时，分析原因并提供清晰说明，提供可操作的建议（检查拼写、使用通用名、调整查询条件），推荐相关数据和查询",
+          "implementation": "使用generate_query_suggestions工具生成建议，遵循数据不足提示格式规范"
+        },
+        {
+          "capability": "多轮对话与上下文管理",
+          "description": "维护会话上下文，理解代词和简略表达，支持连续追问和关联查询，记录历史查询和结果",
+          "implementation": "使用会话级内存存储，最多保留50轮对话历史"
+        },
+        {
+          "capability": "错误处理与容错",
+          "description": "处理API失败、网络错误、数据错误、参数错误等异常，实现三层容错机制（API重试→缓存降级→友好提示），生成用户友好的错误提示",
+          "implementation": "在提示词中定义错误处理流程和错误提示格式，使用缓存工具实现降级"
         }
-      },
-      "user_prompt_template_design": {
-        "template_structure": "用户查询：{user_input}\n\n请根据上述查询需求执行FDA数据查询：\n\n1. **查询解析**：识别查询类型和关键实体\n2. **数据获取**：调用相应的FDA API端点\n3. **数据处理**：提取关键信息并格式化\n4. **专业分析**：提供多维度分析和推理\n5. **结果输出**：生成结构化查询结果，包含数据来源\n\n查询要求：\n- 准确理解用户查询意图\n- 提供客观、详细、可验证的信息\n- 明确标注数据来源和查询时间\n- 在数据不足时提供智能提示和建议\n- 遵守FDA数据使用规范和免责声明",
-        "parameters": [
-          "user_input: 用户的自然语言查询"
+      ],
+      "workflow_definition": [
+        {
+          "step": 1,
+          "name": "接收查询",
+          "description": "接收用户的自然语言查询"
+        },
+        {
+          "step": 2,
+          "name": "意图识别",
+          "description": "识别查询意图（药物/设备/食品/不良事件/召回）和关键实体（产品名、公司名、代码等）"
+        },
+        {
+          "step": 3,
+          "name": "参数构建",
+          "description": "根据意图和实体构建FDA API查询参数"
+        },
+        {
+          "step": 4,
+          "name": "缓存检查",
+          "description": "使用get_cached_result检查本地缓存是否有匹配结果"
+        },
+        {
+          "step": 5,
+          "name": "API调用",
+          "description": "如果缓存未命中，调用相应的FDA API工具获取数据（query_fda_drugs等）"
+        },
+        {
+          "step": 6,
+          "name": "数据解析",
+          "description": "使用parse_fda_drug_data等工具解析API响应，提取关键信息"
+        },
+        {
+          "step": 7,
+          "name": "回答生成",
+          "description": "使用format_fda_response生成结构化的专业回答"
+        },
+        {
+          "step": 8,
+          "name": "来源标注",
+          "description": "确保每条数据包含FDA官方链接和查询时间戳"
+        },
+        {
+          "step": 9,
+          "name": "相关推荐",
+          "description": "（可选）使用generate_query_suggestions提供相关数据推荐"
+        },
+        {
+          "step": 10,
+          "name": "流式输出",
+          "description": "使用yield逐步返回回答片段，支持流式响应"
+        }
+      ],
+      "constraints_and_limitations": [
+        {
+          "type": "data_source",
+          "constraint": "必须使用FDA openFDA API作为唯一数据源，不使用第三方数据",
+          "rationale": "确保数据权威性和可信度"
+        },
+        {
+          "type": "traceability",
+          "constraint": "每条数据必须包含FDA官方来源链接，确保100%可追溯",
+          "rationale": "满足核心需求，支持用户验证数据真实性"
+        },
+        {
+          "type": "professional_boundary",
+          "constraint": "不提供医疗诊断、治疗建议或法律咨询",
+          "rationale": "避免法律风险，保持专业边界"
+        },
+        {
+          "type": "objectivity",
+          "constraint": "保持客观中立，仅呈现FDA官方数据",
+          "rationale": "确保信息准确性和可信度"
+        },
+        {
+          "type": "query_limit",
+          "constraint": "查询结果不超过100条记录，超出时提供分页或筛选建议",
+          "rationale": "控制响应大小和处理复杂度"
+        },
+        {
+          "type": "rate_limit",
+          "constraint": "遵守FDA API限流策略（每分钟240次请求）",
+          "rationale": "遵守API使用条款，避免被限流"
+        },
+        {
+          "type": "performance",
+          "constraint": "响应时间目标：90%的查询<3秒，缓存命中<500毫秒",
+          "rationale": "确保用户体验"
+        },
+        {
+          "type": "streaming",
+          "constraint": "支持流式响应，使用yield逐步返回结果",
+          "rationale": "提升用户体验，降低感知延迟"
+        }
+      ],
+      "knowledge_domain": {
+        "primary_domains": [
+          "FDA药物批准和监管：药物批准流程、NDA/ANDA、NDC代码、药物标签、适应症、用法用量、警告信息",
+          "FDA医疗设备监管：设备分类（Class I/II/III）、510(k)、PMA、De Novo、产品代码、预期用途",
+          "FDA食品安全：食品召回分类（Class I/II/III）、执法行动、警告信、进口拒绝",
+          "不良事件报告：不良事件定义、严重性分类、报告要求、FAERS数据库",
+          "FDA召回管理：召回原因、召回级别、召回状态、分销范围",
+          "openFDA API：API端点、查询语法、字段映射、限流策略、错误码"
         ],
-        "guidance_elements": [
-          "查询解析：识别查询类型和关键实体",
-          "数据获取：调用相应的FDA API端点",
-          "数据处理：提取关键信息并格式化",
-          "专业分析：提供多维度分析和推理",
-          "结果输出：生成结构化查询结果，包含数据来源"
-        ],
-        "requirements": [
-          "准确理解用户查询意图",
-          "提供客观、详细、可验证的信息",
-          "明确标注数据来源和查询时间",
-          "在数据不足时提供智能提示和建议",
-          "遵守FDA数据使用规范和免责声明"
+        "expertise_level": "专家级：深入理解FDA数据结构和监管概念，能够准确解读FDA数据，识别数据之间的关联，提供专业的数据解读",
+        "knowledge_sources": [
+          "FDA openFDA API官方文档（https://open.fda.gov/apis/）",
+          "Claude Sonnet 4.5的预训练医疗健康领域知识",
+          "FDA官方网站的公开资料（如术语表、监管指南）",
+          "系统提示词中嵌入的FDA数据字段映射和查询模式"
         ]
       }
     },
-    "metadata_configuration": {
-      "tags": [
-        "fda",
-        "medical_data",
-        "drug_query",
-        "device_query",
-        "api_integration",
-        "healthcare"
-      ],
-      "supported_models": [
-        "global.anthropic.claude-sonnet-4-5-20250929-v1:0"
-      ],
-      "model_rationale": "Claude Sonnet 4.5在性能、成本、能力之间取得最佳平衡。具备强大的医疗领域知识和推理能力，能够处理复杂的专业查询。长上下文窗口（200K tokens）支持大量数据处理和多轮对话。相比Opus成本更低，相比Haiku能力更强，最适合FDA数据查询需求。",
-      "tools_dependencies": [
-        "strands_tools/current_time",
-        "generated_tools/fda_data_query_agent/fda_api_tools/fda_drug_search",
-        "generated_tools/fda_data_query_agent/fda_api_tools/fda_device_search",
-        "generated_tools/fda_data_query_agent/fda_api_tools/fda_food_search",
-        "generated_tools/fda_data_query_agent/fda_api_tools/fda_adverse_events_search",
-        "generated_tools/fda_data_query_agent/fda_api_tools/fda_nda_search",
-        "generated_tools/fda_data_query_agent/fda_api_tools/fda_recall_search",
-        "generated_tools/fda_data_query_agent/fda_api_tools/fda_api_query",
-        "generated_tools/fda_data_query_agent/fda_api_tools/format_fda_response",
-        "generated_tools/fda_data_query_agent/fda_api_tools/extract_data_fields",
-        "generated_tools/fda_data_query_agent/fda_api_tools/generate_data_source_info",
-        "generated_tools/fda_data_query_agent/fda_api_tools/validate_fda_data",
-        "generated_tools/fda_data_query_agent/fda_api_tools/get_cache_stats",
-        "generated_tools/fda_data_query_agent/fda_api_tools/clear_fda_cache"
-      ],
-      "tools_verification": {
-        "total_tools": 14,
-        "project_tools": 13,
-        "system_tools": 0,
-        "strands_tools": 1,
-        "verification_status": "所有工具路径已验证，与项目实际生成的工具完全匹配"
+    "output_format_specification": {
+      "standard_response_format": {
+        "structure": [
+          "## [查询主题]",
+          "### 核心信息",
+          "- 产品名称、批准日期、批准号、制造商、适应症等关键字段",
+          "### 详细信息",
+          "详细描述，使用分点列举或表格呈现",
+          "### 关键警告（如适用）",
+          "警告信息列表",
+          "### 数据来源",
+          "- 来源：[[FDA openFDA API](URL)]",
+          "- 查询时间：时间戳",
+          "- 数据更新时间：FDA数据更新时间",
+          "### 相关推荐（可选）",
+          "推荐查询列表"
+        ],
+        "format_requirements": [
+          "使用Markdown格式",
+          "使用分级标题（##、###）",
+          "使用分点列举（-、1.）",
+          "使用粗体强调关键信息（**关键词**）",
+          "使用链接格式标注来源（[[文本](URL)]）",
+          "使用表格呈现复杂数据（如适用）"
+        ]
+      },
+      "data_insufficient_format": {
+        "structure": [
+          "## 查询结果",
+          "未找到与「[查询内容]」匹配的FDA数据。",
+          "### 可能的原因",
+          "原因列表（1. 2. 3.）",
+          "### 建议操作",
+          "建议列表（1. 2. 3.），每个建议包含示例",
+          "### 查询示例",
+          "成功查询示例列表",
+          "### 需要帮助？",
+          "请求用户提供更多信息的提示"
+        ],
+        "tone": "友好、耐心、建设性，避免让用户感到沮丧"
+      },
+      "error_response_format": {
+        "structure": [
+          "## 系统提示",
+          "抱歉，[错误描述]。",
+          "### 错误信息",
+          "- 错误类型、错误代码、错误时间",
+          "### 已采取的措施",
+          "已尝试的补救措施列表",
+          "### 建议操作",
+          "用户可采取的操作列表",
+          "### 技术支持",
+          "如何获取技术支持的说明"
+        ],
+        "tone": "专业、诚恳、有帮助，提供明确的后续操作指导"
       }
     },
-    "environment_configuration": {
-      "development": {
-        "max_tokens": 4096,
-        "temperature": 0.3,
-        "streaming": true,
-        "rationale": "开发环境使用较小的token限制和流式响应，便于快速测试和调试"
-      },
-      "production": {
-        "max_tokens": 60000,
-        "temperature": 0.3,
-        "streaming": true,
-        "rationale": "生产环境使用较大的token限制，支持复杂查询和大量数据展示。temperature=0.3确保回答准确性和一致性。启用流式响应提升用户体验"
-      },
-      "testing": {
-        "max_tokens": 2048,
-        "temperature": 0.3,
-        "streaming": true,
-        "rationale": "测试环境使用最小的token限制，快速验证核心功能"
-      }
-    },
-    "version_management": {
-      "version": "latest",
-      "status": "stable",
-      "created_date": "2025-12-28",
-      "author": "agent build workflow",
-      "description": "FDA数据查询智能体，支持自然语言查询、多类型数据获取、专业问答、数据来源追溯",
-      "changelog": [
-        "1.0 (2025-12-28): 初始版本，基于api_integration_agent模板定制开发，支持药物、医疗设备、食品等多类型FDA数据查询"
+    "tools_integration": {
+      "fda_api_tools": [
+        {
+          "tool_name": "query_fda_drugs",
+          "tool_path": "generated_tools/fda_data_query_agent/fda_api_tools/query_fda_drugs",
+          "purpose": "查询药物批准信息、标签、NDC代码等",
+          "usage_scenario": "用户查询特定药物的信息"
+        },
+        {
+          "tool_name": "query_fda_devices",
+          "tool_path": "generated_tools/fda_data_query_agent/fda_api_tools/query_fda_devices",
+          "purpose": "查询医疗设备分类、批准、510(k)/PMA信息等",
+          "usage_scenario": "用户查询特定医疗设备的信息"
+        },
+        {
+          "tool_name": "query_fda_food",
+          "tool_path": "generated_tools/fda_data_query_agent/fda_api_tools/query_fda_food",
+          "purpose": "查询食品召回、执法行动、不良事件等",
+          "usage_scenario": "用户查询食品安全相关信息"
+        },
+        {
+          "tool_name": "query_fda_adverse_events",
+          "tool_path": "generated_tools/fda_data_query_agent/fda_api_tools/query_fda_adverse_events",
+          "purpose": "查询药物或设备的不良事件报告",
+          "usage_scenario": "用户查询特定产品的不良事件"
+        },
+        {
+          "tool_name": "query_fda_recalls",
+          "tool_path": "generated_tools/fda_data_query_agent/fda_api_tools/query_fda_recalls",
+          "purpose": "查询召回信息（药物、设备、食品）",
+          "usage_scenario": "用户查询产品召回历史"
+        },
+        {
+          "tool_name": "search_fda_comprehensive",
+          "tool_path": "generated_tools/fda_data_query_agent/fda_api_tools/search_fda_comprehensive",
+          "purpose": "综合查询多个FDA数据源",
+          "usage_scenario": "用户需要跨类型的综合查询"
+        },
+        {
+          "tool_name": "get_fda_api_stats",
+          "tool_path": "generated_tools/fda_data_query_agent/fda_api_tools/get_fda_api_stats",
+          "purpose": "获取FDA API统计信息",
+          "usage_scenario": "监控API使用情况和性能"
+        }
+      ],
+      "data_processing_tools": [
+        {
+          "tool_name": "parse_fda_drug_data",
+          "tool_path": "generated_tools/fda_data_query_agent/fda_support_tools/parse_fda_drug_data",
+          "purpose": "解析FDA药物数据，提取关键字段",
+          "usage_scenario": "处理query_fda_drugs返回的原始数据"
+        },
+        {
+          "tool_name": "parse_fda_device_data",
+          "tool_path": "generated_tools/fda_data_query_agent/fda_support_tools/parse_fda_device_data",
+          "purpose": "解析FDA设备数据，提取关键字段",
+          "usage_scenario": "处理query_fda_devices返回的原始数据"
+        },
+        {
+          "tool_name": "format_fda_response",
+          "tool_path": "generated_tools/fda_data_query_agent/fda_support_tools/format_fda_response",
+          "purpose": "格式化FDA API响应为用户友好格式",
+          "usage_scenario": "生成结构化的专业回答"
+        },
+        {
+          "tool_name": "validate_search_parameters",
+          "tool_path": "generated_tools/fda_data_query_agent/fda_support_tools/validate_search_parameters",
+          "purpose": "验证查询参数的合法性",
+          "usage_scenario": "在调用API前验证参数"
+        }
+      ],
+      "cache_management_tools": [
+        {
+          "tool_name": "get_cached_result",
+          "tool_path": "generated_tools/fda_data_query_agent/fda_support_tools/get_cached_result",
+          "purpose": "从缓存中获取查询结果",
+          "usage_scenario": "查询前检查缓存"
+        },
+        {
+          "tool_name": "cache_query_result",
+          "tool_path": "generated_tools/fda_data_query_agent/fda_support_tools/cache_query_result",
+          "purpose": "将查询结果写入缓存",
+          "usage_scenario": "查询成功后缓存结果"
+        },
+        {
+          "tool_name": "get_cache_stats",
+          "tool_path": "generated_tools/fda_data_query_agent/fda_support_tools/get_cache_stats",
+          "purpose": "获取缓存统计信息",
+          "usage_scenario": "监控缓存性能"
+        },
+        {
+          "tool_name": "clear_cache",
+          "tool_path": "generated_tools/fda_data_query_agent/fda_support_tools/clear_cache",
+          "purpose": "清理过期或无效缓存",
+          "usage_scenario": "定期缓存维护"
+        }
+      ],
+      "auxiliary_tools": [
+        {
+          "tool_name": "generate_query_suggestions",
+          "tool_path": "generated_tools/fda_data_query_agent/fda_support_tools/generate_query_suggestions",
+          "purpose": "生成查询建议和示例",
+          "usage_scenario": "数据不足时提供建议"
+        },
+        {
+          "tool_name": "current_time",
+          "tool_path": "strands_tools/current_time",
+          "purpose": "获取当前时间戳",
+          "usage_scenario": "标注查询时间和缓存时间"
+        }
+      ],
+      "total_tools": 16,
+      "integration_notes": [
+        "所有工具路径已添加到tools_dependencies中",
+        "工具按功能分组：API查询（7个）、数据处理（4个）、缓存管理（4个）、辅助工具（2个）",
+        "工具调用遵循工作流程顺序：缓存检查→API调用→数据解析→格式化→缓存写入",
+        "错误处理贯穿所有工具调用，确保容错性"
       ]
     },
-    "quality_assurance": {
-      "completeness_check": {
-        "covers_all_capabilities": true,
-        "details": "提示词覆盖了智能体设计规格中定义的所有核心能力：自然语言查询解析、多类型FDA数据查询、数据提取和格式化、专业问答和推理、数据来源追溯、缓存管理、错误处理和降级、数据不足处理"
-      },
-      "accuracy_check": {
-        "matches_design_spec": true,
-        "details": "提示词与智能体设计规格完全一致，角色定义、职责、工作流程、约束条件、评估标准均准确反映设计文档内容"
-      },
-      "clarity_check": {
-        "instructions_clear": true,
-        "details": "提示词指令明确具体，工作流程步骤化，输出格式结构化，错误处理策略详细，无歧义表达"
-      },
-      "executability_check": {
-        "actionable_guidance": true,
-        "details": "提示词提供具体可操作的指导，包括11步工作流程、详细的输出格式要求、6类错误处理策略、13个工具使用指导"
-      },
-      "robustness_check": {
-        "error_handling_complete": true,
-        "details": "提示词包含完整的错误处理和边界情况处理：API错误（400/429/500）、空结果、数据不完整、查询意图不明确等6类错误场景"
-      },
-      "consistency_check": {
-        "aligned_with_template": true,
-        "details": "提示词结构与api_integration_agent模板保持一致，同时针对FDA数据查询需求进行了充分的定制化开发"
-      },
-      "validation_results": {
-        "yaml_syntax": "valid",
-        "required_fields": "complete",
-        "tools_dependencies": "verified",
-        "overall_status": "passed"
-      }
+    "quality_standards": {
+      "performance_metrics": [
+        {
+          "metric": "查询意图识别准确率",
+          "target": ">95%",
+          "measurement": "通过测试集验证"
+        },
+        {
+          "metric": "数据来源标注覆盖率",
+          "target": "100%",
+          "measurement": "每条数据都有来源链接"
+        },
+        {
+          "metric": "查询成功率",
+          "target": ">90%",
+          "measurement": "排除数据确实不存在的情况"
+        },
+        {
+          "metric": "响应时间",
+          "target": "90%的查询<3秒，缓存命中<500毫秒",
+          "measurement": "性能监控统计"
+        },
+        {
+          "metric": "用户满意度",
+          "target": ">4.0/5.0",
+          "measurement": "通过用户反馈收集"
+        },
+        {
+          "metric": "错误处理有效性",
+          "target": "100%的错误场景都有友好提示和建议",
+          "measurement": "错误场景测试覆盖"
+        },
+        {
+          "metric": "缓存命中率",
+          "target": ">50%",
+          "measurement": "缓存统计数据"
+        },
+        {
+          "metric": "系统可用性",
+          "target": ">99%",
+          "measurement": "月度统计"
+        }
+      ],
+      "quality_requirements": [
+        "数据准确性：确保数据与FDA官方数据一致",
+        "来源可追溯：每条数据都包含FDA官方链接",
+        "回答完整性：提供充分的上下文和解释",
+        "用户友好性：使用清晰易懂的语言和格式",
+        "错误处理：100%的错误场景都有友好提示"
+      ]
     },
-    "best_practices_applied": [
-      "角色一致性：提示词与智能体设计规格完全匹配，角色定义明确",
-      "清晰性：指令明确具体，工作流程步骤化，输出格式结构化",
-      "结构化：遵循标准化的YAML提示词模板格式",
-      "可维护性：支持版本管理和迭代优化，包含详细的changelog",
-      "可测试性：包含明确的输入输出规范和评估标准",
-      "参考模板：基于api_integration_agent模板进行定制，复用成熟模式",
-      "领域专业性：补充FDA特定的领域知识和医疗术语",
-      "错误处理：完善的错误处理策略，覆盖所有异常场景",
-      "工具集成：明确工具使用方法和依赖关系，所有工具路径已验证",
-      "用户体验：友好的交互风格，主动澄清和引导，提供后续建议"
-    ],
-    "output_artifacts": {
-      "prompt_template_file": "prompts/generated_agents_prompts/fda_data_query_agent/fda_data_query_agent_prompt.yaml",
-      "prompt_design_document": "projects/fda_data_query_agent/agents/fda_data_query_agent/prompt_engineer.json",
-      "file_size": "15KB (估算)",
-      "validation_status": "passed"
+    "prompt_template_metadata": {
+      "template_file": "prompts/generated_agents_prompts/fda_data_query_agent/fda_data_query_agent_prompt.yaml",
+      "template_format": "YAML",
+      "template_version": "latest",
+      "template_status": "stable",
+      "supported_models": [
+        "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
+      ],
+      "environments": {
+        "development": {
+          "max_tokens": 4096,
+          "temperature": 0.3,
+          "streaming": true
+        },
+        "production": {
+          "max_tokens": 60000,
+          "temperature": 0.3,
+          "streaming": true
+        },
+        "testing": {
+          "max_tokens": 2048,
+          "temperature": 0.3,
+          "streaming": true
+        }
+      },
+      "tags": [
+        "fda_data_query",
+        "api_integration",
+        "medical_data",
+        "data_analysis",
+        "professional_assistant"
+      ]
     },
-    "next_steps": [
-      "agent_code_developer阶段：基于此提示词模板实现智能体代码",
-      "集成测试：验证提示词在实际查询场景中的表现",
-      "性能优化：根据测试结果优化提示词，提升查询准确率和响应速度",
-      "迭代改进：收集用户反馈，持续优化提示词内容"
-    ]
+    "testing_and_validation": {
+      "test_scenarios": [
+        {
+          "scenario": "标准药物查询",
+          "test_input": "查询阿司匹林的FDA批准信息",
+          "expected_output": "包含产品名称、批准日期、适应症、警告信息、FDA来源链接的结构化回答",
+          "validation_criteria": [
+            "查询意图识别正确（药物查询）",
+            "实体提取正确（aspirin）",
+            "调用query_fda_drugs工具",
+            "回答包含所有关键字段",
+            "来源链接存在且有效"
+          ]
+        },
+        {
+          "scenario": "数据不足场景",
+          "test_input": "查询XYZ药物的信息",
+          "expected_output": "友好的数据不足提示，包含原因分析、建议操作、查询示例",
+          "validation_criteria": [
+            "识别数据不存在",
+            "提供清晰的原因说明",
+            "提供可操作的建议",
+            "提供成功查询示例",
+            "语气友好、建设性"
+          ]
+        },
+        {
+          "scenario": "API错误场景",
+          "test_input": "查询某药物信息（模拟API失败）",
+          "expected_output": "专业的错误提示，包含错误信息、已采取措施、建议操作",
+          "validation_criteria": [
+            "识别API错误",
+            "尝试重试和缓存降级",
+            "提供清晰的错误信息",
+            "提供后续操作建议",
+            "语气专业、诚恳"
+          ]
+        },
+        {
+          "scenario": "多轮对话",
+          "test_input": "先查询阿司匹林，然后查询'它的不良事件'",
+          "expected_output": "理解'它'指代阿司匹林，查询阿司匹林的不良事件",
+          "validation_criteria": [
+            "正确理解代词引用",
+            "维护会话上下文",
+            "调用query_fda_adverse_events工具",
+            "回答包含不良事件信息和来源链接"
+          ]
+        },
+        {
+          "scenario": "缓存命中",
+          "test_input": "重复查询同一药物",
+          "expected_output": "快速返回缓存结果（<500毫秒）",
+          "validation_criteria": [
+            "检查缓存并命中",
+            "响应时间<500毫秒",
+            "数据与首次查询一致",
+            "来源链接有效"
+          ]
+        }
+      ],
+      "validation_checklist": [
+        "✅ 提示词YAML格式正确",
+        "✅ system_prompt完整，包含所有核心能力和约束",
+        "✅ 工作流程定义清晰",
+        "✅ 输出格式规范明确",
+        "✅ tools_dependencies包含所有16个工具",
+        "✅ 工具路径格式正确",
+        "✅ 错误处理机制完善",
+        "✅ 数据不足提示友好",
+        "✅ 来源追溯覆盖率100%",
+        "✅ 支持流式响应",
+        "✅ 多轮对话支持",
+        "✅ 性能目标明确",
+        "✅ 质量标准清晰"
+      ]
+    },
+    "implementation_notes": {
+      "key_decisions": [
+        "基于API集成专家模板进行深度定制，保留其API调用能力，扩展FDA特定功能",
+        "在system_prompt中嵌入详细的FDA专业知识和工作流程，减少Agent推理负担",
+        "定义三种输出格式（标准回答、数据不足、错误提示），确保一致性和用户友好性",
+        "集成所有16个项目工具到tools_dependencies，确保Agent可以调用所有必要工具",
+        "强调来源追溯的重要性，在多个地方明确要求100%覆盖率",
+        "设计结构化的工作流程（10步），从查询理解到流式输出，确保流程清晰",
+        "提供丰富的示例场景，帮助Agent理解预期行为"
+      ],
+      "best_practices_applied": [
+        "角色定义清晰：明确Agent的专业身份和职责边界",
+        "能力描述详细：8大核心能力，每个能力都有描述和实现说明",
+        "工作流程结构化：10步流程，从输入到输出完整覆盖",
+        "输出格式标准化：三种格式模板，确保一致性",
+        "约束明确：8个约束条件，每个都有rationale说明",
+        "知识领域专业化：嵌入FDA专业知识，提升回答质量",
+        "错误处理完善：三层容错机制，覆盖所有异常场景",
+        "工具集成完整：16个工具，分4类，按功能组织",
+        "质量标准量化：8个性能指标，都有明确的目标值",
+        "测试场景覆盖：5个测试场景，覆盖正常、异常、边界情况"
+      ],
+      "potential_improvements": [
+        "未来可考虑支持多语言（中文、西班牙语等）",
+        "可扩展支持FDA以外的监管机构数据（如EMA、PMDA）",
+        "可增加数据可视化功能（如不良事件趋势图）",
+        "可增加数据导出功能（如导出为PDF报告）",
+        "可增加用户反馈机制，持续优化回答质量"
+      ]
+    },
+    "summary": {
+      "completion_status": "已完成",
+      "artifacts_generated": [
+        "prompts/generated_agents_prompts/fda_data_query_agent/fda_data_query_agent_prompt.yaml"
+      ],
+      "key_achievements": [
+        "成功基于API集成专家模板设计了FDA数据查询Agent的提示词",
+        "实现了自然语言查询理解、FDA API调用、专业回答生成、来源追溯的完整能力",
+        "集成了16个项目工具，覆盖API查询、数据处理、缓存管理、辅助功能",
+        "定义了清晰的工作流程（10步）和输出格式规范（3种格式）",
+        "设置了量化的性能和质量标准（8个指标）",
+        "提供了完善的错误处理和数据不足提示机制",
+        "确保100%的来源追溯覆盖率，满足核心需求",
+        "支持流式响应和多轮对话，提升用户体验"
+      ],
+      "next_steps": [
+        "进入agent_code_developer阶段，实现Agent代码",
+        "基于提示词模板创建Agent实例",
+        "实现BedrockAgentCore入口点，支持部署",
+        "集成所有16个工具，确保工具调用正确",
+        "实现缓存机制和错误处理逻辑",
+        "进行测试和验证，确保性能和质量达标"
+      ]
+    }
   }
 }

@@ -38,6 +38,8 @@ interface ChatMessage {
     name: string;
     id: string;
     input?: string;
+    result?: string;
+    status?: 'pending' | 'running' | 'success' | 'error';
   }>;
 }
 
@@ -185,12 +187,29 @@ export default function AgentChatPage({ params }: PageProps) {
   // Sync database messages to chat messages when session changes
   useEffect(() => {
     if (messages && messages.length > 0) {
-      const dbMessages: ChatMessage[] = messages.map((msg) => ({
-        id: msg.message_id,
-        role: msg.role as 'user' | 'assistant' | 'system',
-        content: msg.content,
-        timestamp: msg.created_at,
-      }));
+      const dbMessages: ChatMessage[] = messages.map((msg) => {
+        // 从 metadata 中提取工具调用信息
+        const toolCalls = msg.metadata?.tool_calls as Array<{
+          name: string;
+          id: string;
+          input?: string;
+          result?: string;
+          status?: string;
+        }> | undefined;
+        return {
+          id: msg.message_id,
+          role: msg.role as 'user' | 'assistant' | 'system',
+          content: msg.content,
+          timestamp: msg.created_at,
+          toolCalls: toolCalls?.map(tc => ({
+            name: tc.name,
+            id: tc.id,
+            input: tc.input || '',
+            result: tc.result,
+            status: (tc.status || 'success') as 'pending' | 'running' | 'success' | 'error',
+          })),
+        };
+      });
       setChatMessages(dbMessages);
     } else {
       setChatMessages([]);
@@ -243,7 +262,7 @@ export default function AgentChatPage({ params }: PageProps) {
     };
     setChatMessages((prev) => [...prev, userMessage]);
 
-    // Add placeholder for assistant message
+    // Add placeholder for assistant message with loading state
     const assistantMessageId = `assistant-${Date.now()}`;
     const assistantMessage: ChatMessage = {
       id: assistantMessageId,
@@ -255,6 +274,9 @@ export default function AgentChatPage({ params }: PageProps) {
     };
     setChatMessages((prev) => [...prev, assistantMessage]);
 
+    // Track if we've received any content
+    let hasReceivedContent = false;
+
     try {
       // Create abort controller for this request
       abortControllerRef.current = new AbortController();
@@ -263,6 +285,7 @@ export default function AgentChatPage({ params }: PageProps) {
       for await (const event of streamChat(activeSessionId, content)) {
         if (event.event === 'message') {
           if (event.type === 'text' && event.data) {
+            hasReceivedContent = true;
             // Append text to assistant message
             setChatMessages((prev) =>
               prev.map((msg) =>
@@ -272,6 +295,7 @@ export default function AgentChatPage({ params }: PageProps) {
               )
             );
           } else if (event.type === 'tool_use') {
+            hasReceivedContent = true;
             // Track tool call
             setCurrentToolCall({
               name: event.tool_name || 'unknown',
@@ -547,7 +571,13 @@ export default function AgentChatPage({ params }: PageProps) {
                             ))}
                           </div>
                         )}
-                        {message.role === 'assistant' && message.isStreaming ? (
+                        {/* Show loading indicator when streaming but no content yet */}
+                        {message.role === 'assistant' && message.isStreaming && !message.content && (!message.toolCalls || message.toolCalls.length === 0) ? (
+                          <div className="flex items-center gap-2 text-gray-500">
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <span className="text-sm">思考中...</span>
+                          </div>
+                        ) : message.role === 'assistant' && message.isStreaming ? (
                           <TypewriterMessage
                             content={message.content}
                             isStreaming={message.isStreaming}

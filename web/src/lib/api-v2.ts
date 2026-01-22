@@ -24,6 +24,10 @@ import type {
   StatisticsOverviewResponse,
   BuildStatisticsResponse,
   InvocationStatisticsResponse,
+  AgentFilesResponse,
+  AgentFileResponse,
+  AgentToolFilesResponse,
+  SaveFileRequest,
 } from '@/types/api-v2';
 
 const API_BASE = '/api/v2';
@@ -257,7 +261,7 @@ export async function sendMessage(
  */
 export interface StreamEvent {
   event: 'connected' | 'message' | 'metrics' | 'error' | 'done' | 'heartbeat';
-  type?: 'text' | 'tool_use' | 'tool_input' | 'tool_end' | 'message_stop';
+  type?: 'text' | 'tool_use' | 'tool_input' | 'tool_end' | 'message_stop' | 'content_block_stop';
   data?: string;
   tool_name?: string;
   tool_id?: string;
@@ -443,4 +447,166 @@ export async function getBuildStatistics(days?: number): Promise<BuildStatistics
 export async function getInvocationStatistics(days?: number): Promise<InvocationStatisticsResponse> {
   const query = days ? `?days=${days}` : '';
   return apiFetch<InvocationStatisticsResponse>(`/statistics/invocations${query}`);
+}
+
+// ============== Agent Files API ==============
+
+/**
+ * 获取 Agent 所有文件信息
+ */
+export async function getAgentFiles(
+  agentId: string,
+  includeContent: boolean = true
+): Promise<AgentFilesResponse> {
+  const query = `?include_content=${includeContent}`;
+  return apiFetch<AgentFilesResponse>(`/agents/${agentId}/files${query}`);
+}
+
+/**
+ * 获取 Agent 代码文件
+ */
+export async function getAgentCode(agentId: string): Promise<AgentFileResponse> {
+  return apiFetch<AgentFileResponse>(`/agents/${agentId}/files/code`);
+}
+
+/**
+ * 获取 Agent 提示词文件
+ */
+export async function getAgentPrompt(agentId: string): Promise<AgentFileResponse> {
+  return apiFetch<AgentFileResponse>(`/agents/${agentId}/files/prompt`);
+}
+
+/**
+ * 获取 Agent 工具文件列表
+ */
+export async function getAgentTools(agentId: string): Promise<AgentToolFilesResponse> {
+  return apiFetch<AgentToolFilesResponse>(`/agents/${agentId}/files/tools`);
+}
+
+/**
+ * 保存 Agent 代码文件
+ */
+export async function saveAgentCode(
+  agentId: string,
+  content: string
+): Promise<APIResponse> {
+  return apiFetch<APIResponse>(`/agents/${agentId}/files/code`, {
+    method: 'PUT',
+    body: JSON.stringify({ content, file_type: 'code' }),
+  });
+}
+
+/**
+ * 保存 Agent 提示词文件
+ */
+export async function saveAgentPrompt(
+  agentId: string,
+  content: string
+): Promise<APIResponse> {
+  return apiFetch<APIResponse>(`/agents/${agentId}/files/prompt`, {
+    method: 'PUT',
+    body: JSON.stringify({ content, file_type: 'prompt' }),
+  });
+}
+
+/**
+ * 保存 Agent 工具文件
+ */
+export async function saveAgentTool(
+  agentId: string,
+  toolName: string,
+  content: string
+): Promise<APIResponse> {
+  return apiFetch<APIResponse>(`/agents/${agentId}/files/tools/${toolName}`, {
+    method: 'PUT',
+    body: JSON.stringify({ content, file_type: 'tool' }),
+  });
+}
+
+
+// ============== Agent Tools API ==============
+
+import type {
+  ToolListResponse,
+  ToolDetailResponse,
+  ToolTestResponse,
+  ToolTestRequest,
+  ToolCategoriesResponse,
+  MCPServerListResponse,
+  MCPServerDetailResponse,
+} from '@/types/api-v2';
+
+/**
+ * 获取工具分类列表
+ */
+export async function getToolCategories(): Promise<ToolCategoriesResponse> {
+  return apiFetch<ToolCategoriesResponse>('/tools/categories');
+}
+
+/**
+ * 获取工具列表
+ */
+export async function listTools(params?: {
+  type?: string;
+  category?: string;
+  search?: string;
+}): Promise<ToolListResponse> {
+  const searchParams = new URLSearchParams();
+  if (params?.type) searchParams.set('type', params.type);
+  if (params?.category) searchParams.set('category', params.category);
+  if (params?.search) searchParams.set('search', params.search);
+  
+  const query = searchParams.toString();
+  return apiFetch<ToolListResponse>(`/tools/list${query ? `?${query}` : ''}`);
+}
+
+/**
+ * 获取工具详情
+ */
+export async function getToolDetail(
+  toolName: string,
+  type?: string
+): Promise<ToolDetailResponse> {
+  const query = type ? `?type=${type}` : '';
+  return apiFetch<ToolDetailResponse>(`/tools/${encodeURIComponent(toolName)}${query}`);
+}
+
+/**
+ * 测试工具
+ */
+export async function testTool(
+  toolName: string,
+  request: ToolTestRequest
+): Promise<ToolTestResponse> {
+  return apiFetch<ToolTestResponse>(`/tools/${encodeURIComponent(toolName)}/test`, {
+    method: 'POST',
+    body: JSON.stringify(request),
+  });
+}
+
+/**
+ * 获取 MCP 服务器列表
+ */
+export async function listMCPServers(): Promise<MCPServerListResponse> {
+  return apiFetch<MCPServerListResponse>('/tools/mcp/servers');
+}
+
+/**
+ * 获取 MCP 服务器详情
+ */
+export async function getMCPServer(serverName: string): Promise<MCPServerDetailResponse> {
+  return apiFetch<MCPServerDetailResponse>(`/tools/mcp/servers/${encodeURIComponent(serverName)}`);
+}
+
+/**
+ * 更新 MCP 服务器配置
+ */
+export async function updateMCPServer(
+  serverName: string,
+  config: { disabled?: boolean; auto_approve?: string[] }
+): Promise<APIResponse> {
+  return apiFetch<APIResponse>(`/tools/mcp/servers/${encodeURIComponent(serverName)}`, {
+    method: 'PUT',
+    body: JSON.stringify(config),
+  });
 }

@@ -3,41 +3,40 @@
     "development_overview": {
       "project_name": "fda_data_query_agent",
       "version": "1.0",
-      "date": "2025-12-28",
-      "development_scope": "基于智能体设计规格、系统架构、提示词模板和工具代码，开发完整的FDA数据查询智能体。Agent采用单一职责设计，集成自然语言查询解析、多类型FDA数据查询、数据提取和格式化、专业问答和推理、数据来源追溯、缓存管理、错误处理和降级、数据不足处理等核心能力。",
+      "date": "2026-01-22",
+      "development_scope": "开发FDA数据查询Agent的完整代码实现，基于API Integration Agent模板，集成17个FDA专用工具（7个API查询工具 + 9个支持工具 + 1个系统工具），实现自然语言查询理解、实时FDA API访问、专业回答生成、来源追溯、错误处理和智能提示等核心功能",
       "design_principles": [
-        "单一职责：Agent专注于FDA数据查询和问答，职责清晰明确",
-        "模板复用：基于api_integration_agent模板进行定制开发，复用成熟模式",
-        "提示词驱动：利用Claude Sonnet 4.5模型的医疗领域知识和自然语言理解能力",
-        "工具函数封装：将API调用、缓存管理、数据格式化等逻辑封装为工具函数",
-        "完善的错误处理：多层错误处理机制，包括重试、缓存降级、用户友好提示",
-        "流式响应：使用BedrockAgentCoreApp的流式响应能力，提升用户体验",
-        "AgentCore兼容：必须包含handler入口点函数，支持部署到Amazon Bedrock AgentCore"
+        "单一职责：Agent专注于FDA数据查询和专业解答，不涉及医疗诊断或法律咨询",
+        "模块化设计：通过agent_factory创建Agent，配置与代码分离，提示词模板独立管理",
+        "容错优先：完善的错误处理和降级策略，确保用户始终获得有价值的反馈",
+        "数据可追溯：强制性的来源标注机制（工具层自动注入），确保100%的来源覆盖率",
+        "用户友好：自然语言交互，流式响应，清晰的提示和建议",
+        "性能优化：通过缓存机制减少API调用，提升响应速度",
+        "部署就绪：遵循BedrockAgentCore部署规范，支持本地测试和生产部署"
       ],
       "key_decisions": [
-        "使用agent_factory.create_agent_from_prompt_template创建Agent：标准化Agent创建流程",
-        "使用BedrockAgentCoreApp模式：支持AgentCore部署和HTTP服务",
-        "实现handler入口点函数：AgentCore标准入口，支持流式响应",
-        "提供本地测试和交互模式：便于开发调试和功能验证",
-        "统一错误处理：所有异常都转换为用户友好的错误信息",
-        "环境变量配置：BYPASS_TOOL_CONSENT、OTEL_EXPORTER_OTLP_ENDPOINT等必需环境变量"
+        "使用agent_factory.create_agent_from_prompt_template创建Agent：遵循平台标准，配置与代码分离，便于维护和版本管理",
+        "单Agent架构：需求明确为单Agent场景，核心逻辑统一（理解查询→调用API→格式化返回），无需多Agent协作",
+        "基于API Integration Agent模板：模板匹配度92/100，提供专业的API调用、认证管理、JSON处理能力",
+        "BedrockAgentCoreApp部署模式：使用@app.entrypoint装饰器定义async handler函数，支持流式响应（yield），app.run()启动HTTP服务器",
+        "提示词驱动：核心能力（自然语言理解、意图识别、专业回答生成）通过提示词实现，无需复杂的代码逻辑",
+        "工具集成：集成17个工具（7个FDA API工具 + 9个支持工具 + 1个系统工具），通过提示词配置tools_dependencies",
+        "本地测试支持：提供-i参数（单次查询）、-it参数（交互式对话）、-e参数（环境选择）等命令行选项",
+        "环境配置：使用ConfigLoader加载配置，支持环境变量覆盖，设置BYPASS_TOOL_CONSENT和OTEL_EXPORTER_OTLP_ENDPOINT",
+        "遥测集成：使用StrandsTelemetry配置OTLP导出器，支持OpenTelemetry追踪"
       ]
     },
     "agent_implementation": {
       "agent_name": "fda_data_query_agent",
       "file_path": "agents/generated_agents/fda_data_query_agent/fda_data_query_agent.py",
-      "main_class": "无（使用函数式编程）",
-      "entry_point": "handler (AgentCore入口点) / __main__ (本地运行入口)",
+      "main_class": "无（使用函数式设计）",
+      "entry_point": "handler（async函数，@app.entrypoint装饰）",
       "dependencies": [
-        "os",
-        "json",
-        "typing.Dict",
-        "typing.Any",
-        "nexus_utils.agent_factory.create_agent_from_prompt_template",
-        "bedrock_agentcore.runtime.BedrockAgentCoreApp",
-        "bedrock_agentcore.runtime.context.RequestContext",
-        "strands.telemetry.StrandsTelemetry",
-        "nexus_utils.config_loader.ConfigLoader"
+        "nexus_utils.agent_factory (create_agent_from_prompt_template)",
+        "bedrock_agentcore.runtime (BedrockAgentCoreApp, RequestContext)",
+        "strands.telemetry (StrandsTelemetry)",
+        "nexus_utils.config_loader (ConfigLoader)",
+        "os, json, typing"
       ],
       "imports": [
         "import os",
@@ -52,43 +51,46 @@
     },
     "core_functions": [
       {
-        "function_name": "create_fda_query_agent",
-        "purpose": "创建FDA数据查询智能体实例的工厂方法",
+        "function_name": "create_fda_agent",
+        "purpose": "创建FDA数据查询Agent实例，封装Agent创建逻辑，支持不同环境和配置",
         "parameters": [
           {
             "name": "env",
             "type": "str",
-            "description": "运行环境 (development/production/testing)",
-            "required": false,
-            "default": "production"
+            "description": "运行环境（development/production/testing），默认production",
+            "required": false
           },
           {
             "name": "version",
             "type": "str",
-            "description": "Agent版本",
-            "required": false,
-            "default": "latest"
+            "description": "Agent版本，默认latest",
+            "required": false
           },
           {
             "name": "model_id",
             "type": "str",
-            "description": "模型ID",
-            "required": false,
-            "default": "default"
+            "description": "模型ID，默认default（使用配置文件中的模型）",
+            "required": false
+          },
+          {
+            "name": "enable_logging",
+            "type": "bool",
+            "description": "是否启用日志，默认True",
+            "required": false
           }
         ],
         "return_type": "Agent",
-        "return_description": "Agent实例，配置了指定的环境、版本和模型",
+        "return_description": "创建的Agent实例，包含配置的环境、版本、模型和日志设置",
         "implementation_notes": [
-          "使用agent_factory.create_agent_from_prompt_template创建Agent",
-          "Agent配置路径：generated_agents_prompts/fda_data_query_agent/fda_data_query_agent_prompt",
-          "启用日志记录（enable_logging=True）",
-          "支持多环境配置（development/production/testing）"
+          "使用create_agent_from_prompt_template工厂方法创建Agent",
+          "Agent配置路径为generated_agents_prompts/fda_data_query_agent/fda_data_query_agent",
+          "参数通过agent_params字典传递给工厂方法",
+          "支持不同环境的配置（development使用较小max_tokens，production使用完整配置）"
         ]
       },
       {
         "function_name": "handler",
-        "purpose": "AgentCore标准入口点函数，处理HTTP请求并返回流式响应",
+        "purpose": "AgentCore标准入口点，处理HTTP请求，支持流式响应",
         "parameters": [
           {
             "name": "payload",
@@ -104,167 +106,171 @@
           }
         ],
         "return_type": "AsyncGenerator[str, None]",
-        "return_description": "流式响应的文本片段（自动处理流式传输）",
+        "return_description": "流式响应的文本片段，通过yield逐步返回",
         "implementation_notes": [
           "使用@app.entrypoint装饰器标记为AgentCore入口点",
-          "异步函数（async def）",
-          "从payload中提取prompt（支持prompt/message/input三种字段名）",
-          "从context中获取session_id",
-          "使用agent.stream_async()生成流式响应",
-          "使用yield产生流式响应片段",
-          "完善的错误处理：prompt缺失、异常捕获",
-          "详细的日志输出：请求接收、处理进度、错误信息"
-        ]
-      },
-      {
-        "function_name": "__main__",
-        "purpose": "本地运行入口，支持多种运行模式（本地测试、交互式对话、AgentCore服务）",
-        "parameters": [],
-        "return_type": "None",
-        "return_description": "无返回值",
-        "implementation_notes": [
-          "使用argparse解析命令行参数",
-          "支持三种运行模式：",
-          "  1. AgentCore部署模式（DOCKER_CONTAINER=1）：启动HTTP服务器",
-          "  2. 本地测试模式（-i参数）：执行单次查询测试",
-          "  3. 交互式对话模式（-it参数）：多轮对话交互",
-          "支持环境和版本配置（-e、-v参数）",
-          "提供详细的使用示例和帮助信息",
-          "交互式模式支持特殊命令：quit/exit退出、clear清屏",
-          "友好的用户界面：使用分隔线、图标、颜色提示"
+          "必须是async函数，支持异步处理",
+          "从payload中提取prompt（支持prompt/message/input多种字段名）",
+          "从context中获取session_id用于多轮对话",
+          "使用agent.stream_async(prompt)获取流式响应",
+          "通过yield逐步返回响应片段，BedrockAgentCore自动处理流式传输",
+          "错误时yield以'Error: '开头的错误信息",
+          "所有操作都有日志输出（print语句）"
         ]
       }
     ],
     "tool_integration": {
       "custom_tools": [
-        "generated_tools/fda_data_query_agent/fda_api_tools/fda_api_query",
-        "generated_tools/fda_data_query_agent/fda_api_tools/fda_drug_search",
-        "generated_tools/fda_data_query_agent/fda_api_tools/fda_device_search",
-        "generated_tools/fda_data_query_agent/fda_api_tools/fda_food_search",
-        "generated_tools/fda_data_query_agent/fda_api_tools/fda_adverse_events_search",
-        "generated_tools/fda_data_query_agent/fda_api_tools/fda_recall_search",
-        "generated_tools/fda_data_query_agent/fda_api_tools/fda_nda_search",
-        "generated_tools/fda_data_query_agent/fda_api_tools/format_fda_response",
-        "generated_tools/fda_data_query_agent/fda_api_tools/extract_data_fields",
-        "generated_tools/fda_data_query_agent/fda_api_tools/generate_data_source_info",
-        "generated_tools/fda_data_query_agent/fda_api_tools/validate_fda_data",
-        "generated_tools/fda_data_query_agent/fda_api_tools/get_cache_stats",
-        "generated_tools/fda_data_query_agent/fda_api_tools/clear_fda_cache"
+        "generated_tools/fda_data_query_agent/fda_api_tools/query_fda_drugs",
+        "generated_tools/fda_data_query_agent/fda_api_tools/query_fda_devices",
+        "generated_tools/fda_data_query_agent/fda_api_tools/query_fda_food",
+        "generated_tools/fda_data_query_agent/fda_api_tools/query_fda_adverse_events",
+        "generated_tools/fda_data_query_agent/fda_api_tools/query_fda_recalls",
+        "generated_tools/fda_data_query_agent/fda_api_tools/search_fda_comprehensive",
+        "generated_tools/fda_data_query_agent/fda_api_tools/get_fda_api_stats",
+        "generated_tools/fda_data_query_agent/fda_support_tools/parse_fda_drug_data",
+        "generated_tools/fda_data_query_agent/fda_support_tools/parse_fda_device_data",
+        "generated_tools/fda_data_query_agent/fda_support_tools/format_fda_response",
+        "generated_tools/fda_data_query_agent/fda_support_tools/validate_search_parameters",
+        "generated_tools/fda_data_query_agent/fda_support_tools/get_cached_result",
+        "generated_tools/fda_data_query_agent/fda_support_tools/cache_query_result",
+        "generated_tools/fda_data_query_agent/fda_support_tools/get_cache_stats",
+        "generated_tools/fda_data_query_agent/fda_support_tools/clear_cache",
+        "generated_tools/fda_data_query_agent/fda_support_tools/generate_query_suggestions"
       ],
-      "system_tools": [],
-      "strands_tools": [
+      "system_tools": [
         "strands_tools/current_time"
       ],
+      "strands_tools": [],
       "integration_notes": [
-        "所有工具通过提示词模板配置，Agent自动加载",
-        "工具函数使用@tool装饰器标记，支持类型注解",
-        "工具返回JSON格式字符串，便于解析和展示",
-        "工具函数包含完善的错误处理，不抛出异常",
-        "工具路径已在提示词模板中验证，确保正确引用"
+        "工具通过提示词模板的tools_dependencies配置集成，无需在代码中显式导入",
+        "Agent通过Strands框架自动加载和调用工具",
+        "工具调用由Claude Sonnet 4.5根据提示词中的指导自动决策",
+        "所有工具返回JSON格式字符串，Agent解析后生成用户友好的回答",
+        "工具层自动注入来源标注（_fda_source字段），Agent无需手动处理",
+        "缓存工具（get_cached_result、cache_query_result）由Agent决策何时使用",
+        "错误处理和重试逻辑在工具层实现，Agent专注于意图理解和回答生成"
       ]
     },
     "configuration": {
       "environment_variables": [
-        "BYPASS_TOOL_CONSENT=true（必需）：绕过工具调用确认，允许Agent自动调用工具",
-        "OTEL_EXPORTER_OTLP_ENDPOINT（可选）：OpenTelemetry端点，默认http://localhost:4318",
-        "DOCKER_CONTAINER（可选）：标识是否在Docker容器中运行，用于切换运行模式"
+        "BYPASS_TOOL_CONSENT=true（绕过工具调用确认，必须设置）",
+        "OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318（OpenTelemetry导出器端点，可通过配置文件或环境变量覆盖）",
+        "DOCKER_CONTAINER=1（Docker容器标识，用于判断部署模式）"
       ],
       "model_configuration": {
-        "model_name": "global.anthropic.claude-sonnet-4-5-20250929-v1:0",
-        "max_tokens": 60000,
+        "model_name": "us.anthropic.claude-sonnet-4-5-20250929-v1:0",
+        "max_tokens": {
+          "development": 4096,
+          "production": 60000,
+          "testing": 2048
+        },
         "temperature": 0.3,
-        "streaming": true,
-        "rationale": "Claude Sonnet 4.5在性能、成本、能力之间取得最佳平衡。具备强大的医疗领域知识和推理能力，能够处理复杂的专业查询。长上下文窗口（200K tokens）支持大量数据处理和多轮对话。temperature=0.3确保回答准确性和一致性。启用流式响应提升用户体验。"
+        "streaming": true
       },
       "streaming_config": {
         "enabled": true,
         "method": "agent.stream_async()",
-        "rationale": "流式响应可以实时展示查询进度和结果，提升用户体验，避免用户等待焦虑。特别适合复杂查询和批量查询等长时间操作。"
+        "output_format": "yield文本片段"
       },
-      "agent_config_path": "generated_agents_prompts/fda_data_query_agent/fda_data_query_agent_prompt",
-      "cache_directory": ".cache/fda_data_query_agent/",
-      "cache_expiration": "24小时"
+      "agent_config": {
+        "config_path": "generated_agents_prompts/fda_data_query_agent/fda_data_query_agent",
+        "config_format": "YAML",
+        "prompt_template": "prompts/generated_agents_prompts/fda_data_query_agent/fda_data_query_agent_prompt.yaml"
+      }
     },
     "error_handling": {
       "exception_types": [
-        "payload缺失prompt字段：返回友好错误提示",
-        "Agent调用异常：捕获并返回错误信息",
-        "工具调用异常：由工具函数内部处理，返回JSON格式错误",
-        "API错误：由工具函数处理（400/404/429/500/超时）",
-        "缓存错误：不影响主流程，仅记录日志",
-        "网络连接失败：使用缓存降级"
+        "ValueError（参数错误，如缺少prompt）",
+        "Exception（通用异常，捕获所有未预期错误）",
+        "KeyboardInterrupt（用户中断，交互式模式）",
+        "工具调用异常（由工具层处理，返回JSON格式错误）"
       ],
       "error_responses": [
-        "Error: Missing 'prompt' in request. Please provide a query.",
-        "Error: {exception_message}"
+        "缺少prompt：yield 'Error: Missing 'prompt' in request'",
+        "Agent调用异常：yield f'Error: {str(e)}'",
+        "交互式模式异常：print错误信息并继续对话",
+        "工具调用失败：Agent解析工具返回的错误JSON，生成用户友好提示"
       ],
       "recovery_strategies": [
-        "prompt缺失：提示用户提供查询内容",
-        "Agent调用异常：记录错误并返回用户友好提示",
-        "API错误：使用重试和缓存降级策略（由工具函数实现）",
-        "所有错误都转换为用户友好的提示，避免技术术语"
+        "API调用失败：工具层自动重试（最多3次，指数退避），失败后尝试缓存降级",
+        "缓存降级：返回过期缓存数据（最多7天），标注数据可能过时",
+        "参数验证失败：提示用户补充或修正参数，提供查询示例",
+        "数据为空：分析原因（拼写错误、数据未公开等），提供改进建议和查询示例",
+        "限流触发：延迟重试（60秒）或返回缓存数据，提示用户稍后重试",
+        "未知错误：记录完整堆栈跟踪到日志，返回通用错误信息给用户"
       ]
     },
     "testing": {
       "test_cases": [
-        "本地测试模式：python fda_data_query_agent.py -i '查询阿司匹林的不良反应'",
-        "交互式对话模式：python fda_data_query_agent.py -it",
-        "指定环境和版本：python fda_data_query_agent.py -i '查询胰岛素泵召回信息' -e development -v 1.0",
-        "AgentCore部署模式：DOCKER_CONTAINER=1 python fda_data_query_agent.py"
+        "标准药物查询：python fda_data_query_agent.py -i '查询阿司匹林的FDA批准信息'",
+        "医疗设备查询：python fda_data_query_agent.py -i '查询起搏器的510(k)批准信息'",
+        "食品召回查询：python fda_data_query_agent.py -i '查询沙门氏菌相关的食品召回'",
+        "不良事件查询：python fda_data_query_agent.py -i '查询胰岛素的严重不良事件'",
+        "数据不足场景：python fda_data_query_agent.py -i '查询XYZ药物的信息'",
+        "多轮对话：python fda_data_query_agent.py -it（先查询阿司匹林，然后查询'它的不良事件'）",
+        "综合查询：python fda_data_query_agent.py -i '查询胰岛素的所有相关数据'",
+        "缓存测试：重复执行相同查询，验证缓存命中和响应时间"
       ],
       "test_scenarios": [
-        "单次查询：查询特定药物的批准信息",
-        "多轮对话：先查询药物信息，再追问不良反应",
-        "复杂查询：比较多个药物的安全性",
-        "空结果处理：查询不存在的产品",
-        "API错误处理：模拟API不可用情况",
-        "缓存验证：重复查询验证缓存命中"
+        "本地单次查询：使用-i参数，验证查询成功、数据准确、来源标注、格式规范",
+        "交互式对话：使用-it参数，验证多轮对话、上下文理解、代词引用、连续追问",
+        "环境切换：使用-e参数切换development/production/testing，验证配置正确加载",
+        "AgentCore部署：设置DOCKER_CONTAINER=1，验证HTTP服务器启动、/invocations端点响应、流式传输",
+        "错误场景：模拟API失败（断网或修改API URL），验证重试、降级、友好提示",
+        "性能测试：测量响应时间（首次查询、缓存命中），验证90%查询<3秒、缓存命中<500毫秒",
+        "工具调用：验证所有17个工具都能正确调用，返回预期结果",
+        "来源追溯：验证所有查询结果都包含FDA官方链接，链接格式正确且可访问"
       ],
       "validation_criteria": [
-        "Agent创建成功，名称正确",
-        "handler函数正确处理payload和context",
-        "流式响应正常工作，实时展示结果",
-        "错误处理有效，返回友好提示",
-        "本地测试模式正常工作",
-        "交互式对话模式正常工作",
-        "AgentCore部署模式正常启动HTTP服务器",
-        "所有工具正确集成，可以被Agent调用",
-        "日志输出详细，便于调试和监控"
+        "代码语法正确：通过Python语法检查（python -m py_compile）",
+        "导入有效：所有导入模块都存在且可访问",
+        "Agent创建成功：create_fda_agent函数能正确创建Agent实例",
+        "本地测试通过：-i和-it模式都能正常运行",
+        "AgentCore兼容：handler函数符合BedrockAgentCore规范",
+        "流式响应正常：使用stream_async()能正确返回流式片段",
+        "工具集成正确：提示词配置的17个工具都能被Agent调用",
+        "错误处理完善：所有异常场景都有友好提示",
+        "性能达标：响应时间符合要求（90%查询<3秒）",
+        "来源标注100%：所有查询结果都包含FDA官方链接"
       ]
     },
     "deployment": {
       "deployment_requirements": [
         "Python 3.13+运行环境",
-        "安装nexus_utils包（本地工具包）",
-        "安装strands-agents包（Strands Agent框架）",
-        "安装bedrock-agentcore包（AgentCore运行时）",
-        "配置AWS Bedrock访问权限",
-        "配置OpenTelemetry端点（可选）",
-        "确保网络可访问openFDA API（https://api.fda.gov）",
-        "创建缓存目录（.cache/fda_data_query_agent/）"
+        "nexus_utils包（agent_factory、config_loader）",
+        "bedrock_agentcore包（runtime、context）",
+        "strands包（telemetry）",
+        "requests包（工具层HTTP请求）",
+        "提示词模板文件：prompts/generated_agents_prompts/fda_data_query_agent/fda_data_query_agent_prompt.yaml",
+        "工具代码文件：tools/generated_tools/fda_data_query_agent/fda_api_tools.py和fda_support_tools.py",
+        "配置文件：nexus_ai.yaml（包含OTEL_EXPORTER_OTLP_ENDPOINT等配置）",
+        "缓存目录：.cache/fda_data_query_agent/（自动创建）",
+        "AWS Bedrock访问权限（用于Claude Sonnet 4.5推理）"
       ],
       "runtime_dependencies": [
-        "./nexus_utils - 本地工具包",
-        "strands-agents - Strands Agent框架",
-        "bedrock-agentcore - AgentCore运行时",
-        "requests - HTTP请求库（工具依赖）",
-        "PyYAML - YAML配置解析（工具依赖）"
+        "nexus_utils（本地工具包）",
+        "strands-agents（Agent框架）",
+        "strands-agents-tools（工具框架）",
+        "boto3（AWS SDK）",
+        "botocore（boto3核心库）",
+        "requests（HTTP客户端）",
+        "PyYAML（YAML解析）"
       ],
       "performance_considerations": [
-        "响应时间目标：5秒内（不含网络延迟）",
-        "缓存命中率目标：60%以上（常见查询）",
-        "API调用成功率目标：95%以上（排除FDA API故障）",
-        "支持并发：至少10个并发用户",
-        "流式响应：实时展示查询进度，提升用户体验",
-        "缓存机制：降低API调用量30%以上，提升响应速度",
-        "错误处理：使用重试和降级策略，确保高可用性（99%）"
-      ],
-      "deployment_modes": [
-        "AgentCore部署模式：设置DOCKER_CONTAINER=1环境变量，启动HTTP服务器（端口8080）",
-        "本地测试模式：使用-i参数提供测试输入，执行单次查询",
-        "交互式对话模式：使用-it参数启动多轮对话，支持quit/exit退出、clear清屏"
+        "缓存优化：常见查询结果缓存24小时，缓存命中率目标>50%",
+        "响应时间：API查询响应时间目标<3秒（90%请求），缓存命中时<500毫秒",
+        "并发支持：支持至少10个并发会话，使用异步编程（asyncio）",
+        "结果限制：单次查询返回结果限制在100条，避免大数据集传输",
+        "流式响应：使用agent.stream_async()实现流式响应，降低感知延迟",
+        "API限流管理：工具层实现令牌桶算法，限制每分钟240次请求（FDA API限制）",
+        "连接池：工具层使用requests.Session()维护连接池，复用TCP连接",
+        "数据压缩：工具层启用gzip压缩（Accept-Encoding: gzip），减少网络传输",
+        "缓存策略：使用LRU（最近最少使用）策略清理缓存，优先保留热点数据",
+        "启动优化：Agent启动时间目标<5秒，提示词和工具延迟加载",
+        "内存管理：上下文数据限制在50轮对话，超出后自动总结或丢弃早期数据"
       ]
     },
-    "development_notes": "智能体代码开发严格遵循Nexus-AI平台技术栈和开发标准。使用agent_factory.create_agent_from_prompt_template创建Agent，确保标准化和一致性。实现了BedrockAgentCoreApp模式和handler入口点函数，支持部署到Amazon Bedrock AgentCore。提供了本地测试和交互式对话模式，便于开发调试和功能验证。所有工具通过提示词模板配置，Agent自动加载，无需手动集成。错误处理采用多层机制，包括prompt缺失检查、异常捕获、用户友好提示。流式响应使用agent.stream_async()和async/await模式，确保实时展示查询进度。代码结构清晰，文档完整，便于维护和扩展。关键决策：1）使用agent_factory而非手动创建Agent；2）使用BedrockAgentCoreApp而非自定义HTTP服务器；3）使用handler入口点而非invoke/main别名；4）使用流式响应而非同步响应；5）提供多种运行模式而非单一模式。这些决策确保了代码的标准化、可维护性和用户体验。"
+    "development_notes": "智能体代码开发过程中的关键发现和决策理由：\n\n1. **Agent创建方式**：使用agent_factory.create_agent_from_prompt_template而非直接实例化Agent类，这是平台标准做法，实现了配置与代码分离。提示词模板（YAML文件）包含所有核心能力、工作流程、输出格式、工具依赖等配置，代码仅负责Agent的创建、部署和本地测试接口。这种设计降低了代码复杂度，提升了可维护性和可扩展性。\n\n2. **BedrockAgentCore部署规范**：严格遵循AgentCore部署要求，使用BedrockAgentCoreApp创建app实例，使用@app.entrypoint装饰器标记handler函数，handler必须是async函数且接收payload和context参数，使用yield返回流式响应片段。这种设计确保Agent能够无缝部署到AWS Bedrock平台，支持生产环境的高可用和可扩展。\n\n3. **流式响应实现**：使用agent.stream_async(prompt)获取流式响应，通过async for循环逐步yield响应片段。这种设计显著提升用户体验，特别是在处理复杂查询或大量数据时，用户可以实时看到响应内容而不需要等待完整结果。BedrockAgentCore自动处理流式传输的HTTP协议细节（如chunked encoding），Agent代码无需关心底层实现。\n\n4. **环境变量配置**：必须在Agent初始化前设置BYPASS_TOOL_CONSENT=true，否则工具调用会失败。使用ConfigLoader加载配置文件（nexus_ai.yaml），支持环境变量覆盖（如OTEL_EXPORTER_OTLP_ENDPOINT）。这种设计平衡了配置灵活性和安全性，开发环境和生产环境可以使用不同的配置而无需修改代码。\n\n5. **遥测集成**：使用StrandsTelemetry配置OTLP导出器，支持OpenTelemetry追踪。这种设计确保Agent的运行时行为可观测，便于性能监控、问题排查和容量规划。遥测数据发送到配置的OTLP端点（默认http://localhost:4318），可以集成到Grafana、Jaeger等监控系统。\n\n6. **工具集成策略**：所有工具（17个）通过提示词模板的tools_dependencies配置集成，无需在代码中显式导入或实例化。Agent通过Strands框架自动加载工具，Claude Sonnet 4.5根据提示词中的工具使用指南自动决策何时调用哪个工具。这种设计实现了工具与代码的解耦，添加或修改工具只需更新提示词配置，无需修改Agent代码。\n\n7. **本地测试支持**：提供丰富的命令行参数（-i单次查询、-it交互式对话、-e环境选择、-v版本选择、-m模型选择），便于开发者在本地测试和调试Agent。交互式对话模式支持多轮对话和上下文理解，模拟真实使用场景。这种设计大幅降低了开发和测试成本，开发者无需部署到AgentCore就能验证Agent功能。\n\n8. **错误处理模式**：handler函数使用try-except捕获所有异常，确保任何错误都不会导致服务崩溃。错误信息通过yield返回给用户（以'Error: '开头），格式统一且用户友好。工具层的错误处理（重试、降级、友好提示）在工具代码中实现，Agent代码仅负责调用工具和解析结果。这种分层错误处理设计确保了系统的鲁棒性和可维护性。\n\n9. **代码简洁性**：Agent代码非常简洁（约200行），没有复杂的类封装或业务逻辑。所有核心能力（自然语言理解、意图识别、数据解析、专业回答生成、来源追溯、错误处理）都通过提示词驱动，由Claude Sonnet 4.5推理实现。这种设计充分发挥了大语言模型的能力，避免了硬编码的规则和逻辑，提升了系统的灵活性和适应性。\n\n10. **部署模式判断**：通过检查DOCKER_CONTAINER环境变量判断是否在Docker容器中运行，自动选择部署模式（AgentCore服务器或本地测试）。这种设计确保同一份代码可以无缝部署到不同环境，无需修改代码或配置文件。\n\n11. **文档完整性**：代码包含详细的docstring（模块级、函数级），命令行帮助信息包含使用示例，所有关键操作都有日志输出（print语句）。这种设计确保代码的可理解性和可维护性，便于团队协作和知识传递。\n\n12. **性能优化**：Agent代码本身不包含性能优化逻辑（如缓存、连接池、限流），这些优化都在工具层实现。Agent通过调用缓存工具（get_cached_result、cache_query_result）利用缓存机制，通过调用API工具利用连接池和限流保护。这种设计实现了关注点分离，Agent专注于业务逻辑，工具层专注于技术优化。\n\n13. **测试友好性**：Agent代码设计为易于测试，提供create_fda_agent工厂函数支持不同配置的Agent实例创建，支持单次查询和交互式对话两种测试模式，所有操作都有日志输出便于调试。测试用例覆盖正常场景、边界条件、异常场景、性能基准等，确保Agent的质量和可靠性。\n\n14. **扩展性考虑**：虽然当前是单Agent架构，但代码设计考虑了未来扩展的可能性。如果需要添加新的数据源（如EMA、PMDA），只需添加新的工具和更新提示词配置，无需修改Agent代码。如果需要升级到多Agent架构，可以复用create_fda_agent工厂函数创建多个Agent实例，通过Swarm或Graph框架进行编排。\n\n15. **平台标准遵循**：代码严格遵循Nexus-AI平台的开发标准和规范，使用nexus_utils工具包（agent_factory、config_loader），遵循BedrockAgentCore部署规范，使用Strands框架的工具系统，配置OpenTelemetry遥测。这种设计确保Agent能够无缝集成到平台生态系统，享受平台提供的各种能力和服务。"
   }
 }

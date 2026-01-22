@@ -1,0 +1,104 @@
+# ============================================
+# Nexus-AI API 服务 - 生产级 Dockerfile
+# ============================================
+# 多阶段构建，优化镜像大小和安全性
+# 构建命令: docker build -f Dockerfile.api -t nexus-api:latest .
+
+# ============================================
+# 阶段 1: 依赖安装
+# ============================================
+FROM python:3.13-slim AS builder
+
+# 设置环境变量
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# 安装构建依赖
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    g++ \
+    libpoppler-cpp-dev \
+    libjpeg-dev \
+    libpng-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# 安装 uv 包管理器
+RUN pip install uv
+
+WORKDIR /build
+
+# 复制依赖文件
+COPY requirements.txt .
+
+# 安装 Python 依赖到虚拟环境
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+RUN uv pip install -r requirements.txt
+
+# ============================================
+# 阶段 2: 生产镜像
+# ============================================
+FROM python:3.13-slim AS production
+
+# 设置环境变量
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONFAULTHANDLER=1 \
+    PYTHONPATH=/app \
+    PATH="/opt/venv/bin:$PATH" \
+    # 应用配置
+    APP_NAME="Nexus-AI API" \
+    APP_VERSION="2.0.0" \
+    PORT=8000
+
+# 安装运行时依赖
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    libpoppler-cpp0v5 \
+    libjpeg62-turbo \
+    libpng16-16 \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# 创建非 root 用户
+RUN groupadd --gid 1000 nexus \
+    && useradd --uid 1000 --gid nexus --shell /bin/bash --create-home nexus
+
+# 设置工作目录
+WORKDIR /app
+
+# 从构建阶段复制虚拟环境
+COPY --from=builder /opt/venv /opt/venv
+
+# 复制应用代码
+COPY --chown=nexus:nexus nexus_utils/ ./nexus_utils/
+COPY --chown=nexus:nexus agents/ ./agents/
+COPY --chown=nexus:nexus tools/ ./tools/
+COPY --chown=nexus:nexus prompts/ ./prompts/
+COPY --chown=nexus:nexus config/ ./config/
+COPY --chown=nexus:nexus mcp/ ./mcp/
+COPY --chown=nexus:nexus api/ ./api/
+
+# 创建日志目录
+RUN mkdir -p /app/logs && chown -R nexus:nexus /app
+
+# 切换到非 root 用户
+USER nexus
+
+# 暴露端口
+EXPOSE 8000
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# 启动命令
+CMD ["uvicorn", "api.v2.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+# 标签
+LABEL maintainer="Nexus-AI Team" \
+      version="2.0.0" \
+      description="Nexus-AI API Service" \
+      service="api"

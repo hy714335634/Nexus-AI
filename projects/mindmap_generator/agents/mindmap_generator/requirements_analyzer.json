@@ -1,0 +1,261 @@
+{
+  "requirements_document": {
+    "feature_name": "智能思维导图生成Agent",
+    "version": "1.0",
+    "date": "2026-01-22",
+    "overview": "本系统旨在构建一个智能思维导图生成Agent，能够接收用户提供的话题或自然语言内容，通过AI分析理解内容的逻辑结构和层次关系，自动生成结构化的思维导图。系统支持多种输出格式，包括Markdown文本、Mermaid图表代码、JSON数据结构等，满足不同场景的使用需求。",
+    "business_value": "该Agent能够显著提升用户的知识整理和内容组织效率，将复杂的文本内容快速转化为直观的可视化思维导图，帮助用户更好地理解内容结构、梳理思路、进行知识管理。适用于学习笔记整理、会议记录可视化、项目规划、创意头脑风暴等多个场景。",
+    "workflow_complexity": "single_agent",
+    "recommended_agent_type": "创意生成类 + 数据分析类",
+    "scope": {
+      "included": [
+        "接收文本或话题输入",
+        "智能分析内容结构和层次关系",
+        "识别主题、子主题和关键概念",
+        "生成思维导图节点和连接关系",
+        "输出Markdown格式的层次化文本",
+        "输出Mermaid图表代码（可直接渲染）",
+        "输出JSON数据结构",
+        "支持中文和英文内容",
+        "流式响应输出",
+        "支持AWS Bedrock AgentCore部署"
+      ],
+      "excluded": [
+        "图片格式直接生成（PNG/SVG）- 后续版本考虑",
+        "交互式思维导图编辑功能",
+        "思维导图模板库管理",
+        "多人协作编辑",
+        "思维导图版本控制",
+        "从图片或PDF提取思维导图",
+        "与第三方思维导图工具的直接集成"
+      ]
+    },
+    "functional_requirements": [
+      {
+        "id": "FR-001",
+        "title": "文本内容接收与预处理",
+        "user_story": "作为用户，我希望能够输入任意话题或一段文本内容，以便系统能够理解并生成对应的思维导图",
+        "acceptance_criteria": [
+          "WHEN 用户输入一个简单话题（如'人工智能'） THEN 系统能够识别并围绕该话题生成思维导图",
+          "WHEN 用户输入一段长文本内容 THEN 系统能够解析文本并提取关键信息",
+          "IF 输入内容为空或无效 THEN 系统返回友好的错误提示",
+          "WHEN 输入包含中文或英文 THEN 系统都能正确处理"
+        ],
+        "priority": "High",
+        "complexity": "Low",
+        "dependencies": [],
+        "assumptions": [
+          "用户输入的内容是有意义的文本",
+          "内容长度在合理范围内（不超过10000字）"
+        ]
+      },
+      {
+        "id": "FR-002",
+        "title": "内容结构智能分析",
+        "user_story": "作为用户，我希望系统能够智能分析内容的逻辑结构和层次关系，以便生成符合逻辑的思维导图",
+        "acceptance_criteria": [
+          "WHEN 分析文本内容 THEN 系统能够识别主题和子主题的层次关系",
+          "WHEN 处理复杂内容 THEN 系统能够提取关键概念和它们之间的关联",
+          "IF 内容包含明确的章节结构 THEN 系统应保留这种层次结构",
+          "WHEN 分析简单话题 THEN 系统能够扩展相关的子话题和概念"
+        ],
+        "priority": "High",
+        "complexity": "High",
+        "dependencies": ["FR-001"],
+        "assumptions": [
+          "使用Claude Sonnet 4.5模型进行内容分析",
+          "模型具备足够的上下文理解能力"
+        ]
+      },
+      {
+        "id": "FR-003",
+        "title": "思维导图节点生成",
+        "user_story": "作为用户，我希望系统能够生成清晰的思维导图节点结构，以便我能够理解内容的组织方式",
+        "acceptance_criteria": [
+          "WHEN 生成思维导图 THEN 应包含中心主题节点",
+          "WHEN 创建子节点 THEN 每个节点应有简洁明确的标题（不超过20字）",
+          "IF 存在多层次关系 THEN 应支持至少3层节点深度",
+          "WHEN 节点过多 THEN 应合理分组和归类（建议单层不超过7个节点）"
+        ],
+        "priority": "High",
+        "complexity": "Medium",
+        "dependencies": ["FR-002"],
+        "assumptions": [
+          "思维导图遵循中心辐射型结构",
+          "节点数量在合理范围内（不超过50个）"
+        ]
+      },
+      {
+        "id": "FR-004",
+        "title": "Markdown格式输出",
+        "user_story": "作为用户，我希望能够获得Markdown格式的思维导图，以便在文档中直接使用或编辑",
+        "acceptance_criteria": [
+          "WHEN 请求Markdown格式 THEN 使用缩进或列表符号表示层次关系",
+          "WHEN 输出内容 THEN 格式清晰易读，层次分明",
+          "IF 包含多层级 THEN 使用不同的列表符号（-、*、+）或数字编号",
+          "WHEN 生成完成 THEN 输出完整的Markdown文本"
+        ],
+        "priority": "High",
+        "complexity": "Low",
+        "dependencies": ["FR-003"],
+        "assumptions": [
+          "Markdown格式符合通用标准",
+          "用户熟悉Markdown语法"
+        ]
+      },
+      {
+        "id": "FR-005",
+        "title": "Mermaid图表代码输出",
+        "user_story": "作为用户，我希望能够获得Mermaid格式的图表代码，以便在支持Mermaid的平台上直接渲染可视化思维导图",
+        "acceptance_criteria": [
+          "WHEN 请求Mermaid格式 THEN 生成符合Mermaid mindmap语法的代码",
+          "WHEN 代码生成 THEN 可以在Mermaid Live Editor中正常渲染",
+          "IF 节点包含特殊字符 THEN 应正确转义或使用引号包裹",
+          "WHEN 输出代码 THEN 包含完整的```mermaid代码块标记"
+        ],
+        "priority": "High",
+        "complexity": "Medium",
+        "dependencies": ["FR-003"],
+        "assumptions": [
+          "输出平台支持Mermaid渲染",
+          "使用Mermaid mindmap图表类型"
+        ]
+      },
+      {
+        "id": "FR-006",
+        "title": "JSON数据结构输出",
+        "user_story": "作为开发者或高级用户，我希望能够获得JSON格式的思维导图数据，以便进行二次开发或与其他工具集成",
+        "acceptance_criteria": [
+          "WHEN 请求JSON格式 THEN 输出标准的JSON数据结构",
+          "WHEN 数据结构 THEN 包含节点ID、标题、父节点ID、层级等信息",
+          "IF 存在节点关系 THEN 使用children数组或parent_id表示层次关系",
+          "WHEN 输出JSON THEN 格式化输出，便于阅读"
+        ],
+        "priority": "Medium",
+        "complexity": "Low",
+        "dependencies": ["FR-003"],
+        "assumptions": [
+          "JSON格式符合通用数据交换标准",
+          "用户具备基本的JSON处理能力"
+        ]
+      },
+      {
+        "id": "FR-007",
+        "title": "多格式组合输出",
+        "user_story": "作为用户，我希望能够同时获得多种格式的思维导图输出，以便在不同场景下使用",
+        "acceptance_criteria": [
+          "WHEN 用户未指定格式 THEN 默认输出Markdown和Mermaid两种格式",
+          "WHEN 用户请求所有格式 THEN 依次输出Markdown、Mermaid和JSON格式",
+          "IF 输出多种格式 THEN 使用清晰的分隔标记区分不同格式",
+          "WHEN 格式切换 THEN 内容保持一致性"
+        ],
+        "priority": "Medium",
+        "complexity": "Low",
+        "dependencies": ["FR-004", "FR-005", "FR-006"],
+        "assumptions": [
+          "用户可以通过提示词指定输出格式",
+          "默认输出包含最常用的格式"
+        ]
+      },
+      {
+        "id": "FR-008",
+        "title": "流式响应支持",
+        "user_story": "作为用户，我希望能够实时看到思维导图的生成过程，以便获得更好的交互体验",
+        "acceptance_criteria": [
+          "WHEN Agent开始处理 THEN 使用流式输出逐步返回结果",
+          "WHEN 生成节点 THEN 用户可以实时看到内容产生",
+          "IF 处理时间较长 THEN 用户不会感到等待焦虑",
+          "WHEN 使用stream_async方法 THEN 正确处理异步流式事件"
+        ],
+        "priority": "High",
+        "complexity": "Medium",
+        "dependencies": ["所有功能需求"],
+        "assumptions": [
+          "部署环境支持HTTP流式传输",
+          "使用BedrockAgentCoreApp的流式响应机制"
+        ]
+      },
+      {
+        "id": "FR-009",
+        "title": "错误处理与用户反馈",
+        "user_story": "作为用户，我希望在出现错误时能够获得清晰的提示信息，以便知道如何改进输入",
+        "acceptance_criteria": [
+          "WHEN 输入无效 THEN 返回具体的错误原因和改进建议",
+          "WHEN 处理失败 THEN 提供友好的错误信息而非技术堆栈",
+          "IF 内容过长 THEN 提示用户缩短内容或分段处理",
+          "WHEN 格式不支持 THEN 列出支持的格式选项"
+        ],
+        "priority": "Medium",
+        "complexity": "Low",
+        "dependencies": [],
+        "assumptions": [
+          "用户需要明确的指导信息",
+          "错误信息以中文为主"
+        ]
+      }
+    ],
+    "non_functional_requirements": {
+      "performance": [
+        "单次思维导图生成响应时间应在30秒内完成（包含流式输出）",
+        "支持并发处理多个用户请求",
+        "内存使用应控制在合理范围内（单次处理不超过500MB）",
+        "流式响应的首个token应在3秒内返回"
+      ],
+      "security": [
+        "用户输入内容不应包含恶意代码或注入攻击",
+        "生成的代码（Mermaid/JSON）应进行安全验证",
+        "不存储用户的敏感输入内容",
+        "遵循AWS Bedrock的安全最佳实践"
+      ],
+      "usability": [
+        "提示词应简单直观，用户无需学习复杂指令",
+        "输出格式清晰易懂，符合用户预期",
+        "支持中英文交互",
+        "错误提示友好且具有指导性"
+      ],
+      "reliability": [
+        "系统应具备异常恢复能力",
+        "模型调用失败时应有重试机制",
+        "输出内容应保持稳定和一致性",
+        "支持长时间运行不崩溃"
+      ]
+    },
+    "constraints": [
+      "必须使用anthropic.claude-sonnet-4-5-20250929-v1:0模型",
+      "必须支持AWS Bedrock AgentCore部署",
+      "必须遵循BedrockAgentCoreApp的handler入口点规范",
+      "必须使用nexus_utils.agent_factory创建Agent对象",
+      "输出格式限定为Markdown、Mermaid、JSON三种",
+      "单次处理的内容长度不超过10000字",
+      "思维导图节点数量建议不超过50个",
+      "必须支持流式响应（使用stream_async）"
+    ],
+    "assumptions": [
+      "用户输入的内容是有意义且相关的",
+      "部署环境具备稳定的网络连接",
+      "Claude模型API可用且性能稳定",
+      "用户具备基本的思维导图概念理解",
+      "输出平台支持Markdown和Mermaid渲染",
+      "用户主要使用中文或英文进行交互"
+    ],
+    "success_criteria": [
+      "用户能够通过简单的话题或文本输入快速生成思维导图",
+      "生成的思维导图结构清晰、逻辑合理、层次分明",
+      "至少支持Markdown和Mermaid两种输出格式",
+      "响应时间满足用户体验要求（30秒内）",
+      "错误处理友好，用户能够理解并改进输入",
+      "成功部署到AWS Bedrock AgentCore并稳定运行",
+      "用户满意度达到80%以上"
+    ],
+    "glossary": {
+      "思维导图": "一种图形化的思维组织工具，以中心主题为核心，通过分支结构展示相关概念和层次关系",
+      "Mermaid": "一种基于文本的图表生成工具，支持多种图表类型包括思维导图，可在Markdown中渲染",
+      "流式响应": "服务器逐步返回响应内容而非一次性返回完整结果，提供更好的实时交互体验",
+      "BedrockAgentCoreApp": "AWS Bedrock提供的Agent运行时框架，用于部署和管理Agent应用",
+      "中心辐射型结构": "思维导图的经典布局方式，中心主题位于中央，子主题向四周辐射展开",
+      "节点": "思维导图中的基本单元，代表一个概念、主题或信息点",
+      "层次关系": "节点之间的父子或上下级关系，反映内容的逻辑结构"
+    }
+  },
+  "analysis_notes": "该需求分析基于用户的核心诉求：'创建一个能够根据用户话题或内容，生成完整的思维导图的agent'。\n\n关键决策理由：\n\n1. **单Agent场景判断**：该需求功能明确且聚焦，核心是内容分析和格式转换，不需要多个专业角色协作，单个Agent配合适当的提示词工程即可完成所有功能。\n\n2. **Agent类型选择**：选择'创意生成类 + 数据分析类'的组合，因为需要同时具备内容分析能力（理解结构和逻辑）和创意生成能力（扩展话题、组织内容）。\n\n3. **输出格式优先级**：优先支持Markdown和Mermaid格式，因为这两种格式使用最广泛且易于实现。JSON格式作为数据交换格式也很重要。图片格式（PNG/SVG）需要额外的渲染工具，暂时排除在MVP范围外。\n\n4. **流式响应必要性**：思维导图生成可能需要较长处理时间，流式响应能显著提升用户体验，让用户实时看到生成过程。这也符合BedrockAgentCoreApp的最佳实践。\n\n5. **功能边界控制**：明确排除了交互式编辑、多人协作、版本控制等复杂功能，保持Agent的专注性和可实现性。这些功能可在后续版本中考虑。\n\n6. **性能约束**：基于Claude Sonnet 4.5的处理能力，设定30秒的响应时间上限和10000字的内容长度限制，这是合理且可实现的目标。\n\n7. **可扩展性考虑**：JSON格式输出为未来与第三方工具集成预留了接口，节点数量和层次深度的限制也为性能优化留出了空间。\n\n该需求分析覆盖了9个功能需求（FR-001至FR-009），涵盖输入处理、内容分析、节点生成、多格式输出、流式响应和错误处理等完整流程，为后续的系统架构设计和Agent开发提供了清晰的指导。"
+}

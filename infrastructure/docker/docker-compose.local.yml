@@ -1,0 +1,106 @@
+# ============================================
+# Nexus-AI 本地测试环境（使用已构建的镜像）
+# ============================================
+# 使用方法: docker-compose -f docker-compose.local.yml up -d
+# 前提条件: 已通过 ./build.sh 构建好镜像
+
+version: '3.8'
+
+services:
+  # ============================================
+  # API 服务
+  # ============================================
+  api:
+    image: nexus-api:latest
+    container_name: nexus-api
+    ports:
+      - "8000:8000"
+    environment:
+      # AWS 配置
+      - AWS_REGION=${AWS_REGION:-us-west-2}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-test}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-test}
+      # 本地开发使用 LocalStack
+      - DYNAMODB_ENDPOINT_URL=http://localstack:4566
+      - SQS_ENDPOINT_URL=http://localstack:4566
+      - S3_ENDPOINT_URL=http://localstack:4566
+      # 应用配置
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - DEBUG=true
+      # CORS 配置
+      - CORS_ORIGINS=*
+    depends_on:
+      localstack:
+        condition: service_healthy
+    networks:
+      - nexus-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+  # ============================================
+  # Worker 服务 (构建队列)
+  # ============================================
+  worker-build:
+    image: nexus-worker:latest
+    container_name: nexus-worker-build
+    environment:
+      # AWS 配置
+      - AWS_REGION=${AWS_REGION:-us-west-2}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-test}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-test}
+      # 本地开发使用 LocalStack
+      - DYNAMODB_ENDPOINT_URL=http://localstack:4566
+      - SQS_ENDPOINT_URL=http://localstack:4566
+      - S3_ENDPOINT_URL=http://localstack:4566
+      # Worker 配置
+      - WORKER_QUEUE_TYPE=build
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    depends_on:
+      localstack:
+        condition: service_healthy
+    networks:
+      - nexus-network
+    restart: unless-stopped
+
+  # ============================================
+  # LocalStack (本地 AWS 服务模拟)
+  # ============================================
+  localstack:
+    image: localstack/localstack:latest
+    container_name: nexus-localstack
+    ports:
+      - "4566:4566"
+    environment:
+      - SERVICES=dynamodb,sqs,s3
+      - DEBUG=0
+      - EAGER_SERVICE_LOADING=1
+    volumes:
+      - localstack-data:/var/lib/localstack
+    networks:
+      - nexus-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+# ============================================
+# 网络配置
+# ============================================
+networks:
+  nexus-network:
+    driver: bridge
+    name: nexus-network
+
+# ============================================
+# 数据卷
+# ============================================
+volumes:
+  localstack-data:
+    name: nexus-localstack-data

@@ -1,47 +1,101 @@
+# Nexus-AI 核心依赖
+# 使用 uv pip install -r requirements.txt 安装
+
+# ============================================
+# Strands Agent 框架
+# ============================================
+strands-agents[otel]
 strands-agents-tools
+
+# ============================================
+# AWS 相关
+# ============================================
 bedrock-agentcore
 bedrock-agentcore-starter-toolkit
-strands-agents[otel]
 boto3
 botocore
-neo4j
-html2text
+
+# ============================================
+# Web 框架
+# ============================================
 fastapi
 uvicorn[standard]
-requests
+python-multipart
+httpx
+aiofiles
+
+# ============================================
+# 数据库和消息队列
+# ============================================
 redis
 celery
+
+# ============================================
+# 数据验证和配置
+# ============================================
 pydantic
 pydantic-settings
 python-dotenv
-dataclasses
-typing
 PyYAML
-duckduckgo-search
-feedparser
+
+# ============================================
+# 数据处理
+# ============================================
 pandas
-Pillow
+openpyxl
+python-docx
+python-pptx
+
+# ============================================
+# PDF 处理
+# ============================================
 PyPDF2
 pdfplumber
 PyMuPDF
-python-docx
-python-pptx
-openpyxl
-markdown
-chardet
+
+# ============================================
+# 图像处理
+# ============================================
+Pillow
+
+# ============================================
+# 网络和解析
+# ============================================
+requests
 beautifulsoup4
+html2text
+feedparser
+duckduckgo-search
+chardet
 xmltodict
-jsonschema
-nltk
+
+# ============================================
+# 数据可视化
+# ============================================
 matplotlib
 plotly
 graphviz
 networkx
-streamlit
-setuptools
+
+# ============================================
+# 工具和辅助
+# ============================================
+colorama
 tabulate
+markdown
+jsonschema
+nltk
+rich
+setuptools
+
+# ============================================
+# 可观测性
+# ============================================
 opentelemetry-api
 opentelemetry-sdk
+
+# ============================================
+# 浏览器自动化（可选）
+# ============================================
 browser-use
 langchain-aws
-rich

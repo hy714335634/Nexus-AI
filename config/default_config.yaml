@@ -11,6 +11,8 @@ default-config:
     # Terraform 部署后会自动设置环境变量，格式：http://jaeger.{project_name}.local:4318
     # 本地开发时如果未设置环境变量，将使用此配置值或默认值
     OTEL_EXPORTER_OTLP_ENDPOINT: 'http://localhost:4318'
+    artifacts_s3_bucket: 'nexus-ai-artifacts-2026'  # S3桶名称，部署时需要修改
+    auto_sync_to_s3: true  # 是否在Agent构建完成后自动同步到S3（也可通过环境变量NEXUS_AUTO_SYNC_TO_S3控制）
   aws:
     bedrock_region_name: 'us-west-2'  # Region for Amazon Bedrock API calls
     aws_region_name: 'us-west-2'      # Default AWS region for other services

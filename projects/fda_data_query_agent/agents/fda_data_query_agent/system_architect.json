@@ -3,99 +3,105 @@
     "design_overview": {
       "project_name": "fda_data_query_agent",
       "version": "1.0",
-      "date": "2025-12-28",
-      "design_scope": "设计一个基于单Agent架构的FDA数据查询智能体系统，通过集成openFDA官方API，为用户提供药物、医疗设备、食品等多维度FDA公开数据的智能查询服务。系统支持自然语言交互，能够理解用户的专业查询需求，提供准确、详细、可验证的数据回答，并在数据不足时给出明确说明和建议。",
+      "date": "2026-01-22",
+      "design_scope": "设计一个基于Strands SDK的单Agent系统，能够通过自然语言理解用户查询意图，实时调用FDA openFDA API获取药物、医疗设备、食品等公开数据，并提供客观、详细、可追溯来源的专业回答。系统采用API集成专家模板作为基础架构，通过工具集成和提示词工程实现完整功能。",
       "design_principles": [
-        "单一职责：Agent专注于FDA数据查询和问答，职责清晰明确",
-        "接口简洁：输入为自然语言查询，输出为结构化数据和自然语言回答",
-        "工具驱动：通过工具函数封装API调用、数据处理和缓存管理",
-        "容错设计：完善的错误处理和API限流管理，使用缓存作为降级方案",
-        "可追溯性：所有数据都包含来源信息和验证链接",
-        "可扩展性：模块化设计支持未来功能扩展和新数据源接入"
+        "单一职责：Agent专注于FDA数据查询和专业解答，不涉及医疗诊断或法律咨询",
+        "模块化设计：通过工具层封装API调用、数据处理、缓存管理等功能",
+        "容错优先：完善的错误处理和降级策略，确保用户始终获得有价值的反馈",
+        "数据可追溯：强制性的来源标注机制，每条数据必须包含FDA官方链接",
+        "用户友好：自然语言交互，避免技术术语，提供清晰的提示和建议",
+        "性能优化：通过缓存机制减少API调用，提升响应速度",
+        "安全合规：遵守FDA API使用条款，不存储敏感信息，保护用户隐私"
       ],
       "key_decisions": [
-        "采用单Agent架构而非多Agent：需求复杂度适中，单Agent可满足所有功能需求，避免多Agent协调开销",
-        "基于API集成专家模板：该模板提供完整的API调用、认证管理和数据转换工具，最大化复用现有能力",
-        "提示词实现查询意图识别和实体提取：利用Claude模型的医疗领域知识，无需额外开发NLU模块",
-        "本地文件系统缓存：FDA数据更新频率低（日级别），本地缓存可有效降低API调用量和提升响应速度",
-        "使用Claude Sonnet 4.5模型：平衡性能和成本，具备强大的医疗领域推理能力",
-        "支持流式响应：提升用户体验，实时展示查询进度和结果"
+        "采用单Agent架构：需求分析确认核心逻辑统一（理解查询→调用API→格式化返回），无需多Agent协作",
+        "选择API集成专家模板：经过模板推荐评估，该模板具有92/100的高匹配度，提供专业的API调用、认证管理、JSON处理能力",
+        "使用openFDA API作为唯一数据源：FDA官方API覆盖所有需求数据类型，稳定可靠",
+        "通过提示词工程实现自然语言理解：利用Claude Sonnet 4.5的推理能力，无需独立NLP模型",
+        "会话级上下文管理：上下文数据仅在内存中保存，会话结束后自动清理",
+        "本地缓存策略：使用.cache目录存储查询结果，有效期24小时，LRU清理策略",
+        "强制来源标注：在工具层自动注入FDA官方链接和元数据，确保数据可追溯",
+        "流式响应支持：使用agent.stream_async()实现流式响应，提升用户体验"
       ],
       "workflow_type": "single_agent",
       "recommended_templates": [
-        "api_integration_agent (评分92/100 - 强烈推荐)",
-        "deep_research_agent (评分78/100 - 备选方案)"
+        "api_integration_agent (主模板，92/100匹配度)",
+        "data_analyzer_agent (辅助参考，用于数据分析功能)"
       ]
     },
     "architecture": {
-      "system_context": "FDA数据查询智能体运行在Amazon Bedrock AgentCore平台上，通过HTTP服务对外提供查询接口。系统与openFDA官方API进行实时交互，获取药物、医疗设备、食品等FDA公开数据。用户通过自然语言提交查询请求，Agent解析用户意图，调用相应的FDA API endpoint，处理返回数据，并生成结构化回答。系统支持查询结果缓存、错误处理、API限流管理等功能，确保高可用性和良好的用户体验。",
-      "agent_topology": "单Agent拓扑：fda_data_query_agent作为唯一的执行单元，内部集成查询解析、API调用、数据处理、问答生成等所有功能模块。无需Agent间通信和协调机制。",
-      "interaction_model": "用户 <-> fda_data_query_agent <-> openFDA API\n\n交互流程：\n1. 用户通过HTTP请求提交自然语言查询\n2. Agent接收请求并解析查询意图（药物/设备/食品/不良事件）\n3. Agent提取查询关键词和过滤条件\n4. Agent检查缓存，如有有效缓存则直接返回\n5. Agent构造openFDA API请求参数\n6. Agent调用相应的FDA API endpoint\n7. Agent处理API响应，提取关键数据\n8. Agent生成数据来源追溯信息（API URL、查询时间等）\n9. Agent基于查询结果进行推理和问答\n10. Agent将结果缓存并返回给用户\n11. 如遇错误或数据不足，Agent提供友好的提示和建议",
+      "system_context": "FDA数据查询Agent系统部署在AWS Bedrock平台，使用Claude Sonnet 4.5作为推理引擎。用户通过自然语言提交查询（如'查询阿司匹林的FDA批准信息'），Agent解析查询意图，调用openFDA API获取数据，解析JSON响应，生成结构化的专业回答并标注来源。系统支持多轮对话，可以基于上下文进行追问和关联查询。所有数据来自FDA官方API，系统不提供医疗诊断或法律建议。",
+      "agent_topology": "单Agent拓扑结构：\n\n┌─────────────────────────────────────────────────────────────┐\n│                          User                               │\n│                     (自然语言查询)                           │\n└────────────────────────┬────────────────────────────────────┘\n                         │\n                         ▼\n┌─────────────────────────────────────────────────────────────┐\n│              FDA Data Query Agent                           │\n│  (基于API Integration Agent模板)                            │\n│                                                             │\n│  ┌──────────────────────────────────────────────────────┐  │\n│  │  Reasoning Engine (Claude Sonnet 4.5)               │  │\n│  │  - 查询意图识别                                      │  │\n│  │  - 参数提取与验证                                    │  │\n│  │  - 工具调用决策                                      │  │\n│  │  - 结果综合与解释                                    │  │\n│  │  - 上下文管理                                        │  │\n│  └──────────────────────────────────────────────────────┘  │\n│                         │                                   │\n│                         ▼                                   │\n│  ┌──────────────────────────────────────────────────────┐  │\n│  │  Tool Layer (工具层)                                 │  │\n│  │  ┌────────────────────────────────────────────────┐  │  │\n│  │  │ FDA API Tools (核心工具)                       │  │  │\n│  │  │ - query_fda_drugs                              │  │  │\n│  │  │ - query_fda_devices                            │  │  │\n│  │  │ - query_fda_food                               │  │  │\n│  │  │ - query_fda_adverse_events                     │  │  │\n│  │  │ - query_fda_recalls                            │  │  │\n│  │  └────────────────────────────────────────────────┘  │  │\n│  │  ┌────────────────────────────────────────────────┐  │  │\n│  │  │ Support Tools (支持工具)                       │  │  │\n│  │  │ - cache_manager (缓存管理)                     │  │  │\n│  │  │ - data_parser (数据解析)                       │  │  │\n│  │  │ - source_annotator (来源标注)                  │  │  │\n│  │  │ - error_handler (错误处理)                     │  │  │\n│  │  └────────────────────────────────────────────────┘  │  │\n│  └──────────────────────────────────────────────────────┘  │\n└─────────────────────────────────────────────────────────────┘\n                         │\n                         ▼\n┌─────────────────────────────────────────────────────────────┐\n│              External Systems                               │\n│  ┌──────────────────┐  ┌──────────────────┐                │\n│  │  openFDA API     │  │  Local Cache     │                │\n│  │  (FDA官方服务器) │  │  (.cache目录)    │                │\n│  └──────────────────┘  └──────────────────┘                │\n└─────────────────────────────────────────────────────────────┘",
+      "interaction_model": "交互模型说明：\n\n1. **用户查询流程**：\n   用户输入 → Agent接收 → 意图识别 → 参数提取 → 工具选择 → API调用 → 数据解析 → 结果生成 → 来源标注 → 返回用户\n\n2. **多轮对话流程**：\n   - 会话开始时创建上下文对象（session_id）\n   - 每轮对话更新上下文（查询历史、实体引用、中间结果）\n   - Agent根据上下文理解代词和简略表达\n   - 会话结束时清理上下文数据\n\n3. **工具调用流程**：\n   - Agent决策需要调用的工具和参数\n   - 优先检查缓存（cache_manager）\n   - 缓存未命中时调用FDA API工具\n   - API返回后通过data_parser解析\n   - source_annotator自动注入来源标注\n   - 结果写入缓存（24小时有效期）\n   - 返回结构化数据给Agent\n\n4. **错误处理流程**：\n   - API调用失败 → 指数退避重试（最多3次）\n   - 持续失败 → 检查缓存降级\n   - 数据为空 → 生成智能提示和建议\n   - 参数不足 → 请求用户补充信息\n   - 限流触发 → 延迟重试或返回缓存数据\n\n5. **缓存策略**：\n   - 查询前检查缓存（键：查询参数哈希值）\n   - 缓存命中返回结果（标注缓存时间）\n   - 缓存未命中调用API并写入缓存\n   - 缓存过期（>24小时）自动刷新\n   - 缓存空间不足时LRU清理\n\n6. **流式响应流程**：\n   - Agent使用stream_async()生成流式响应\n   - 每个数据片段通过yield实时返回\n   - BedrockAgentCore自动处理流式传输\n   - 用户获得实时反馈体验",
       "technology_stack": {
-        "sdk": "Strands SDK",
-        "runtime": "Amazon Bedrock AgentCore",
-        "model": "Claude Sonnet 4.5 (global.anthropic.claude-sonnet-4-5-20250929-v1:0)",
+        "sdk": "Strands SDK (Agent框架)",
+        "runtime": "AWS Bedrock AgentCore (部署环境)",
+        "model": "Claude Sonnet 4.5 (anthropic.claude-sonnet-4-5-20250929-v1:0)",
+        "language": "Python 3.13+",
         "integrations": [
-          "openFDA API (https://api.fda.gov)",
-          "openFDA drug endpoint (/drug/label.json, /drug/event.json, /drug/nda.json)",
-          "openFDA device endpoint (/device/classification.json, /device/recall.json, /device/event.json)",
-          "openFDA food endpoint (/food/label.json, /food/recall.json, /food/event.json)",
-          "本地文件系统缓存 (.cache/fda_data_query_agent/)"
-        ]
+          "openFDA API (https://open.fda.gov/apis/)",
+          "AWS Bedrock (AI推理服务)",
+          "boto3 SDK (AWS服务集成)",
+          "requests库 (HTTP客户端)",
+          "json库 (数据解析)",
+          "hashlib库 (缓存键生成)",
+          "pathlib库 (文件操作)"
+        ],
+        "deployment": "BedrockAgentCore部署模式，HTTP服务器监听8080端口，/invocations端点接收请求"
       }
     },
     "agents": [
       {
         "name": "fda_data_query_agent",
-        "purpose": "FDA数据查询和专业问答智能体，提供药物、医疗设备、食品等FDA公开数据的自然语言查询服务",
+        "purpose": "通过自然语言理解用户查询需求，实时访问FDA openFDA API获取药物、医疗设备、食品等公开数据，提供客观、详细、可追溯来源的专业回答，并在数据不足时给出智能提示和建议",
         "responsibilities": [
-          "解析用户自然语言查询，识别查询类型（药物/设备/食品/不良事件）和意图",
-          "提取查询关键词、产品名称、过滤条件等实体信息",
-          "映射自然语言查询到openFDA API查询参数",
-          "调用openFDA API获取实时数据",
-          "处理API响应，提取和格式化关键数据",
-          "生成数据来源追溯信息（API URL、查询参数、时间戳）",
-          "基于查询结果进行专业问答和推理分析",
-          "处理数据不足情况，提供明确说明和替代建议",
-          "管理查询结果缓存，提升响应速度",
-          "处理API错误和限流，实施重试和降级策略",
-          "支持批量查询和数据导出（可选功能）"
+          "自然语言查询理解：解析用户输入，识别查询意图（药物/设备/食品/不良事件/召回），提取关键实体（产品名、公司名、代码等）",
+          "查询参数构建：根据意图和实体生成openFDA API查询参数，处理模糊查询和多条件组合",
+          "工具调用决策：选择合适的FDA API工具（drugs/devices/food/adverse_events/recalls），决定是否需要关联查询",
+          "数据解析与验证：解析API返回的JSON数据，验证数据完整性，识别缺失字段",
+          "专业回答生成：基于查询结果生成结构化、详细的专业回答，解释医疗术语，提供统计分析",
+          "来源标注：确保每条数据包含FDA官方来源链接和元数据，支持用户验证",
+          "异常处理：处理API失败、数据为空、参数不足等异常，生成用户友好的提示和建议",
+          "上下文管理：维护会话级上下文，支持多轮对话，理解代词和简略表达",
+          "缓存协调：决策是否使用缓存，平衡数据时效性和响应速度",
+          "相关推荐：基于查询结果推荐相关数据（同类产品、关联召回等）"
         ],
         "interfaces": {
           "inputs": [
-            "user_query: 用户自然语言查询（字符串）",
-            "query_type: 查询类型提示（可选，如'drug'、'device'、'food'）",
-            "filters: 附加过滤条件（可选，JSON对象）",
-            "force_refresh: 是否强制刷新缓存（可选，布尔值）",
-            "export_format: 导出格式（可选，如'json'、'csv'）"
+            "用户自然语言查询（文本）",
+            "会话ID（可选，用于多轮对话）",
+            "用户ID（可选，用于日志追踪）",
+            "媒体文件（可选，未来支持图片查询）"
           ],
           "outputs": [
-            "query_results: 结构化查询结果（JSON对象）",
-            "answer: 自然语言回答（字符串）",
-            "data_sources: 数据来源追溯信息（URL列表）",
-            "confidence: 回答置信度（0-1浮点数）",
-            "suggestions: 后续查询建议（字符串列表）",
-            "warnings: 数据不足或限制说明（字符串列表）",
-            "cache_hit: 是否命中缓存（布尔值）"
+            "结构化查询结果（包含FDA数据、来源链接、时间戳）",
+            "专业解答文本（客观、详细、易读）",
+            "数据来源标注（FDA官方链接、申请号、报告ID等）",
+            "智能提示和建议（数据不足时）",
+            "相关数据推荐（可选）",
+            "错误信息（友好、可操作）"
           ]
         },
         "dependencies": [
-          "openFDA API (外部依赖)",
-          "本地文件系统 (缓存存储)",
-          "网络连接 (HTTP/HTTPS)",
-          "Claude Sonnet 4.5模型 (推理引擎)"
+          "openFDA API (外部依赖，FDA官方服务)",
+          "AWS Bedrock (推理服务)",
+          "Claude Sonnet 4.5 (语言模型)",
+          "本地缓存目录 (.cache/fda_data_query_agent/)",
+          "FDA API工具集 (query_fda_drugs, query_fda_devices等)",
+          "支持工具集 (cache_manager, data_parser等)"
         ],
         "implementation_notes": [
-          "基于api_integration_agent模板进行定制开发",
-          "提示词设计需包含医疗领域知识和FDA数据结构理解",
-          "查询意图识别和实体提取通过提示词工程实现，无需额外NLU模块",
-          "API调用使用http_request工具，支持GET请求和查询参数",
-          "缓存键设计：query_type + normalized_query + filters的哈希值",
-          "缓存过期时间：24小时（可配置）",
-          "API限流处理：使用指数退避策略，最多重试3次",
-          "错误日志记录查询类型、时间戳和错误码，不记录完整查询内容",
-          "支持流式响应，实时展示查询进度和结果",
-          "部署模式：BedrockAgentCoreApp + handler入口点函数"
+          "基于API Integration Agent模板实现，继承其API调用、认证管理、JSON处理能力",
+          "系统提示词需要包含FDA医学领域知识、查询模式、数据字段映射、专业术语解释规则",
+          "用户提示词需要提供查询示例、常见问题解答、使用指南",
+          "工具层需要实现5个核心FDA API工具和4个支持工具，所有工具遵循统一接口规范",
+          "缓存键使用查询参数的SHA256哈希值，缓存文件格式为JSON，包含数据和元信息",
+          "错误处理需要区分API错误、网络错误、数据错误、参数错误，每种错误有专门的处理逻辑",
+          "来源标注在工具层自动注入，Agent无需手动处理",
+          "多轮对话上下文存储在内存中（session_context字典），最多保留50轮历史",
+          "API限流保护：实现令牌桶算法，限制每分钟240次请求",
+          "必须实现BedrockAgentCore部署规范：@app.entrypoint装饰器、async handler函数、yield流式响应、app.run()启动服务器"
         ],
         "recommended_template": "api_integration_agent"
       }
@@ -103,354 +109,434 @@
     "data_models": [
       {
         "name": "QueryRequest",
-        "schema": {
-          "user_query": "string (required) - 用户自然语言查询",
-          "query_type": "string (optional) - 查询类型提示 ('drug'|'device'|'food'|'event')",
-          "filters": "object (optional) - 附加过滤条件 {field: value}",
-          "force_refresh": "boolean (optional, default=false) - 是否强制刷新缓存",
-          "export_format": "string (optional) - 导出格式 ('json'|'csv')"
-        },
+        "schema": "{\n  \"prompt\": \"string (用户查询文本，必需)\",\n  \"session_id\": \"string (会话ID，可选)\",\n  \"user_id\": \"string (用户ID，可选)\",\n  \"media\": \"array (媒体文件列表，可选)\"\n}",
         "validation_rules": [
-          "user_query不能为空",
-          "query_type必须是有效的FDA数据类型",
-          "filters必须是有效的JSON对象",
-          "export_format必须是支持的格式"
+          "prompt字段必需且非空",
+          "prompt长度不超过2000字符",
+          "session_id格式为UUID v4",
+          "user_id格式为字符串，长度不超过100字符"
         ],
         "relationships": [
-          "输入到fda_data_query_agent"
+          "QueryRequest → Agent → QueryResponse (一对一)"
         ]
       },
       {
         "name": "QueryResponse",
-        "schema": {
-          "query_results": "object - 结构化查询结果 {data: [...], total: number}",
-          "answer": "string - 自然语言回答",
-          "data_sources": "array - 数据来源URL列表 [{endpoint: string, url: string, timestamp: string}]",
-          "confidence": "number - 回答置信度 (0-1)",
-          "suggestions": "array - 后续查询建议 [string]",
-          "warnings": "array - 数据不足或限制说明 [string]",
-          "cache_hit": "boolean - 是否命中缓存",
-          "query_metadata": "object - 查询元数据 {query_type: string, execution_time: number, api_calls: number}"
-        },
+        "schema": "{\n  \"status\": \"string (success|error)\",\n  \"data\": {\n    \"query_type\": \"string (drugs|devices|food|adverse_events|recalls)\",\n    \"results\": \"array (FDA数据结果列表)\",\n    \"sources\": \"array (来源链接和元数据)\",\n    \"answer\": \"string (专业解答文本)\",\n    \"recommendations\": \"array (相关推荐，可选)\",\n    \"timestamp\": \"string (ISO 8601格式)\",\n    \"from_cache\": \"boolean (是否来自缓存)\"\n  },\n  \"error\": {\n    \"code\": \"string (错误码)\",\n    \"message\": \"string (错误信息)\",\n    \"suggestions\": \"array (建议操作)\"\n  }\n}",
         "validation_rules": [
-          "query_results必须包含data字段",
-          "confidence必须在0-1之间",
-          "data_sources必须包含至少一个来源（如有数据）",
-          "answer不能为空"
+          "status必须为success或error",
+          "success时data字段必需，error字段为null",
+          "error时error字段必需，data字段为null",
+          "results数组最多包含100条记录",
+          "sources数组长度与results数组一致"
         ],
         "relationships": [
-          "输出自fda_data_query_agent",
-          "返回给用户"
+          "QueryResponse → User (返回给用户)",
+          "QueryResponse → Cache (写入缓存)"
         ]
       },
       {
-        "name": "FDAAPIRequest",
-        "schema": {
-          "endpoint": "string (required) - API端点路径 (如'/drug/label.json')",
-          "params": "object (required) - 查询参数 {search: string, limit: number, skip: number}",
-          "headers": "object (optional) - HTTP请求头 {User-Agent: string}",
-          "timeout": "number (optional, default=30) - 请求超时时间（秒）"
-        },
+        "name": "FDADrugData",
+        "schema": "{\n  \"application_number\": \"string (申请号)\",\n  \"brand_name\": \"string (商品名)\",\n  \"generic_name\": \"string (通用名)\",\n  \"manufacturer_name\": \"string (制造商)\",\n  \"approval_date\": \"string (批准日期)\",\n  \"indications_and_usage\": \"string (适应症和用法)\",\n  \"dosage_and_administration\": \"string (用法用量)\",\n  \"warnings\": \"string (警告信息)\",\n  \"adverse_reactions\": \"string (不良反应)\",\n  \"ndc_codes\": \"array (NDC代码列表)\",\n  \"product_type\": \"string (产品类型)\",\n  \"route\": \"string (给药途径)\",\n  \"source_url\": \"string (FDA官方链接)\"\n}",
         "validation_rules": [
-          "endpoint必须是有效的openFDA API路径",
-          "params.search必须符合openFDA查询语法",
-          "params.limit不能超过1000（openFDA限制）",
-          "timeout必须大于0"
+          "application_number格式为NDA或ANDA开头",
+          "approval_date格式为YYYY-MM-DD",
+          "source_url必须为FDA官方域名"
         ],
         "relationships": [
-          "fda_data_query_agent内部使用",
-          "传递给http_request工具"
+          "FDADrugData → FDAAdverseEventData (通过brand_name或generic_name关联)"
+        ]
+      },
+      {
+        "name": "FDADeviceData",
+        "schema": "{\n  \"device_name\": \"string (设备名称)\",\n  \"device_class\": \"string (设备分类，1/2/3)\",\n  \"manufacturer\": \"string (制造商)\",\n  \"product_code\": \"string (产品代码)\",\n  \"approval_type\": \"string (批准类型，510k|PMA|De Novo)\",\n  \"approval_number\": \"string (批准号)\",\n  \"approval_date\": \"string (批准日期)\",\n  \"device_description\": \"string (设备描述)\",\n  \"intended_use\": \"string (预期用途)\",\n  \"recall_status\": \"boolean (是否有召回)\",\n  \"source_url\": \"string (FDA官方链接)\"\n}",
+        "validation_rules": [
+          "device_class必须为1、2或3",
+          "approval_type必须为510k、PMA或De Novo之一",
+          "approval_date格式为YYYY-MM-DD"
+        ],
+        "relationships": [
+          "FDADeviceData → FDARecallData (通过product_code关联)"
+        ]
+      },
+      {
+        "name": "FDAFoodData",
+        "schema": "{\n  \"product_description\": \"string (产品描述)\",\n  \"company_name\": \"string (公司名称)\",\n  \"recall_number\": \"string (召回编号)\",\n  \"recall_date\": \"string (召回日期)\",\n  \"recall_class\": \"string (召回级别，Class I|II|III)\",\n  \"recall_reason\": \"string (召回原因)\",\n  \"recall_status\": \"string (召回状态，Ongoing|Completed|Terminated)\",\n  \"distribution_pattern\": \"string (分销范围)\",\n  \"source_url\": \"string (FDA官方链接)\"\n}",
+        "validation_rules": [
+          "recall_class必须为Class I、Class II或Class III",
+          "recall_status必须为Ongoing、Completed或Terminated之一",
+          "recall_date格式为YYYY-MM-DD"
+        ],
+        "relationships": [
+          "FDAFoodData → FDAEnforcementData (通过recall_number关联)"
+        ]
+      },
+      {
+        "name": "FDAAdverseEventData",
+        "schema": "{\n  \"report_id\": \"string (报告ID)\",\n  \"receive_date\": \"string (接收日期)\",\n  \"product_name\": \"string (产品名称)\",\n  \"product_type\": \"string (产品类型，drug|device)\",\n  \"reaction_description\": \"string (反应描述)\",\n  \"serious\": \"boolean (是否严重)\",\n  \"outcome\": \"string (结果)\",\n  \"patient_age\": \"integer (患者年龄，可选)\",\n  \"patient_sex\": \"string (患者性别，可选)\",\n  \"reporter_country\": \"string (报告国家)\",\n  \"source_url\": \"string (FDA官方链接)\"\n}",
+        "validation_rules": [
+          "receive_date格式为YYYY-MM-DD",
+          "product_type必须为drug或device",
+          "serious必须为boolean值"
+        ],
+        "relationships": [
+          "FDAAdverseEventData → FDADrugData (通过product_name关联)",
+          "FDAAdverseEventData → FDADeviceData (通过product_name关联)"
         ]
       },
       {
         "name": "CacheEntry",
-        "schema": {
-          "cache_key": "string - 缓存键（query_type + query的哈希值）",
-          "query_type": "string - 查询类型",
-          "query": "string - 原始查询",
-          "response": "object - 缓存的响应数据",
-          "created_at": "string - 缓存创建时间（ISO 8601）",
-          "expires_at": "string - 缓存过期时间（ISO 8601）",
-          "hit_count": "number - 缓存命中次数"
-        },
+        "schema": "{\n  \"cache_key\": \"string (查询参数哈希值)\",\n  \"query_params\": \"object (原始查询参数)\",\n  \"data\": \"object (缓存的查询结果)\",\n  \"cached_at\": \"string (缓存时间，ISO 8601)\",\n  \"expires_at\": \"string (过期时间，ISO 8601)\",\n  \"hit_count\": \"integer (命中次数)\"\n}",
         "validation_rules": [
-          "cache_key必须唯一",
-          "expires_at必须晚于created_at",
-          "response必须是有效的JSON对象"
+          "cache_key格式为SHA256哈希值（64字符）",
+          "expires_at = cached_at + 24小时",
+          "hit_count初始值为0"
         ],
         "relationships": [
-          "存储在本地文件系统 (.cache/fda_data_query_agent/)",
-          "按query_type组织子目录",
-          "文件名为cache_key.json"
-        ]
-      },
-      {
-        "name": "DataSource",
-        "schema": {
-          "endpoint": "string - API端点名称 (如'drug/label')",
-          "url": "string - 完整的API请求URL",
-          "query_params": "object - 查询参数",
-          "timestamp": "string - 查询时间戳（ISO 8601）",
-          "response_code": "number - HTTP响应码",
-          "data_count": "number - 返回数据条数"
-        },
-        "validation_rules": [
-          "url必须是有效的HTTP/HTTPS URL",
-          "timestamp必须是有效的ISO 8601格式",
-          "response_code必须是有效的HTTP状态码"
-        ],
-        "relationships": [
-          "包含在QueryResponse的data_sources字段中",
-          "用于数据来源追溯和验证"
+          "CacheEntry → QueryResponse (缓存存储查询响应)"
         ]
       }
     ],
     "interaction_flows": [
       {
         "name": "标准查询流程",
-        "description": "用户提交自然语言查询，Agent解析意图，调用API，返回结果",
+        "description": "用户提交自然语言查询，Agent识别意图、调用API、返回结果的完整流程",
         "steps": [
           {
             "step": "1. 接收用户查询",
             "agent": "fda_data_query_agent",
-            "action": "通过HTTP /invocations端点接收QueryRequest",
-            "data": "user_query, query_type, filters, force_refresh"
+            "action": "接收QueryRequest，提取prompt、session_id等参数",
+            "data": "QueryRequest对象"
           },
           {
-            "step": "2. 解析查询意图",
+            "step": "2. 加载会话上下文",
             "agent": "fda_data_query_agent",
-            "action": "使用提示词工程识别查询类型（药物/设备/食品/不良事件）和提取关键实体",
-            "data": "identified_type, entities, search_terms"
+            "action": "根据session_id加载历史对话上下文，如果是新会话则创建空上下文",
+            "data": "session_context字典（包含历史查询、实体引用等）"
           },
           {
-            "step": "3. 检查缓存",
+            "step": "3. 查询意图识别",
             "agent": "fda_data_query_agent",
-            "action": "生成cache_key并查询本地缓存，如force_refresh=false且缓存有效则直接返回",
-            "data": "cache_key, cache_hit, cached_response"
+            "action": "通过Claude Sonnet 4.5推理，识别查询意图（drugs/devices/food/adverse_events/recalls）",
+            "data": "意图类型字符串"
           },
           {
-            "step": "4. 构造API请求",
+            "step": "4. 实体提取",
             "agent": "fda_data_query_agent",
-            "action": "根据查询类型和实体构造openFDA API请求参数",
-            "data": "endpoint, search_query, limit, skip"
+            "action": "从查询中提取关键实体（产品名、公司名、代码等），结合上下文理解代词引用",
+            "data": "实体字典（entity_type: entity_value）"
           },
           {
-            "step": "5. 调用openFDA API",
+            "step": "5. 查询参数构建",
             "agent": "fda_data_query_agent",
-            "action": "使用http_request工具发送GET请求到openFDA API",
-            "data": "FDAAPIRequest"
+            "action": "根据意图和实体生成openFDA API查询参数（搜索字段、过滤条件、限制数量等）",
+            "data": "API查询参数对象"
           },
           {
-            "step": "6. 处理API响应",
+            "step": "6. 检查缓存",
             "agent": "fda_data_query_agent",
-            "action": "解析JSON响应，提取关键数据字段，处理错误",
-            "data": "raw_response, extracted_data, error"
+            "action": "调用cache_manager工具，使用查询参数哈希值检查缓存",
+            "data": "缓存键（SHA256哈希）"
           },
           {
-            "step": "7. 生成数据来源信息",
+            "step": "7a. 缓存命中",
             "agent": "fda_data_query_agent",
-            "action": "构造DataSource对象，包含API URL、查询参数、时间戳",
-            "data": "DataSource[]"
+            "action": "从缓存读取结果，标注from_cache=true，跳转到步骤10",
+            "data": "CacheEntry对象"
           },
           {
-            "step": "8. 生成自然语言回答",
+            "step": "7b. 缓存未命中",
             "agent": "fda_data_query_agent",
-            "action": "基于查询结果进行推理和问答，生成详细、客观的回答",
-            "data": "answer, confidence, suggestions"
+            "action": "决策调用哪个FDA API工具（如query_fda_drugs）",
+            "data": "工具名称和参数"
           },
           {
-            "step": "9. 缓存结果",
+            "step": "8. 调用FDA API",
             "agent": "fda_data_query_agent",
-            "action": "将QueryResponse写入本地缓存，设置过期时间",
-            "data": "CacheEntry"
+            "action": "调用对应的FDA API工具，传入查询参数",
+            "data": "API请求（HTTP GET with query params）"
           },
           {
-            "step": "10. 返回响应",
+            "step": "9. 解析和标注",
             "agent": "fda_data_query_agent",
-            "action": "通过HTTP响应返回QueryResponse（支持流式响应）",
-            "data": "QueryResponse"
+            "action": "API工具内部调用data_parser解析JSON响应，source_annotator注入来源链接，返回结构化数据",
+            "data": "FDADrugData/FDADeviceData/FDAFoodData等对象数组"
+          },
+          {
+            "step": "10. 写入缓存",
+            "agent": "fda_data_query_agent",
+            "action": "将查询结果写入缓存（仅缓存未命中时），设置24小时过期时间",
+            "data": "CacheEntry对象"
+          },
+          {
+            "step": "11. 生成专业回答",
+            "agent": "fda_data_query_agent",
+            "action": "基于查询结果，通过Claude Sonnet 4.5生成结构化、详细的专业回答，解释术语，提供统计分析",
+            "data": "回答文本字符串"
+          },
+          {
+            "step": "12. 生成相关推荐",
+            "agent": "fda_data_query_agent",
+            "action": "分析查询结果，生成相关数据推荐（同类产品、关联召回等），可选步骤",
+            "data": "推荐列表数组"
+          },
+          {
+            "step": "13. 构建响应",
+            "agent": "fda_data_query_agent",
+            "action": "构建QueryResponse对象，包含status、data、sources、answer等字段",
+            "data": "QueryResponse对象"
+          },
+          {
+            "step": "14. 更新上下文",
+            "agent": "fda_data_query_agent",
+            "action": "将当前查询和结果添加到会话上下文，保留最近50轮",
+            "data": "更新后的session_context"
+          },
+          {
+            "step": "15. 流式返回结果",
+            "agent": "fda_data_query_agent",
+            "action": "使用yield逐步返回回答文本，实现流式响应",
+            "data": "文本片段（通过yield）"
           }
         ]
       },
       {
-        "name": "数据不足处理流程",
-        "description": "当FDA API返回空结果或数据不完整时的处理流程",
+        "name": "API调用失败处理流程",
+        "description": "当FDA API调用失败时的错误处理和降级策略",
         "steps": [
           {
-            "step": "1. 检测数据不足",
+            "step": "1. API调用失败",
             "agent": "fda_data_query_agent",
-            "action": "分析API响应，判断是否返回空结果或关键字段缺失",
-            "data": "is_empty, missing_fields"
-          },
-          {
-            "step": "2. 分析原因",
-            "agent": "fda_data_query_agent",
-            "action": "推断数据不足的可能原因（产品未注册、数据未公开、查询参数错误等）",
-            "data": "reason, possible_causes"
-          },
-          {
-            "step": "3. 生成说明",
-            "agent": "fda_data_query_agent",
-            "action": "生成用户友好的说明，解释数据不足的原因和影响",
-            "data": "explanation"
-          },
-          {
-            "step": "4. 提供替代建议",
-            "agent": "fda_data_query_agent",
-            "action": "提供替代查询方式或建议用户访问FDA官网获取更多信息",
-            "data": "suggestions, alternative_queries, fda_links"
-          },
-          {
-            "step": "5. 返回响应",
-            "agent": "fda_data_query_agent",
-            "action": "返回包含warnings和suggestions的QueryResponse",
-            "data": "QueryResponse (with warnings)"
-          }
-        ]
-      },
-      {
-        "name": "API错误和限流处理流程",
-        "description": "处理openFDA API错误、超时和限流的流程",
-        "steps": [
-          {
-            "step": "1. 检测API错误",
-            "agent": "fda_data_query_agent",
-            "action": "捕获HTTP请求异常或非200响应码",
-            "data": "error_type, status_code, error_message"
+            "action": "FDA API工具返回错误（网络超时、HTTP 500等）",
+            "data": "异常对象（包含错误类型和消息）"
           },
           {
             "step": "2. 错误分类",
             "agent": "fda_data_query_agent",
-            "action": "根据错误类型（400参数错误、429限流、500服务器错误、超时等）进行分类",
-            "data": "error_category"
+            "action": "error_handler工具分析错误类型（网络错误、服务器错误、限流错误等）",
+            "data": "错误类型枚举"
           },
           {
-            "step": "3. 执行重试策略",
+            "step": "3. 重试决策",
             "agent": "fda_data_query_agent",
-            "action": "如果是429限流或5xx错误，使用指数退避策略重试（最多3次）",
-            "data": "retry_count, backoff_time"
+            "action": "根据错误类型决定是否重试，实现指数退避（1s、2s、4s），最多3次",
+            "data": "重试次数和延迟时间"
           },
           {
-            "step": "4. 尝试缓存降级",
+            "step": "4a. 重试成功",
             "agent": "fda_data_query_agent",
-            "action": "如果重试失败，尝试返回缓存数据（即使已过期）",
-            "data": "cached_response, is_stale"
+            "action": "重试成功，返回正常流程（步骤9：解析和标注）",
+            "data": "API响应数据"
           },
           {
-            "step": "5. 生成错误响应",
+            "step": "4b. 重试失败",
             "agent": "fda_data_query_agent",
-            "action": "生成用户友好的错误提示，说明问题和建议",
-            "data": "error_response, user_message"
+            "action": "重试3次后仍失败，进入降级策略",
+            "data": "持续失败标志"
           },
           {
-            "step": "6. 记录错误日志",
+            "step": "5. 检查缓存降级",
             "agent": "fda_data_query_agent",
-            "action": "记录错误详情（不含敏感信息）到日志文件",
-            "data": "log_entry"
+            "action": "尝试从缓存获取过期数据（>24小时但<7天），作为降级返回",
+            "data": "过期缓存数据（如果存在）"
           },
           {
-            "step": "7. 返回响应",
+            "step": "6a. 缓存降级成功",
             "agent": "fda_data_query_agent",
-            "action": "返回错误响应或降级响应",
-            "data": "QueryResponse (with error or stale data)"
+            "action": "返回过期缓存数据，标注数据可能过时，建议稍后重试",
+            "data": "QueryResponse（包含警告信息）"
+          },
+          {
+            "step": "6b. 缓存降级失败",
+            "agent": "fda_data_query_agent",
+            "action": "无可用缓存，生成友好错误信息",
+            "data": "错误标志"
+          },
+          {
+            "step": "7. 生成错误响应",
+            "agent": "fda_data_query_agent",
+            "action": "构建QueryResponse对象，status=error，包含错误代码、消息、建议操作",
+            "data": "QueryResponse对象（错误模式）"
+          },
+          {
+            "step": "8. 日志记录",
+            "agent": "fda_data_query_agent",
+            "action": "记录详细错误日志（错误类型、查询参数、重试次数、时间戳），便于排查",
+            "data": "日志条目"
+          },
+          {
+            "step": "9. 返回错误响应",
+            "agent": "fda_data_query_agent",
+            "action": "通过yield返回错误信息，格式为'Error: [错误消息]'",
+            "data": "错误文本（通过yield）"
           }
         ]
       },
       {
-        "name": "批量查询流程（可选功能）",
-        "description": "处理多个产品的批量查询请求",
+        "name": "数据为空处理流程",
+        "description": "当API成功调用但返回空结果时的智能提示流程",
         "steps": [
           {
-            "step": "1. 接收批量请求",
+            "step": "1. API返回空结果",
             "agent": "fda_data_query_agent",
-            "action": "解析包含多个查询的请求",
-            "data": "query_list[]"
+            "action": "FDA API工具返回success但results数组为空",
+            "data": "空结果数组"
           },
           {
-            "step": "2. 验证请求数量",
+            "step": "2. 分析查询参数",
             "agent": "fda_data_query_agent",
-            "action": "检查查询数量是否超过限制（建议最多50个）",
-            "data": "query_count, is_valid"
+            "action": "分析查询参数的完整性和准确性，识别可能的问题（拼写错误、参数过严格等）",
+            "data": "问题分析结果"
           },
           {
-            "step": "3. 并行执行查询",
+            "step": "3. 生成可能原因",
             "agent": "fda_data_query_agent",
-            "action": "对每个查询执行标准查询流程，控制并发数（建议5个）",
-            "data": "query_results[], errors[]"
+            "action": "生成数据为空的可能原因列表（如：产品未获FDA批准、拼写错误、数据未公开等）",
+            "data": "原因列表数组"
           },
           {
-            "step": "4. 汇总结果",
+            "step": "4. 生成查询建议",
             "agent": "fda_data_query_agent",
-            "action": "收集所有查询结果，标注成功和失败项",
-            "data": "aggregated_results, success_count, failure_count"
+            "action": "基于查询参数生成替代查询建议（如：使用通用名而非商品名、放宽搜索条件等）",
+            "data": "建议列表数组"
           },
           {
-            "step": "5. 生成导出文件",
+            "step": "5. 提供查询示例",
             "agent": "fda_data_query_agent",
-            "action": "根据export_format生成JSON或CSV文件",
-            "data": "export_file"
+            "action": "生成具体的查询示例，展示正确的查询方式",
+            "data": "示例查询字符串数组"
           },
           {
-            "step": "6. 返回响应",
+            "step": "6. 构建提示响应",
             "agent": "fda_data_query_agent",
-            "action": "返回批量查询结果或导出文件链接",
-            "data": "BatchQueryResponse"
+            "action": "构建QueryResponse对象，status=success但results为空，包含详细的提示和建议",
+            "data": "QueryResponse对象（包含suggestions字段）"
+          },
+          {
+            "step": "7. 流式返回提示",
+            "agent": "fda_data_query_agent",
+            "action": "通过yield流式返回提示信息，包括可能原因、建议和示例",
+            "data": "提示文本片段（通过yield）"
+          }
+        ]
+      },
+      {
+        "name": "多轮对话流程",
+        "description": "用户进行连续多轮查询，Agent基于上下文理解追问的流程",
+        "steps": [
+          {
+            "step": "1. 接收追问",
+            "agent": "fda_data_query_agent",
+            "action": "接收用户追问（如'它有哪些不良反应？'），包含相同的session_id",
+            "data": "QueryRequest对象"
+          },
+          {
+            "step": "2. 加载上下文",
+            "agent": "fda_data_query_agent",
+            "action": "根据session_id加载历史对话上下文，包含上一轮的查询和结果",
+            "data": "session_context字典"
+          },
+          {
+            "step": "3. 代词消解",
+            "agent": "fda_data_query_agent",
+            "action": "识别代词（如'它'），根据上下文确定指代对象（如上一轮查询的药物）",
+            "data": "指代对象（实体名称）"
+          },
+          {
+            "step": "4. 意图识别",
+            "agent": "fda_data_query_agent",
+            "action": "识别追问意图（如查询不良反应），结合上下文确定完整查询目标",
+            "data": "意图类型和目标实体"
+          },
+          {
+            "step": "5. 关联数据查询",
+            "agent": "fda_data_query_agent",
+            "action": "调用相应的FDA API工具（如query_fda_adverse_events），使用上下文中的实体作为查询参数",
+            "data": "API查询参数（包含关联实体）"
+          },
+          {
+            "step": "6. 数据关联分析",
+            "agent": "fda_data_query_agent",
+            "action": "将新查询结果与上下文中的历史结果关联，生成对比或补充分析",
+            "data": "关联分析结果"
+          },
+          {
+            "step": "7. 生成回答",
+            "agent": "fda_data_query_agent",
+            "action": "生成针对追问的专业回答，引用上下文信息，提供连贯的解释",
+            "data": "回答文本"
+          },
+          {
+            "step": "8. 更新上下文",
+            "agent": "fda_data_query_agent",
+            "action": "将当前追问和结果添加到上下文，维护对话连贯性",
+            "data": "更新后的session_context"
+          },
+          {
+            "step": "9. 流式返回结果",
+            "agent": "fda_data_query_agent",
+            "action": "通过yield流式返回回答，保持响应的实时性",
+            "data": "文本片段（通过yield）"
           }
         ]
       }
     ],
     "security_considerations": [
-      "API Key管理：openFDA API无需API Key（公开API），但如未来需要认证，应通过环境变量管理，不硬编码",
-      "HTTPS通信：所有与openFDA API的通信必须使用HTTPS协议",
-      "输入验证：对用户查询进行基本验证，防止注入攻击和恶意查询",
-      "日志隐私：日志中不记录完整的用户查询内容，仅记录查询类型、时间戳和错误码",
-      "缓存安全：缓存数据不包含用户敏感信息，仅包含公开的FDA数据",
-      "错误提示：错误信息不暴露内部实现细节和系统配置",
-      "依赖库安全：定期检查和更新依赖库，修复已知安全漏洞",
-      "访问控制：初版无用户认证，未来版本应添加基于角色的访问控制",
-      "数据隐私：遵守FDA数据使用条款，不对数据进行未授权的商业化使用",
-      "免责声明：明确系统仅提供FDA公开数据查询服务，不提供医疗建议或诊断"
+      "API密钥保护：FDA openFDA API为公开API无需密钥，但如果未来需要密钥，应使用环境变量存储，不硬编码在代码中",
+      "HTTPS通信：所有与FDA API的通信使用HTTPS加密传输，防止中间人攻击",
+      "输入验证：对用户输入进行严格验证，防止注入攻击，限制查询长度和复杂度",
+      "输出过滤：对API返回的数据进行过滤，移除潜在的恶意脚本或代码",
+      "隐私保护：不存储用户敏感信息，会话上下文仅在内存中保存，会话结束后自动清理",
+      "日志脱敏：查询日志不包含个人身份信息（PII），仅记录查询类型和结果状态",
+      "缓存安全：缓存数据定期清理（最长7天），缓存文件权限设置为仅当前用户可读写",
+      "限流保护：实现请求限流（每分钟240次），防止滥用和DDoS攻击",
+      "错误信息安全：错误信息不暴露系统内部细节（如堆栈跟踪、文件路径等），仅返回用户友好的提示",
+      "依赖安全：定期更新依赖库（requests、boto3等），修复已知安全漏洞",
+      "访问控制：如果部署在受限环境，应实现用户认证和授权机制",
+      "合规性：遵守FDA API使用条款，不滥用API，不将数据用于未授权用途"
     ],
     "error_handling": [
-      "API错误处理：捕获HTTP请求异常，根据错误类型（400/429/500/超时）执行不同策略",
-      "重试机制：对429限流和5xx服务器错误使用指数退避策略重试，最多3次",
-      "降级策略：API不可用时优先使用缓存数据（即使已过期），并提示用户数据可能不是最新",
-      "参数验证：在调用API前验证查询参数，避免无效请求",
-      "超时处理：设置合理的请求超时时间（默认30秒），超时后返回友好提示",
-      "空结果处理：API返回空结果时，分析原因并提供替代建议",
-      "数据解析错误：捕获JSON解析异常，记录错误并返回降级响应",
-      "缓存错误：缓存读写失败时不影响主流程，仅记录日志",
-      "并发控制：批量查询时限制并发数，避免触发API限流",
-      "错误日志：所有错误都记录到日志文件，包含错误类型、时间戳、上下文信息（不含敏感数据）",
-      "用户提示：所有错误都转换为用户友好的提示，避免技术术语",
-      "健康检查：定期（如每小时）检查openFDA API可用性，提前发现问题"
+      "网络错误：捕获requests.exceptions.ConnectionError，实现指数退避重试（1s、2s、4s），最多3次，失败后尝试缓存降级",
+      "API超时：设置请求超时（10秒），超时后重试，持续超时则返回缓存数据或友好错误信息",
+      "HTTP错误：处理4xx和5xx错误码，400错误提示参数问题，404提示数据不存在，429提示限流，500提示服务器错误",
+      "JSON解析错误：捕获json.JSONDecodeError，记录原始响应，返回'数据格式错误'提示",
+      "数据验证错误：验证API返回数据的完整性，缺失关键字段时标注并继续处理，避免崩溃",
+      "缓存错误：捕获文件IO错误（权限、磁盘空间等），缓存失败不影响主流程，记录警告日志",
+      "参数错误：验证查询参数的合法性，参数不足或格式错误时提示用户补充或修正",
+      "限流错误：检测到429错误时延迟重试（60秒），或返回缓存数据，提示用户稍后重试",
+      "上下文错误：session_id无效或上下文损坏时创建新上下文，不影响当前查询",
+      "工具调用错误：工具调用失败时记录错误日志，尝试替代工具或返回部分结果",
+      "未知错误：捕获所有未预期异常，记录完整堆栈跟踪到日志，返回通用错误信息给用户",
+      "降级策略：核心功能不可用时提供降级服务（如仅使用缓存数据、简化查询等），确保系统可用性"
     ],
     "performance_considerations": [
-      "响应时间目标：单次查询响应时间在5秒内（不含网络延迟）",
-      "缓存策略：本地文件系统缓存，过期时间24小时，缓存命中率目标60%以上",
-      "并发支持：支持至少10个并发用户，使用异步处理提升吞吐量",
-      "API限流管理：遵守openFDA限流政策（240次/分钟/IP），通过缓存和重试策略避免触发限流",
-      "批量查询优化：批量查询时限制并发数为5个，避免过度消耗资源",
-      "数据压缩：API请求支持gzip压缩，减少网络传输时间",
-      "流式响应：使用流式响应提升用户体验，实时展示查询进度",
-      "缓存预热：系统启动时预加载常见查询的缓存数据",
-      "查询优化：对复杂查询进行拆分和优化，减少单次API调用的数据量",
-      "资源限制：限制单次查询返回的最大数据量（如1000条），避免内存溢出",
-      "监控指标：监控API调用次数、响应时间、缓存命中率、错误率等关键指标"
+      "缓存优化：实现本地缓存机制，常见查询结果缓存24小时，缓存命中率目标>50%，显著减少API调用",
+      "响应时间：API查询响应时间目标<3秒（90%请求），缓存命中时<500毫秒，通过异步IO和并发优化",
+      "并发支持：支持至少10个并发会话，使用异步编程（asyncio）提高并发性能",
+      "结果限制：单次查询返回结果限制在100条，避免大数据集传输，提供分页机制",
+      "流式响应：使用agent.stream_async()实现流式响应，用户无需等待完整结果，提升体验",
+      "API限流管理：实现令牌桶算法，限制每分钟240次请求（FDA API限制），避免触发限流",
+      "连接池：使用requests.Session()维护连接池，复用TCP连接，减少连接建立开销",
+      "数据压缩：请求时启用gzip压缩（Accept-Encoding: gzip），减少网络传输时间",
+      "缓存策略优化：使用LRU（最近最少使用）策略清理缓存，优先保留热点数据",
+      "启动优化：Agent启动时间目标<5秒，延迟加载非必需资源，预热缓存",
+      "内存管理：上下文数据限制在50轮对话，超出后自动总结或丢弃早期数据，避免内存泄漏",
+      "监控指标：记录关键性能指标（响应时间、缓存命中率、API调用次数、错误率），支持性能分析和优化"
     ],
     "monitoring_strategy": [
-      "日志记录：记录所有查询请求、API调用、错误和性能指标到结构化日志",
-      "性能监控：监控查询响应时间、API调用延迟、缓存命中率",
-      "错误监控：监控API错误率、重试次数、降级触发次数",
-      "资源监控：监控CPU使用率、内存使用量、磁盘空间（缓存占用）",
-      "API健康检查：每小时检查openFDA API可用性，记录可用性指标",
-      "缓存监控：监控缓存大小、命中率、过期清理频率",
-      "用户行为分析：分析查询类型分布、高频查询、失败查询模式",
-      "告警机制：API错误率超过5%、响应时间超过10秒、缓存命中率低于40%时触发告警",
-      "日志聚合：使用集中式日志系统（如CloudWatch）聚合和分析日志",
-      "可视化仪表板：展示关键指标的实时仪表板，包括查询量、成功率、响应时间趋势",
-      "定期报告：生成每日/每周运行报告，包含关键指标和异常事件"
+      "日志记录：使用Python logging模块，记录INFO、WARNING、ERROR级别日志，包含时间戳、查询ID、操作类型、结果状态",
+      "结构化日志：日志格式为JSON，包含query_id、session_id、user_id、query_type、status、duration、error_code等字段，便于分析",
+      "性能指标：记录每次查询的响应时间、API调用次数、缓存命中率、错误次数，按分钟聚合",
+      "错误监控：记录所有错误和异常，包含错误类型、错误消息、堆栈跟踪、触发查询，设置错误率告警阈值（>5%）",
+      "API健康检查：定期调用FDA API健康检查端点（如/drug/event.json?limit=1），监控API可用性，记录响应时间",
+      "缓存监控：监控缓存命中率、缓存大小、缓存过期率，缓存命中率低于40%时告警",
+      "会话监控：记录活跃会话数、平均会话时长、每会话查询次数，识别异常使用模式",
+      "资源监控：监控CPU使用率、内存使用率、磁盘使用率，资源使用超过80%时告警",
+      "OpenTelemetry集成：使用StrandsTelemetry配置OTLP导出器，发送追踪数据到监控后端（默认http://localhost:4318）",
+      "告警机制：设置告警规则（API错误率>5%、响应时间>5秒、缓存命中率<40%、资源使用>80%），通过日志或外部服务发送告警",
+      "仪表板：建议集成Grafana或类似工具，可视化关键指标（查询量、响应时间、错误率、缓存命中率等）",
+      "审计日志：记录所有查询请求和响应（脱敏后），保留7天，支持问题回溯和合规审计"
     ]
   },
-  "design_rationale": "本设计采用单Agent架构，基于以下理由：\n\n1. **需求复杂度适中**：FDA数据查询功能相对独立，不涉及复杂的多步骤工作流或多角色协作，单Agent可满足所有功能需求。\n\n2. **基于API集成专家模板**：该模板提供了完整的API调用、认证管理、数据转换工具，与本项目需求高度匹配（评分92/100）。通过复用模板能力，可大幅减少开发工作量，专注于FDA特定逻辑的实现。\n\n3. **提示词驱动的查询解析**：利用Claude Sonnet 4.5模型的医疗领域知识和自然语言理解能力，通过提示词工程实现查询意图识别和实体提取，无需开发额外的NLU模块。这种方法灵活性高、易于迭代优化。\n\n4. **本地缓存策略**：FDA数据更新频率低（日级别），本地文件系统缓存可有效降低API调用量（目标30%以上）、提升响应速度、降低限流风险。缓存按query_type组织目录，便于管理和清理。\n\n5. **工具函数封装**：将API调用、缓存管理、数据格式化等逻辑封装为工具函数，保持Agent逻辑清晰，便于测试和维护。核心工具包括：\n   - fda_api_client：封装openFDA API调用\n   - cache_manager：管理本地缓存\n   - query_parser：解析自然语言查询\n   - data_formatter：格式化查询结果\n   - source_tracker：生成数据来源追溯信息\n\n6. **完善的错误处理**：openFDA API可能出现限流、超时、服务器错误等情况，设计了多层错误处理机制：\n   - 指数退避重试（429/5xx错误）\n   - 缓存降级（API不可用时使用过期缓存）\n   - 用户友好的错误提示\n   - 详细的错误日志\n\n7. **数据来源追溯**：每条查询结果都包含DataSource对象，记录API端点、请求URL、查询参数、时间戳，确保数据可验证性和透明度。\n\n8. **流式响应支持**：使用BedrockAgentCoreApp的流式响应能力，实时展示查询进度和结果，提升用户体验。特别适合批量查询等长时间操作。\n\n9. **可扩展性设计**：模块化设计支持未来功能扩展：\n   - 新增数据源（如EMA、PMDA）：添加新的API客户端工具\n   - 新增查询类型：扩展query_parser和提示词\n   - 新增分析功能：添加数据分析工具\n   - 多语言支持：扩展提示词和数据格式化逻辑\n\n10. **性能和成本平衡**：使用Claude Sonnet 4.5模型平衡性能和成本，该模型具备强大的医疗领域推理能力，能够理解复杂的专业查询，同时成本可控。\n\n11. **安全和合规**：遵守openFDA API使用条款，不对数据进行未授权的商业化使用。日志中不记录敏感信息，使用HTTPS通信，定期检查依赖库安全漏洞。\n\n12. **部署和运维**：基于Amazon Bedrock AgentCore平台部署，使用BedrockAgentCoreApp模式和handler入口点函数，支持HTTP服务、健康检查、日志聚合等运维能力。\n\n总结：本设计通过单Agent架构、模板复用、提示词工程、本地缓存、完善的错误处理等策略，在满足功能需求的同时，确保系统的高可用性、良好的用户体验和未来的可扩展性。设计充分考虑了openFDA API的特点和限制，制定了合理的性能目标和监控策略。"
+  "design_rationale": "本系统架构设计基于以下关键决策和理由：\n\n1. **单Agent架构选择**：需求分析阶段确认核心逻辑为「理解查询→调用API→格式化返回」的线性流程，不涉及多Agent协作或复杂决策树，因此单Agent架构最简洁高效。单Agent可以集中管理上下文、缓存和工具调用，避免多Agent通信开销。\n\n2. **API集成专家模板选择**：经过模板推荐系统评估，API集成专家模板获得92/100的高匹配度，提供专业的API调用、认证管理、JSON处理能力，完全符合FDA数据查询的核心需求。该模板成熟稳定（stable版本），已在生产环境验证，降低开发风险。\n\n3. **工具层设计**：将FDA API调用、数据解析、缓存管理、来源标注等功能封装为独立工具，实现关注点分离。工具层遵循统一接口规范，每个工具职责单一，便于测试、维护和复用。核心工具（5个FDA API工具）直接对应FDA数据类型，支持工具（4个）提供横切关注点（缓存、解析、标注、错误处理）。\n\n4. **提示词工程策略**：充分利用Claude Sonnet 4.5的推理能力和医疗健康领域知识，通过系统提示词实现自然语言理解、意图识别、实体提取、专业回答生成等功能，无需训练独立的NLP模型。这种方法开发成本低、迭代速度快、效果可控。系统提示词需要包含FDA数据字段映射、查询模式、术语解释规则等领域知识。\n\n5. **缓存策略设计**：FDA数据更新频率相对较低（批准信息、召回信息等不会实时变化），适合缓存。本地缓存（.cache目录）避免外部依赖，降低系统复杂度。缓存有效期设置为24小时，平衡数据时效性和性能。LRU清理策略确保缓存空间可控。缓存键使用查询参数的SHA256哈希值，确保唯一性和安全性。\n\n6. **错误处理和容错设计**：FDA API作为外部依赖，可能面临网络波动、服务器故障、限流等问题。系统实现多层容错机制：指数退避重试（处理临时故障）、缓存降级（API不可用时返回过期数据）、友好错误提示（引导用户调整查询）。错误处理覆盖网络错误、HTTP错误、数据错误、参数错误等多种场景，确保系统鲁棒性。\n\n7. **来源追溯机制**：需求明确要求每条数据标注来源出处，这是系统的核心价值之一。在工具层（source_annotator）自动注入FDA官方链接和元数据，Agent无需手动处理，确保100%的来源覆盖率。来源信息包括FDA官方URL、申请号、报告ID、批准日期等，支持用户验证数据真实性。\n\n8. **多轮对话和上下文管理**：会话级上下文管理提升用户体验，支持连续追问（如'它有哪些不良反应？'）。上下文存储在内存中（session_context字典），包含历史查询、实体引用、中间结果等。上下文限制在50轮对话，超出后保留最近对话并总结早期内容，避免内存泄漏。会话结束后自动清理上下文，保护用户隐私。\n\n9. **流式响应设计**：使用agent.stream_async()实现流式响应，用户无需等待完整结果，获得实时反馈。流式响应通过yield逐步返回文本片段，BedrockAgentCore自动处理流式传输。这种设计显著提升用户体验，特别是在处理复杂查询或大量数据时。\n\n10. **性能优化策略**：缓存机制（目标缓存命中率>50%）、连接池复用、gzip压缩、结果限制（100条/次）、异步IO等多种优化手段，确保90%的查询响应时间<3秒。API限流管理（令牌桶算法）避免触发FDA API限制（240次/分钟），保证系统稳定性。\n\n11. **安全和隐私设计**：遵循最小权限原则，不存储用户敏感信息，会话数据仅在内存中保存。缓存数据定期清理（最长7天），日志脱敏（不包含PII）。输入验证和输出过滤防止注入攻击。HTTPS通信保护数据传输安全。遵守FDA API使用条款，不滥用API，保障合规性。\n\n12. **监控和可观测性**：完善的日志记录（结构化JSON日志）、性能指标监控（响应时间、缓存命中率、错误率等）、OpenTelemetry集成（追踪数据导出）、告警机制（错误率、响应时间、资源使用等阈值告警）。这些机制支持运行时监控、问题排查、性能优化和容量规划。\n\n13. **技术栈选择**：Strands SDK提供Agent框架，Claude Sonnet 4.5提供强大的推理能力和医疗健康领域知识，AWS Bedrock提供稳定的部署环境，Python 3.13+提供现代化的开发体验。这些技术栈已在项目中明确要求，经过验证且成熟可靠。\n\n14. **可扩展性设计**：模块化的工具层支持未来添加新的FDA数据类型或外部数据源。系统提示词和用户提示词独立配置，便于迭代优化。数据模型设计灵活，支持FDA API字段变化。单Agent架构虽然简单，但通过工具集成可以支持复杂功能，未来如果需求扩展可以平滑升级到多Agent架构。\n\n15. **用户体验优先**：自然语言交互（无需学习API语法）、流式响应（实时反馈）、友好错误提示（避免技术术语）、智能建议（数据不足时提供替代方案）、多轮对话（支持追问）等设计都以提升用户体验为目标。专业术语解释和数据解读降低使用门槛，让非专业用户也能获取FDA数据。\n\n总体而言，本架构设计在功能完整性、技术可行性、性能效率、安全合规、用户体验等多个维度达到平衡，充分考虑了需求约束、技术栈限制、平台特性，为后续的Agent设计、工具开发、提示词工程提供清晰的指导方向。单Agent架构简洁高效，API集成专家模板提供坚实基础，工具层和提示词工程提供灵活扩展能力，完善的容错和监控机制保障系统鲁棒性和可维护性。"
 }

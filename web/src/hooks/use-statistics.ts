@@ -6,6 +6,14 @@ import {
   fetchBuildStatistics,
   fetchInvocationStatistics,
   fetchTrendData,
+  fetchAgentCategoryDistribution,
+  fetchTopAgents,
+  fetchRecentActivities,
+  fetchSystemHealth,
+  CategoryDistribution,
+  TopAgent,
+  RecentActivity,
+  SystemHealth,
 } from '@/lib/statistics';
 import type {
   StatisticsOverviewData,
@@ -60,6 +68,55 @@ export function useTrendData(metric: string, days = 30, options?: Omit<UseQueryO
     queryFn: () => fetchTrendData(metric, days),
     enabled: Boolean(metric),
     staleTime: 300_000, // 5 minutes
+    ...options,
+  });
+}
+
+/**
+ * Hook to fetch agent category distribution
+ */
+export function useAgentCategoryDistribution(options?: Omit<UseQueryOptions<CategoryDistribution[], Error>, 'queryKey' | 'queryFn'>) {
+  return useQuery<CategoryDistribution[]>({
+    queryKey: ['statistics', 'agent-categories'],
+    queryFn: fetchAgentCategoryDistribution,
+    staleTime: 300_000,
+    ...options,
+  });
+}
+
+/**
+ * Hook to fetch top agents by invocation count
+ */
+export function useTopAgents(limit = 10, options?: Omit<UseQueryOptions<TopAgent[], Error>, 'queryKey' | 'queryFn'>) {
+  return useQuery<TopAgent[]>({
+    queryKey: ['statistics', 'top-agents', limit],
+    queryFn: () => fetchTopAgents(limit),
+    staleTime: 300_000,
+    ...options,
+  });
+}
+
+/**
+ * Hook to fetch recent activities
+ */
+export function useRecentActivities(limit = 10, options?: Omit<UseQueryOptions<RecentActivity[], Error>, 'queryKey' | 'queryFn'>) {
+  return useQuery<RecentActivity[]>({
+    queryKey: ['statistics', 'recent-activities', limit],
+    queryFn: () => fetchRecentActivities(limit),
+    staleTime: 60_000,
+    ...options,
+  });
+}
+
+/**
+ * Hook to fetch system health status
+ */
+export function useSystemHealth(options?: Omit<UseQueryOptions<SystemHealth, Error>, 'queryKey' | 'queryFn'>) {
+  return useQuery<SystemHealth>({
+    queryKey: ['statistics', 'system-health'],
+    queryFn: fetchSystemHealth,
+    staleTime: 30_000,
+    refetchInterval: 60_000,
     ...options,
   });
 }

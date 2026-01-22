@@ -30,6 +30,7 @@ from .managers.build_manager import BuildManager
 from .managers.infrastructure_manager import InfrastructureManager
 from .managers.cloud_resource_manager import CloudResourceManager
 from .managers.deployment_manager import DeploymentManager
+from .managers.artifact_manager import ArtifactManager
 from .models.build import BuildOptions
 from .utils.formatters import format_output
 from .utils.styles import styled, header, command, success, warning, error, muted, Style
@@ -71,10 +72,11 @@ class CLIContext:
         self.cloud_resource_manager = CloudResourceManager()
         self.infrastructure_manager = InfrastructureManager.from_settings()
         self.deployment_manager = DeploymentManager(base_path)
+        self.artifact_manager = ArtifactManager(self.fs_adapter, self.config_loader)
 
 
 @click.group()
-@click.version_option(version="2.1.0", prog_name="nexus-cli")
+@click.version_option(version="2.2.0", prog_name="nexus-cli")
 @click.option('--base-path', default=".", help='Base path to Nexus-AI installation')
 @click.option('--lang', type=click.Choice(['en', 'zh']), default='en', help='Language (en/zh)')
 @click.pass_context
@@ -87,9 +89,10 @@ def cli(ctx, base_path, lang):
     COMMANDS:
       project   Manage projects (init, list, describe, build, backup, restore, delete)
       agents    Manage AI agents (list, describe, build, delete)
+      artifact  Manage S3 artifacts (sync, list, versions, describe, delete)
       backup    Manage project backups (list, describe, validate, delete)
       job       Manage tasks and queues (list, view, clear, delete)
-      init      Initialize infrastructure (DynamoDB tables, SQS queues)
+      init      Initialize infrastructure (DynamoDB tables, SQS queues, S3 buckets)
       overview  Display system-wide overview
     
     \b
@@ -99,6 +102,8 @@ def cli(ctx, base_path, lang):
       nexus-cli project backup my-project # Backup a project
       nexus-cli agents list               # List all agents
       nexus-cli agents build my-project   # Deploy agent to AgentCore
+      nexus-cli artifact sync my-agent    # Sync agent to S3
+      nexus-cli artifact list             # List synced agents
       nexus-cli job list                  # List tasks
       nexus-cli init                      # Initialize infrastructure
     
@@ -356,8 +361,10 @@ def project_init(ctx, name, description, dry_run):
 @click.option('--output', '-o', help='Custom output path for backup')
 @click.option('--dry-run', is_flag=True, help='Show what would be done without executing')
 @click.option('--source-delete', is_flag=True, help='Delete source directories after successful backup')
+@click.option('--sync-to-s3', is_flag=True, help='Upload backup to S3 after creation')
+@click.option('--notes', help='Notes for S3 sync version (used with --sync-to-s3)')
 @click.pass_obj
-def project_backup(ctx, name, output, dry_run, source_delete):
+def project_backup(ctx, name, output, dry_run, source_delete, sync_to_s3, notes):
     """Backup a project with all its resources
     
     Creates a complete backup of a project including:
@@ -384,6 +391,12 @@ def project_backup(ctx, name, output, dry_run, source_delete):
       
       # Backup and delete source directories
       nexus-cli project backup my-project --source-delete
+      
+      # Backup and sync to S3
+      nexus-cli project backup my-project --sync-to-s3
+      
+      # Backup with notes for S3 version
+      nexus-cli project backup my-project --sync-to-s3 --notes "Production release v1.0"
     
     \b
     FEATURES:
@@ -394,6 +407,7 @@ def project_backup(ctx, name, output, dry_run, source_delete):
       ✓ Detailed manifest with metadata
       ✓ Dry-run mode for preview
       ✓ Optional source deletion after backup
+      ✓ Optional S3 cloud backup sync
     """
     try:
         project = ctx.project_manager.get_project(name)
@@ -441,6 +455,14 @@ def project_backup(ctx, name, output, dry_run, source_delete):
                     click.echo(f"  • prompts/generated_agents_prompts/{name}/")
                 if project.tools:
                     click.echo(f"  • tools/generated_tools/{name}/")
+            
+            if sync_to_s3:
+                click.echo()
+                click.echo("After backup, would sync to S3:")
+                click.echo(f"  • Bucket: {ctx.artifact_manager.get_bucket_name()}")
+                click.echo(f"  • Workspace: {ctx.artifact_manager.get_workspace_uuid()}")
+                if notes:
+                    click.echo(f"  • Notes: {notes}")
             
             click.echo()
             click.echo("Run without --dry-run to execute these operations.")
@@ -516,6 +538,28 @@ def project_backup(ctx, name, output, dry_run, source_delete):
                 click.echo(f"✓ Source directories deleted successfully ({len(deleted_items)} directories removed)")
             else:
                 click.echo("  No source directories found to delete")
+        
+        # Sync to S3 if requested
+        if sync_to_s3:
+            click.echo()
+            click.echo("Syncing backup to S3...")
+            
+            try:
+                sync_result = ctx.artifact_manager.sync_backup(
+                    agent_name=name,
+                    backup_path=str(backup.path),
+                    notes=notes or f"Backup: {backup.path.name}"
+                )
+                
+                if sync_result.success:
+                    click.echo(f"  ✓ Uploaded to S3 successfully")
+                    click.echo(f"  • Version UUID: {sync_result.version_uuid}")
+                    click.echo(f"  • S3 Path: {sync_result.s3_paths.get('backups', 'N/A')}")
+                    click.echo(f"  • Size: {sync_result.format_size()}")
+                else:
+                    click.echo(f"  ✗ S3 sync failed: {sync_result.error}", err=True)
+            except Exception as sync_error:
+                click.echo(f"  ✗ S3 sync error: {sync_error}", err=True)
     
     except Exception as e:
         click.echo(f"Error: {e}", err=True)
@@ -1178,17 +1222,42 @@ def agents_build(ctx, project_name, region, dry_run, yes, output):
 
 @agents.command('list')
 @click.option('--project', '-p', help='Filter by project')
+@click.option('--show-sync', '-s', is_flag=True, help='Show S3 sync status')
 @click.option('--output', '-o', type=click.Choice(['json', 'table', 'text']), default='table',
               help='Output format')
 @click.pass_obj
-def agents_list(ctx, project, output):
+def agents_list(ctx, project, show_sync, output):
     """List all agents with brief descriptions"""
     try:
         agents = ctx.agent_manager.list_agents(project=project)
         
+        # 获取云端同步状态（如果需要）
+        synced_agents = {}
+        if show_sync:
+            try:
+                synced_list = ctx.artifact_manager.list_synced_agents()
+                synced_agents = {a.agent_name: a for a in synced_list}
+            except Exception:
+                pass  # 忽略同步状态获取失败
+        
         if output == 'json':
+            agents_data = []
+            for a in agents:
+                agent_dict = a.to_dict()
+                if show_sync and a.name in synced_agents:
+                    sync_info = synced_agents[a.name]
+                    agent_dict['sync_status'] = {
+                        'synced': True,
+                        'version_count': sync_info.version_count,
+                        'latest_version': sync_info.latest_version,
+                        'last_sync': sync_info.latest_created_at
+                    }
+                else:
+                    agent_dict['sync_status'] = {'synced': False}
+                agents_data.append(agent_dict)
+            
             data = {
-                'agents': [a.to_dict() for a in agents],
+                'agents': agents_data,
                 'total': len(agents)
             }
             click.echo(format_output(data, 'json'))
@@ -1201,19 +1270,31 @@ def agents_list(ctx, project, output):
                 if a.config and a.config.description:
                     # Extract first line or first sentence
                     desc = a.config.description.split('\n')[0].strip()
-                    if len(desc) > 60:
-                        desc = desc[:57] + '...'
+                    if len(desc) > 50:
+                        desc = desc[:47] + '...'
                     description = desc
                 
-                data.append({
+                row = {
                     'name': a.name,
                     'description': description,
                     'project': a.project or '-',
                     'tools': len(a.dependencies),
                     'created': a.created_at.strftime('%Y-%m-%d') if a.created_at else '-'
-                })
+                }
+                
+                if show_sync:
+                    if a.name in synced_agents:
+                        sync_info = synced_agents[a.name]
+                        row['synced'] = f"✓ ({sync_info.version_count})"
+                    else:
+                        row['synced'] = '-'
+                
+                data.append(row)
             
-            headers = ['name', 'description', 'project', 'tools', 'created']
+            if show_sync:
+                headers = ['name', 'description', 'project', 'tools', 'synced', 'created']
+            else:
+                headers = ['name', 'description', 'project', 'tools', 'created']
             click.echo(format_output(data, output, headers))
             
             if project:
@@ -2540,6 +2621,379 @@ def job_view(ctx, task_id, output):
 def main():
     """Main entry point"""
     cli()
+
+
+# ============================================================================
+# ARTIFACT COMMANDS
+# ============================================================================
+
+@cli.group()
+def artifact():
+    """Manage agent artifacts and S3 synchronization
+    
+    \b
+    SUBCOMMANDS:
+      sync      Sync agent files to S3
+      list      List synced agents
+      versions  List versions of an agent
+      describe  Show version details
+      delete    Delete a version
+    
+    \b
+    EXAMPLES:
+      nexus-cli artifact sync my-agent
+      nexus-cli artifact list
+      nexus-cli artifact versions my-agent
+      nexus-cli artifact describe my-agent --version <uuid>
+    """
+    pass
+
+
+@artifact.command('sync')
+@click.argument('agent_name')
+@click.option('--tag', '-t', default='', help='Version tag (e.g., v1.0.0)')
+@click.option('--notes', '-n', default='', help='Version notes')
+@click.option('--category', '-c', multiple=True, 
+              type=click.Choice(['agents', 'projects', 'tools', 'prompts']),
+              help='Categories to sync (default: all)')
+@click.option('--output', '-o', type=click.Choice(['detail', 'json']), default='detail',
+              help='Output format')
+@click.pass_obj
+def artifact_sync(ctx, agent_name, tag, notes, category, output):
+    """Sync agent files to S3
+    
+    Uploads agent-related files to S3 and records version in DynamoDB.
+    
+    \b
+    FILES SYNCED:
+      - agents/generated_agents/<agent_name>/
+      - projects/<agent_name>/
+      - tools/generated_tools/<agent_name>/
+      - prompts/generated_agents_prompts/<agent_name>/
+    
+    \b
+    EXAMPLES:
+      # Sync all files
+      nexus-cli artifact sync my-agent
+      
+      # Sync with version tag
+      nexus-cli artifact sync my-agent --tag v1.0.0 --notes "Initial release"
+      
+      # Sync only agents and prompts
+      nexus-cli artifact sync my-agent -c agents -c prompts
+    """
+    try:
+        categories = list(category) if category else None
+        
+        click.secho("=" * 60, fg='cyan')
+        click.secho(f"Syncing Agent: {agent_name}", fg='cyan', bold=True)
+        click.secho("=" * 60, fg='cyan')
+        click.echo()
+        
+        click.secho("Uploading files to S3...", fg='yellow')
+        
+        result = ctx.artifact_manager.sync_agent(
+            agent_name=agent_name,
+            version_tag=tag,
+            notes=notes,
+            categories=categories
+        )
+        
+        if not result.success:
+            click.echo()
+            click.secho(f"✗ Sync failed: {result.error}", fg='red')
+            sys.exit(1)
+        
+        click.echo()
+        click.secho("=" * 60, fg='green')
+        click.secho("✓ Sync completed successfully!", fg='green', bold=True)
+        click.secho("=" * 60, fg='green')
+        click.echo()
+        
+        if output == 'json':
+            click.echo(json_dumps_utf8(result.to_dict()))
+        else:
+            click.echo(f"Agent:        {result.agent_name}")
+            click.echo(f"Version UUID: {result.version_uuid}")
+            click.echo(f"Workspace:    {result.workspace_uuid}")
+            click.echo(f"Files:        {result.files_synced}")
+            click.echo(f"Size:         {result.format_size()}")
+            click.echo(f"Duration:     {result.duration_seconds:.2f}s")
+            click.echo()
+            click.secho("S3 Paths:", bold=True)
+            for cat, path in result.s3_paths.items():
+                click.echo(f"  {cat}: {path}")
+        
+    except Exception as e:
+        click.secho(f"Error: {e}", fg='red', err=True)
+        sys.exit(1)
+
+
+@artifact.command('list')
+@click.option('--all', '-a', 'show_all', is_flag=True, default=False,
+              help='Show all versions instead of grouped by agent')
+@click.option('--output', '-o', type=click.Choice(['json', 'table', 'text']), default='table',
+              help='Output format')
+@click.pass_obj
+def artifact_list(ctx, show_all, output):
+    """List all synced agents
+    
+    Shows agents that have been synced to S3 with version counts.
+    Use --all to show all versions.
+    
+    \b
+    EXAMPLES:
+      nexus-cli artifact list
+      nexus-cli artifact list --all
+      nexus-cli artifact list --output json
+    """
+    try:
+        if show_all:
+            # 显示所有版本
+            versions = ctx.artifact_manager.list_all_versions()
+            
+            if output == 'json':
+                data = {
+                    'versions': [v.to_dict() for v in versions],
+                    'total': len(versions),
+                    'workspace_uuid': ctx.artifact_manager.get_workspace_uuid(),
+                    'bucket': ctx.artifact_manager.get_bucket_name()
+                }
+                click.echo(json_dumps_utf8(data))
+            else:
+                if not versions:
+                    click.secho("No synced versions found.", fg='yellow')
+                    click.echo()
+                    click.echo("Use 'nexus-cli artifact sync <agent_name>' to sync an agent.")
+                    return
+                
+                click.secho("=" * 100, fg='cyan')
+                click.secho("All Synced Versions", fg='cyan', bold=True)
+                click.secho("=" * 100, fg='cyan')
+                click.echo()
+                
+                data = []
+                for v in versions:
+                    data.append({
+                        'agent_name': v.agent_name,
+                        'version_uuid': v.version_uuid[:12] + '...',
+                        'tag': v.version_tag[:20] if v.version_tag else '-',
+                        'files': v.file_count,
+                        'size': v.format_size(),
+                        'created_at': v.created_at[:19] if v.created_at else '-'
+                    })
+                
+                headers = ['agent_name', 'version_uuid', 'tag', 'files', 'size', 'created_at']
+                click.echo(format_output(data, output, headers))
+                click.echo()
+                click.echo(f"Total: {len(versions)} versions")
+                click.echo(f"Bucket: {ctx.artifact_manager.get_bucket_name()}")
+        else:
+            # 按Agent分组显示
+            agents = ctx.artifact_manager.list_synced_agents()
+            
+            if output == 'json':
+                data = {
+                    'agents': [a.to_dict() for a in agents],
+                    'total': len(agents),
+                    'workspace_uuid': ctx.artifact_manager.get_workspace_uuid(),
+                    'bucket': ctx.artifact_manager.get_bucket_name()
+                }
+                click.echo(json_dumps_utf8(data))
+            else:
+                if not agents:
+                    click.secho("No synced agents found.", fg='yellow')
+                    click.echo()
+                    click.echo("Use 'nexus-cli artifact sync <agent_name>' to sync an agent.")
+                    return
+                
+                click.secho("=" * 70, fg='cyan')
+                click.secho("Synced Agents", fg='cyan', bold=True)
+                click.secho("=" * 70, fg='cyan')
+                click.echo()
+                
+                data = []
+                for a in agents:
+                    data.append({
+                        'agent_name': a.agent_name,
+                        'versions': a.version_count,
+                        'latest': a.latest_version[:20] if a.latest_version else '-',
+                        'last_sync': a.latest_created_at[:19] if a.latest_created_at else '-'
+                    })
+                
+                headers = ['agent_name', 'versions', 'latest', 'last_sync']
+                click.echo(format_output(data, output, headers))
+                click.echo()
+                click.echo(f"Total: {len(agents)} agents")
+                click.echo(f"Bucket: {ctx.artifact_manager.get_bucket_name()}")
+                click.echo()
+                click.echo("Tip: Use --all to show all versions")
+        
+    except Exception as e:
+        click.secho(f"Error: {e}", fg='red', err=True)
+        sys.exit(1)
+
+
+@artifact.command('versions')
+@click.argument('agent_name')
+@click.option('--output', '-o', type=click.Choice(['json', 'table', 'text']), default='table',
+              help='Output format')
+@click.pass_obj
+def artifact_versions(ctx, agent_name, output):
+    """List all versions of an agent
+    
+    Shows version history with timestamps and metadata.
+    
+    \b
+    EXAMPLES:
+      nexus-cli artifact versions my-agent
+      nexus-cli artifact versions my-agent --output json
+    """
+    try:
+        versions = ctx.artifact_manager.list_versions(agent_name)
+        
+        if output == 'json':
+            data = {
+                'agent_name': agent_name,
+                'versions': [v.to_dict() for v in versions],
+                'total': len(versions)
+            }
+            click.echo(json_dumps_utf8(data))
+        else:
+            if not versions:
+                click.secho(f"No versions found for agent '{agent_name}'.", fg='yellow')
+                return
+            
+            click.secho("=" * 80, fg='cyan')
+            click.secho(f"Versions: {agent_name}", fg='cyan', bold=True)
+            click.secho("=" * 80, fg='cyan')
+            click.echo()
+            
+            data = []
+            for v in versions:
+                data.append({
+                    'version_uuid': v.version_uuid[:12] + '...',
+                    'tag': v.version_tag[:20] if v.version_tag else '-',
+                    'files': v.file_count,
+                    'size': v.format_size(),
+                    'created_at': v.created_at[:19] if v.created_at else '-',
+                    'created_by': v.created_by or '-'
+                })
+            
+            headers = ['version_uuid', 'tag', 'files', 'size', 'created_at', 'created_by']
+            click.echo(format_output(data, output, headers))
+            click.echo()
+            click.echo(f"Total: {len(versions)} versions")
+        
+    except Exception as e:
+        click.secho(f"Error: {e}", fg='red', err=True)
+        sys.exit(1)
+
+
+@artifact.command('describe')
+@click.argument('agent_name')
+@click.option('--version', '-v', required=True, help='Version UUID')
+@click.option('--output', '-o', type=click.Choice(['detail', 'json']), default='detail',
+              help='Output format')
+@click.pass_obj
+def artifact_describe(ctx, agent_name, version, output):
+    """Show details of a specific version
+    
+    \b
+    EXAMPLES:
+      nexus-cli artifact describe my-agent --version abc123...
+    """
+    try:
+        v = ctx.artifact_manager.get_version_detail(agent_name, version)
+        
+        if not v:
+            click.secho(f"Version not found: {version}", fg='red')
+            sys.exit(1)
+        
+        if output == 'json':
+            click.echo(json_dumps_utf8(v.to_dict()))
+        else:
+            click.secho("=" * 70, fg='cyan')
+            click.secho(f"Version Details: {agent_name}", fg='cyan', bold=True)
+            click.secho("=" * 70, fg='cyan')
+            click.echo()
+            
+            click.echo(f"Agent:        {v.agent_name}")
+            click.echo(f"Version UUID: {v.version_uuid}")
+            click.echo(f"Version Tag:  {v.version_tag or '-'}")
+            click.echo(f"Workspace:    {v.workspace_uuid}")
+            click.echo()
+            click.echo(f"Files:        {v.file_count}")
+            click.echo(f"Size:         {v.format_size()}")
+            click.echo(f"Created:      {v.created_at}")
+            click.echo(f"Created By:   {v.created_by or '-'}")
+            
+            if v.notes:
+                click.echo()
+                click.secho("Notes:", bold=True)
+                click.echo(f"  {v.notes}")
+            
+            click.echo()
+            click.secho("S3 Paths:", bold=True)
+            for cat, path in v.s3_paths.items():
+                click.echo(f"  {cat}: {path}")
+        
+    except Exception as e:
+        click.secho(f"Error: {e}", fg='red', err=True)
+        sys.exit(1)
+
+
+@artifact.command('delete')
+@click.argument('agent_name')
+@click.option('--version', '-v', required=True, help='Version UUID to delete')
+@click.option('--delete-s3', is_flag=True, help='Also delete S3 files')
+@click.option('--force', '-f', is_flag=True, help='Skip confirmation')
+@click.pass_obj
+def artifact_delete(ctx, agent_name, version, delete_s3, force):
+    """Delete a specific version
+    
+    \b
+    EXAMPLES:
+      # Delete version record only
+      nexus-cli artifact delete my-agent --version abc123...
+      
+      # Delete version and S3 files
+      nexus-cli artifact delete my-agent --version abc123... --delete-s3
+    """
+    try:
+        # Get version details first
+        v = ctx.artifact_manager.get_version_detail(agent_name, version)
+        
+        if not v:
+            click.secho(f"Version not found: {version}", fg='red')
+            sys.exit(1)
+        
+        # Confirmation
+        if not force:
+            click.secho("Version to delete:", fg='yellow')
+            click.echo(f"  Agent:   {v.agent_name}")
+            click.echo(f"  Version: {v.version_uuid}")
+            click.echo(f"  Tag:     {v.version_tag or '-'}")
+            click.echo(f"  Files:   {v.file_count}")
+            
+            if delete_s3:
+                click.secho("\n⚠ S3 files will also be deleted!", fg='red')
+            
+            if not click.confirm("\nAre you sure you want to delete this version?"):
+                click.echo("Cancelled.")
+                return
+        
+        success = ctx.artifact_manager.delete_version(agent_name, version, delete_s3)
+        
+        if success:
+            click.secho("✓ Version deleted successfully!", fg='green')
+        else:
+            click.secho("✗ Failed to delete version.", fg='red')
+            sys.exit(1)
+        
+    except Exception as e:
+        click.secho(f"Error: {e}", fg='red', err=True)
+        sys.exit(1)
 
 
 if __name__ == '__main__':

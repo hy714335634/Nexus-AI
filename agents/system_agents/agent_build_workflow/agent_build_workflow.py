@@ -9,6 +9,7 @@ import uuid
 import json
 import re
 import logging
+from datetime import datetime
 from typing import Optional, Dict, Any, List
 
 logger = logging.getLogger(__name__)
@@ -625,6 +626,47 @@ def run_workflow(user_input: str, session_id: Optional[str] = None):
                 import traceback
                 traceback.print_exc()
         
+        # 同步Agent文件到S3（如果启用）
+        # 优先级：环境变量 > 配置文件
+        auto_sync_to_s3 = os.environ.get("NEXUS_AUTO_SYNC_TO_S3", "").lower() == "true"
+        if not auto_sync_to_s3:
+            # 从配置文件读取
+            auto_sync_to_s3 = config.get_nested('nexus_ai', 'auto_sync_to_s3', default=False)
+        
+        if auto_sync_to_s3:
+            try:
+                from nexus_utils.workflow_report_generator import extract_project_name_from_agent_results
+                from nexus_utils.artifact_sync import sync_agent_to_s3
+                
+                # 提取项目名称
+                agent_name = extract_project_name_from_agent_results(execution_results)
+                
+                if agent_name:
+                    print(f"\n📤 [S3] 开始同步Agent文件到S3...")
+                    print(f"   Agent名称: {agent_name}")
+                    
+                    sync_result = sync_agent_to_s3(
+                        agent_name=agent_name,
+                        version_tag=f"build-{datetime.now().strftime('%Y%m%d%H%M%S')}",
+                        notes=f"Auto-sync after agent build workflow completion",
+                        base_path="."
+                    )
+                    
+                    if sync_result.success:
+                        print(f"✅ [S3] Agent文件同步成功!")
+                        print(f"   - 版本UUID: {sync_result.version_uuid}")
+                        print(f"   - 文件数: {sync_result.files_synced}")
+                        print(f"   - 总大小: {sync_result.total_size} 字节")
+                        print(f"   - 耗时: {sync_result.duration_seconds:.2f}秒")
+                    else:
+                        print(f"⚠️ [S3] Agent文件同步失败: {sync_result.error}")
+                else:
+                    print(f"⚠️ [S3] 无法提取Agent名称，跳过S3同步")
+            except Exception as e:
+                print(f"⚠️ [S3] S3同步失败: {e}")
+                import traceback
+                traceback.print_exc()
+        
         print(f"{'='*80}")
 
         return {
@@ -801,7 +843,13 @@ if __name__ == "__main__":
     parser.add_argument('-s', '--session_id', type=str,
                        default=None,
                        help='可选的session_id，用于恢复之前的会话')
+    parser.add_argument('--sync-to-s3', action='store_true',
+                       help='构建完成后自动同步Agent文件到S3')
     args = parser.parse_args()
+    
+    # 设置S3同步环境变量
+    if args.sync_to_s3:
+        os.environ["NEXUS_AUTO_SYNC_TO_S3"] = "true"
     
     test_input = None
     

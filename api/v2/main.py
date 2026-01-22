@@ -20,6 +20,8 @@ from api.v2.routers import (
 )
 from api.v2.routers.config import router as config_router
 from api.v2.routers.agentcore import router as agentcore_router
+from api.v2.routers.agent_files import router as agent_files_router
+from api.v2.routers.agent_tools import router as agent_tools_router
 from api.v2.database import db_client, sqs_client
 
 # 配置日志
@@ -83,6 +85,8 @@ async def add_request_id(request: Request, call_next):
 # API v2 路由
 app.include_router(projects_router, prefix="/api/v2")
 app.include_router(agents_router, prefix="/api/v2")
+app.include_router(agent_files_router, prefix="/api/v2")
+app.include_router(agent_tools_router, prefix="/api/v2")
 app.include_router(sessions_router, prefix="/api/v2")
 app.include_router(tasks_router, prefix="/api/v2")
 app.include_router(statistics_router, prefix="/api/v2")

@@ -1,0 +1,106 @@
+# ============================================
+# Nexus-AI Docker 构建排除文件
+# ============================================
+
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv
+venv
+ENV
+env
+.eggs
+*.egg-info
+*.egg
+.pytest_cache
+.coverage
+htmlcov
+.tox
+.nox
+.mypy_cache
+
+# Node.js (Web 服务单独处理)
+node_modules
+.npm
+.yarn
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+*~
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 日志和临时文件
+logs/
+*.log
+tmp/
+temp/
+*.tmp
+
+# 测试和文档
+tests/
+docs/
+*.md
+!README.md
+
+# 备份文件
+backups/
+*.bak
+*.backup
+
+# 本地配置
+.env
+.env.local
+.env.*.local
+*.local.yaml
+terraform.tfstate*
+.terraform/
+
+# 输出目录
+output/
+dist/
+build/
+
+# 大文件
+*.tar.gz
+*.zip
+*.rar
+*.7z
+
+# 案例和示例数据
+case/
+
+# 基础设施代码（不需要打包到镜像）
+infrastructure/
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+
+# 缓存
+.cache/
+.next/
+
+# 项目文件（运行时生成）
+projects/
+
+# Jupyter
+.ipynb_checkpoints
+*.ipynb
+
+# 架构图和设计文档
+architecture/
+Tech Design/
