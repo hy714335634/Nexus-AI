@@ -6,7 +6,7 @@
 
 **Build AI Agents with Natural Language**
 
-[![Python](https://img.shields.io/badge/Python-3.12+-blue?style=flat-square&logo=python)](https://python.org)
+[![Python](https://img.shields.io/badge/Python-3.13+-blue?style=flat-square&logo=python)](https://python.org)
 [![AWS Bedrock](https://img.shields.io/badge/AWS-Bedrock-orange?style=flat-square&logo=amazon-aws)](https://aws.amazon.com/bedrock/)
 [![Strands](https://img.shields.io/badge/Strands-Agent%20Framework-green?style=flat-square)](https://strandsagents.com/)
 [![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
@@ -16,6 +16,14 @@
 [🚀 Quick Start](#-quick-start) • [📖 Installation Guide](#-detailed-installation-guide) • [🎯 Examples](#-agent-examples) • [🤝 Contributing](#-contributing)
 
 </div>
+
+---
+
+## 🎬 Demo Video
+
+> 📺 [Watch Full Demo Video](https://duae5ywl7jger.cloudfront.net/demo.mp4)
+>
+> This video demonstrates Nexus-AI's core features: automatically building AI Agents from natural language descriptions
 
 ---
 
@@ -40,6 +48,8 @@ Nexus-AI is an open-source **AI Agent development platform** that automatically 
 | **⚡ Rapid Delivery** | Traditional dev: 2-6 months, Nexus-AI: few hours |
 | **🧩 Modular Design** | Reusable and composable tools, prompts, and Agents |
 | **☁️ AWS Native** | Built on AWS Bedrock, supports Claude model family |
+| **🌐 Web Console** | Full-featured Web UI for Agent management, building, and chat |
+| **📡 Async Task Queue** | SQS-based Worker architecture for long-running tasks |
 
 ---
 
@@ -79,6 +89,7 @@ aws configure
 
 ```bash
 # Test if environment is working
+source .venv/bin/activate
 python agents/system_agents/magician.py -i "What's the price of m8g.xlarge in AWS us-east-1?"
 ```
 
@@ -86,11 +97,72 @@ python agents/system_agents/magician.py -i "What's the price of m8g.xlarge in AW
 
 ```bash
 # Describe the Agent you want in natural language
+source .venv/bin/activate
 python agents/system_agents/agent_build_workflow/agent_build_workflow.py \
   -i "Create an agent that can analyze PDF documents and extract key information"
 ```
 
 > 💡 The build process automatically generates complete Agent code to `agents/generated_agents/`
+
+---
+
+## 🖥️ Full Service Startup
+
+Nexus-AI uses a microservices architecture with API service, Worker service, and Web frontend:
+
+### 1. Initialize Infrastructure
+
+```bash
+cd Nexus-AI
+source .venv/bin/activate
+
+# Initialize DynamoDB tables and SQS queues
+python scripts/init_infrastructure.py
+
+# Or use CLI tool
+./nexus-cli job init
+```
+
+### 2. Start Backend API
+
+```bash
+# Terminal 1
+./scripts/start_api_v2.sh
+
+# Or manually
+source .venv/bin/activate
+uvicorn api.v2.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+### 3. Start Worker Service
+
+```bash
+# Terminal 2
+./scripts/start_worker.sh
+
+# Or manually
+source .venv/bin/activate
+python worker/main.py
+```
+
+### 4. Start Web Frontend
+
+```bash
+# Terminal 3
+cd web
+npm install
+npm run dev
+```
+
+### 5. Data Management (Optional)
+
+```bash
+# Clear all data (tables + queues)
+./nexus-cli job clear
+
+# Check job status
+./nexus-cli job status
+```
 
 ---
 
@@ -101,7 +173,7 @@ python agents/system_agents/agent_build_workflow/agent_build_workflow.py \
 | Component | Requirement |
 |-----------|-------------|
 | **OS** | Amazon Linux 2023 / Ubuntu 22.04+ / macOS |
-| **Python** | 3.12+ |
+| **Python** | 3.13+ |
 | **Node.js** | 18+ (for frontend development) |
 | **AWS Account** | With Bedrock access enabled |
 | **Recommended** | EC2 m8i.large or higher |
@@ -115,8 +187,8 @@ python agents/system_agents/agent_build_workflow/agent_build_workflow.py \
 # Install basic tools
 sudo dnf install -y git wget htop unzip tar gcc gcc-c++ make
 
-# Install Python 3.12
-sudo dnf install -y python3.12 python3.12-pip python3.12-devel
+# Install Python 3.13
+sudo dnf install -y python3.13 python3.13-pip python3.13-devel
 
 # Install Node.js
 sudo dnf install -y nodejs npm
@@ -139,9 +211,9 @@ newgrp docker
 sudo apt update
 sudo apt install -y git wget htop unzip build-essential
 
-# Install Python 3.12
+# Install Python 3.13
 sudo add-apt-repository ppa:deadsnakes/ppa
-sudo apt install -y python3.12 python3.12-venv python3.12-dev
+sudo apt install -y python3.13 python3.13-venv python3.13-dev
 
 # Install Node.js
 curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
@@ -160,7 +232,7 @@ sudo usermod -aG docker $USER
 
 ```bash
 # Install using Homebrew
-brew install python@3.12 node git
+brew install python@3.13 node git
 
 # Install Docker Desktop
 # Download from https://www.docker.com/products/docker-desktop
@@ -187,7 +259,7 @@ git clone https://github.com/hy714335634/Nexus-AI.git
 cd Nexus-AI
 
 # Create virtual environment
-uv venv --python python3.12
+uv venv --python python3.13
 source .venv/bin/activate
 
 # Install dependencies
@@ -211,10 +283,14 @@ aws configure
 aws sts get-caller-identity
 ```
 
-### Step 5: Initialize Database (Optional, required for Web UI)
+### Step 5: Initialize Infrastructure
 
 ```bash
-python api/scripts/setup_tables.py
+# Initialize DynamoDB tables and SQS queues
+python scripts/init_infrastructure.py
+
+# Or use CLI
+./nexus-cli job init
 ```
 
 ### Step 6: Start Services
@@ -225,11 +301,14 @@ docker run -d --name jaeger \
   -p 16686:16686 -p 4317:4317 -p 4318:4318 \
   jaegertracing/all-in-one:latest
 
-# Start backend API
-nohup uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload &
+# Start backend API (Terminal 1)
+./scripts/start_api_v2.sh
 
-# Start frontend (new terminal)
-cd web && npm install && npm run dev -- -H 0.0.0.0
+# Start Worker service (Terminal 2)
+./scripts/start_worker.sh
+
+# Start frontend (Terminal 3)
+cd web && npm install && npm run dev
 ```
 
 ### Service URLs
@@ -317,7 +396,10 @@ Agents successfully built with Nexus-AI:
 Nexus-AI/
 ├── agents/                    # Agent implementations
 │   ├── system_agents/         # Core system Agents
-│   │   └── agent_build_workflow/  # Agent build workflow (8 specialized Agents)
+│   │   ├── agent_build_workflow/  # Agent build workflow (8 specialized Agents)
+│   │   ├── agent_update_workflow/ # Agent update workflow
+│   │   ├── tool_build_workflow/   # Tool build workflow
+│   │   └── magician.py        # Magician Agent (quick Q&A)
 │   ├── template_agents/       # Agent templates
 │   └── generated_agents/      # Generated Agents ⭐
 ├── tools/                     # Tool library
@@ -325,9 +407,22 @@ Nexus-AI/
 │   ├── template_tools/        # Tool templates
 │   └── generated_tools/       # Generated tools
 ├── prompts/                   # Prompt templates (YAML format)
+├── api/v2/                    # FastAPI backend API
+│   ├── routers/               # API routes
+│   ├── services/              # Business services
+│   └── database/              # Database operations
+├── worker/                    # Async task Worker
+│   ├── handlers/              # Task handlers
+│   └── main.py                # Worker entry point
 ├── web/                       # Web interface (Next.js 14)
-├── api/                       # FastAPI backend
+├── nexus_utils/               # Core utilities
+│   ├── cli/                   # CLI tools
+│   └── multimodal_processing/ # Multimodal processing
+├── infrastructure/            # Infrastructure code
+│   ├── basic/                 # Terraform configs
+│   └── docker/                # Docker configs
 ├── config/                    # Configuration files
+├── scripts/                   # Startup scripts
 ├── projects/                  # User project directory
 └── docs/                      # Documentation
 ```
@@ -337,22 +432,24 @@ Nexus-AI/
 ## 🛠️ Tech Stack
 
 ### Backend
-- **Language**: Python 3.12+
+- **Language**: Python 3.13+
 - **AI Framework**: [Strands Agents](https://strandsagents.com/) + AWS Bedrock
 - **Models**: Claude Sonnet 4.5, Claude Opus 4, Claude Haiku
 - **Web Framework**: FastAPI + Uvicorn
 - **Database**: DynamoDB
+- **Message Queue**: AWS SQS
+- **Storage**: AWS S3
 
 ### Frontend
 - **Framework**: Next.js 14 (App Router)
-- **UI**: React 18 + TypeScript
+- **UI**: React 18 + TypeScript + Tailwind CSS
 - **State Management**: TanStack Query
 
 ### Infrastructure
 - **Containerization**: Docker
 - **IaC**: Terraform
 - **Observability**: OpenTelemetry + Jaeger
-- **Deployment**: AWS ECS/EKS
+- **Deployment**: AWS ECS / EC2
 
 ---
 
@@ -395,12 +492,15 @@ default-config:
 - [x] Multi-Agent collaborative build system
 - [x] 7-stage automated development workflow
 - [x] Web console interface
-- [x] CI/CD auto-deployment to AWS Bedrock AgentCore
+- [x] Async task queue (SQS + Worker)
+- [x] Real-time Agent build progress tracking
 
 ### 2026 Q1 🔄
+- [x] API v2 refactoring (RESTful design)
+- [x] CLI tool (nexus-cli)
 - [ ] Agent lifecycle management
 - [ ] Tool library management and MCP protocol support
-- [ ] Intelligent diagnostics and auto-repair
+- [ ] CI/CD auto-deployment to AWS Bedrock AgentCore
 
 ---
 

@@ -6,7 +6,7 @@
 
 **Build AI Agents with Natural Language | 用自然语言构建 AI Agent**
 
-[![Python](https://img.shields.io/badge/Python-3.12+-blue?style=flat-square&logo=python)](https://python.org)
+[![Python](https://img.shields.io/badge/Python-3.13+-blue?style=flat-square&logo=python)](https://python.org)
 [![AWS Bedrock](https://img.shields.io/badge/AWS-Bedrock-orange?style=flat-square&logo=amazon-aws)](https://aws.amazon.com/bedrock/)
 [![Strands](https://img.shields.io/badge/Strands-Agent%20Framework-green?style=flat-square)](https://strandsagents.com/)
 [![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
@@ -16,6 +16,14 @@
 [🚀 快速开始](#-快速开始) • [📖 详细安装](#-详细安装指南) • [🎯 示例](#-agent-示例) • [🤝 贡献](#-贡献指南)
 
 </div>
+
+---
+
+## 🎬 演示视频
+
+> 📺 [点击观看完整演示视频](https://duae5ywl7jger.cloudfront.net/demo.mp4)
+>
+> 视频展示了 Nexus-AI 的核心功能：通过自然语言描述自动构建 AI Agent
 
 ---
 
@@ -37,9 +45,11 @@ Nexus-AI 是一个开源的 **AI Agent 开发平台**，让你通过自然语言
 |------|------|
 | **🗣️ 自然语言构建** | 用中文或英文描述需求，自动生成 Agent |
 | **🔄 Agent Build Agent** | 8个专业 Agent 协作，自动完成需求分析→架构设计→代码生成 |
-| **⚡ 快速交付** | 传统开发 2-6 个月，Nexus-AI 仅需 数个小时 |
+| **⚡ 快速交付** | 传统开发 2-6 个月，Nexus-AI 仅需数小时 |
 | **🧩 模块化设计** | 工具、提示词、Agent 可复用和组合 |
 | **☁️ AWS 原生** | 基于 AWS Bedrock，支持 Claude 系列模型 |
+| **🌐 Web 控制台** | 完整的 Web 界面，支持 Agent 管理、构建、对话 |
+| **📡 异步任务队列** | 基于 SQS 的 Worker 架构，支持长时间运行任务 |
 
 ---
 
@@ -79,6 +89,7 @@ aws configure
 
 ```bash
 # 测试环境是否正常
+source .venv/bin/activate
 python agents/system_agents/magician.py -i "AWS us-east-1 的 m8g.xlarge 实例价格是多少？"
 ```
 
@@ -86,11 +97,72 @@ python agents/system_agents/magician.py -i "AWS us-east-1 的 m8g.xlarge 实例�
 
 ```bash
 # 用自然语言描述你想要的 Agent
+source .venv/bin/activate
 python agents/system_agents/agent_build_workflow/agent_build_workflow.py \
   -i "创建一个能够分析 PDF 文档并提取关键信息的 Agent"
 ```
 
 > 💡 构建过程会自动生成完整的 Agent 代码到 `agents/generated_agents/` 目录
+
+---
+
+## 🖥️ 完整服务启动
+
+Nexus-AI 采用微服务架构，包含 API 服务、Worker 服务和 Web 前端：
+
+### 1. 初始化基础设施
+
+```bash
+cd Nexus-AI
+source .venv/bin/activate
+
+# 初始化 DynamoDB 表和 SQS 队列
+python scripts/init_infrastructure.py
+
+# 或使用 CLI 工具
+./nexus-cli job init
+```
+
+### 2. 启动后端 API
+
+```bash
+# 终端 1
+./scripts/start_api_v2.sh
+
+# 或手动启动
+source .venv/bin/activate
+uvicorn api.v2.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+### 3. 启动 Worker 服务
+
+```bash
+# 终端 2
+./scripts/start_worker.sh
+
+# 或手动启动
+source .venv/bin/activate
+python worker/main.py
+```
+
+### 4. 启动 Web 前端
+
+```bash
+# 终端 3
+cd web
+npm install
+npm run dev
+```
+
+### 5. 数据管理（可选）
+
+```bash
+# 清空所有数据（表 + 队列）
+./nexus-cli job clear
+
+# 查看任务状态
+./nexus-cli job status
+```
 
 ---
 
@@ -101,7 +173,7 @@ python agents/system_agents/agent_build_workflow/agent_build_workflow.py \
 | 组件 | 要求 |
 |------|------|
 | **操作系统** | Amazon Linux 2023 / Ubuntu 22.04+ / macOS |
-| **Python** | 3.12+ |
+| **Python** | 3.13+ |
 | **Node.js** | 18+ (前端开发需要) |
 | **AWS 账户** | 已开通 Bedrock 访问权限 |
 | **推荐配置** | EC2 m8i.large 或更高 |
@@ -115,8 +187,8 @@ python agents/system_agents/agent_build_workflow/agent_build_workflow.py \
 # 安装基础工具
 sudo dnf install -y git wget htop unzip tar gcc gcc-c++ make
 
-# 安装 Python 3.12
-sudo dnf install -y python3.12 python3.12-pip python3.12-devel
+# 安装 Python 3.13
+sudo dnf install -y python3.13 python3.13-pip python3.13-devel
 
 # 安装 Node.js
 sudo dnf install -y nodejs npm
@@ -139,9 +211,9 @@ newgrp docker
 sudo apt update
 sudo apt install -y git wget htop unzip build-essential
 
-# 安装 Python 3.12
+# 安装 Python 3.13
 sudo add-apt-repository ppa:deadsnakes/ppa
-sudo apt install -y python3.12 python3.12-venv python3.12-dev
+sudo apt install -y python3.13 python3.13-venv python3.13-dev
 
 # 安装 Node.js
 curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
@@ -160,7 +232,7 @@ sudo usermod -aG docker $USER
 
 ```bash
 # 使用 Homebrew 安装
-brew install python@3.12 node git
+brew install python@3.13 node git
 
 # 安装 Docker Desktop
 # 从 https://www.docker.com/products/docker-desktop 下载安装
@@ -187,7 +259,7 @@ git clone https://github.com/hy714335634/Nexus-AI.git
 cd Nexus-AI
 
 # 创建虚拟环境
-uv venv --python python3.12
+uv venv --python python3.13
 source .venv/bin/activate
 
 # 安装依赖
@@ -211,10 +283,14 @@ aws configure
 aws sts get-caller-identity
 ```
 
-### 第五步：初始化数据库（可选，Web 界面需要）
+### 第五步：初始化基础设施
 
 ```bash
-python api/scripts/setup_tables.py
+# 初始化 DynamoDB 表和 SQS 队列
+python scripts/init_infrastructure.py
+
+# 或使用 CLI
+./nexus-cli job init
 ```
 
 ### 第六步：启动服务
@@ -225,11 +301,14 @@ docker run -d --name jaeger \
   -p 16686:16686 -p 4317:4317 -p 4318:4318 \
   jaegertracing/all-in-one:latest
 
-# 启动后端 API
-nohup uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload &
+# 启动后端 API（终端1）
+./scripts/start_api_v2.sh
 
-# 启动前端（新终端）
-cd web && npm install && npm run dev -- -H 0.0.0.0
+# 启动 Worker 服务（终端2）
+./scripts/start_worker.sh
+
+# 启动前端（终端3）
+cd web && npm install && npm run dev
 ```
 
 ### 服务访问地址
@@ -317,7 +396,10 @@ Nexus-AI 已成功构建的 Agent：
 Nexus-AI/
 ├── agents/                    # Agent 实现
 │   ├── system_agents/         # 系统核心 Agent
-│   │   └── agent_build_workflow/  # Agent 构建工作流（8个专业Agent）
+│   │   ├── agent_build_workflow/  # Agent 构建工作流（8个专业Agent）
+│   │   ├── agent_update_workflow/ # Agent 更新工作流
+│   │   ├── tool_build_workflow/   # 工具构建工作流
+│   │   └── magician.py        # 魔法师 Agent（快速问答）
 │   ├── template_agents/       # Agent 模板
 │   └── generated_agents/      # 生成的 Agent ⭐
 ├── tools/                     # 工具库
@@ -325,9 +407,22 @@ Nexus-AI/
 │   ├── template_tools/        # 工具模板
 │   └── generated_tools/       # 生成的工具
 ├── prompts/                   # 提示词模板（YAML格式）
+├── api/v2/                    # FastAPI 后端 API
+│   ├── routers/               # API 路由
+│   ├── services/              # 业务服务
+│   └── database/              # 数据库操作
+├── worker/                    # 异步任务 Worker
+│   ├── handlers/              # 任务处理器
+│   └── main.py                # Worker 入口
 ├── web/                       # Web 界面 (Next.js 14)
-├── api/                       # FastAPI 后端
+├── nexus_utils/               # 核心工具库
+│   ├── cli/                   # CLI 工具
+│   └── multimodal_processing/ # 多模态处理
+├── infrastructure/            # 基础设施代码
+│   ├── basic/                 # Terraform 配置
+│   └── docker/                # Docker 配置
 ├── config/                    # 配置文件
+├── scripts/                   # 启动脚本
 ├── projects/                  # 用户项目目录
 └── docs/                      # 文档
 ```
@@ -337,22 +432,24 @@ Nexus-AI/
 ## 🛠️ 技术栈
 
 ### 后端
-- **语言**: Python 3.12+
+- **语言**: Python 3.13+
 - **AI 框架**: [Strands Agents](https://strandsagents.com/) + AWS Bedrock
 - **模型**: Claude Sonnet 4.5, Claude Opus 4, Claude Haiku
 - **Web 框架**: FastAPI + Uvicorn
 - **数据库**: DynamoDB
+- **消息队列**: AWS SQS
+- **存储**: AWS S3
 
 ### 前端
 - **框架**: Next.js 14 (App Router)
-- **UI**: React 18 + TypeScript
+- **UI**: React 18 + TypeScript + Tailwind CSS
 - **状态管理**: TanStack Query
 
 ### 基础设施
 - **容器化**: Docker
 - **IaC**: Terraform
 - **可观测性**: OpenTelemetry + Jaeger
-- **部署**: AWS ECS/EKS
+- **部署**: AWS ECS / EC2
 
 ---
 
@@ -395,12 +492,15 @@ default-config:
 - [x] 多 Agent 协作构建系统
 - [x] 7 阶段自动化开发流程
 - [x] Web 控制台界面
-- [x] CI/CD 自动部署至 AWS Bedrock AgentCore
+- [x] 异步任务队列（SQS + Worker）
+- [x] Agent 构建进度实时追踪
 
 ### 2026 Q1 🔄
+- [x] API v2 重构（RESTful 设计）
+- [x] CLI 工具（nexus-cli）
 - [ ] Agent 生命周期管理
 - [ ] 工具库管理和 MCP 协议支持
-- [ ] 智能问题诊断和自动修复
+- [ ] CI/CD 自动部署至 AWS Bedrock AgentCore
 
 ---
 
