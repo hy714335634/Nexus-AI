@@ -2071,12 +2071,14 @@ def overview(ctx, output):
 @cli.command()
 @click.option('--tables-only', is_flag=True, help='Only initialize DynamoDB tables')
 @click.option('--queues-only', is_flag=True, help='Only initialize SQS queues')
+@click.option('--skip-validation', is_flag=True, help='Skip workflow configuration validation')
 @click.pass_obj
-def init(ctx, tables_only, queues_only):
+def init(ctx, tables_only, queues_only, skip_validation):
     """Initialize infrastructure (DynamoDB tables and SQS queues)
     
     Creates the required DynamoDB tables and SQS queues for Nexus-AI.
     Skips resources that already exist.
+    Also validates workflow configuration unless --skip-validation is used.
     
     \b
     EXAMPLES:
@@ -2088,6 +2090,9 @@ def init(ctx, tables_only, queues_only):
       
       # Initialize only SQS queues
       nexus-cli init --queues-only
+      
+      # Skip workflow configuration validation
+      nexus-cli init --skip-validation
     
     \b
     RESOURCES CREATED:
@@ -2107,6 +2112,12 @@ def init(ctx, tables_only, queues_only):
         • nexus-notification-queue
         • nexus-build-dlq
         • nexus-deploy-dlq
+    
+    \b
+    WORKFLOW VALIDATION:
+      • Validates workflow stage definitions
+      • Checks prompt template paths
+      • Verifies DynamoDB and SQS configuration
     """
     try:
         infra = ctx.infrastructure_manager
@@ -2114,6 +2125,33 @@ def init(ctx, tables_only, queues_only):
         click.echo("=" * 50)
         click.echo(t('init.title'))
         click.echo("=" * 50)
+        
+        # 工作流配置验证
+        if not skip_validation:
+            click.echo()
+            click.echo("🔍 验证工作流配置...")
+            
+            validation_result = infra.validate_workflow_config(ctx.base_path)
+            
+            if validation_result.valid:
+                click.echo(f"  ✓ 配置文件: {validation_result.config_path}")
+                click.echo(f"  ✓ 工作流阶段: {validation_result.stages_count} 个阶段已定义")
+                
+                # 显示警告
+                if validation_result.warnings:
+                    click.echo()
+                    click.echo("  ⚠️  配置警告:")
+                    for warning in validation_result.warnings[:5]:  # 最多显示5个警告
+                        click.echo(f"    • {warning}")
+                    if len(validation_result.warnings) > 5:
+                        click.echo(f"    ... 还有 {len(validation_result.warnings) - 5} 个警告")
+            else:
+                click.echo("  ✗ 配置验证失败:")
+                for error in validation_result.errors:
+                    click.echo(f"    • {error}", err=True)
+                click.echo()
+                click.echo("使用 --skip-validation 跳过验证继续初始化", err=True)
+                sys.exit(1)
         
         tables_created = 0
         queues_created = 0

@@ -105,19 +105,43 @@ export function useInvokeAgentV2(
 }
 
 // ============== Delete Agent ==============
+// 定义删除结果类型
+type DeleteAgentResult = {
+  success: boolean;
+  message: string | undefined;
+  deleted_resources: string[] | undefined;
+  errors: string[] | undefined;
+};
+
 export function useDeleteAgentV2(
-  options?: UseMutationOptions<{ success: boolean; message?: string }, Error, string>
+  options?: UseMutationOptions<
+    DeleteAgentResult,
+    Error,
+    { agentId: string; deleteLocalFiles?: boolean; deleteCloudResources?: boolean }
+  >
 ) {
   const queryClient = useQueryClient();
 
-  return useMutation({
-    mutationFn: async (agentId: string) => {
-      const response = await apiV2.deleteAgent(agentId);
-      return { success: response.success, message: response.message };
+  return useMutation<
+    DeleteAgentResult,
+    Error,
+    { agentId: string; deleteLocalFiles?: boolean; deleteCloudResources?: boolean }
+  >({
+    mutationFn: async ({ agentId, deleteLocalFiles, deleteCloudResources }): Promise<DeleteAgentResult> => {
+      const response = await apiV2.deleteAgent(agentId, {
+        deleteLocalFiles,
+        deleteCloudResources,
+      });
+      return {
+        success: response.success,
+        message: response.message,
+        deleted_resources: (response.data as any)?.deleted_resources,
+        errors: (response.data as any)?.errors,
+      };
     },
-    onSuccess: (_, agentId) => {
-      queryClient.removeQueries({ queryKey: agentKeys.detail(agentId) });
-      queryClient.removeQueries({ queryKey: agentKeys.sessions(agentId) });
+    onSuccess: (_, variables) => {
+      queryClient.removeQueries({ queryKey: agentKeys.detail(variables.agentId) });
+      queryClient.removeQueries({ queryKey: agentKeys.sessions(variables.agentId) });
       queryClient.invalidateQueries({ queryKey: agentKeys.lists() });
     },
     ...options,

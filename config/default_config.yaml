@@ -13,6 +13,88 @@ default-config:
     OTEL_EXPORTER_OTLP_ENDPOINT: 'http://localhost:4318'
     artifacts_s3_bucket: 'nexus-ai-artifacts-2026'  # S3桶名称，部署时需要修改
     auto_sync_to_s3: true  # 是否在Agent构建完成后自动同步到S3（也可通过环境变量NEXUS_AUTO_SYNC_TO_S3控制）
+  
+  # 工作流引擎配置
+  # Requirements: 8.1, 8.2, 8.3, 8.4, 8.5
+  workflow:
+    # 工作流阶段定义
+    stages:
+      - name: 'orchestrator'
+        display_name: '编排器'
+        order: 1
+        prerequisites: []
+        prompt_path: 'system_agents_prompts/agent_build_workflow/orchestrator'
+      - name: 'requirements_analyzer'
+        display_name: '需求分析'
+        order: 2
+        prerequisites: ['orchestrator']
+        prompt_path: 'system_agents_prompts/agent_build_workflow/requirements_analyzer'
+      - name: 'system_architect'
+        display_name: '系统架构'
+        order: 3
+        prerequisites: ['requirements_analyzer']
+        prompt_path: 'system_agents_prompts/agent_build_workflow/system_architect'
+      - name: 'agent_designer'
+        display_name: 'Agent设计'
+        order: 4
+        prerequisites: ['system_architect']
+        prompt_path: 'system_agents_prompts/agent_build_workflow/agent_designer'
+      - name: 'tool_developer'
+        display_name: '工具开发'
+        order: 5
+        prerequisites: ['agent_designer']
+        prompt_path: 'system_agents_prompts/agent_build_workflow/tool_developer'
+      - name: 'prompt_engineer'
+        display_name: '提示词工程'
+        order: 6
+        prerequisites: ['agent_designer']
+        prompt_path: 'system_agents_prompts/agent_build_workflow/prompt_engineer'
+      - name: 'agent_code_developer'
+        display_name: 'Agent代码开发'
+        order: 7
+        prerequisites: ['tool_developer', 'prompt_engineer']
+        prompt_path: 'system_agents_prompts/agent_build_workflow/agent_code_developer'
+      - name: 'agent_developer_manager'
+        display_name: 'Agent开发管理'
+        order: 8
+        prerequisites: ['agent_code_developer']
+        prompt_path: 'system_agents_prompts/agent_build_workflow/agent_developer_manager'
+      - name: 'agent_deployer'
+        display_name: 'Agent部署'
+        order: 9
+        prerequisites: ['agent_developer_manager']
+        prompt_path: 'system_agents_prompts/agent_build_workflow/agent_deployer'
+        optional: true  # 部署阶段可选
+    
+    # 执行配置
+    execution:
+      max_retries: 3                    # 阶段失败最大重试次数
+      retry_delay_seconds: 5            # 重试间隔（秒）
+      stage_timeout_seconds: 3600       # 单阶段超时时间（秒）
+      total_timeout_seconds: 21600      # 总工作流超时时间（秒，6小时）
+      checkpoint_interval_seconds: 60   # 检查点保存间隔（秒）
+    
+    # 上下文配置
+    context:
+      max_tokens: 100000                # 最大上下文 token 数
+      summary_threshold_tokens: 5000    # 触发摘要的阈值
+      include_rules: true               # 是否包含工作流规则
+      include_local_docs: true          # 是否包含本地文档
+    
+    # 输出存储配置
+    storage:
+      max_inline_size_kb: 400           # DynamoDB 内联存储最大大小（KB）
+      s3_bucket: ''                     # S3 存储桶（空则使用 artifacts_s3_bucket）
+      s3_prefix: 'workflow-outputs/'    # S3 前缀
+    
+    # 多 Agent 支持配置
+    multi_agent:
+      enabled: true                     # 是否启用多 Agent 支持
+      max_agents: 10                    # 单项目最大 Agent 数量
+      orchestration_patterns:           # 支持的编排模式
+        - 'agent_as_tool'
+        - 'swarm'
+        - 'graph'
   aws:
     bedrock_region_name: 'us-west-2'  # Region for Amazon Bedrock API calls
     aws_region_name: 'us-west-2'      # Default AWS region for other services
@@ -71,6 +153,35 @@ default-config:
     level: 'INFO'                      # Logging level (DEBUG, INFO, WARNING, ERROR)
     file_path: 'logs/nexus_ai.log'     # Path to log file
     format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+  
+  # DynamoDB 表配置
+  # Requirements: 8.3
+  dynamodb:
+    table_prefix: 'nexus_'              # 表名前缀
+    tables:
+      projects: 'nexus_projects'        # 项目表
+      stages: 'nexus_stages'            # 阶段表
+      tasks: 'nexus_tasks'              # 任务表
+      agents: 'nexus_agents'            # Agent 表
+      agent_instances: 'nexus_agent_instances'  # Agent 实例表
+    # 可通过环境变量覆盖：
+    # NEXUS_DYNAMODB_TABLE_PREFIX
+    # NEXUS_DYNAMODB_PROJECTS_TABLE
+    # NEXUS_DYNAMODB_STAGES_TABLE
+    # NEXUS_DYNAMODB_TASKS_TABLE
+  
+  # SQS 队列配置
+  # Requirements: 8.4
+  sqs:
+    queue_prefix: 'nexus-'              # 队列名前缀
+    queues:
+      build: 'nexus-build-queue'        # 构建任务队列
+      deploy: 'nexus-deploy-queue'      # 部署任务队列
+    visibility_timeout: 3600            # 消息可见性超时（秒）
+    message_retention_days: 14          # 消息保留天数
+    # 可通过环境变量覆盖：
+    # NEXUS_SQS_BUILD_QUEUE
+    # NEXUS_SQS_DEPLOY_QUEUE
   
   multimodal_parser:
     aws:

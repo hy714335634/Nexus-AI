@@ -17,7 +17,20 @@ import {
   FileText,
   MessageSquare,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, createContext, useContext } from 'react';
+
+// 创建侧边栏状态上下文
+interface SidebarContextType {
+  collapsed: boolean;
+  setCollapsed: (collapsed: boolean) => void;
+}
+
+export const SidebarContext = createContext<SidebarContextType>({
+  collapsed: false,
+  setCollapsed: () => {},
+});
+
+export const useSidebar = () => useContext(SidebarContext);
 
 const navigation = [
   { name: '工作台', href: '/', icon: LayoutDashboard },
@@ -29,9 +42,18 @@ const navigation = [
   { name: '系统配置', href: '/settings/config', icon: FileText },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  collapsed?: boolean;
+  onCollapsedChange?: (collapsed: boolean) => void;
+}
+
+export function Sidebar({ collapsed: controlledCollapsed, onCollapsedChange }: SidebarProps = {}) {
   const pathname = usePathname();
-  const [collapsed, setCollapsed] = useState(false);
+  const [internalCollapsed, setInternalCollapsed] = useState(false);
+  
+  // 支持受控和非受控模式
+  const collapsed = controlledCollapsed ?? internalCollapsed;
+  const setCollapsed = onCollapsedChange ?? setInternalCollapsed;
 
   const isActive = (href: string) => {
     if (href === '/') return pathname === '/';
@@ -70,6 +92,7 @@ export function Sidebar() {
         <button
           onClick={() => setCollapsed(!collapsed)}
           className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors"
+          title={collapsed ? '展开侧边栏' : '收起侧边栏'}
         >
           {collapsed ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
         </button>
@@ -87,8 +110,10 @@ export function Sidebar() {
                 'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200',
                 active
                   ? 'bg-primary-50 text-primary-700 font-medium'
-                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900',
+                collapsed && 'justify-center px-2'
               )}
+              title={collapsed ? item.name : undefined}
             >
               <item.icon className={cn('w-5 h-5 flex-shrink-0', active && 'text-primary-600')} />
               {!collapsed && <span>{item.name}</span>}

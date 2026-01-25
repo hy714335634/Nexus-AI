@@ -2,10 +2,11 @@
 
 import Link from 'next/link';
 import { useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { Header } from '@/components/layout';
 import { Card, CardHeader, CardTitle, CardContent, Button, Badge, Empty } from '@/components/ui';
 import { StatusBadge } from '@/components/status-badge';
-import { useAgentDetailV2, useAgentSessionsV2 } from '@/hooks/use-agents-v2';
+import { useAgentDetailV2, useAgentSessionsV2, useDeleteAgentV2 } from '@/hooks/use-agents-v2';
 import { formatDate, formatRelativeTime, formatNumber } from '@/lib/utils';
 import {
   ArrowLeft,
@@ -24,6 +25,7 @@ import {
   Server,
   Activity,
   FileSearch,
+  Trash2,
 } from 'lucide-react';
 
 interface PageProps {
@@ -33,12 +35,113 @@ interface PageProps {
 // Tab 类型定义
 type TabType = 'basic' | 'agentcore';
 
+// 删除确认对话框组件
+function DeleteAgentDialog({
+  agent,
+  isOpen,
+  onClose,
+  onConfirm,
+  isDeleting,
+}: {
+  agent: { agent_name: string; deployment_type?: string } | null;
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: (options: { deleteLocalFiles: boolean; deleteCloudResources: boolean }) => void;
+  isDeleting: boolean;
+}) {
+  const [deleteLocalFiles, setDeleteLocalFiles] = useState(false);
+  const [deleteCloudResources, setDeleteCloudResources] = useState(false);
+
+  if (!isOpen || !agent) return null;
+
+  const isAgentCore = agent.deployment_type === 'agentcore';
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="relative bg-white rounded-xl shadow-xl max-w-md w-full mx-4 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">确认删除 Agent</h3>
+        <p className="text-gray-600 mb-4">
+          确定要删除 Agent <span className="font-medium text-gray-900">{agent.agent_name}</span> 吗？
+        </p>
+        
+        <div className="space-y-3 mb-6">
+          <p className="text-sm text-gray-500">将删除以下资源：</p>
+          <ul className="text-sm text-gray-600 space-y-1 ml-4">
+            <li>• DynamoDB 中的 Agent 记录</li>
+            <li>• 关联的会话和消息记录</li>
+            <li>• SQS 中相关的任务消息</li>
+          </ul>
+          
+          <div className="border-t border-gray-100 pt-3 space-y-2">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={deleteLocalFiles}
+                onChange={(e) => setDeleteLocalFiles(e.target.checked)}
+                className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+              />
+              <span className="text-sm text-gray-700">同时删除本地文件（agents、prompts、tools 目录）</span>
+            </label>
+            
+            {isAgentCore && (
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={deleteCloudResources}
+                  onChange={(e) => setDeleteCloudResources(e.target.checked)}
+                  className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                />
+                <span className="text-sm text-gray-700">同时删除云资源（AgentCore Runtime、ECR 仓库）</span>
+              </label>
+            )}
+          </div>
+        </div>
+        
+        <div className="flex gap-3 justify-end">
+          <Button variant="outline" onClick={onClose} disabled={isDeleting}>
+            取消
+          </Button>
+          <Button
+            variant="danger"
+            onClick={() => onConfirm({ deleteLocalFiles, deleteCloudResources })}
+            disabled={isDeleting}
+          >
+            {isDeleting ? '删除中...' : '确认删除'}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function AgentDetailPage({ params }: PageProps) {
   const { id } = params;
+  const router = useRouter();
   const { data: agent, isLoading, error } = useAgentDetailV2(id);
   const { data: sessions } = useAgentSessionsV2(id, 10);
   const [activeTab, setActiveTab] = useState<TabType>('basic');
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  
+  // 删除相关状态
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const deleteAgent = useDeleteAgentV2({
+    onSuccess: () => {
+      setDeleteDialogOpen(false);
+      router.push('/agents');
+    },
+  });
+
+  // 确认删除
+  const handleConfirmDelete = (options: { deleteLocalFiles: boolean; deleteCloudResources: boolean }) => {
+    if (agent) {
+      deleteAgent.mutate({
+        agentId: agent.agent_id,
+        deleteLocalFiles: options.deleteLocalFiles,
+        deleteCloudResources: options.deleteCloudResources,
+      });
+    }
+  };
 
   // 判断是否为 AgentCore 部署
   const isAgentCore = useMemo(() => {
@@ -165,6 +268,14 @@ export default function AgentDetailPage({ params }: PageProps) {
                 返回
               </Button>
             </Link>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(true)}
+              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+            >
+              <Trash2 className="w-4 h-4" />
+              删除
+            </Button>
             <Link href={`/agents/${id}/chat`}>
               <Button>
                 <MessageSquare className="w-4 h-4" />
@@ -504,6 +615,15 @@ export default function AgentDetailPage({ params }: PageProps) {
           </div>
         </div>
       </div>
+      
+      {/* 删除确认对话框 */}
+      <DeleteAgentDialog
+        agent={agent}
+        isOpen={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+        onConfirm={handleConfirmDelete}
+        isDeleting={deleteAgent.isPending}
+      />
     </div>
   );
 }

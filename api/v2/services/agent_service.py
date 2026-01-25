@@ -589,9 +589,242 @@ class AgentService:
         
         return invocation_data
     
-    def delete_agent(self, agent_id: str) -> bool:
-        """删除 Agent"""
-        return self.db.delete_agent(agent_id)
+    def delete_agent(self, agent_id: str, delete_related: bool = True) -> bool:
+        """
+        删除 Agent 及其相关资源
+        
+        Args:
+            agent_id: Agent ID
+            delete_related: 是否删除关联的会话、消息和 SQS 任务
+        
+        Returns:
+            是否删除成功
+        """
+        try:
+            # 获取 Agent 信息
+            agent = self.get_agent(agent_id)
+            if not agent:
+                logger.warning(f"Agent {agent_id} not found for deletion")
+                return False
+            
+            # 删除关联的会话和消息
+            if delete_related:
+                self._delete_agent_sessions(agent_id)
+            
+            # 删除 DynamoDB 中的 Agent 记录
+            result = self.db.delete_agent(agent_id)
+            
+            # 清理 SQS 中相关的任务消息
+            if delete_related:
+                self._cleanup_sqs_messages(agent_id, agent.get('project_id'))
+            
+            logger.info(f"Agent {agent_id} deleted successfully")
+            return result
+            
+        except Exception as e:
+            logger.error(f"Failed to delete agent {agent_id}: {e}")
+            return False
+    
+    def _delete_agent_sessions(self, agent_id: str) -> int:
+        """
+        删除 Agent 的所有会话和消息
+        
+        Args:
+            agent_id: Agent ID
+        
+        Returns:
+            删除的会话数量
+        """
+        deleted_count = 0
+        try:
+            # 获取 Agent 的所有会话
+            sessions = self.db.list_sessions(agent_id, limit=100)
+            
+            for session in sessions:
+                session_id = session.get('session_id')
+                if session_id:
+                    # 删除会话的消息
+                    try:
+                        messages = self.db.list_messages(session_id, limit=1000)
+                        for msg in messages:
+                            try:
+                                self.db.messages_table.delete_item(
+                                    Key={
+                                        'session_id': session_id,
+                                        'created_at': msg.get('created_at')
+                                    }
+                                )
+                            except Exception as e:
+                                logger.debug(f"Failed to delete message: {e}")
+                    except Exception as e:
+                        logger.debug(f"Failed to delete messages for session {session_id}: {e}")
+                    
+                    # 删除会话
+                    try:
+                        self.db.sessions_table.delete_item(
+                            Key={'session_id': session_id}
+                        )
+                        deleted_count += 1
+                    except Exception as e:
+                        logger.debug(f"Failed to delete session {session_id}: {e}")
+            
+            logger.info(f"Deleted {deleted_count} sessions for agent {agent_id}")
+            return deleted_count
+            
+        except Exception as e:
+            logger.debug(f"Failed to delete agent sessions: {e}")
+            return deleted_count
+    
+    def _cleanup_sqs_messages(self, agent_id: str, project_id: str = None) -> int:
+        """
+        清理 SQS 中与 Agent 相关的任务消息
+        
+        Args:
+            agent_id: Agent ID
+            project_id: 项目 ID
+        
+        Returns:
+            清理的消息数量
+        """
+        cleaned_count = 0
+        try:
+            from api.v2.database import sqs_client
+            from api.v2.config import settings
+            
+            # 需要检查的队列列表
+            queues_to_check = [
+                settings.SQS_BUILD_QUEUE_NAME,
+                settings.SQS_DEPLOY_QUEUE_NAME,
+            ]
+            
+            for queue_name in queues_to_check:
+                try:
+                    # 接收并检查消息
+                    messages = sqs_client.receive_messages(
+                        queue_name=queue_name,
+                        max_messages=10,
+                        wait_time_seconds=1,
+                        visibility_timeout=30
+                    )
+                    
+                    for msg in messages:
+                        body = msg.get('body', {})
+                        msg_agent_id = body.get('agent_id', '')
+                        msg_project_id = body.get('project_id', '')
+                        
+                        # 检查消息是否与要删除的 Agent 相关
+                        should_delete = (
+                            msg_agent_id == agent_id or
+                            (project_id and msg_project_id == project_id)
+                        )
+                        
+                        if should_delete:
+                            # 删除消息
+                            if sqs_client.delete_message(queue_name, msg.get('receipt_handle')):
+                                cleaned_count += 1
+                                logger.debug(f"Deleted SQS message {msg.get('message_id')} from {queue_name}")
+                        else:
+                            # 恢复消息可见性
+                            sqs_client.change_message_visibility(
+                                queue_name, msg.get('receipt_handle'), 0
+                            )
+                            
+                except Exception as e:
+                    logger.debug(f"Failed to check queue {queue_name}: {e}")
+            
+            if cleaned_count > 0:
+                logger.info(f"Cleaned {cleaned_count} SQS messages for agent {agent_id}")
+            return cleaned_count
+            
+        except Exception as e:
+            logger.debug(f"Failed to cleanup SQS messages: {e}")
+            return cleaned_count
+    
+    def delete_agent_complete(
+        self,
+        agent_id: str,
+        delete_local_files: bool = False,
+        delete_cloud_resources: bool = False
+    ) -> dict:
+        """
+        完整删除 Agent，包括所有相关资源
+        
+        Args:
+            agent_id: Agent ID
+            delete_local_files: 是否删除本地文件
+            delete_cloud_resources: 是否删除云资源（AgentCore、ECR）
+        
+        Returns:
+            删除结果详情
+        """
+        result = {
+            'success': False,
+            'agent_id': agent_id,
+            'deleted_resources': [],
+            'errors': []
+        }
+        
+        try:
+            # 获取 Agent 信息
+            agent = self.get_agent(agent_id)
+            if not agent:
+                result['errors'].append(f"Agent {agent_id} not found")
+                return result
+            
+            project_id = agent.get('project_id')
+            agent_name = agent.get('agent_name', agent_id)
+            
+            # 1. 删除 DynamoDB 记录和 SQS 消息
+            if self.delete_agent(agent_id, delete_related=True):
+                result['deleted_resources'].append('dynamodb_agent')
+                result['deleted_resources'].append('dynamodb_sessions')
+                result['deleted_resources'].append('sqs_messages')
+            
+            # 2. 删除云资源（如果指定）
+            if delete_cloud_resources:
+                try:
+                    from nexus_utils.cli.managers.cloud_resource_manager import CloudResourceManager
+                    cloud_manager = CloudResourceManager()
+                    
+                    # 检测云资源
+                    cloud_resources = cloud_manager.detect_resources(agent_name)
+                    
+                    if cloud_resources.has_resources():
+                        # 删除所有云资源
+                        delete_results = cloud_manager.delete_all_resources(cloud_resources)
+                        for dr in delete_results:
+                            if dr.success:
+                                result['deleted_resources'].append(dr.resource_type)
+                            else:
+                                result['errors'].append(f"Failed to delete {dr.resource_type}: {dr.error}")
+                except Exception as e:
+                    result['errors'].append(f"Failed to delete cloud resources: {str(e)}")
+            
+            # 3. 删除本地文件（如果指定）
+            if delete_local_files and project_id:
+                try:
+                    project_root = _get_project_root()
+                    dirs_to_delete = [
+                        project_root / 'projects' / project_id,
+                        project_root / 'agents' / 'generated_agents' / project_id,
+                        project_root / 'prompts' / 'generated_agents_prompts' / project_id,
+                        project_root / 'tools' / 'generated_tools' / project_id,
+                    ]
+                    
+                    import shutil
+                    for dir_path in dirs_to_delete:
+                        if dir_path.exists():
+                            shutil.rmtree(dir_path)
+                            result['deleted_resources'].append(f"local_dir:{dir_path.name}")
+                except Exception as e:
+                    result['errors'].append(f"Failed to delete local files: {str(e)}")
+            
+            result['success'] = len(result['errors']) == 0
+            return result
+            
+        except Exception as e:
+            result['errors'].append(str(e))
+            return result
 
 
 # 全局单例

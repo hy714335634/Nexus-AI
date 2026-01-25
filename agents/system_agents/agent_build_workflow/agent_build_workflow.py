@@ -331,13 +331,14 @@ def _create_agents_with_session(session_manager: Optional[FileSessionManager] = 
     }
 
 
-def run_workflow(user_input: str, session_id: Optional[str] = None):
+def run_workflow(user_input: str, session_id: Optional[str] = None, project_name: Optional[str] = None):
     """
     执行构建工作流
     
     Args:
         user_input: 用户输入内容
         session_id: 可选的session_id，如果未提供则自动生成
+        project_name: 可选的项目名称，如果提供则约束Agent使用此名称
     """
     print(f"\n{'='*80}", flush=True)
     print(f"🎯 [WORKFLOW] 开始工作流执行", flush=True)
@@ -392,9 +393,19 @@ def run_workflow(user_input: str, session_id: Optional[str] = None):
         rules = _load_build_rules()
         
         # 构建工作流输入，包含规则、意图识别结果和用户输入
+        # 如果指定了项目名称，添加约束
+        project_name_constraint = ""
+        if project_name:
+            project_name_constraint = (
+                f"## 项目名称约束\n"
+                f"**重要**: 用户已指定项目名称为 `{project_name}`，在调用 project_init 工具时必须使用此名称作为 project_name 参数。\n"
+                f"不要自行生成或修改项目名称。\n\n"
+            )
+        
         workflow_input = (
             f"# Build Workflow Kickoff\n"
             f"## 必须严格遵守的规则:\n{rules}\n"
+            f"{project_name_constraint}"
             f"## 意图识别结果\n{json.dumps(intent_structured_result.model_dump(), ensure_ascii=False, indent=2)}\n"
             f"## 用户原始输入\n{user_input}\n"
             f"请按顺序完成构建流程，遵守以上规则。"

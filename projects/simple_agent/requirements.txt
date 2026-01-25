@@ -1,0 +1,18 @@
+./nexus_utils
+strands-agents
+strands-agents-tools
+PyYAML
+bedrock-agentcore
+# Nexus-AI simple_agent Project Dependencies
+# Generated: 2026-01-24
+# Python Version: >=3.12
+# Core Nexus-AI utilities
+# Strands SDK - Agent framework
+# AWS Bedrock AgentCore
+# AWS SDK for Python
+boto3
+botocore
+# YAML configuration parser
+pyyaml
+# Additional utilities
+# (Add any additional dependencies here)

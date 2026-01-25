@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Header } from '@/components/layout';
 import { Card, Button, Badge, Input, Empty } from '@/components/ui';
 import { StatusBadge } from '@/components/status-badge';
-import { useAgentsV2 } from '@/hooks/use-agents-v2';
+import { useAgentsV2, useDeleteAgentV2 } from '@/hooks/use-agents-v2';
 import { formatRelativeTime, formatNumber, truncate } from '@/lib/utils';
 import {
   Bot,
@@ -17,8 +17,90 @@ import {
   Tag,
   X,
   MessageSquare,
+  Trash2,
+  MoreVertical,
 } from 'lucide-react';
 import type { AgentStatus, AgentSummary, AgentDeploymentType } from '@/types/api-v2';
+
+// 删除确认对话框组件
+function DeleteAgentDialog({
+  agent,
+  isOpen,
+  onClose,
+  onConfirm,
+  isDeleting,
+}: {
+  agent: AgentSummary | null;
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: (options: { deleteLocalFiles: boolean; deleteCloudResources: boolean }) => void;
+  isDeleting: boolean;
+}) {
+  const [deleteLocalFiles, setDeleteLocalFiles] = useState(false);
+  const [deleteCloudResources, setDeleteCloudResources] = useState(false);
+
+  if (!isOpen || !agent) return null;
+
+  const isAgentCore = agent.deployment_type === 'agentcore';
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="relative bg-white rounded-xl shadow-xl max-w-md w-full mx-4 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">确认删除 Agent</h3>
+        <p className="text-gray-600 mb-4">
+          确定要删除 Agent <span className="font-medium text-gray-900">{agent.agent_name}</span> 吗？
+        </p>
+        
+        <div className="space-y-3 mb-6">
+          <p className="text-sm text-gray-500">将删除以下资源：</p>
+          <ul className="text-sm text-gray-600 space-y-1 ml-4">
+            <li>• DynamoDB 中的 Agent 记录</li>
+            <li>• 关联的会话和消息记录</li>
+            <li>• SQS 中相关的任务消息</li>
+          </ul>
+          
+          <div className="border-t border-gray-100 pt-3 space-y-2">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={deleteLocalFiles}
+                onChange={(e) => setDeleteLocalFiles(e.target.checked)}
+                className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+              />
+              <span className="text-sm text-gray-700">同时删除本地文件（agents、prompts、tools 目录）</span>
+            </label>
+            
+            {isAgentCore && (
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={deleteCloudResources}
+                  onChange={(e) => setDeleteCloudResources(e.target.checked)}
+                  className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                />
+                <span className="text-sm text-gray-700">同时删除云资源（AgentCore Runtime、ECR 仓库）</span>
+              </label>
+            )}
+          </div>
+        </div>
+        
+        <div className="flex gap-3 justify-end">
+          <Button variant="outline" onClick={onClose} disabled={isDeleting}>
+            取消
+          </Button>
+          <Button
+            variant="danger"
+            onClick={() => onConfirm({ deleteLocalFiles, deleteCloudResources })}
+            disabled={isDeleting}
+          >
+            {isDeleting ? '删除中...' : '确认删除'}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function AgentsPage() {
   const { data: agents, isLoading, error } = useAgentsV2({ limit: 100 });
@@ -26,6 +108,35 @@ export default function AgentsPage() {
   const [statusFilter, setStatusFilter] = useState<AgentStatus | 'all'>('all');
   const [deploymentTypeFilter, setDeploymentTypeFilter] = useState<AgentDeploymentType | 'all'>('all');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  
+  // 删除相关状态
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [agentToDelete, setAgentToDelete] = useState<AgentSummary | null>(null);
+  const deleteAgent = useDeleteAgentV2({
+    onSuccess: () => {
+      setDeleteDialogOpen(false);
+      setAgentToDelete(null);
+    },
+  });
+
+  // 打开删除对话框
+  const handleDeleteClick = (agent: AgentSummary, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setAgentToDelete(agent);
+    setDeleteDialogOpen(true);
+  };
+
+  // 确认删除
+  const handleConfirmDelete = (options: { deleteLocalFiles: boolean; deleteCloudResources: boolean }) => {
+    if (agentToDelete) {
+      deleteAgent.mutate({
+        agentId: agentToDelete.agent_id,
+        deleteLocalFiles: options.deleteLocalFiles,
+        deleteCloudResources: options.deleteCloudResources,
+      });
+    }
+  };
 
   // Extract all unique tags from agents
   const allTags = useMemo(() => {
@@ -214,20 +325,33 @@ export default function AgentsPage() {
         ) : (
           <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
             {filteredAgents.map((agent) => (
-              <AgentCard key={agent.agent_id} agent={agent} />
+              <AgentCard key={agent.agent_id} agent={agent} onDelete={handleDeleteClick} />
             ))}
           </div>
         )}
       </div>
+      
+      {/* 删除确认对话框 */}
+      <DeleteAgentDialog
+        agent={agentToDelete}
+        isOpen={deleteDialogOpen}
+        onClose={() => {
+          setDeleteDialogOpen(false);
+          setAgentToDelete(null);
+        }}
+        onConfirm={handleConfirmDelete}
+        isDeleting={deleteAgent.isPending}
+      />
     </div>
   );
 }
 
 interface AgentCardProps {
   agent: AgentSummary;
+  onDelete: (agent: AgentSummary, e: React.MouseEvent) => void;
 }
 
-function AgentCard({ agent }: AgentCardProps) {
+function AgentCard({ agent, onDelete }: AgentCardProps) {
   return (
     <Card hover padding="none" className="h-full group">
       <div className="p-6">
@@ -249,6 +373,14 @@ function AgentCard({ agent }: AgentCardProps) {
               </div>
             </div>
           </div>
+          {/* 删除按钮 */}
+          <button
+            onClick={(e) => onDelete(agent, e)}
+            className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all"
+            title="删除 Agent"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
         </div>
 
         {(agent.category || agent.deployment_type) && (

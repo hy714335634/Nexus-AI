@@ -128,7 +128,9 @@ class SQSClient:
         requirement: str,
         user_id: Optional[str] = None,
         priority: int = 3,
-        metadata: Optional[Dict[str, Any]] = None
+        metadata: Optional[Dict[str, Any]] = None,
+        target_stage: Optional[str] = None,
+        action: str = 'execute'
     ) -> Dict[str, Any]:
         """
         发送构建任务到构建队列
@@ -140,6 +142,8 @@ class SQSClient:
             user_id: 用户 ID
             priority: 优先级
             metadata: 额外元数据
+            target_stage: 目标阶段（用于恢复构建）
+            action: 操作类型 (execute, resume, restart)
         
         Returns:
             发送结果
@@ -150,7 +154,10 @@ class SQSClient:
             'requirement': requirement,
             'user_id': user_id,
             'priority': priority,
-            'metadata': metadata or {}
+            'metadata': metadata or {},
+            'target_stage': target_stage,
+            'action': action,
+            'execute_to_completion': True
         }
         
         return self.send_message(
@@ -158,7 +165,8 @@ class SQSClient:
             message_body=message_body,
             message_attributes={
                 'task_type': 'build_agent',
-                'priority': str(priority)
+                'priority': str(priority),
+                'action': action
             }
         )
     

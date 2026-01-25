@@ -274,20 +274,49 @@ async def update_agent_status(
 
 @router.delete("/{agent_id}", response_model=APIResponse)
 async def delete_agent(
-    agent_id: str = Path(..., description="Agent ID")
+    agent_id: str = Path(..., description="Agent ID"),
+    delete_local_files: bool = Query(False, description="是否删除本地文件"),
+    delete_cloud_resources: bool = Query(False, description="是否删除云资源（AgentCore、ECR）")
 ):
     """
     删除 Agent
+    
+    删除 Agent 及其相关资源，包括：
+    - DynamoDB 中的 Agent 记录
+    - 关联的会话和消息记录
+    - SQS 中相关的任务消息
+    - 可选：本地文件（agents、prompts、tools、projects 目录）
+    - 可选：云资源（AgentCore runtime、ECR 仓库）
     """
     try:
-        success = agent_service.delete_agent(agent_id)
+        # 使用完整删除方法
+        result = agent_service.delete_agent_complete(
+            agent_id,
+            delete_local_files=delete_local_files,
+            delete_cloud_resources=delete_cloud_resources
+        )
         
-        if not success:
+        if not result['success'] and not result['deleted_resources']:
             raise HTTPException(status_code=404, detail=f"Agent {agent_id} 不存在")
         
+        # 构建响应消息
+        deleted_items = result.get('deleted_resources', [])
+        errors = result.get('errors', [])
+        
+        message_parts = ["Agent 删除成功"]
+        if deleted_items:
+            message_parts.append(f"已删除: {', '.join(deleted_items)}")
+        if errors:
+            message_parts.append(f"警告: {'; '.join(errors)}")
+        
         return APIResponse(
-            success=True,
-            message="Agent 删除成功",
+            success=result['success'] or len(deleted_items) > 0,
+            message=". ".join(message_parts),
+            data={
+                'agent_id': agent_id,
+                'deleted_resources': deleted_items,
+                'errors': errors
+            },
             timestamp=_now(),
             request_id=_request_id()
         )

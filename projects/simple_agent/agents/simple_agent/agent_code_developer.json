@@ -1,0 +1,273 @@
+{
+  "agent_code_development": {
+    "development_overview": {
+      "project_name": "simple_agent",
+      "version": "1.0",
+      "date": "2026-01-24",
+      "development_scope": "开发HTML文档生成与S3上传Agent的完整代码实现，基于Strands SDK和AWS Bedrock构建，支持自然语言输入、HTML5文档生成、S3文件上传、预签名URL生成和流式响应功能",
+      "design_principles": [
+        "单一职责：Agent专注于HTML文档生成和S3上传功能",
+        "模块化设计：使用agent_factory创建Agent，工具函数独立封装",
+        "安全优先：使用IAM角色管理AWS凭证，预签名URL设置过期时间",
+        "用户友好：支持自然语言输入，流式响应提供实时反馈",
+        "容错设计：完善的错误处理和重试机制，确保系统稳定性",
+        "标准遵循：严格遵循BedrockAgentCoreApp部署规范和AgentCore入口点要求"
+      ],
+      "key_decisions": [
+        "使用nexus_utils.agent_factory.create_agent_from_prompt_template创建Agent，确保与平台集成",
+        "基于content_generator_agent模板进行定制化开发，复用成熟的代码结构",
+        "使用BedrockAgentCoreApp框架支持AgentCore部署和本地测试",
+        "采用async/yield流式响应模式，提升用户体验",
+        "集成11个自定义工具（HTML生成、S3上传、URL生成、验证等）",
+        "提示词路径使用generated_agents_prompts/simple_agent/simple_agent",
+        "支持三种运行模式：AgentCore部署、本地测试、交互式对话"
+      ]
+    },
+    "agent_implementation": {
+      "agent_name": "simple_agent",
+      "file_path": "agents/generated_agents/simple_agent/simple_agent.py",
+      "main_class": "无（使用函数式编程）",
+      "entry_point": "handler函数（AgentCore入口点）",
+      "dependencies": [
+        "os",
+        "json",
+        "typing.Dict",
+        "typing.Any",
+        "nexus_utils.agent_factory.create_agent_from_prompt_template",
+        "bedrock_agentcore.runtime.BedrockAgentCoreApp",
+        "bedrock_agentcore.runtime.context.RequestContext",
+        "strands.telemetry.StrandsTelemetry",
+        "nexus_utils.config_loader.ConfigLoader"
+      ],
+      "imports": [
+        "import os",
+        "import json",
+        "from typing import Dict, Any",
+        "from nexus_utils.agent_factory import create_agent_from_prompt_template",
+        "from bedrock_agentcore.runtime import BedrockAgentCoreApp",
+        "from bedrock_agentcore.runtime.context import RequestContext",
+        "from strands.telemetry import StrandsTelemetry",
+        "from nexus_utils.config_loader import ConfigLoader"
+      ]
+    },
+    "core_functions": [
+      {
+        "function_name": "create_simple_agent",
+        "purpose": "创建simple_agent实例的工厂函数",
+        "parameters": [
+          {
+            "name": "env",
+            "type": "str",
+            "description": "运行环境（development/production/testing）",
+            "required": false,
+            "default": "production"
+          },
+          {
+            "name": "version",
+            "type": "str",
+            "description": "Agent版本",
+            "required": false,
+            "default": "latest"
+          },
+          {
+            "name": "model_id",
+            "type": "str",
+            "description": "模型ID",
+            "required": false,
+            "default": "default"
+          },
+          {
+            "name": "enable_logging",
+            "type": "bool",
+            "description": "是否启用日志",
+            "required": false,
+            "default": true
+          }
+        ],
+        "return_type": "Any",
+        "return_description": "创建的Agent实例",
+        "implementation_notes": [
+          "使用nexus_utils.agent_factory.create_agent_from_prompt_template创建Agent",
+          "提示词路径：generated_agents_prompts/simple_agent/simple_agent",
+          "传递env、version、model_id、enable_logging参数",
+          "返回配置好的Agent实例"
+        ]
+      },
+      {
+        "function_name": "handler",
+        "purpose": "AgentCore标准入口点，处理HTTP请求并返回流式响应",
+        "parameters": [
+          {
+            "name": "payload",
+            "type": "Dict[str, Any]",
+            "description": "AgentCore传入的请求体，包含prompt、user_id、session_id、media、expiration等字段",
+            "required": true
+          },
+          {
+            "name": "context",
+            "type": "RequestContext",
+            "description": "请求上下文，包含session_id等信息",
+            "required": true
+          }
+        ],
+        "return_type": "AsyncGenerator[str, None]",
+        "return_description": "流式响应的文本片段（通过yield产生）",
+        "implementation_notes": [
+          "使用@app.entrypoint装饰器标记为AgentCore入口点",
+          "必须是async异步函数",
+          "从payload中提取prompt参数",
+          "验证prompt非空，否则yield错误信息",
+          "使用agent.stream_async(prompt)获取流式响应",
+          "使用async for循环迭代流式事件",
+          "每个事件通过yield返回给客户端",
+          "捕获所有异常并yield错误信息",
+          "记录详细日志（接收payload、处理进度、错误信息）"
+        ]
+      }
+    ],
+    "tool_integration": {
+      "custom_tools": [
+        "validate_input - 验证用户输入的有效性",
+        "generate_html_document - 使用AI模型生成HTML文档",
+        "validate_html_content - 验证生成的HTML内容完整性",
+        "sanitize_html_content - 清理和优化HTML内容",
+        "upload_to_s3 - 上传文件至AWS S3存储桶",
+        "generate_presigned_url - 生成S3对象的预签名URL",
+        "check_s3_bucket_access - 检查S3存储桶的访问权限",
+        "format_error_message - 格式化友好的错误信息",
+        "generate_html_metadata - 生成HTML文档的元数据",
+        "get_s3_object_info - 获取S3对象的信息"
+      ],
+      "system_tools": [
+        "strands_tools/current_time - 获取当前时间"
+      ],
+      "strands_tools": [
+        "current_time - 时间工具"
+      ],
+      "integration_notes": [
+        "所有工具通过提示词模板中的tools_dependencies声明",
+        "工具路径格式：generated_tools/simple_agent/html_s3_tools/{tool_name}",
+        "Agent通过Strands SDK自动加载和调用工具",
+        "工具返回JSON格式的结构化数据",
+        "Agent负责解析工具返回结果并处理错误",
+        "工具调用由AI模型根据提示词指导自动完成"
+      ]
+    },
+    "configuration": {
+      "environment_variables": [
+        "BYPASS_TOOL_CONSENT=true - 绕过工具使用确认",
+        "OTEL_EXPORTER_OTLP_ENDPOINT - OpenTelemetry导出端点（默认http://localhost:4318）",
+        "DOCKER_CONTAINER - Docker容器标识（用于判断运行模式）"
+      ],
+      "model_configuration": {
+        "model_name": "global.anthropic.claude-sonnet-4-5-20250929-v1:0",
+        "max_tokens": {
+          "development": 4096,
+          "production": 60000,
+          "testing": 2048
+        },
+        "temperature": 0.3,
+        "streaming": true
+      },
+      "streaming_config": {
+        "enabled": true,
+        "mode": "async_generator",
+        "method": "stream_async",
+        "chunk_processing": "yield每个event"
+      },
+      "agent_config_path": "generated_agents_prompts/simple_agent/simple_agent",
+      "s3_config": {
+        "bucket_name": "awesome-nexus-ai-file-storage",
+        "default_region": "us-west-2",
+        "content_type": "text/html; charset=utf-8",
+        "max_file_size_mb": 10,
+        "default_expiration_seconds": 3600,
+        "max_retries": 3
+      }
+    },
+    "error_handling": {
+      "exception_types": [
+        "ValueError - 输入验证错误",
+        "KeyError - 缺少必需参数",
+        "ClientError - AWS服务错误（boto3）",
+        "NetworkError - 网络连接错误",
+        "TimeoutError - 操作超时",
+        "Exception - 未知错误"
+      ],
+      "error_responses": [
+        "Error: Missing 'prompt' in request - 缺少prompt参数",
+        "Error: 请提供有效的文档内容和格式要求 - 输入验证失败",
+        "Error: HTML文档生成失败 - AI模型生成失败",
+        "Error: 文件上传失败 - S3上传失败",
+        "Error: AWS凭证验证失败 - IAM权限错误",
+        "Error: 存储桶awesome-nexus-ai-file-storage不存在或无访问权限 - S3存储桶错误",
+        "Error: 预签名URL生成失败 - URL生成错误",
+        "Error: 网络连接超时 - 网络超时",
+        "Error: {str(e)} - 通用错误"
+      ],
+      "recovery_strategies": [
+        "输入验证失败：立即返回错误，终止流程",
+        "S3上传失败：自动重试最多3次，记录重试次数",
+        "网络超时：提示用户检查网络连接后重试",
+        "AWS凭证错误：提示检查IAM权限配置",
+        "未知错误：记录详细日志，返回通用错误信息",
+        "所有错误：通过yield返回错误信息，不抛出异常"
+      ]
+    },
+    "testing": {
+      "test_cases": [
+        "本地测试模式：python simple_agent.py -i '生成产品介绍页面'",
+        "交互式对话模式：python simple_agent.py -it",
+        "指定环境测试：python simple_agent.py -i '创建报告' -e development",
+        "服务器模式：python simple_agent.py（默认启动HTTP服务器）"
+      ],
+      "test_scenarios": [
+        "正常流程：用户输入 -> 生成HTML -> 上传S3 -> 生成URL -> 返回链接",
+        "输入验证失败：空输入、超长输入、无效过期时间",
+        "HTML生成失败：AI模型错误、内容不完整",
+        "S3上传失败：网络错误、权限错误、存储桶不存在",
+        "URL生成失败：对象不存在、参数无效",
+        "流式响应：验证每个步骤的进度反馈",
+        "错误处理：验证友好的错误信息",
+        "重试机制：验证S3上传失败时的自动重试"
+      ],
+      "validation_criteria": [
+        "功能完整性：成功完成HTML生成、S3上传、URL生成全流程",
+        "生成质量：HTML文档符合HTML5标准、结构完整、样式美观",
+        "响应速度：端到端处理时间在20秒内",
+        "流式响应：每个步骤都有清晰的进度反馈",
+        "错误处理：所有异常都被捕获并返回友好错误信息",
+        "URL有效性：预签名URL可正常访问且在过期时间内有效",
+        "安全性：文件名使用UUID、URL有过期时间、不暴露敏感信息"
+      ]
+    },
+    "deployment": {
+      "deployment_requirements": [
+        "Python 3.13+运行环境",
+        "安装所有依赖包（requirements.txt）",
+        "配置AWS凭证（IAM角色或环境变量）",
+        "确保S3存储桶awesome-nexus-ai-file-storage存在且有权限",
+        "配置OpenTelemetry端点（可选）",
+        "设置DOCKER_CONTAINER=1环境变量（AgentCore部署时）"
+      ],
+      "runtime_dependencies": [
+        "./nexus_utils - 本地工具包",
+        "strands-agents - Strands Agent框架",
+        "strands-agents-tools - Strands工具框架",
+        "boto3 - AWS SDK",
+        "botocore - boto3核心库",
+        "PyYAML - YAML配置解析"
+      ],
+      "performance_considerations": [
+        "HTML生成：依赖Bedrock API，预计5-10秒",
+        "S3上传：小文件（<1MB）预计2-5秒",
+        "预签名URL生成：本地操作，<1秒",
+        "端到端延迟：目标20秒内完成",
+        "并发处理：BedrockAgentCoreApp支持多请求并发",
+        "内存管理：HTML内容在内存中处理，限制文件大小为10MB",
+        "流式响应：及时yield状态信息，避免客户端超时"
+      ]
+    },
+    "development_notes": "智能体代码开发完成。基于content_generator_agent模板进行定制化开发，使用nexus_utils.agent_factory.create_agent_from_prompt_template创建Agent实例，确保与Nexus-AI平台完全集成。代码结构清晰，包含完整的文档注释、类型注解和错误处理。严格遵循BedrockAgentCoreApp部署规范，实现了异步handler入口点函数，支持流式响应。集成11个自定义工具（HTML生成、S3上传、URL生成、验证等），工具路径通过提示词模板声明。支持三种运行模式：AgentCore部署（启动HTTP服务器）、本地测试（-i参数）、交互式对话（-it参数）。配置管理使用ConfigLoader，环境变量包括BYPASS_TOOL_CONSENT、OTEL_EXPORTER_OTLP_ENDPOINT等。错误处理完善，所有异常都被捕获并通过yield返回友好的错误信息。日志记录详细，包括接收payload、处理进度、流式事件、错误信息等。安全性考虑周全，使用IAM角色管理AWS凭证，预签名URL设置过期时间，文件名使用UUID避免冲突。性能优化合理，支持并发处理，限制文件大小为10MB，流式响应提升用户体验。代码已通过验证，符合Python语法规范，包含必需的导入和Agent创建逻辑。"
+  }
+}

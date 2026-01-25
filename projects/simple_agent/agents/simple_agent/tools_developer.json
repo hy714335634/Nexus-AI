@@ -1,0 +1,608 @@
+{
+  "tool_development": {
+    "development_overview": {
+      "project_name": "simple_agent",
+      "version": "1.0",
+      "date": "2026-01-24",
+      "development_scope": "开发HTML文档生成与S3上传相关的核心工具函数，包括输入验证、HTML生成、S3上传、预签名URL生成、错误处理等完整功能",
+      "design_principles": [
+        "单一职责：每个工具函数专注于一个特定功能",
+        "类型安全：使用完整的类型注解确保参数类型正确",
+        "错误处理：实现健壮的异常捕获和友好的错误提示",
+        "可测试性：清晰的输入输出和独立的函数设计",
+        "安全性：输入验证、内容清理、权限检查",
+        "可观测性：记录详细的操作元数据和时间戳"
+      ],
+      "key_decisions": [
+        "使用boto3 SDK实现真实的AWS S3操作，而非模拟",
+        "使用Bedrock Runtime API直接调用Claude模型生成HTML",
+        "实现自动重试机制（最多3次）提高S3上传可靠性",
+        "使用UUID生成唯一文件名避免冲突",
+        "返回JSON格式的结构化数据便于解析",
+        "提供详细的错误码和解决建议",
+        "实现HTML内容验证和安全清理功能",
+        "提供S3存储桶访问权限检查工具"
+      ]
+    },
+    "tools": [
+      {
+        "tool_name": "validate_input",
+        "description": "验证用户输入的有效性，包括内容长度、过期时间范围、可疑内容检测等",
+        "function_signature": "validate_input(prompt: str, expiration: Optional[int] = None) -> str",
+        "parameters": [
+          {
+            "name": "prompt",
+            "type": "str",
+            "description": "用户的文档需求描述",
+            "required": true
+          },
+          {
+            "name": "expiration",
+            "type": "Optional[int]",
+            "description": "URL过期时间（秒），可选，默认3600",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的验证结果，包含is_valid、errors、warnings、sanitized_prompt、sanitized_expiration等字段",
+        "dependencies": [
+          "json",
+          "re",
+          "datetime"
+        ],
+        "implementation_notes": [
+          "检查prompt是否为空或过短（<10字符）",
+          "验证prompt长度不超过50000字符",
+          "验证expiration在60到604800秒之间",
+          "使用正则表达式检测可疑的脚本内容",
+          "返回清理后的参数值供后续使用"
+        ],
+        "error_handling": [
+          "捕获所有异常并返回is_valid=False",
+          "提供具体的错误信息和警告",
+          "异常情况下返回默认的sanitized值"
+        ],
+        "usage_examples": [
+          "validate_input('生成一个简单的HTML页面', 3600)",
+          "validate_input('创建产品介绍页面，包含标题和描述')"
+        ]
+      },
+      {
+        "tool_name": "generate_html_document",
+        "description": "使用Claude Sonnet 4.5模型生成符合HTML5标准的完整HTML文档",
+        "function_signature": "generate_html_document(content_description: str, style_requirements: Optional[str] = None, include_responsive: bool = True) -> str",
+        "parameters": [
+          {
+            "name": "content_description",
+            "type": "str",
+            "description": "文档内容描述",
+            "required": true
+          },
+          {
+            "name": "style_requirements",
+            "type": "Optional[str]",
+            "description": "样式要求，如颜色、字体、布局等",
+            "required": false
+          },
+          {
+            "name": "include_responsive",
+            "type": "bool",
+            "description": "是否包含响应式设计，默认True",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的生成结果，包含success、html_content、html_size、generation_time、metadata等字段",
+        "dependencies": [
+          "json",
+          "boto3",
+          "botocore.exceptions.ClientError",
+          "datetime"
+        ],
+        "implementation_notes": [
+          "使用boto3的bedrock-runtime客户端调用Claude模型",
+          "模型ID：global.anthropic.claude-sonnet-4-5-20250929-v1:0",
+          "构建详细的系统提示词指导HTML生成",
+          "验证生成的HTML包含基本结构（DOCTYPE、html标签等）",
+          "记录生成时间和元数据",
+          "max_tokens设置为100000以支持长文档"
+        ],
+        "error_handling": [
+          "捕获ClientError并返回详细的Bedrock错误信息",
+          "验证生成内容的长度和结构",
+          "提供针对性的错误提示和解决建议",
+          "记录所有异常详情"
+        ],
+        "usage_examples": [
+          "generate_html_document('创建一个产品介绍页面', '使用蓝色主题')",
+          "generate_html_document('生成用户注册表单', include_responsive=True)"
+        ]
+      },
+      {
+        "tool_name": "upload_to_s3",
+        "description": "上传HTML内容至AWS S3存储桶，支持自动重试和详细的错误处理",
+        "function_signature": "upload_to_s3(html_content: str, bucket_name: str = 'awesome-nexus-ai-file-storage', object_key: Optional[str] = None, content_type: str = 'text/html; charset=utf-8', region: str = 'us-west-2', max_retries: int = 3) -> str",
+        "parameters": [
+          {
+            "name": "html_content",
+            "type": "str",
+            "description": "HTML文档内容",
+            "required": true
+          },
+          {
+            "name": "bucket_name",
+            "type": "str",
+            "description": "S3存储桶名称，默认awesome-nexus-ai-file-storage",
+            "required": false
+          },
+          {
+            "name": "object_key",
+            "type": "Optional[str]",
+            "description": "S3对象键，如果不提供则自动生成UUID",
+            "required": false
+          },
+          {
+            "name": "content_type",
+            "type": "str",
+            "description": "内容类型，默认text/html; charset=utf-8",
+            "required": false
+          },
+          {
+            "name": "region",
+            "type": "str",
+            "description": "AWS区域，默认us-west-2",
+            "required": false
+          },
+          {
+            "name": "max_retries",
+            "type": "int",
+            "description": "最大重试次数，默认3",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的上传结果，包含success、bucket、key、s3_uri、file_size、retry_count、upload_time等字段",
+        "dependencies": [
+          "json",
+          "uuid",
+          "boto3",
+          "botocore.exceptions.ClientError",
+          "datetime"
+        ],
+        "implementation_notes": [
+          "使用uuid.uuid4()生成唯一文件名",
+          "验证HTML内容非空且不超过10MB",
+          "使用put_object方法上传内容",
+          "添加自定义元数据（generated_by、created_at）",
+          "实现智能重试：权限错误不重试，网络错误重试",
+          "记录重试次数和上传耗时"
+        ],
+        "error_handling": [
+          "区分不同错误类型：NoSuchBucket、AccessDenied、InvalidAccessKeyId等",
+          "为每种错误提供具体的解决建议",
+          "记录详细的错误码和错误信息",
+          "重试失败后返回最后一次的错误详情"
+        ],
+        "usage_examples": [
+          "upload_to_s3('<html>...</html>', bucket_name='awesome-nexus-ai-file-storage')",
+          "upload_to_s3(html_content, object_key='custom-name.html', max_retries=5)"
+        ]
+      },
+      {
+        "tool_name": "generate_presigned_url",
+        "description": "生成S3对象的预签名URL，允许临时访问文件",
+        "function_signature": "generate_presigned_url(bucket_name: str, object_key: str, expiration: int = 3600, region: str = 'us-west-2') -> str",
+        "parameters": [
+          {
+            "name": "bucket_name",
+            "type": "str",
+            "description": "S3存储桶名称",
+            "required": true
+          },
+          {
+            "name": "object_key",
+            "type": "str",
+            "description": "S3对象键",
+            "required": true
+          },
+          {
+            "name": "expiration",
+            "type": "int",
+            "description": "URL有效期（秒），默认3600",
+            "required": false
+          },
+          {
+            "name": "region",
+            "type": "str",
+            "description": "AWS区域，默认us-west-2",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的预签名URL结果，包含success、presigned_url、s3_uri、expiration_seconds、expires_at等字段",
+        "dependencies": [
+          "json",
+          "boto3",
+          "botocore.exceptions.ClientError",
+          "datetime",
+          "timedelta"
+        ],
+        "implementation_notes": [
+          "验证参数有效性（bucket_name、object_key非空）",
+          "验证expiration在60到604800秒之间",
+          "使用generate_presigned_url方法生成URL",
+          "计算并返回过期时间戳",
+          "提供小时数表示的过期时间（便于理解）"
+        ],
+        "error_handling": [
+          "区分错误类型：NoSuchBucket、NoSuchKey、AccessDenied等",
+          "为每种错误提供针对性建议",
+          "记录详细的错误码和bucket/key信息",
+          "参数验证失败时提前返回错误"
+        ],
+        "usage_examples": [
+          "generate_presigned_url('awesome-nexus-ai-file-storage', 'abc-123.html', 3600)",
+          "generate_presigned_url(bucket, key, expiration=7200)"
+        ]
+      },
+      {
+        "tool_name": "format_error_message",
+        "description": "格式化友好的错误信息，将技术错误转换为用户可理解的提示",
+        "function_signature": "format_error_message(error_type: str, error_details: str, include_hint: bool = True) -> str",
+        "parameters": [
+          {
+            "name": "error_type",
+            "type": "str",
+            "description": "错误类型：validation、generation、upload、url_generation、network、permission、unknown",
+            "required": true
+          },
+          {
+            "name": "error_details",
+            "type": "str",
+            "description": "错误详细信息",
+            "required": true
+          },
+          {
+            "name": "include_hint",
+            "type": "bool",
+            "description": "是否包含解决建议，默认True",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "格式化的错误信息字符串",
+        "dependencies": [],
+        "implementation_notes": [
+          "定义错误类型到友好描述的映射",
+          "为每种错误类型提供解决建议",
+          "支持包含或不包含详细信息",
+          "返回统一格式的错误消息"
+        ],
+        "error_handling": [
+          "捕获格式化过程中的异常",
+          "异常时返回基本错误信息",
+          "确保始终返回有效的错误字符串"
+        ],
+        "usage_examples": [
+          "format_error_message('upload', 'NoSuchBucket error')",
+          "format_error_message('validation', 'Content too long', include_hint=True)"
+        ]
+      },
+      {
+        "tool_name": "validate_html_content",
+        "description": "验证HTML内容的完整性和有效性，包括结构检查和大小检查",
+        "function_signature": "validate_html_content(html_content: str, check_structure: bool = True, check_size: bool = True, max_size_mb: float = 10.0) -> str",
+        "parameters": [
+          {
+            "name": "html_content",
+            "type": "str",
+            "description": "HTML文档内容",
+            "required": true
+          },
+          {
+            "name": "check_structure",
+            "type": "bool",
+            "description": "是否检查HTML结构，默认True",
+            "required": false
+          },
+          {
+            "name": "check_size",
+            "type": "bool",
+            "description": "是否检查文件大小，默认True",
+            "required": false
+          },
+          {
+            "name": "max_size_mb",
+            "type": "float",
+            "description": "最大文件大小（MB），默认10MB",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的验证结果，包含is_valid、errors、warnings、html_size、has_doctype、has_html_tag等字段",
+        "dependencies": [
+          "json",
+          "datetime"
+        ],
+        "implementation_notes": [
+          "检查HTML内容是否为空",
+          "计算文件大小并验证",
+          "检查DOCTYPE、html、head、body标签是否存在",
+          "区分错误和警告（错误导致验证失败，警告不影响）",
+          "返回详细的结构信息"
+        ],
+        "error_handling": [
+          "捕获验证过程中的异常",
+          "异常时返回is_valid=False",
+          "记录详细的错误信息"
+        ],
+        "usage_examples": [
+          "validate_html_content('<html>...</html>', check_structure=True)",
+          "validate_html_content(html, max_size_mb=5.0)"
+        ]
+      },
+      {
+        "tool_name": "check_s3_bucket_access",
+        "description": "检查S3存储桶访问权限，验证读取和写入权限",
+        "function_signature": "check_s3_bucket_access(bucket_name: str = 'awesome-nexus-ai-file-storage', region: str = 'us-west-2') -> str",
+        "parameters": [
+          {
+            "name": "bucket_name",
+            "type": "str",
+            "description": "S3存储桶名称，默认awesome-nexus-ai-file-storage",
+            "required": false
+          },
+          {
+            "name": "region",
+            "type": "str",
+            "description": "AWS区域，默认us-west-2",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的检查结果，包含accessible、bucket_exists、can_upload、can_read、bucket_region等字段",
+        "dependencies": [
+          "json",
+          "uuid",
+          "boto3",
+          "botocore.exceptions.ClientError",
+          "datetime"
+        ],
+        "implementation_notes": [
+          "使用head_bucket检查存储桶是否存在",
+          "使用get_bucket_location获取存储桶区域",
+          "通过上传测试文件验证写入权限",
+          "使用list_objects_v2验证读取权限",
+          "自动清理测试文件",
+          "返回完整的权限检查结果"
+        ],
+        "error_handling": [
+          "区分404（不存在）和403（无权限）错误",
+          "捕获所有测试操作的异常",
+          "记录详细的错误信息",
+          "确保测试文件被清理"
+        ],
+        "usage_examples": [
+          "check_s3_bucket_access('awesome-nexus-ai-file-storage')",
+          "check_s3_bucket_access(bucket_name='my-bucket', region='us-east-1')"
+        ]
+      },
+      {
+        "tool_name": "get_s3_object_info",
+        "description": "获取S3对象的详细信息，包括元数据、大小、修改时间等",
+        "function_signature": "get_s3_object_info(bucket_name: str, object_key: str, region: str = 'us-west-2') -> str",
+        "parameters": [
+          {
+            "name": "bucket_name",
+            "type": "str",
+            "description": "S3存储桶名称",
+            "required": true
+          },
+          {
+            "name": "object_key",
+            "type": "str",
+            "description": "S3对象键",
+            "required": true
+          },
+          {
+            "name": "region",
+            "type": "str",
+            "description": "AWS区域，默认us-west-2",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的对象信息，包含success、object_exists、size、content_type、last_modified、metadata等字段",
+        "dependencies": [
+          "json",
+          "boto3",
+          "botocore.exceptions.ClientError",
+          "datetime"
+        ],
+        "implementation_notes": [
+          "使用head_object获取对象元数据",
+          "提取并返回所有关键属性",
+          "计算文件大小的MB表示",
+          "解析并格式化时间戳",
+          "返回自定义元数据"
+        ],
+        "error_handling": [
+          "检测404/NoSuchKey错误并返回object_exists=False",
+          "捕获其他ClientError并返回错误信息",
+          "记录详细的错误码",
+          "确保返回一致的JSON格式"
+        ],
+        "usage_examples": [
+          "get_s3_object_info('awesome-nexus-ai-file-storage', 'abc-123.html')",
+          "get_s3_object_info(bucket, key, region='us-east-1')"
+        ]
+      },
+      {
+        "tool_name": "sanitize_html_content",
+        "description": "清理HTML内容，移除潜在的安全风险（XSS攻击向量）",
+        "function_signature": "sanitize_html_content(html_content: str, remove_scripts: bool = True, remove_iframes: bool = True, allow_inline_styles: bool = True) -> str",
+        "parameters": [
+          {
+            "name": "html_content",
+            "type": "str",
+            "description": "原始HTML内容",
+            "required": true
+          },
+          {
+            "name": "remove_scripts",
+            "type": "bool",
+            "description": "是否移除<script>标签，默认True",
+            "required": false
+          },
+          {
+            "name": "remove_iframes",
+            "type": "bool",
+            "description": "是否移除<iframe>标签，默认True",
+            "required": false
+          },
+          {
+            "name": "allow_inline_styles",
+            "type": "bool",
+            "description": "是否允许内联样式，默认True",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的清理结果，包含success、sanitized_content、removed_elements、size_before、size_after等字段",
+        "dependencies": [
+          "json",
+          "re",
+          "datetime"
+        ],
+        "implementation_notes": [
+          "使用正则表达式移除<script>和<iframe>标签",
+          "移除事件处理器属性（onclick、onload等）",
+          "移除javascript:伪协议",
+          "可选移除style属性",
+          "统计移除的元素数量",
+          "计算清理前后的大小变化"
+        ],
+        "error_handling": [
+          "捕获正则处理异常",
+          "异常时返回原始内容",
+          "记录详细的错误信息",
+          "确保始终返回有效的HTML"
+        ],
+        "usage_examples": [
+          "sanitize_html_content('<html><script>alert(1)</script></html>')",
+          "sanitize_html_content(html, remove_scripts=True, allow_inline_styles=False)"
+        ]
+      },
+      {
+        "tool_name": "generate_html_metadata",
+        "description": "生成HTML文档的meta标签，用于SEO和文档描述",
+        "function_signature": "generate_html_metadata(title: str, description: Optional[str] = None, author: Optional[str] = None, keywords: Optional[str] = None) -> str",
+        "parameters": [
+          {
+            "name": "title",
+            "type": "str",
+            "description": "文档标题",
+            "required": true
+          },
+          {
+            "name": "description",
+            "type": "Optional[str]",
+            "description": "文档描述",
+            "required": false
+          },
+          {
+            "name": "author",
+            "type": "Optional[str]",
+            "description": "文档作者",
+            "required": false
+          },
+          {
+            "name": "keywords",
+            "type": "Optional[str]",
+            "description": "关键词",
+            "required": false
+          }
+        ],
+        "return_type": "str",
+        "return_description": "JSON格式的结果，包含success、meta_tags、tag_count等字段",
+        "dependencies": [
+          "json",
+          "datetime"
+        ],
+        "implementation_notes": [
+          "生成标准的HTML5 meta标签",
+          "包含charset和viewport标签",
+          "转义特殊字符（引号等）",
+          "添加生成器和创建时间标签",
+          "返回格式化的HTML字符串"
+        ],
+        "error_handling": [
+          "捕获生成过程中的异常",
+          "异常时返回空的meta_tags",
+          "记录详细的错误信息"
+        ],
+        "usage_examples": [
+          "generate_html_metadata('我的文档', description='这是一个示例')",
+          "generate_html_metadata(title='产品介绍', author='Nexus-AI', keywords='产品,介绍')"
+        ]
+      }
+    ],
+    "code_quality": {
+      "code_standards": [
+        "遵循PEP 8代码风格规范",
+        "使用完整的类型注解（typing模块）",
+        "每个函数包含详细的docstring",
+        "使用有意义的变量和函数命名",
+        "代码注释清晰，解释关键逻辑",
+        "保持函数长度适中（不超过100行）",
+        "避免重复代码，提取公共逻辑"
+      ],
+      "testing_strategy": [
+        "单元测试：测试每个工具函数的核心逻辑",
+        "集成测试：测试与AWS服务的真实交互",
+        "错误场景测试：测试各种异常情况的处理",
+        "边界值测试：测试参数的边界条件",
+        "性能测试：测试大文件和长时间操作",
+        "安全测试：测试XSS防护和输入验证"
+      ],
+      "performance_considerations": [
+        "HTML生成：依赖Bedrock API性能，预计5-10秒",
+        "S3上传：使用put_object直接上传，小文件（<1MB）2-5秒",
+        "预签名URL生成：本地操作，<1秒",
+        "重试机制：最多3次重试，避免长时间阻塞",
+        "文件大小限制：10MB，防止内存溢出",
+        "JSON序列化：使用ensure_ascii=False优化中文处理"
+      ],
+      "security_measures": [
+        "输入验证：验证所有用户输入参数",
+        "内容清理：移除HTML中的脚本和危险元素",
+        "权限检查：验证S3存储桶访问权限",
+        "凭证管理：使用boto3默认凭证链，不硬编码",
+        "错误信息：不暴露敏感信息（如完整路径、密钥）",
+        "URL过期：预签名URL设置合理过期时间",
+        "元数据保护：不在元数据中存储敏感信息"
+      ]
+    },
+    "integration_details": {
+      "aws_services": [
+        "AWS Bedrock Runtime - 调用Claude Sonnet 4.5模型生成HTML",
+        "AWS S3 - 上传HTML文件和生成预签名URL"
+      ],
+      "external_libraries": [
+        "boto3 - AWS SDK，用于Bedrock和S3操作",
+        "botocore - boto3的核心库，用于异常处理",
+        "strands - Agent框架，提供@tool装饰器"
+      ],
+      "api_endpoints": [
+        "bedrock-runtime.us-west-2.amazonaws.com - Bedrock API端点",
+        "s3.us-west-2.amazonaws.com - S3 API端点"
+      ],
+      "data_formats": [
+        "输入：字符串（HTML内容、描述）、整数（过期时间）、布尔值（选项）",
+        "输出：JSON格式字符串（ensure_ascii=False，indent=2）",
+        "编码：UTF-8"
+      ]
+    },
+    "development_notes": "工具开发完成，共实现10个核心工具函数。主要特点：1) 使用boto3 SDK实现真实的AWS服务调用（Bedrock和S3），确保功能可用性；2) 实现完善的错误处理机制，包括自动重试、详细错误信息、解决建议等；3) 所有工具返回JSON格式的结构化数据，便于Agent解析和处理；4) 提供丰富的辅助工具（验证、清理、元数据生成等），支持完整的工作流；5) 注重安全性，包括输入验证、内容清理、权限检查等；6) 优化性能，使用合理的重试策略和文件大小限制；7) 代码质量高，包含完整的类型注解、docstring和注释。所有工具已写入html_s3_tools.py文件，可直接被simple_agent使用。关键决策：使用Bedrock Runtime API直接调用Claude模型而非通过Agent SDK，确保HTML生成的灵活性和可控性；实现智能重试机制，区分不同错误类型决定是否重试；提供详细的验证和检查工具，帮助Agent在执行前后验证状态；使用UUID生成文件名，确保唯一性和安全性。"
+  }
+}

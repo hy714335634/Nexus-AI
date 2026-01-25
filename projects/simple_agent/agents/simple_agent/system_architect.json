@@ -1,0 +1,297 @@
+{
+  "system_design": {
+    "design_overview": {
+      "project_name": "simple_agent",
+      "version": "1.0",
+      "date": "2026-01-24",
+      "design_scope": "设计一个单Agent系统，能够根据用户提供的内容和格式要求生成高质量HTML文档，并自动上传至AWS S3存储桶（awesome-nexus-ai-file-storage），最后生成并返回预签名URL供用户访问。系统基于Strands SDK构建，使用Claude Sonnet 4.5模型进行内容生成，支持流式响应和完善的错误处理。",
+      "design_principles": [
+        "单一职责：Agent专注于HTML文档生成和S3上传功能",
+        "模块化设计：将HTML生成、S3上传、URL生成分离为独立工具",
+        "安全优先：使用IAM角色管理AWS凭证，预签名URL设置过期时间",
+        "用户友好：支持自然语言输入，流式响应提供实时反馈",
+        "容错设计：完善的错误处理和重试机制，确保系统稳定性",
+        "可扩展性：工具设计支持未来功能扩展"
+      ],
+      "key_decisions": [
+        "选择单Agent架构：需求简单明确，无需多Agent协调",
+        "基于content_generator_agent模板：内容生成能力强，易于扩展",
+        "使用boto3 SDK集成S3：AWS官方SDK，稳定可靠",
+        "采用流式响应模式：提升用户体验，实时反馈处理进度",
+        "使用BedrockAgentCoreApp部署：支持AgentCore平台部署",
+        "HTML生成由AI模型直接完成：无需额外HTML生成库，降低依赖",
+        "文件名使用UUID：避免文件名冲突，提高安全性",
+        "预签名URL默认1小时过期：平衡安全性和可用性"
+      ],
+      "workflow_type": "single_agent",
+      "recommended_templates": [
+        "content_generator_agent（评分85/100）- 专业内容生成能力，支持文件写入",
+        "document_processor_agent（评分80/100）- 文档处理专家，支持格式转换"
+      ]
+    },
+    "architecture": {
+      "system_context": "simple_agent是一个独立的HTML文档生成和存储系统，用户通过自然语言描述文档需求，系统使用Claude Sonnet 4.5模型生成HTML内容，然后通过boto3 SDK将文件上传至AWS S3存储桶，最后生成预签名URL返回给用户。系统运行在支持BedrockAgentCoreApp的环境中，支持本地测试和AgentCore部署两种模式。",
+      "agent_topology": "单Agent拓扑结构：\n\n[用户] <---> [simple_agent]\n              |\n              +-- [HTML生成工具] (AI模型驱动)\n              +-- [S3上传工具] (boto3 SDK)\n              +-- [预签名URL生成工具] (boto3 SDK)\n\n数据流向：\n用户输入 -> 解析需求 -> 生成HTML -> 上传S3 -> 生成URL -> 返回用户",
+      "interaction_model": "同步交互模型（流式响应）：\n\n1. 用户发送请求（包含文档内容和格式要求）\n2. Agent接收请求并解析输入\n3. Agent调用AI模型生成HTML文档（流式反馈：正在生成...）\n4. Agent调用S3上传工具上传文件（流式反馈：正在上传...）\n5. Agent调用URL生成工具创建预签名URL（流式反馈：正在生成链接...）\n6. Agent返回最终URL（流式反馈：完成！）\n\n错误处理：任何步骤失败立即返回错误信息，终止流程",
+      "technology_stack": {
+        "sdk": "Strands SDK",
+        "runtime": "BedrockAgentCoreApp (支持本地和AgentCore部署)",
+        "integrations": [
+          "AWS Bedrock (Claude Sonnet 4.5模型)",
+          "AWS S3 (boto3 SDK)",
+          "Python 3.13+",
+          "BedrockAgentCoreApp HTTP服务器"
+        ]
+      }
+    },
+    "agents": [
+      {
+        "name": "simple_agent",
+        "purpose": "根据用户需求生成HTML文档并上传至S3，返回可访问的预签名URL",
+        "responsibilities": [
+          "接收并解析用户的文档内容和格式要求",
+          "调用AI模型生成符合HTML5标准的文档",
+          "验证生成的HTML内容完整性",
+          "调用S3上传工具将HTML文件上传至指定存储桶",
+          "调用URL生成工具创建预签名URL",
+          "通过流式响应向用户反馈处理进度",
+          "处理所有异常情况并返回友好的错误信息"
+        ],
+        "interfaces": {
+          "inputs": [
+            "prompt: 用户的文档需求描述（必需）",
+            "user_id: 用户标识（可选，用于日志追踪）",
+            "session_id: 会话标识（可选，用于会话管理）",
+            "expiration: URL过期时间（可选，默认3600秒）"
+          ],
+          "outputs": [
+            "流式响应片段：处理进度信息",
+            "最终输出：预签名URL字符串",
+            "错误输出：以'Error: '开头的错误信息"
+          ]
+        },
+        "dependencies": [
+          "AWS Bedrock Claude Sonnet 4.5模型",
+          "AWS S3存储桶：awesome-nexus-ai-file-storage",
+          "boto3 SDK（S3客户端）",
+          "Strands SDK（Agent框架）",
+          "nexus_utils.agent_factory（Agent创建）",
+          "nexus_utils.config_loader（配置管理）"
+        ],
+        "implementation_notes": [
+          "使用@tool装饰器定义所有工具函数",
+          "使用async/await实现异步处理",
+          "使用stream_async()方法支持流式响应",
+          "文件名使用UUID生成，格式：{uuid}.html",
+          "Content-Type设置为text/html; charset=utf-8",
+          "S3上传失败时最多重试3次",
+          "所有异常都需要捕获并转换为友好的错误信息",
+          "日志记录所有关键操作和错误详情"
+        ],
+        "recommended_template": "content_generator_agent（评分85/100）- 专业内容生成能力，易于扩展S3集成功能"
+      }
+    ],
+    "data_models": [
+      {
+        "name": "HTMLDocumentRequest",
+        "schema": "{\n  \"prompt\": \"string (必需) - 用户的文档需求描述\",\n  \"user_id\": \"string (可选) - 用户标识\",\n  \"session_id\": \"string (可选) - 会话标识\",\n  \"expiration\": \"integer (可选) - URL过期时间（秒），默认3600\"\n}",
+        "validation_rules": [
+          "prompt不能为空字符串",
+          "prompt长度不超过10000字符",
+          "expiration必须在60到604800之间（1分钟到7天）",
+          "user_id和session_id如果提供，不能为空字符串"
+        ],
+        "relationships": [
+          "输入到simple_agent的handler函数",
+          "用于生成HTMLDocumentResponse"
+        ]
+      },
+      {
+        "name": "HTMLDocumentResponse",
+        "schema": "{\n  \"status\": \"string - 处理状态（generating/uploading/complete/error）\",\n  \"message\": \"string - 状态描述或错误信息\",\n  \"presigned_url\": \"string (可选) - 生成的预签名URL\",\n  \"s3_key\": \"string (可选) - S3对象键\",\n  \"expiration_time\": \"integer (可选) - URL过期时间（秒）\"\n}",
+        "validation_rules": [
+          "status必须是枚举值之一",
+          "如果status为complete，presigned_url必须存在",
+          "presigned_url必须是有效的HTTP(S) URL",
+          "s3_key格式为：{uuid}.html"
+        ],
+        "relationships": [
+          "从simple_agent的handler函数流式输出",
+          "最终状态为complete或error"
+        ]
+      },
+      {
+        "name": "S3UploadMetadata",
+        "schema": "{\n  \"bucket_name\": \"string - S3存储桶名称\",\n  \"object_key\": \"string - S3对象键\",\n  \"content_type\": \"string - 文件MIME类型\",\n  \"file_content\": \"string - HTML文件内容\",\n  \"metadata\": \"dict (可选) - 自定义元数据\"\n}",
+        "validation_rules": [
+          "bucket_name必须是awesome-nexus-ai-file-storage",
+          "object_key必须以.html结尾",
+          "content_type必须是text/html; charset=utf-8",
+          "file_content不能为空",
+          "file_content大小不超过10MB"
+        ],
+        "relationships": [
+          "由simple_agent传递给upload_to_s3工具",
+          "用于生成预签名URL"
+        ]
+      }
+    ],
+    "interaction_flows": [
+      {
+        "name": "HTML文档生成与上传主流程",
+        "description": "用户请求生成HTML文档，系统生成内容并上传至S3，返回预签名URL",
+        "steps": [
+          {
+            "step": "1. 接收用户请求",
+            "agent": "simple_agent",
+            "action": "handler函数接收payload，提取prompt和可选参数",
+            "data": "HTMLDocumentRequest"
+          },
+          {
+            "step": "2. 验证输入",
+            "agent": "simple_agent",
+            "action": "验证prompt非空，检查expiration范围",
+            "data": "如果验证失败，yield错误信息并终止"
+          },
+          {
+            "step": "3. 流式反馈：开始生成",
+            "agent": "simple_agent",
+            "action": "yield '正在生成HTML文档...'",
+            "data": "状态信息"
+          },
+          {
+            "step": "4. 调用AI模型生成HTML",
+            "agent": "simple_agent",
+            "action": "使用Claude Sonnet 4.5模型生成HTML内容",
+            "data": "生成的HTML字符串"
+          },
+          {
+            "step": "5. 验证HTML内容",
+            "agent": "simple_agent",
+            "action": "检查HTML内容非空且包含基本结构",
+            "data": "如果验证失败，yield错误信息并终止"
+          },
+          {
+            "step": "6. 流式反馈：开始上传",
+            "agent": "simple_agent",
+            "action": "yield '正在上传文件至S3...'",
+            "data": "状态信息"
+          },
+          {
+            "step": "7. 生成唯一文件名",
+            "agent": "simple_agent",
+            "action": "使用uuid.uuid4()生成文件名",
+            "data": "object_key = f'{uuid}.html'"
+          },
+          {
+            "step": "8. 调用S3上传工具",
+            "agent": "simple_agent",
+            "action": "调用upload_to_s3工具上传HTML文件",
+            "data": "S3UploadMetadata"
+          },
+          {
+            "step": "9. 处理上传结果",
+            "agent": "simple_agent",
+            "action": "检查上传是否成功，失败则重试（最多3次）",
+            "data": "如果最终失败，yield错误信息并终止"
+          },
+          {
+            "step": "10. 流式反馈：生成URL",
+            "agent": "simple_agent",
+            "action": "yield '正在生成访问链接...'",
+            "data": "状态信息"
+          },
+          {
+            "step": "11. 调用URL生成工具",
+            "agent": "simple_agent",
+            "action": "调用generate_presigned_url工具生成URL",
+            "data": "bucket_name, object_key, expiration"
+          },
+          {
+            "step": "12. 流式反馈：完成",
+            "agent": "simple_agent",
+            "action": "yield f'完成！访问链接：{presigned_url}'",
+            "data": "HTMLDocumentResponse（status=complete）"
+          }
+        ]
+      },
+      {
+        "name": "错误处理流程",
+        "description": "处理各种异常情况，返回友好的错误信息",
+        "steps": [
+          {
+            "step": "1. 捕获异常",
+            "agent": "simple_agent",
+            "action": "使用try-except捕获所有可能的异常",
+            "data": "Exception对象"
+          },
+          {
+            "step": "2. 识别错误类型",
+            "agent": "simple_agent",
+            "action": "根据异常类型分类（输入错误、S3错误、网络错误等）",
+            "data": "错误类型标识"
+          },
+          {
+            "step": "3. 生成友好错误信息",
+            "agent": "simple_agent",
+            "action": "将技术错误转换为用户可理解的错误信息",
+            "data": "格式：'Error: [错误描述] - [解决建议]'"
+          },
+          {
+            "step": "4. 记录错误日志",
+            "agent": "simple_agent",
+            "action": "记录详细的错误信息和堆栈跟踪",
+            "data": "日志条目"
+          },
+          {
+            "step": "5. 返回错误响应",
+            "agent": "simple_agent",
+            "action": "yield错误信息并终止流程",
+            "data": "HTMLDocumentResponse（status=error）"
+          }
+        ]
+      }
+    ],
+    "security_considerations": [
+      "AWS凭证管理：使用IAM角色或环境变量，严禁在代码中硬编码",
+      "预签名URL过期时间：默认1小时，最长7天，防止永久访问",
+      "文件名随机化：使用UUID避免路径猜测攻击",
+      "输入验证：验证prompt长度和内容，防止注入攻击",
+      "S3存储桶权限：确保仅允许必要的上传和读取权限",
+      "HTTPS传输：所有S3操作使用HTTPS加密传输",
+      "日志脱敏：日志中不记录敏感信息（如完整URL、AWS凭证）",
+      "错误信息安全：错误信息不暴露内部实现细节"
+    ],
+    "error_handling": [
+      "输入验证错误：提示'请提供有效的文档内容和格式要求'",
+      "HTML生成失败：提示'HTML文档生成失败：[具体原因]'，记录详细日志",
+      "S3上传失败：自动重试3次，失败后提示'文件上传失败：[具体原因]，请检查S3配置和网络连接'",
+      "AWS凭证无效：提示'AWS凭证验证失败，请检查IAM权限配置'",
+      "S3存储桶不存在：提示'存储桶awesome-nexus-ai-file-storage不存在或无访问权限'",
+      "网络超时：提示'网络连接超时，请稍后重试'",
+      "URL生成失败：提示'预签名URL生成失败，但文件已上传至S3：[s3_key]'",
+      "未知错误：提示'系统错误：[错误摘要]，请联系管理员'，记录完整堆栈跟踪"
+    ],
+    "performance_considerations": [
+      "HTML生成性能：使用Claude Sonnet 4.5模型，预计生成时间5-10秒",
+      "S3上传性能：小文件（<1MB）预计上传时间2-5秒",
+      "预签名URL生成：本地操作，预计1秒内完成",
+      "端到端延迟：目标20秒内完成（符合需求）",
+      "并发处理：BedrockAgentCoreApp支持多请求并发",
+      "内存管理：HTML内容在内存中处理，限制文件大小为10MB",
+      "网络优化：使用boto3的默认重试策略和连接池",
+      "流式响应：及时yield状态信息，避免客户端超时"
+    ],
+    "monitoring_strategy": [
+      "请求日志：记录每个请求的输入、处理时间、结果",
+      "错误日志：记录所有异常的详细信息和堆栈跟踪",
+      "性能指标：监控HTML生成时间、S3上传时间、端到端延迟",
+      "成功率监控：统计成功和失败请求的比例",
+      "S3操作监控：监控上传成功率、重试次数、失败原因",
+      "资源使用：监控内存和CPU使用情况",
+      "URL访问统计：通过S3日志分析预签名URL的访问情况",
+      "告警策略：失败率超过5%或平均延迟超过30秒时触发告警"
+    ]
+  },
+  "design_rationale": "本系统设计采用单Agent架构，原因如下：\n\n1. **需求复杂度评估**：功能目标明确且流程线性（生成HTML -> 上传S3 -> 生成URL），无需多Agent协调，单Agent足以满足需求。\n\n2. **模板选择理由**：选择content_generator_agent作为基础模板，因为其专业的内容生成能力与HTML文档生成高度匹配，且已集成文件写入工具，易于扩展S3上传功能。评分85/100，优于document_processor_agent（80/100）。\n\n3. **技术栈决策**：\n   - **AI模型**：使用Claude Sonnet 4.5（global.anthropic.claude-sonnet-4-5-20250929-v1:0），符合workflow规则要求，且内容生成能力强。\n   - **S3集成**：使用boto3 SDK，AWS官方SDK，稳定性和兼容性最佳。\n   - **部署模式**：采用BedrockAgentCoreApp，符合base规则的AgentCore部署入口点规范，支持本地测试和AgentCore部署。\n\n4. **架构设计理由**：\n   - **流式响应**：使用async/yield模式，提供实时反馈，提升用户体验，符合需求FR-005。\n   - **工具模块化**：将S3上传和URL生成分离为独立工具，提高代码复用性和可测试性。\n   - **错误处理**：采用多层错误处理策略（输入验证、异常捕获、重试机制），确保系统稳定性，符合需求FR-006。\n\n5. **安全设计理由**：\n   - **凭证管理**：使用IAM角色而非硬编码，符合AWS最佳实践和安全需求。\n   - **URL过期**：默认1小时过期，平衡安全性和可用性，防止永久访问。\n   - **文件名随机化**：使用UUID避免路径猜测，提高安全性。\n\n6. **性能设计理由**：\n   - **异步处理**：使用async/await，支持并发处理多个请求。\n   - **重试机制**：S3上传失败时最多重试3次，提高成功率。\n   - **文件大小限制**：限制10MB，避免内存溢出和长时间处理。\n\n7. **可扩展性考虑**：\n   - 工具化设计支持未来添加新功能（如HTML验证、模板管理）。\n   - 数据模型清晰，易于扩展新字段（如自定义元数据）。\n   - 流式响应架构支持添加更多中间状态反馈。\n\n8. **与需求对齐**：\n   - 满足所有功能需求（FR-001至FR-006）。\n   - 满足非功能需求（性能<20秒、安全、可靠性）。\n   - 符合所有技术约束（S3存储桶、模型、部署规范）。\n   - 满足成功标准（自然语言输入、HTML生成、S3上传、URL访问、流式响应）。\n\n综上所述，本设计方案在简洁性、安全性、性能和可扩展性之间取得了良好平衡，能够高效实现用户需求，并为未来扩展预留了空间。"
+}

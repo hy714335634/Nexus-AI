@@ -1,0 +1,148 @@
+{
+  "project_name": "simple_agent",
+  "validation_timestamp": "2026-01-24T20:11:57.327525+00:00",
+  "overall_status": "success",
+  "agent_scripts": [
+    {
+      "script_path": "agents/generated_agents/simple_agent/simple_agent.py",
+      "syntax_valid": true,
+      "dependencies": [
+        "os",
+        "json",
+        "typing",
+        "nexus_utils.agent_factory",
+        "bedrock_agentcore.runtime",
+        "bedrock_agentcore.runtime.context",
+        "strands.telemetry",
+        "nexus_utils.config_loader",
+        "argparse"
+      ],
+      "execution_params": [],
+      "argparse_params": [
+        {
+          "name": "-i",
+          "type": "str",
+          "description": "测试输入内容",
+          "required": false,
+          "default": null,
+          "action": null
+        },
+        {
+          "name": "-e",
+          "type": "str",
+          "description": "指定Agent运行环境",
+          "required": false,
+          "default": "production",
+          "action": null
+        },
+        {
+          "name": "-v",
+          "type": "str",
+          "description": "指定Agent版本",
+          "required": false,
+          "default": "latest",
+          "action": null
+        },
+        {
+          "name": "-it",
+          "type": "str",
+          "description": "启动交互式多轮对话模式",
+          "required": false,
+          "default": false,
+          "action": "store_true"
+        }
+      ],
+      "error_message": ""
+    }
+  ],
+  "prompt_files": [
+    {
+      "prompt_path": "generated_agents_prompts/simple_agent/simple_agent_prompt.yaml",
+      "tool_count": 11,
+      "valid": true,
+      "error_message": "",
+      "metadata": {
+        "tags": [
+          "html_generation",
+          "document_generation",
+          "s3_storage",
+          "content_creation",
+          "aws_integration"
+        ],
+        "supported_models": [
+          "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
+        ],
+        "tools_dependencies": [
+          "strands_tools/current_time",
+          "generated_tools/simple_agent/html_s3_tools/validate_input",
+          "generated_tools/simple_agent/html_s3_tools/generate_html_document",
+          "generated_tools/simple_agent/html_s3_tools/validate_html_content",
+          "generated_tools/simple_agent/html_s3_tools/sanitize_html_content",
+          "generated_tools/simple_agent/html_s3_tools/upload_to_s3",
+          "generated_tools/simple_agent/html_s3_tools/generate_presigned_url",
+          "generated_tools/simple_agent/html_s3_tools/check_s3_bucket_access",
+          "generated_tools/simple_agent/html_s3_tools/format_error_message",
+          "generated_tools/simple_agent/html_s3_tools/generate_html_metadata",
+          "generated_tools/simple_agent/html_s3_tools/get_s3_object_info"
+        ]
+      },
+      "agent_info": {
+        "name": "simple_agent",
+        "description": "HTML文档生成与S3上传Agent - 根据用户给定的内容和要求生成高质量HTML文档，并上传至S3存储桶创建预签名URL返回给用户",
+        "category": "document_generation"
+      }
+    },
+    {
+      "prompt_path": "generated_agents_prompts/simple_agent/simple_agent.yaml",
+      "tool_count": 11,
+      "valid": true,
+      "error_message": "",
+      "metadata": {
+        "tags": [
+          "html_generation",
+          "document_generation",
+          "s3_storage",
+          "content_creation",
+          "aws_integration"
+        ],
+        "supported_models": [
+          "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
+        ],
+        "tools_dependencies": [
+          "strands_tools/current_time",
+          "generated_tools/simple_agent/html_s3_tools/validate_input",
+          "generated_tools/simple_agent/html_s3_tools/generate_html_document",
+          "generated_tools/simple_agent/html_s3_tools/validate_html_content",
+          "generated_tools/simple_agent/html_s3_tools/sanitize_html_content",
+          "generated_tools/simple_agent/html_s3_tools/upload_to_s3",
+          "generated_tools/simple_agent/html_s3_tools/generate_presigned_url",
+          "generated_tools/simple_agent/html_s3_tools/check_s3_bucket_access",
+          "generated_tools/simple_agent/html_s3_tools/format_error_message",
+          "generated_tools/simple_agent/html_s3_tools/generate_html_metadata",
+          "generated_tools/simple_agent/html_s3_tools/get_s3_object_info"
+        ]
+      },
+      "agent_info": {
+        "name": "simple_agent",
+        "description": "HTML文档生成与S3上传Agent - 根据用户给定的内容和要求生成高质量HTML文档，并上传至S3存储桶创建预签名URL返回给用户",
+        "category": "document_generation"
+      }
+    }
+  ],
+  "generated_tools": [
+    {
+      "tool_path": "generated_tools/simple_agent/html_s3_tools.py",
+      "syntax_valid": true,
+      "error_message": ""
+    }
+  ],
+  "total_tools": 22,
+  "summary": {
+    "agent_scripts_count": 1,
+    "prompt_files_count": 2,
+    "generated_tool_files_count": 1,
+    "all_scripts_valid": true,
+    "all_tools_valid": true,
+    "all_prompts_valid": true
+  }
+}

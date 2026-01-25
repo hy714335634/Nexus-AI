@@ -381,6 +381,10 @@ async def stream_chat(
             current_tool_input = ""
             # 用于保存工具调用信息到数据库
             tool_calls_for_db = []
+            # 用于保存内容块顺序（文本和工具调用的交替顺序）
+            content_blocks_for_db = []
+            # 当前文本块 ID
+            current_text_block_id = None
             
             try:
                 if runtime_arn:
@@ -407,6 +411,21 @@ async def stream_chat(
                             if msg_type == "text":
                                 text_content = event.get("data", "")
                                 assistant_chunks.append(text_content)
+                                # 更新内容块顺序
+                                if not current_text_block_id:
+                                    # 创建新的文本块
+                                    current_text_block_id = f"text-{len(content_blocks_for_db)}"
+                                    content_blocks_for_db.append({
+                                        "type": "text",
+                                        "id": current_text_block_id,
+                                        "text": text_content
+                                    })
+                                else:
+                                    # 追加到现有文本块
+                                    for block in content_blocks_for_db:
+                                        if block["id"] == current_text_block_id:
+                                            block["text"] = block.get("text", "") + text_content
+                                            break
                                 yield _format_sse({
                                     "event": "message",
                                     "type": "text",
@@ -417,6 +436,8 @@ async def stream_chat(
                                 current_tool_name = event.get("tool_name", "unknown")
                                 current_tool_id = event.get("tool_id", "")
                                 current_tool_input = ""
+                                # 重置文本块 ID，下次文本会创建新块
+                                current_text_block_id = None
                                 # 添加新的工具调用记录
                                 tool_calls_for_db.append({
                                     "name": current_tool_name,
@@ -424,6 +445,12 @@ async def stream_chat(
                                     "input": "",
                                     "result": "",
                                     "status": "running"
+                                })
+                                # 添加工具块到内容块顺序
+                                content_blocks_for_db.append({
+                                    "type": "tool",
+                                    "id": current_tool_id,
+                                    "tool_name": current_tool_name
                                 })
                                 yield _format_sse({
                                     "event": "message",
@@ -441,6 +468,7 @@ async def stream_chat(
                                 yield _format_sse({
                                     "event": "message",
                                     "type": "tool_input",
+                                    "tool_id": current_tool_id,  # 添加 tool_id 以便前端匹配
                                     "data": input_chunk
                                 })
                             
@@ -454,6 +482,7 @@ async def stream_chat(
                                 yield _format_sse({
                                     "event": "message",
                                     "type": "tool_end",
+                                    "tool_id": current_tool_id,  # 添加 tool_id 以便前端匹配
                                     "tool_name": current_tool_name or event.get("tool_name", ""),
                                     "tool_input": current_tool_input or event.get("tool_input", ""),
                                     "tool_result": tool_result
@@ -481,6 +510,7 @@ async def stream_chat(
                     # 使用本地 Agent
                     logger.info(f"Using local agent: path={agent_path}, prompt={prompt_path}")
                     
+                    event_count = 0
                     async for event in invoke_local_agent_stream(
                         agent_id=agent_id,
                         agent_path=agent_path,
@@ -488,7 +518,9 @@ async def stream_chat(
                         message=request.content,
                         prompt_path=prompt_path,
                     ):
+                        event_count += 1
                         event_type = event.get("event")
+                        logger.debug(f"[Stream] Event #{event_count}: type={event_type}, msg_type={event.get('type')}")
                         
                         if event_type == "connected":
                             yield _format_sse({"event": "connected", "session_id": session_id})
@@ -499,6 +531,21 @@ async def stream_chat(
                             if msg_type == "text":
                                 text_content = event.get("data", "")
                                 assistant_chunks.append(text_content)
+                                # 更新内容块顺序
+                                if not current_text_block_id:
+                                    # 创建新的文本块
+                                    current_text_block_id = f"text-{len(content_blocks_for_db)}"
+                                    content_blocks_for_db.append({
+                                        "type": "text",
+                                        "id": current_text_block_id,
+                                        "text": text_content
+                                    })
+                                else:
+                                    # 追加到现有文本块
+                                    for block in content_blocks_for_db:
+                                        if block["id"] == current_text_block_id:
+                                            block["text"] = block.get("text", "") + text_content
+                                            break
                                 yield _format_sse({
                                     "event": "message",
                                     "type": "text",
@@ -510,6 +557,8 @@ async def stream_chat(
                                 current_tool_name = event.get("tool_name", "unknown")
                                 current_tool_id = event.get("tool_id", "")
                                 current_tool_input = ""
+                                # 重置文本块 ID，下次文本会创建新块
+                                current_text_block_id = None
                                 # 添加新的工具调用记录
                                 tool_calls_for_db.append({
                                     "name": current_tool_name,
@@ -517,6 +566,12 @@ async def stream_chat(
                                     "input": "",
                                     "result": "",
                                     "status": "running"
+                                })
+                                # 添加工具块到内容块顺序
+                                content_blocks_for_db.append({
+                                    "type": "tool",
+                                    "id": current_tool_id,
+                                    "tool_name": current_tool_name
                                 })
                                 yield _format_sse({
                                     "event": "message",
@@ -528,6 +583,8 @@ async def stream_chat(
                             elif msg_type == "tool_input":
                                 # 工具输入增量
                                 input_chunk = event.get("data", "")
+                                # 优先使用事件中的 tool_id，回退到当前跟踪的 tool_id
+                                event_tool_id = event.get("tool_id", current_tool_id)
                                 current_tool_input += input_chunk
                                 # 更新最后一个工具调用的输入
                                 if tool_calls_for_db:
@@ -535,20 +592,32 @@ async def stream_chat(
                                 yield _format_sse({
                                     "event": "message",
                                     "type": "tool_input",
+                                    "tool_id": event_tool_id,  # 添加 tool_id 以便前端匹配
                                     "data": input_chunk
                                 })
                             
                             elif msg_type == "tool_end":
                                 # 工具调用结束
                                 tool_result = event.get("tool_result", "")
-                                # 更新最后一个工具调用的结果和状态
+                                event_tool_id = event.get("tool_id", current_tool_id)
+                                # 更新对应工具调用的结果和状态
                                 if tool_calls_for_db:
-                                    tool_calls_for_db[-1]["input"] = current_tool_input or event.get("tool_input", "")
-                                    tool_calls_for_db[-1]["result"] = tool_result
-                                    tool_calls_for_db[-1]["status"] = "success"
+                                    # 通过 tool_id 查找并更新
+                                    for tc in tool_calls_for_db:
+                                        if tc.get("id") == event_tool_id:
+                                            tc["input"] = current_tool_input or event.get("tool_input", "")
+                                            tc["result"] = tool_result
+                                            tc["status"] = "success"
+                                            break
+                                    else:
+                                        # 回退：更新最后一个
+                                        tool_calls_for_db[-1]["input"] = current_tool_input or event.get("tool_input", "")
+                                        tool_calls_for_db[-1]["result"] = tool_result
+                                        tool_calls_for_db[-1]["status"] = "success"
                                 yield _format_sse({
                                     "event": "message",
                                     "type": "tool_end",
+                                    "tool_id": event_tool_id,
                                     "tool_name": current_tool_name or event.get("tool_name", ""),
                                     "tool_input": current_tool_input or event.get("tool_input", ""),
                                     "tool_result": tool_result
@@ -564,6 +633,7 @@ async def stream_chat(
                             })
                         
                         elif event_type == "done":
+                            logger.info(f"[Stream] Received done event from local agent, total events: {event_count}")
                             yield _format_sse({"event": "done"})
                 
                 else:
@@ -593,24 +663,43 @@ async def stream_chat(
                 })
             
             finally:
-                # 保存助手消息（包含工具调用信息）
+                # 异步保存助手消息（包含工具调用信息和内容块顺序）
+                # 使用后台任务，不阻塞流式响应
                 if assistant_chunks:
-                    # 构建消息元数据，包含工具调用信息（截断大型数据）
+                    # 构建消息元数据
                     message_metadata = {}
+                    
+                    # 保存工具调用信息（截断大型数据）
                     if tool_calls_for_db:
-                        # 截断工具调用数据，防止超过 DynamoDB 大小限制
                         message_metadata["tool_calls"] = _truncate_tool_calls(tool_calls_for_db)
                     
-                    try:
-                        session_service.add_message(
-                            session_id=session_id,
-                            role='assistant',
-                            content="".join(assistant_chunks),
-                            metadata=message_metadata if message_metadata else None
-                        )
-                    except Exception as save_error:
-                        # 如果保存失败，记录错误但不影响流式响应
-                        logger.error(f"Failed to save assistant message: {save_error}")
+                    # 保存内容块顺序（用于前端恢复文本和工具调用的交替顺序）
+                    # 注意：不截断文本内容，保持完整性
+                    if content_blocks_for_db:
+                        message_metadata["content_blocks"] = content_blocks_for_db
+                    
+                    # 准备保存数据
+                    final_content = "".join(assistant_chunks)
+                    final_metadata = message_metadata if message_metadata else None
+                    final_session_id = session_id
+                    
+                    # 定义异步保存函数
+                    async def save_message_async():
+                        """后台异步保存消息到数据库"""
+                        try:
+                            session_service.add_message(
+                                session_id=final_session_id,
+                                role='assistant',
+                                content=final_content,
+                                metadata=final_metadata
+                            )
+                            logger.info(f"Assistant message saved to session {final_session_id}")
+                        except Exception as save_error:
+                            # 如果保存失败，记录错误但不影响流式响应
+                            logger.error(f"Failed to save assistant message: {save_error}")
+                    
+                    # 在后台执行保存操作，不阻塞
+                    asyncio.create_task(save_message_async())
         
         return StreamingResponse(
             generate(),

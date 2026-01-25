@@ -276,6 +276,14 @@ class DynamoDBClient:
         )
         items = [self._from_dynamo(item) for item in response.get('Items', [])]
         return sorted(items, key=lambda x: x.get('stage_number', 0))
+    
+    @retry_on_error()
+    def delete_stage(self, project_id: str, stage_name: str) -> bool:
+        """删除阶段"""
+        self.stages_table.delete_item(
+            Key={'project_id': project_id, 'stage_name': stage_name}
+        )
+        return True
 
     # ============== Agents ==============
     

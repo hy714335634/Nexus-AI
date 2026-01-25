@@ -42,8 +42,8 @@ export function useSessionMessagesV2(
       return response.data || [];
     },
     enabled: Boolean(sessionId),
-    staleTime: 5_000,
-    refetchInterval: 10_000, // Auto-refresh every 10 seconds
+    staleTime: 30_000, // 增加 stale time，减少不必要的请求
+    refetchInterval: false, // 禁用自动轮询，由前端手动控制刷新时机
     ...options,
   });
 }

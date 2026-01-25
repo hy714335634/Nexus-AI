@@ -552,8 +552,10 @@ async def invoke_local_agent_stream(
     """
     调用本地 Agent（流式）
     
-    使用 create_agent_from_prompt_template 创建 agent 实例，
-    并通过 stream_async 实现真正的流式输出
+    使用简化的事件处理逻辑：
+    - 只处理带 "data" 键的文本事件（避免与 contentBlockDelta 重复）
+    - 使用 tool_use_stream 事件处理工具调用
+    - 使用 message 事件处理工具结果
     
     参数:
         agent_id: Agent ID
@@ -565,13 +567,12 @@ async def invoke_local_agent_stream(
     yield {"event": "connected", "session_id": session_id}
     
     try:
-        # 尝试从提示词模板创建 Agent
+        # 从提示词模板创建 Agent
         agent = None
         
         if prompt_path:
             logger.info(f"Creating agent from prompt template: {prompt_path}")
             try:
-                # 在线程池中执行同步的 agent 创建
                 loop = asyncio.get_event_loop()
                 agent = await loop.run_in_executor(
                     None,
@@ -582,7 +583,6 @@ async def invoke_local_agent_stream(
                 logger.warning(f"Failed to create agent from prompt template: {e}")
         
         if not agent:
-            # 回退：返回错误信息
             logger.warning(f"No valid agent configuration found for {agent_id}")
             yield {
                 "event": "error",
@@ -592,266 +592,128 @@ async def invoke_local_agent_stream(
         
         logger.info(f"Successfully created agent for {agent_id}, starting stream...")
         
-        # 使用队列实现异步流式传输
-        import queue
-        import threading
-        
-        event_queue = queue.Queue()
-        stream_complete = threading.Event()
-        
-        def _run_agent_stream():
-            """在后台线程中运行 agent 流式调用"""
-            try:
-                import asyncio as async_lib
-                
-                # 创建新的事件循环用于后台线程
-                new_loop = async_lib.new_event_loop()
-                async_lib.set_event_loop(new_loop)
-                
-                async def _stream_agent():
-                    """异步流式调用 agent"""
-                    try:
-                        # 用于去重的状态跟踪（工具输入）
-                        last_tool_input_chunk = ""
-                        
-                        async for event in agent.stream_async(message):
-                            # 调试日志：打印所有事件
-                            logger.debug(f"[LOCAL_AGENT] Raw event: {str(event)[:200]}")
-                            
-                            # 解析 strands agent 的流式事件
-                            # 实际测试发现的事件格式：
-                            # 1. 初始化: {'init_event_loop': true}, {'start': true}, {'start_event_loop': true}
-                            # 2. 消息开始: {'event': {'messageStart': {...}}}
-                            # 3. 工具调用开始: {'event': {'contentBlockStart': {'start': {'toolUse': {...}}}}}
-                            # 4. 工具输入增量: {'event': {'contentBlockDelta': {...}}} + {'type': 'tool_use_stream', ...}
-                            # 5. 内容块结束: {'event': {'contentBlockStop': {...}}}
-                            # 6. 消息结束: {'event': {'messageStop': {...}}}
-                            # 7. 文本增量: {'event': {'contentBlockDelta': {...}}} (包含 delta.text)
-                            # 8. 工具结果: {'message': {'role': 'user', 'content': [{'toolResult': {...}}]}}
-                            
-                            if isinstance(event, dict):
-                                # 处理 'event' 键包装的事件（主要事件类型）
-                                if "event" in event:
-                                    inner_event = event["event"]
-                                    if isinstance(inner_event, dict):
-                                        # 工具调用开始
-                                        if "contentBlockStart" in inner_event:
-                                            start_data = inner_event["contentBlockStart"]
-                                            logger.info(f"contentBlockStart received: {start_data}")
-                                            # 检查多种可能的格式
-                                            tool_use = None
-                                            if "start" in start_data and "toolUse" in start_data.get("start", {}):
-                                                tool_use = start_data["start"]["toolUse"]
-                                                logger.info(f"Found toolUse in start.toolUse: {tool_use}")
-                                            elif "toolUse" in start_data:
-                                                tool_use = start_data["toolUse"]
-                                                logger.info(f"Found toolUse directly: {tool_use}")
-                                            
-                                            if tool_use:
-                                                event_queue.put(("tool_use", {
-                                                    "name": tool_use.get("name", "unknown"),
-                                                    "id": tool_use.get("toolUseId", ""),
-                                                }))
-                                                logger.info(f"Tool use started: {tool_use.get('name')}")
-                                                # 重置去重状态
-                                                last_tool_input_chunk = ""
-                                            else:
-                                                logger.warning(f"contentBlockStart without toolUse: {start_data}")
-                                        
-                                        # 内容块增量（文本或工具输入）
-                                        elif "contentBlockDelta" in inner_event:
-                                            delta_data = inner_event["contentBlockDelta"]
-                                            delta = delta_data.get("delta", {})
-                                            
-                                            # 文本增量 - 直接发送，不需要去重
-                                            # 因为我们只处理 contentBlockDelta，忽略重复的 data 事件
-                                            if "text" in delta:
-                                                text = delta["text"]
-                                                if text:
-                                                    event_queue.put(("text", text))
-                                            
-                                            # 工具输入增量（在 toolUse.input 中）
-                                            elif "toolUse" in delta:
-                                                input_chunk = delta["toolUse"].get("input", "")
-                                                # 去重：检查是否与上一个工具输入块相同
-                                                if input_chunk and input_chunk != last_tool_input_chunk:
-                                                    event_queue.put(("tool_input_delta", input_chunk))
-                                                    last_tool_input_chunk = input_chunk
-                                        
-                                        # 内容块结束（可能是工具调用结束或文本结束）
-                                        elif "contentBlockStop" in inner_event:
-                                            event_queue.put(("content_block_stop", {}))
-                                            # 重置工具输入去重状态
-                                            last_tool_input_chunk = ""
-                                        
-                                        # 消息结束
-                                        elif "messageStop" in inner_event:
-                                            event_queue.put(("message_stop", {
-                                                "stop_reason": inner_event["messageStop"].get("stopReason", "")
-                                            }))
-                                
-                                # 处理工具输入流事件（另一种格式）
-                                # 注意：这个事件可能与 contentBlockDelta 重复，需要跳过
-                                elif event.get("type") == "tool_use_stream":
-                                    # 跳过此事件，因为 contentBlockDelta 已经处理了工具输入
-                                    # 这样可以避免重复
-                                    pass
-                                
-                                # 处理工具结果消息
-                                elif "message" in event:
-                                    msg = event["message"]
-                                    if isinstance(msg, dict) and msg.get("role") == "user":
-                                        content = msg.get("content", [])
-                                        for item in content:
-                                            if isinstance(item, dict) and "toolResult" in item:
-                                                tool_result = item["toolResult"]
-                                                result_content = tool_result.get("content", [])
-                                                result_text = ""
-                                                for rc in result_content:
-                                                    if isinstance(rc, dict) and "text" in rc:
-                                                        result_text += rc["text"]
-                                                event_queue.put(("tool_result", {
-                                                    "tool_id": tool_result.get("toolUseId", ""),
-                                                    "status": tool_result.get("status", ""),
-                                                    "result": result_text
-                                                }))
-                                
-                                # 忽略 'data' 键的文本事件
-                                # 这些事件与 contentBlockDelta.text 重复，只处理 contentBlockDelta 即可
-                                elif "data" in event and isinstance(event.get("data"), str):
-                                    pass
-                                
-                                # 忽略初始化事件
-                                elif "init_event_loop" in event or "start" in event or "start_event_loop" in event:
-                                    pass
-                                
-                            elif isinstance(event, str):
-                                # 忽略字符串类型的事件
-                                # 这些事件与 contentBlockDelta.text 重复
-                                pass
-                                    
-                    except Exception as e:
-                        logger.error(f"Agent stream error: {e}", exc_info=True)
-                        event_queue.put(("error", str(e)))
-                
-                new_loop.run_until_complete(_stream_agent())
-                
-            except Exception as e:
-                logger.error(f"Agent thread error: {e}", exc_info=True)
-                event_queue.put(("error", str(e)))
-            finally:
-                stream_complete.set()
-                event_queue.put(("done", None))
-        
-        # 启动后台线程
-        stream_thread = threading.Thread(target=_run_agent_stream, daemon=True)
-        stream_thread.start()
-        
-        # 从队列中读取并 yield 事件
+        # 状态跟踪
         current_tool_name = None
         current_tool_id = None
         current_tool_input = ""
-        in_tool_use = False
+        # 已发送的工具 ID 集合，用于去重
+        sent_tool_ids = set()
         
-        while True:
-            try:
-                event_type, data = event_queue.get(timeout=0.1)
-                
-                if event_type == "done":
-                    break
-                elif event_type == "error":
-                    yield {"event": "error", "error": data}
-                    break
-                elif event_type == "text":
+        # 直接使用 agent.stream_async() 处理流式事件
+        async for event in agent.stream_async(message):
+            if not isinstance(event, dict):
+                continue
+            
+            # 1. 文本数据 - 只处理带 "data" 键的事件
+            # 注意：Strands 会同时发送 {"data": "text"} 和 {"event": {"contentBlockDelta": {"delta": {"text": "text"}}}}
+            # 我们只处理 "data" 键的事件，避免重复
+            if "data" in event and isinstance(event["data"], str):
+                text = event["data"]
+                if text:
                     yield {
                         "event": "message",
                         "type": "text",
-                        "data": data
+                        "data": text
                     }
-                elif event_type == "tool_use":
-                    # 工具调用开始
-                    current_tool_name = data.get("name", "unknown")
-                    current_tool_id = data.get("id", "")
+                    await asyncio.sleep(0)
+                continue  # 处理完 data 事件后跳过其他检查
+            
+            # 2. 工具流式事件 - type: tool_use_stream
+            # 这是工具调用的主要事件源
+            if event.get("type") == "tool_use_stream":
+                current_tool_info = event.get("current_tool_use", {})
+                tool_id = current_tool_info.get("toolUseId", "")
+                tool_name = current_tool_info.get("name", "unknown")
+                
+                # 如果是新工具调用（ID 不同且未发送过）
+                if tool_id and tool_id not in sent_tool_ids:
+                    current_tool_name = tool_name
+                    current_tool_id = tool_id
                     current_tool_input = ""
-                    in_tool_use = True
+                    sent_tool_ids.add(tool_id)
+                    logger.info(f"Tool use started: {current_tool_name}, id: {current_tool_id}")
                     yield {
                         "event": "message",
                         "type": "tool_use",
                         "tool_name": current_tool_name,
                         "tool_id": current_tool_id
                     }
-                elif event_type == "tool_input":
-                    # 工具输入增量（来自 tool_use_stream 事件）
-                    input_chunk = data.get("input", "")
-                    current_tool_input = data.get("accumulated_input", current_tool_input + input_chunk)
-                    yield {
-                        "event": "message",
-                        "type": "tool_input",
-                        "data": input_chunk
-                    }
-                elif event_type == "tool_input_delta":
-                    # 工具输入增量（来自 contentBlockDelta 事件）
-                    current_tool_input += data
-                    yield {
-                        "event": "message",
-                        "type": "tool_input",
-                        "data": data
-                    }
-                elif event_type == "content_block_stop":
-                    # 内容块结束，如果在工具调用中，发送工具结束事件
-                    if in_tool_use:
+                    await asyncio.sleep(0)
+                
+                # 工具输入增量
+                delta = event.get("delta", {})
+                if "toolUse" in delta:
+                    input_chunk = delta["toolUse"].get("input", "")
+                    if input_chunk:
+                        current_tool_input += input_chunk
                         yield {
                             "event": "message",
-                            "type": "tool_end",
-                            "tool_name": current_tool_name or "",
-                            "tool_id": current_tool_id or "",
-                            "tool_input": current_tool_input
+                            "type": "tool_input",
+                            "tool_id": current_tool_id,
+                            "data": input_chunk
                         }
-                        # 不重置状态，等待工具结果
-                elif event_type == "tool_result":
-                    # 工具执行完成，发送带结果的工具结束事件
-                    yield {
-                        "event": "message",
-                        "type": "tool_end",
-                        "tool_name": current_tool_name or "",
-                        "tool_id": data.get("tool_id", current_tool_id or ""),
-                        "tool_input": current_tool_input,
-                        "tool_result": data.get("result", "")
-                    }
-                    # 重置工具状态
-                    current_tool_name = None
-                    current_tool_id = None
-                    current_tool_input = ""
-                    in_tool_use = False
-                elif event_type == "tool_end":
-                    # 旧格式的工具结束事件
-                    yield {
-                        "event": "message",
-                        "type": "tool_end",
-                        "tool_name": current_tool_name or "",
-                        "tool_result": data.get("result", "")
-                    }
-                    current_tool_name = None
-                    current_tool_id = None
-                    current_tool_input = ""
-                    in_tool_use = False
-                elif event_type == "message_stop":
-                    # 消息结束，但 agent 可能继续下一轮循环
-                    pass
-                
-                # 让出控制权
-                await asyncio.sleep(0)
-                
-            except queue.Empty:
-                if stream_complete.is_set():
-                    break
-                await asyncio.sleep(0.01)
+                        await asyncio.sleep(0)
+                continue
+            
+            # 3. 消息事件 - 包含工具结果
+            if "message" in event:
+                msg = event["message"]
+                if isinstance(msg, dict):
+                    role = msg.get("role")
+                    content = msg.get("content", [])
+                    
+                    # 工具结果在 user 消息中
+                    if role == "user":
+                        for item in content:
+                            if isinstance(item, dict) and "toolResult" in item:
+                                tool_result = item["toolResult"]
+                                result_content = tool_result.get("content", [])
+                                result_text = ""
+                                for rc in result_content:
+                                    if isinstance(rc, dict) and "text" in rc:
+                                        result_text += rc["text"]
+                                
+                                tool_id_from_result = tool_result.get("toolUseId", current_tool_id or "")
+                                logger.info(f"Tool result received: tool_id={tool_id_from_result}, result_len={len(result_text)}")
+                                yield {
+                                    "event": "message",
+                                    "type": "tool_end",
+                                    "tool_name": current_tool_name or "",
+                                    "tool_id": tool_id_from_result,
+                                    "tool_input": current_tool_input,
+                                    "tool_result": result_text
+                                }
+                                await asyncio.sleep(0)
+                                
+                                # 重置工具状态
+                                current_tool_name = None
+                                current_tool_id = None
+                                current_tool_input = ""
+                continue
+            
+            # 4. Agent 完成
+            if "result" in event:
+                logger.info(f"Agent completed for session {session_id}, result keys: {event.get('result', {}).keys() if isinstance(event.get('result'), dict) else 'N/A'}")
+                continue
+            
+            # 5. 强制停止
+            if event.get("force_stop", False):
+                reason = event.get("force_stop_reason", "unknown")
+                logger.warning(f"Agent force stopped: {reason}")
+                yield {
+                    "event": "error",
+                    "error": f"Agent 被强制停止: {reason}"
+                }
         
+        # 流式输出完成，发送 done 事件
+        logger.info(f"Stream completed for session {session_id}, sending done event")
         yield {"event": "done"}
         
     except Exception as e:
         logger.error(f"Local agent stream error: {e}", exc_info=True)
         yield {"event": "error", "error": str(e)}
+        # 即使出错也发送 done 事件，确保前端能正确结束流式状态
+        yield {"event": "done"}
 
 
 def _create_agent_from_template(prompt_path: str):

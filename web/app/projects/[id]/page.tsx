@@ -71,7 +71,7 @@ export default function ProjectDetailPage({ params }: PageProps) {
   };
 
   const handleDelete = async () => {
-    if (!confirm('确定要删除此项目吗？此操作不可撤销。')) return;
+    if (!confirm('确定要删除此项目吗？\n\n此操作将删除：\n• 项目目录 (projects/)\n• 生成的Agent代码 (agents/generated_agents/)\n• 生成的提示词 (prompts/generated_agents_prompts/)\n• 生成的工具 (tools/generated_tools/)\n• 数据库中的项目记录\n\n此操作不可撤销！')) return;
     try {
       await deleteProject.mutateAsync(id);
       toast.success('项目已删除');

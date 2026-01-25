@@ -192,9 +192,29 @@ export async function invokeAgent(
 
 /**
  * 删除 Agent
+ * 
+ * @param agentId Agent ID
+ * @param options 删除选项
+ * @param options.deleteLocalFiles 是否删除本地文件
+ * @param options.deleteCloudResources 是否删除云资源（AgentCore、ECR）
  */
-export async function deleteAgent(agentId: string): Promise<APIResponse> {
-  return apiFetch<APIResponse>(`/agents/${agentId}`, {
+export async function deleteAgent(
+  agentId: string,
+  options?: {
+    deleteLocalFiles?: boolean;
+    deleteCloudResources?: boolean;
+  }
+): Promise<APIResponse> {
+  const searchParams = new URLSearchParams();
+  if (options?.deleteLocalFiles) {
+    searchParams.set('delete_local_files', 'true');
+  }
+  if (options?.deleteCloudResources) {
+    searchParams.set('delete_cloud_resources', 'true');
+  }
+  
+  const query = searchParams.toString();
+  return apiFetch<APIResponse>(`/agents/${agentId}${query ? `?${query}` : ''}`, {
     method: 'DELETE',
   });
 }
@@ -297,17 +317,81 @@ export async function getAgentContext(agentId: string): Promise<APIResponse<Agen
 }
 
 /**
- * 流式对话（通过后端代理）
+ * 解析 SSE 数据块并提取事件
+ * 
+ * @param chunk - SSE 数据块（可能包含多行）
+ * @returns 解析出的事件数据，如果解析失败则返回 null
+ */
+function parseSSEChunk(chunk: string): StreamEvent | null {
+  if (!chunk || !chunk.trim()) return null;
+  
+  // 查找 data: 开头的行
+  const lines = chunk.split('\n');
+  for (const line of lines) {
+    const trimmedLine = line.trim();
+    if (trimmedLine.startsWith('data: ')) {
+      try {
+        const jsonStr = trimmedLine.slice(6);
+        if (jsonStr) {
+          return JSON.parse(jsonStr) as StreamEvent;
+        }
+      } catch {
+        // 忽略解析错误
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * 获取流式 API 的直接后端 URL
+ * 绕过 Next.js rewrites 代理，避免响应被缓冲
+ * 
+ * 注意：Next.js 的 NEXT_PUBLIC_* 环境变量在构建时内联
+ * 如果未设置，默认使用当前页面的 origin（同源）或 localhost:8000
+ */
+function getStreamApiUrl(path: string): string {
+  // 优先使用环境变量（构建时内联）
+  const envUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+  
+  if (envUrl) {
+    return `${envUrl}/api/v2${path}`;
+  }
+  
+  // 在浏览器端，尝试使用同源后端（如果前后端部署在同一域名下）
+  // 否则回退到 localhost:8000
+  if (typeof window !== 'undefined') {
+    // 开发环境默认使用 localhost:8000
+    // 生产环境如果前后端同源，可以使用 window.location.origin
+    const backendUrl = 'http://localhost:8000';
+    return `${backendUrl}/api/v2${path}`;
+  }
+  
+  return `http://localhost:8000/api/v2${path}`;
+}
+
+/**
+ * 流式对话（直接连接后端，绕过 Next.js 代理）
  */
 export async function* streamChat(
   sessionId: string,
   content: string
 ): AsyncGenerator<StreamEvent> {
-  const response = await fetch(`${API_BASE}/sessions/${sessionId}/stream`, {
+  // 直接访问后端 API，绕过 Next.js rewrites 代理
+  // Next.js rewrites 会缓冲整个响应，导致无法实现真正的流式输出
+  const streamUrl = getStreamApiUrl(`/sessions/${sessionId}/stream`);
+  
+  // 调试日志
+  console.log('[streamChat] Connecting to:', streamUrl);
+  
+  const response = await fetch(streamUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ content, role: 'user' }),
   });
+  
+  console.log('[streamChat] Response status:', response.status);
+  console.log('[streamChat] Response headers:', Object.fromEntries(response.headers.entries()));
   
   if (!response.ok) {
     throw new ApiError(response.status, '流式对话失败');
@@ -320,25 +404,45 @@ export async function* streamChat(
   
   const decoder = new TextDecoder();
   let buffer = '';
+  let eventCount = 0;
   
   while (true) {
     const { done, value } = await reader.read();
-    if (done) break;
     
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split('\n\n');
-    buffer = lines.pop() || '';
+    if (value) {
+      const chunk = decoder.decode(value, { stream: true });
+      buffer += chunk;
+      console.log('[streamChat] Received chunk, buffer length:', buffer.length);
+    }
     
-    for (const chunk of lines) {
-      const dataLine = chunk.split('\n').find(line => line.startsWith('data: '));
-      if (dataLine) {
-        try {
-          const data = JSON.parse(dataLine.slice(6));
-          yield data as StreamEvent;
-        } catch {
-          // 忽略解析错误
+    // 按双换行符分割 SSE 事件
+    // SSE 格式: data: {...}\n\n
+    let eventEndIndex: number;
+    while ((eventEndIndex = buffer.indexOf('\n\n')) !== -1) {
+      const chunk = buffer.slice(0, eventEndIndex);
+      buffer = buffer.slice(eventEndIndex + 2);
+      
+      const event = parseSSEChunk(chunk);
+      if (event) {
+        eventCount++;
+        console.log('[streamChat] Yielding event #' + eventCount + ':', event.event, event.type);
+        yield event;
+      }
+    }
+    
+    if (done) {
+      console.log('[streamChat] Stream done, remaining buffer:', buffer.length);
+      // 流结束时，处理缓冲区中剩余的数据
+      if (buffer.trim()) {
+        const event = parseSSEChunk(buffer);
+        if (event) {
+          eventCount++;
+          console.log('[streamChat] Yielding final event #' + eventCount + ':', event.event, event.type);
+          yield event;
         }
       }
+      console.log('[streamChat] Total events yielded:', eventCount);
+      break;
     }
   }
 }
@@ -358,9 +462,10 @@ export async function* streamChatDirect(
     region?: string;
   }
 ): AsyncGenerator<StreamEvent> {
-  // 通过后端的代理端点调用 AgentCore
-  // 这样可以复用后端的 AWS 凭证，同时保持流式传输
-  const response = await fetch(`${API_BASE}/agentcore/stream`, {
+  // 直接访问后端 API，绕过 Next.js rewrites 代理
+  const streamUrl = getStreamApiUrl('/agentcore/stream');
+  
+  const response = await fetch(streamUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -386,22 +491,32 @@ export async function* streamChatDirect(
   
   while (true) {
     const { done, value } = await reader.read();
-    if (done) break;
     
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split('\n\n');
-    buffer = lines.pop() || '';
+    if (value) {
+      buffer += decoder.decode(value, { stream: true });
+    }
     
-    for (const chunk of lines) {
-      const dataLine = chunk.split('\n').find(line => line.startsWith('data: '));
-      if (dataLine) {
-        try {
-          const data = JSON.parse(dataLine.slice(6));
-          yield data as StreamEvent;
-        } catch {
-          // 忽略解析错误
+    // 按双换行符分割 SSE 事件
+    let eventEndIndex: number;
+    while ((eventEndIndex = buffer.indexOf('\n\n')) !== -1) {
+      const chunk = buffer.slice(0, eventEndIndex);
+      buffer = buffer.slice(eventEndIndex + 2);
+      
+      const event = parseSSEChunk(chunk);
+      if (event) {
+        yield event;
+      }
+    }
+    
+    if (done) {
+      // 流结束时，处理缓冲区中剩余的数据
+      if (buffer.trim()) {
+        const event = parseSSEChunk(buffer);
+        if (event) {
+          yield event;
         }
       }
+      break;
     }
   }
 }
