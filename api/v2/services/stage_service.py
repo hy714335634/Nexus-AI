@@ -10,6 +10,7 @@ Stage Service v2 - 统一的阶段状态管理服务
 设计原则:
 - 单一数据源：所有阶段状态都写入 nexus_stages 表
 - 统一接口：旧的 stage_tracker 和新的 worker 都使用此服务
+- 阶段配置：使用 api.v2.core.stage_config 作为唯一配置来源
 
 Requirements:
     - 2.1: Stage_Output 包含 agent 输出内容，最大 400KB
@@ -33,30 +34,13 @@ from api.v2.models.schemas import (
     FileMetadataSchema,
     DesignDocumentSchema,
 )
+# 从统一配置模块导入阶段名称标准化函数
+from api.v2.core.stage_config import normalize_stage_name as _normalize_stage_name
 
 logger = logging.getLogger(__name__)
 
 # 内容大小限制（400KB）
 MAX_CONTENT_SIZE = 400 * 1024
-
-
-# 阶段名称映射：支持多种命名方式
-STAGE_NAME_MAPPING = {
-    # 工作流中使用的名称 -> BuildStage 枚举
-    "orchestrator": BuildStage.ORCHESTRATOR,
-    "requirements_analyzer": BuildStage.REQUIREMENTS_ANALYSIS,
-    "requirements_analysis": BuildStage.REQUIREMENTS_ANALYSIS,
-    "system_architect": BuildStage.SYSTEM_ARCHITECTURE,
-    "system_architecture": BuildStage.SYSTEM_ARCHITECTURE,
-    "agent_designer": BuildStage.AGENT_DESIGN,
-    "agent_design": BuildStage.AGENT_DESIGN,
-    "prompt_engineer": BuildStage.PROMPT_ENGINEER,
-    "tools_developer": BuildStage.TOOLS_DEVELOPER,
-    "tool_developer": BuildStage.TOOLS_DEVELOPER,
-    "agent_code_developer": BuildStage.AGENT_CODE_DEVELOPER,
-    "agent_developer_manager": BuildStage.AGENT_DEVELOPER_MANAGER,
-    "agent_deployer": BuildStage.AGENT_DEPLOYER,
-}
 
 
 class StageServiceV2:
@@ -80,24 +64,15 @@ class StageServiceV2:
         """
         将各种阶段名称标准化为 BuildStage 枚举值
         
+        使用统一配置模块 api.v2.core.stage_config 进行标准化
+        
         Args:
             stage_name: 阶段名称（可以是工作流名称或枚举值）
         
         Returns:
             标准化的阶段名称（BuildStage.value）或 None
         """
-        # 先尝试直接匹配
-        stage = STAGE_NAME_MAPPING.get(stage_name.lower())
-        if stage:
-            return stage.value
-        
-        # 尝试作为 BuildStage 枚举值
-        try:
-            return BuildStage(stage_name).value
-        except ValueError:
-            pass
-        
-        return None
+        return _normalize_stage_name(stage_name)
     
     def _now(self) -> str:
         """获取当前 UTC 时间的 ISO 格式字符串"""
@@ -143,6 +118,15 @@ class StageServiceV2:
                 logger.warning(
                     f"Project {project_id} is {control_status}, "
                     f"skipping stage {normalized_name}"
+                )
+                return False
+            
+            # 检查阶段是否存在，避免 DynamoDB update_item 自动创建新记录
+            existing_stage = self.db.get_stage(project_id, normalized_name)
+            if not existing_stage:
+                logger.warning(
+                    f"Stage {normalized_name} not found for project {project_id}, "
+                    f"original name: {stage_name}"
                 )
                 return False
             
@@ -206,8 +190,17 @@ class StageServiceV2:
         try:
             now = self._now()
             
+            # 检查阶段是否存在，避免 DynamoDB update_item 自动创建新记录
+            existing_stage = self.db.get_stage(project_id, normalized_name)
+            if not existing_stage:
+                logger.warning(
+                    f"Stage {normalized_name} not found for project {project_id}, "
+                    f"original name: {stage_name}, skipping completion"
+                )
+                return False
+            
             # 获取阶段记录计算耗时
-            stage_record = self.db.get_stage(project_id, normalized_name)
+            stage_record = existing_stage
             duration_seconds = None
             if stage_record and stage_record.get('started_at'):
                 try:
@@ -379,6 +372,15 @@ class StageServiceV2:
         
         try:
             now = self._now()
+            
+            # 检查阶段是否存在，避免 DynamoDB update_item 自动创建新记录
+            existing_stage = self.db.get_stage(project_id, normalized_name)
+            if not existing_stage:
+                logger.warning(
+                    f"Stage {normalized_name} not found for project {project_id}, "
+                    f"original name: {stage_name}, skipping failure mark"
+                )
+                return False
             
             # 构建更新数据
             updates = {

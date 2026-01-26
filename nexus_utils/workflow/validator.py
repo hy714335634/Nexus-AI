@@ -370,21 +370,21 @@ class DocumentValidator:
     Validates: Requirement 5.3 - 验证文档格式
     """
     
-    # 各阶段期望的文档格式
+    # 各阶段期望的文档格式 - 使用 BuildStage 枚举值
     STAGE_DOCUMENT_FORMATS = {
-        "requirements_analyzer": {
+        "requirements_analysis": {
             "format": "markdown",
             "required_sections": ["需求概述", "功能需求", "非功能需求"],
         },
-        "system_architect": {
+        "system_architecture": {
             "format": "json",
             "required_fields": ["architecture_type", "components"],
         },
-        "agent_designer": {
+        "agent_design": {
             "format": "markdown",
             "required_sections": ["Agent 设计", "能力定义"],
         },
-        "tool_developer": {
+        "tools_developer": {
             "format": "python",
             "required_patterns": [r"@tool", r"def\s+\w+"],
         },

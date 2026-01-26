@@ -5,6 +5,7 @@ Agent Runtime Service - Agent 运行时调用服务
 - 调用 AgentCore 运行时（流式）
 - 调用本地 Agent（流式）
 - 统一的流式响应格式
+- 支持多轮对话（通过 S3SessionManager）
 """
 import json
 import logging
@@ -17,6 +18,61 @@ from botocore.config import Config
 from api.v2.config import settings
 
 logger = logging.getLogger(__name__)
+
+
+# S3SessionManager 实例缓存
+_session_manager_cache: Dict[str, Any] = {}
+
+# Agent 实例缓存（按 session_id + prompt_path 组合）
+_agent_instance_cache: Dict[str, Any] = {}
+
+
+def _get_s3_session_manager(session_id: str):
+    """
+    获取或创建 S3SessionManager 实例
+    
+    使用 Strands 官方的 S3SessionManager 实现多轮对话持久化
+    
+    参数:
+        session_id: 会话 ID
+    
+    返回:
+        S3SessionManager 实例，如果未配置 S3 bucket 则返回 None
+    """
+    if not settings.SESSION_STORAGE_S3_BUCKET:
+        logger.warning("SESSION_STORAGE_S3_BUCKET not configured, multi-turn conversation disabled")
+        return None
+    
+    # 检查缓存
+    cache_key = f"{settings.SESSION_STORAGE_S3_BUCKET}:{session_id}"
+    if cache_key in _session_manager_cache:
+        return _session_manager_cache[cache_key]
+    
+    try:
+        from strands.session.s3_session_manager import S3SessionManager
+        
+        # 创建 S3SessionManager 实例
+        # 参数顺序: session_id, bucket, prefix, boto_session, boto_client_config, region_name
+        session_manager = S3SessionManager(
+            session_id=session_id,
+            bucket=settings.SESSION_STORAGE_S3_BUCKET,
+            prefix=settings.SESSION_STORAGE_S3_PREFIX,
+            region_name=settings.AWS_REGION
+        )
+        
+        logger.info(f"Created S3SessionManager for session {session_id}, bucket: {settings.SESSION_STORAGE_S3_BUCKET}")
+        
+        # 缓存实例
+        _session_manager_cache[cache_key] = session_manager
+        
+        return session_manager
+        
+    except ImportError as e:
+        logger.error(f"Failed to import S3SessionManager: {e}")
+        return None
+    except Exception as e:
+        logger.error(f"Failed to create S3SessionManager: {e}", exc_info=True)
+        return None
 
 
 def _decode_unicode_escapes(text: str) -> str:
@@ -556,6 +612,7 @@ async def invoke_local_agent_stream(
     - 只处理带 "data" 键的文本事件（避免与 contentBlockDelta 重复）
     - 使用 tool_use_stream 事件处理工具调用
     - 使用 message 事件处理工具结果
+    - 支持多轮对话（通过 S3SessionManager 持久化会话历史）
     
     参数:
         agent_id: Agent ID
@@ -567,20 +624,49 @@ async def invoke_local_agent_stream(
     yield {"event": "connected", "session_id": session_id}
     
     try:
-        # 从提示词模板创建 Agent
-        agent = None
+        # 构建 Agent 缓存 key（session_id + prompt_path 组合）
+        agent_cache_key = f"{session_id}:{prompt_path or agent_path}"
         
-        if prompt_path:
-            logger.info(f"Creating agent from prompt template: {prompt_path}")
-            try:
-                loop = asyncio.get_event_loop()
-                agent = await loop.run_in_executor(
-                    None,
-                    _create_agent_from_template,
-                    prompt_path
-                )
-            except Exception as e:
-                logger.warning(f"Failed to create agent from prompt template: {e}")
+        # 尝试从缓存获取 Agent 实例（支持多轮对话复用）
+        agent = _agent_instance_cache.get(agent_cache_key)
+        
+        if agent:
+            logger.info(f"Reusing cached agent for session {session_id}, prompt: {prompt_path}")
+        else:
+            # 首次对话或缓存已清理，需要创建 Agent 实例
+            # 获取 S3SessionManager 实例（用于多轮对话）
+            session_manager = _get_s3_session_manager(session_id)
+            if session_manager:
+                logger.info(f"Using S3SessionManager for multi-turn conversation, session: {session_id}")
+            else:
+                logger.info(f"S3SessionManager not available, single-turn mode for session: {session_id}")
+            
+            # 从提示词模板创建 Agent
+            if prompt_path:
+                logger.info(f"Creating agent from prompt template: {prompt_path}")
+                try:
+                    # 生成唯一的 agent_id 后缀，确保同一 session 中可以多次创建 Agent
+                    # 使用时间戳确保唯一性（用户重新打开旧 session 时需要）
+                    import time
+                    agent_id_suffix = str(int(time.time() * 1000))
+                    
+                    loop = asyncio.get_event_loop()
+                    agent = await loop.run_in_executor(
+                        None,
+                        lambda: _create_agent_from_template(
+                            prompt_path,
+                            session_manager,
+                            agent_id_suffix
+                        )
+                    )
+                    
+                    # 缓存 Agent 实例
+                    if agent:
+                        _agent_instance_cache[agent_cache_key] = agent
+                        logger.info(f"Cached agent instance for key: {agent_cache_key}")
+                        
+                except Exception as e:
+                    logger.warning(f"Failed to create agent from prompt template: {e}")
         
         if not agent:
             logger.warning(f"No valid agent configuration found for {agent_id}")
@@ -716,12 +802,14 @@ async def invoke_local_agent_stream(
         yield {"event": "done"}
 
 
-def _create_agent_from_template(prompt_path: str):
+def _create_agent_from_template(prompt_path: str, session_manager=None, agent_id_suffix: str = None):
     """
     从提示词模板创建 Agent（同步函数，用于线程池执行）
     
     参数:
         prompt_path: 提示词模板路径
+        session_manager: 会话管理器实例（用于多轮对话）
+        agent_id_suffix: Agent ID 后缀，用于确保同一 session 中 agent_id 唯一
     
     返回:
         Agent 实例
@@ -729,11 +817,25 @@ def _create_agent_from_template(prompt_path: str):
     try:
         from nexus_utils.agent_factory import create_agent_from_prompt_template
         
+        # 构建额外参数
+        extra_params = {
+            "nocallback": True,  # 禁用回调以避免干扰流式输出
+        }
+        
+        if session_manager:
+            extra_params["session_manager"] = session_manager
+        
+        # 如果提供了后缀，使用自定义 agent_id 确保唯一性
+        # 这样即使用户重新打开旧 session，也能正常创建 Agent
+        if agent_id_suffix:
+            base_name = prompt_path.split('/')[-1]
+            extra_params["agent_id"] = f"{base_name}_{agent_id_suffix}"
+        
         # 创建 agent 实例
         agent = create_agent_from_prompt_template(
             agent_name=prompt_path,
             env="production",
-            nocallback=True  # 禁用回调以避免干扰流式输出
+            **extra_params
         )
         
         return agent
@@ -741,3 +843,35 @@ def _create_agent_from_template(prompt_path: str):
     except Exception as e:
         logger.error(f"Failed to create agent from template {prompt_path}: {e}", exc_info=True)
         raise
+
+
+def clear_agent_cache_for_session(session_id: str) -> int:
+    """
+    清理指定会话的 Agent 实例缓存
+    
+    当会话关闭时调用此函数，释放内存资源
+    
+    参数:
+        session_id: 会话 ID
+    
+    返回:
+        清理的缓存条目数量
+    """
+    cleared_count = 0
+    
+    # 清理 Agent 实例缓存
+    keys_to_remove = [key for key in _agent_instance_cache if key.startswith(f"{session_id}:")]
+    for key in keys_to_remove:
+        del _agent_instance_cache[key]
+        cleared_count += 1
+    
+    # 清理 SessionManager 缓存
+    sm_keys_to_remove = [key for key in _session_manager_cache if session_id in key]
+    for key in sm_keys_to_remove:
+        del _session_manager_cache[key]
+        cleared_count += 1
+    
+    if cleared_count > 0:
+        logger.info(f"Cleared {cleared_count} cache entries for session {session_id}")
+    
+    return cleared_count

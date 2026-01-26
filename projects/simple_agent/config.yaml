@@ -1,6 +1,0 @@
-project:
-  created_date: '2026-01-24T19:55:19.522032+00:00'
-  description: HTML文档生成与S3上传Agent - 根据用户给定的内容和要求生成高质量HTML文档，并上传至S3存储桶（awesome-nexus-ai-file-storage）创建预签名URL返回给用户
-  name: simple_agent
-  updated_date: '2026-01-24T19:55:27.749844+00:00'
-  version: 1.0.0

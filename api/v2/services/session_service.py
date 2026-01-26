@@ -121,6 +121,54 @@ class SessionService:
         # 这里需要实现会话更新
         # return self.db.update_session(session_id, {'status': 'closed'})
         return {'session_id': session_id, 'status': 'closed'}
+    
+    def delete_session(self, session_id: str) -> Dict[str, Any]:
+        """
+        删除会话及其所有消息
+        
+        参数:
+            session_id: 会话 ID
+        
+        返回:
+            删除结果，包含删除的消息数量
+        """
+        session = self.db.get_session(session_id)
+        if not session:
+            raise ValueError(f"Session {session_id} not found")
+        
+        # 先删除会话的所有消息
+        deleted_messages_count = self.db.delete_session_messages(session_id)
+        logger.info(f"Deleted {deleted_messages_count} messages for session {session_id}")
+        
+        # 再删除会话本身
+        self.db.delete_session(session_id)
+        logger.info(f"Deleted session {session_id}")
+        
+        return {
+            'session_id': session_id,
+            'deleted_messages_count': deleted_messages_count,
+            'status': 'deleted'
+        }
+    
+    def update_session(self, session_id: str, updates: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        更新会话信息
+        
+        参数:
+            session_id: 会话 ID
+            updates: 要更新的字段
+        
+        返回:
+            更新后的会话数据
+        """
+        session = self.db.get_session(session_id)
+        if not session:
+            raise ValueError(f"Session {session_id} not found")
+        
+        updated_session = self.db.update_session(session_id, updates)
+        logger.info(f"Updated session {session_id}: {list(updates.keys())}")
+        
+        return updated_session
 
 
 # 全局单例

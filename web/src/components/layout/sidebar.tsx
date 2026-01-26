@@ -16,8 +16,11 @@ import {
   ChevronRight,
   FileText,
   MessageSquare,
+  LogOut,
+  User,
 } from 'lucide-react';
-import { useState, createContext, useContext } from 'react';
+import { useState, createContext, useContext, useEffect } from 'react';
+import { logout, getCurrentUsername } from '@/lib/auth';
 
 // 创建侧边栏状态上下文
 interface SidebarContextType {
@@ -50,10 +53,16 @@ interface SidebarProps {
 export function Sidebar({ collapsed: controlledCollapsed, onCollapsedChange }: SidebarProps = {}) {
   const pathname = usePathname();
   const [internalCollapsed, setInternalCollapsed] = useState(false);
+  const [username, setUsername] = useState<string | null>(null);
   
   // 支持受控和非受控模式
   const collapsed = controlledCollapsed ?? internalCollapsed;
   const setCollapsed = onCollapsedChange ?? setInternalCollapsed;
+
+  // 获取当前用户名
+  useEffect(() => {
+    setUsername(getCurrentUsername());
+  }, []);
 
   const isActive = (href: string) => {
     if (href === '/') return pathname === '/';
@@ -125,6 +134,23 @@ export function Sidebar({ collapsed: controlledCollapsed, onCollapsedChange }: S
       {/* Bottom section */}
       {!collapsed && (
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200">
+          {/* 用户信息 */}
+          <div className="flex items-center justify-between mb-3 px-2">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-100 to-accent-100 flex items-center justify-center">
+                <User className="w-4 h-4 text-primary-600" />
+              </div>
+              <span className="text-sm font-medium text-gray-700">{username || 'User'}</span>
+            </div>
+            <button
+              onClick={() => logout()}
+              className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
+              title="退出登录"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
+          
           <div className="bg-gradient-to-br from-primary-50 via-accent-50 to-agent-50 rounded-xl p-4">
             <div className="flex items-center gap-2 mb-2">
               <Bot className="w-5 h-5 text-primary-600" />
@@ -138,6 +164,19 @@ export function Sidebar({ collapsed: controlledCollapsed, onCollapsedChange }: S
               开始创建
             </Link>
           </div>
+        </div>
+      )}
+
+      {/* 收起状态下的登出按钮 */}
+      {collapsed && (
+        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200">
+          <button
+            onClick={() => logout()}
+            className="w-full p-2 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors flex items-center justify-center"
+            title="退出登录"
+          >
+            <LogOut className="w-5 h-5" />
+          </button>
         </div>
       )}
     </aside>

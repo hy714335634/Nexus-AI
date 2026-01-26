@@ -522,9 +522,9 @@ export async function* streamChatDirect(
 }
 
 /**
- * 关闭会话
+ * 删除会话及其所有消息
  */
-export async function closeSession(sessionId: string): Promise<APIResponse> {
+export async function deleteSession(sessionId: string): Promise<APIResponse> {
   return apiFetch<APIResponse>(`/sessions/${sessionId}`, {
     method: 'DELETE',
   });

@@ -471,6 +471,9 @@ function EnhancedJsonViewer({ data, stageName }: { data: any; stageName: string 
   // 根据阶段类型获取主要内容
   const getMainContent = () => {
     switch (stageName) {
+      case 'orchestrator':
+        // orchestrator 阶段可能有 workflow_plan 或其他结构化输出
+        return processedData.workflow_plan || processedData.orchestration || processedData;
       case 'requirements_analyzer':
       case 'requirements_analysis':
         return processedData.requirements_document;
@@ -497,12 +500,20 @@ function EnhancedJsonViewer({ data, stageName }: { data: any; stageName: string 
   
   const mainContent = getMainContent();
   
+  // 检查是否只有 raw_content（包括 default 分支返回的情况）
+  const isOnlyRawContent = (content: any): boolean => {
+    if (!content || typeof content !== 'object') return false;
+    const keys = Object.keys(content);
+    return keys.length === 1 && keys[0] === 'raw_content';
+  };
+  
   // 如果仍然只有 raw_content，显示原始内容
-  if (!mainContent && processedData?.raw_content) {
+  if ((!mainContent && processedData?.raw_content) || isOnlyRawContent(mainContent)) {
+    const rawContent = mainContent?.raw_content || processedData?.raw_content;
     return (
       <div className="bg-gray-50 p-4 rounded-lg">
         <div className="text-sm text-gray-500 mb-2">原始输出内容：</div>
-        <pre className="text-sm whitespace-pre-wrap overflow-auto max-h-96">{processedData.raw_content}</pre>
+        <pre className="text-sm whitespace-pre-wrap overflow-auto max-h-96">{rawContent}</pre>
       </div>
     );
   }

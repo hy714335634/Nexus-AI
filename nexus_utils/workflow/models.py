@@ -17,6 +17,56 @@ from enum import Enum
 from typing import Optional, List, Dict, Any
 
 
+def _get_stage_sequence() -> List[str]:
+    """
+    从统一配置模块获取阶段顺序
+    
+    延迟导入以避免循环依赖
+    """
+    from api.v2.core.stage_config import STAGE_SEQUENCE
+    return STAGE_SEQUENCE.copy()
+
+
+def _get_stage_order() -> List[str]:
+    """
+    获取阶段顺序（模块级别导出）
+    
+    提供模块级别的 STAGE_ORDER 访问，保持向后兼容性
+    """
+    return _get_stage_sequence()
+
+
+# 模块级别导出 - 延迟初始化以避免循环依赖
+# 使用时会从统一配置模块获取最新值
+class _LazyStageOrder:
+    """延迟加载的阶段顺序列表"""
+    _cached: List[str] = None
+    
+    def __iter__(self):
+        if self._cached is None:
+            self._cached = _get_stage_sequence()
+        return iter(self._cached)
+    
+    def __getitem__(self, index):
+        if self._cached is None:
+            self._cached = _get_stage_sequence()
+        return self._cached[index]
+    
+    def __len__(self):
+        if self._cached is None:
+            self._cached = _get_stage_sequence()
+        return len(self._cached)
+    
+    def __repr__(self):
+        if self._cached is None:
+            self._cached = _get_stage_sequence()
+        return repr(self._cached)
+
+
+# 导出模块级别的 STAGE_ORDER
+STAGE_ORDER = _LazyStageOrder()
+
+
 class StageStatus(Enum):
     """
     阶段执行状态枚举
@@ -689,18 +739,8 @@ class WorkflowContext:
     stop_requested_at: Optional[datetime] = None
     resume_from_stage: Optional[str] = None
     
-    # 工作流阶段顺序定义
-    STAGE_ORDER: List[str] = field(default_factory=lambda: [
-        "orchestrator",
-        "requirements_analyzer",
-        "system_architect",
-        "agent_designer",
-        "tool_developer",
-        "prompt_engineer",
-        "agent_code_developer",
-        "agent_developer_manager",
-        "agent_deployer",
-    ])
+    # 工作流阶段顺序定义 - 从统一配置模块获取
+    STAGE_ORDER: List[str] = field(default_factory=lambda: _get_stage_sequence())
     
     def get_completed_stages(self) -> List[str]:
         """

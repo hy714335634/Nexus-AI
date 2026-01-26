@@ -344,6 +344,23 @@ async def stream_chat(
             metadata=metadata
         )
         
+        # 检查是否是第一条用户消息，如果是则更新会话名称
+        # 使用用户输入的前30个字符作为会话名称
+        messages = session_service.list_messages(session_id, limit=10)
+        user_messages = [m for m in messages if m.get('role') == 'user']
+        if len(user_messages) == 1:
+            # 这是第一条用户消息，更新会话名称
+            new_display_name = request.content[:30].strip()
+            if new_display_name:
+                # 如果截断后有内容，添加省略号（如果原消息更长）
+                if len(request.content) > 30:
+                    new_display_name = new_display_name + "..."
+                try:
+                    session_service.update_session(session_id, {'display_name': new_display_name})
+                    logger.info(f"Updated session {session_id} display_name to: {new_display_name}")
+                except Exception as e:
+                    logger.warning(f"Failed to update session display_name: {e}")
+        
         # 获取 Agent 运行时配置
         # 支持两种格式：直接字段或 agentcore_config 嵌套对象
         agentcore_config = agent.get("agentcore_config") or {}
@@ -720,28 +737,25 @@ async def stream_chat(
 
 
 @router.delete("/sessions/{session_id}", response_model=APIResponse)
-async def close_session(
+async def delete_session(
     session_id: str = Path(..., description="会话ID")
 ):
     """
-    关闭会话
+    删除会话及其所有消息
     """
     try:
-        session = session_service.get_session(session_id)
-        if not session:
-            raise HTTPException(status_code=404, detail=f"会话 {session_id} 不存在")
-        
-        session_service.close_session(session_id)
+        result = session_service.delete_session(session_id)
         
         return APIResponse(
             success=True,
-            message="会话已关闭",
+            message=f"会话已删除，共删除 {result.get('deleted_messages_count', 0)} 条消息",
+            data=result,
             timestamp=_now(),
             request_id=_request_id()
         )
     
-    except HTTPException:
-        raise
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
-        logger.error(f"Failed to close session {session_id}: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"关闭会话失败: {str(e)}")
+        logger.error(f"Failed to delete session {session_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"删除会话失败: {str(e)}")

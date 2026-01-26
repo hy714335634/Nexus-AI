@@ -6,8 +6,8 @@
 
 Requirements:
     - 6.1: 多 Agent 架构记录
-    - 6.2: agent_designer 阶段迭代处理
-    - 6.3: tool_developer 阶段迭代处理
+    - 6.2: agent_design 阶段迭代处理
+    - 6.3: tools_developer 阶段迭代处理
     - 6.4: prompt_engineer 阶段迭代处理
     - 6.5: agent_code_developer 阶段迭代处理
     - 6.7: 多 Agent 进度跟踪
@@ -28,6 +28,9 @@ from .models import (
     AgentStageProgress,
 )
 
+# 从统一配置模块导入
+from api.v2.core.stage_config import ITERATIVE_STAGES as _ITERATIVE_STAGES
+
 logger = logging.getLogger(__name__)
 
 
@@ -38,24 +41,19 @@ class MultiAgentIterator:
     负责管理多 Agent 项目中各 Agent 的迭代开发过程。
     
     Validates:
-        - Requirement 6.2: agent_designer 阶段迭代处理
-        - Requirement 6.3: tool_developer 阶段迭代处理
+        - Requirement 6.2: agent_design 阶段迭代处理
+        - Requirement 6.3: tools_developer 阶段迭代处理
         - Requirement 6.4: prompt_engineer 阶段迭代处理
         - Requirement 6.5: agent_code_developer 阶段迭代处理
     """
     
-    # 需要迭代处理的阶段
-    ITERATIVE_STAGES = [
-        "agent_designer",
-        "tool_developer",
-        "prompt_engineer",
-        "agent_code_developer",
-    ]
+    # 需要迭代处理的阶段 - 从统一配置模块获取
+    ITERATIVE_STAGES = _ITERATIVE_STAGES
     
     # 阶段到 Agent 进度阶段的映射
     STAGE_TO_PROGRESS_STAGE = {
-        "agent_designer": "agent_design",
-        "tool_developer": "tool_development",
+        "agent_design": "agent_design",
+        "tools_developer": "tool_development",
         "prompt_engineer": "prompt_engineering",
         "agent_code_developer": "code_development",
     }
@@ -92,15 +90,15 @@ class MultiAgentIterator:
     
     def _parse_architecture(self) -> Optional[MultiAgentArchitecture]:
         """
-        从 system_architect 阶段输出解析多 Agent 架构
+        从 system_architecture 阶段输出解析多 Agent 架构
         
         返回:
             MultiAgentArchitecture: 解析的架构，如果不是多 Agent 则返回 None
             
         Validates: Requirement 6.1 - 多 Agent 架构记录
         """
-        # 获取 system_architect 阶段输出
-        architect_output = self.context.get_stage_output("system_architect")
+        # 获取 system_architecture 阶段输出
+        architect_output = self.context.get_stage_output("system_architecture")
         if not architect_output or not architect_output.is_completed:
             return None
         

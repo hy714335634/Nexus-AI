@@ -212,6 +212,24 @@ class ConfigLoader:
         """
         return self.get("agentcore", {})
     
+    def get_nexus_ai_config(self) -> Dict[str, Any]:
+        """
+        获取Nexus-AI核心配置
+        
+        包含：
+        - base_rule_path: 基础规则文件路径
+        - base_rule_version: 基础规则版本
+        - workflow_default_version: 工作流默认版本
+        - OTEL_EXPORTER_OTLP_ENDPOINT: OpenTelemetry端点
+        - artifacts_s3_bucket: 制品S3存储桶
+        - session_storage_s3_bucket: 会话存储S3存储桶
+        - auto_sync_to_s3: 是否自动同步到S3
+        
+        Returns:
+            Dict: Nexus-AI核心配置字典
+        """
+        return self.get("nexus_ai", {})
+    
     def get_mcp_config(self) -> Dict[str, Any]:
         """
         获取MCP配置

@@ -506,17 +506,10 @@ class WorkflowContextManager:
         """
         import json
         
-        # 阶段名称到 Agent 显示名称的映射
+        # 从统一配置模块获取阶段名称到 Agent 显示名称的映射
+        from api.v2.core.stage_config import STAGES
         STAGE_TO_AGENT_NAME = {
-            "orchestrator": "Orchestrator",
-            "requirements_analyzer": "Requirements Analyzer",
-            "system_architect": "System Architect",
-            "agent_designer": "Agent Designer",
-            "tool_developer": "Tool Developer",
-            "prompt_engineer": "Prompt Engineer",
-            "agent_code_developer": "Agent Code Developer",
-            "agent_developer_manager": "Agent Developer Manager",
-            "agent_deployer": "Agent Deployer",
+            name: config.agent_display_name for name, config in STAGES.items()
         }
         
         # 构建 base_context（与旧版本格式一致）

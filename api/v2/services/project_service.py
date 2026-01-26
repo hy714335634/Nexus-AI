@@ -162,19 +162,13 @@ class ProjectService:
             return None
     
     def _get_stage_display_name(self, stage_name: str) -> str:
-        """获取阶段显示名称"""
-        names = {
-            'requirements_analyzer': '需求分析',
-            'system_architect': '系统架构设计',
-            'agent_designer': 'Agent设计',
-            'prompt_engineer': '提示词工程',
-            'tools_developer': '工具开发',
-            'agent_code_developer': '代码开发',
-            'agent_developer_manager': '开发管理',
-            'agent_deployer': 'Agent部署',
-            'orchestrator': '工作流编排',
-        }
-        return names.get(stage_name, stage_name)
+        """
+        获取阶段显示名称
+        
+        使用统一配置模块 api.v2.core.stage_config
+        """
+        from api.v2.core.stage_config import get_stage_display_name
+        return get_stage_display_name(stage_name)
     
     def _get_local_projects(self, force_refresh: bool = False) -> List[Dict[str, Any]]:
         """获取本地项目（带缓存）"""
@@ -437,9 +431,12 @@ class ProjectService:
             # 转换阶段数据格式
             dashboard_stages = []
             for stage in stages:
+                stage_name = stage.get('stage_name', '')
+                # 确保 display_name 不为 None，使用阶段名称作为默认值
+                display_name = stage.get('display_name') or self._get_stage_display_name(stage_name) or stage_name
                 dashboard_stages.append({
-                    'name': stage.get('stage_name'),
-                    'display_name': stage.get('display_name'),
+                    'name': stage_name,
+                    'display_name': display_name,
                     'order': stage.get('stage_number', 0),
                     'status': stage.get('status', 'pending'),
                     'started_at': stage.get('started_at'),

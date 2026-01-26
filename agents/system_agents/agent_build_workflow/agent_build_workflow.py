@@ -179,6 +179,40 @@ def _is_remote_mode():
     return os.environ.get("NEXUS_STAGE_TRACKER_PROJECT_ID") is not None
 
 
+def _get_resume_from_stage():
+    """
+    获取恢复起始阶段（从环境变量）
+    
+    返回:
+        str: 恢复起始阶段名称，如果不需要恢复则返回 None
+    """
+    return os.environ.get("NEXUS_RESUME_FROM_STAGE")
+
+
+def _should_skip_stage(stage_name: str, resume_from_stage: Optional[str], stage_order: List[str]) -> bool:
+    """
+    判断是否应该跳过指定阶段
+    
+    参数:
+        stage_name: 当前阶段名称
+        resume_from_stage: 恢复起始阶段名称
+        stage_order: 阶段执行顺序列表
+        
+    返回:
+        bool: 是否应该跳过该阶段
+    """
+    if not resume_from_stage:
+        return False
+    
+    try:
+        current_index = stage_order.index(stage_name)
+        resume_index = stage_order.index(resume_from_stage)
+        return current_index < resume_index
+    except ValueError:
+        # 如果阶段名称不在列表中，不跳过
+        return False
+
+
 def _load_build_rules() -> str:
     """读取Base与Build工作流规则。"""
     base_rules = get_base_rules()
@@ -423,139 +457,184 @@ def run_workflow(user_input: str, session_id: Optional[str] = None, project_name
         logger.info(f"工作流模式: {mode}, project_id: {project_id}")
         print(f"ℹ️ 工作流模式: {mode}, project_id: {project_id}", flush=True)
         
+        # 检查是否需要从断点恢复
+        resume_from_stage = _get_resume_from_stage()
+        if resume_from_stage:
+            logger.info(f"从断点恢复: {resume_from_stage}")
+            print(f"🔄 从断点恢复: {resume_from_stage}", flush=True)
+        
+        # 定义阶段执行顺序（使用 v2 API 的阶段名称）
+        stage_order = [
+            'orchestrator',
+            'requirements_analysis',
+            'system_architecture',
+            'agent_design',
+            'tools_developer',
+            'prompt_engineer',
+            'agent_code_developer',
+            'agent_developer_manager',
+            'agent_deployer',
+        ]
+        
         # 1. Orchestrator
         print(f"\n{'='*60}")
         print(f"🔄 [1/9] 执行 orchestrator...")
         print(f"{'='*60}")
-        try:
-            mark_stage_running(project_id, 'orchestrator') if mode == "remote" else None
-            orchestrator_result = agents["orchestrator"](current_context)
-            execution_results["orchestrator"] = orchestrator_result
-            execution_order.append("orchestrator")
-            orchestrator_content = str(orchestrator_result.content) if hasattr(orchestrator_result, 'content') else str(orchestrator_result)
-            current_context = base_context + "\n===\nOrchestrator Agent: " + orchestrator_content + "\n===\n"
-            mark_stage_completed(project_id, 'orchestrator', _parse_stage_output(orchestrator_content)) if mode == "remote" else None
-        except Exception as e:
-            mark_stage_failed(project_id, 'orchestrator', str(e)) if mode == "remote" else None
-            raise
+        if _should_skip_stage('orchestrator', resume_from_stage, stage_order):
+            print(f"⏭️ 跳过已完成阶段: orchestrator", flush=True)
+        else:
+            try:
+                mark_stage_running(project_id, 'orchestrator') if mode == "remote" else None
+                orchestrator_result = agents["orchestrator"](current_context)
+                execution_results["orchestrator"] = orchestrator_result
+                execution_order.append("orchestrator")
+                orchestrator_content = str(orchestrator_result.content) if hasattr(orchestrator_result, 'content') else str(orchestrator_result)
+                current_context = base_context + "\n===\nOrchestrator Agent: " + orchestrator_content + "\n===\n"
+                mark_stage_completed(project_id, 'orchestrator', _parse_stage_output(orchestrator_content)) if mode == "remote" else None
+            except Exception as e:
+                mark_stage_failed(project_id, 'orchestrator', str(e)) if mode == "remote" else None
+                raise
 
         # 2. Requirements Analyzer
         print(f"\n{'='*60}")
         print(f"🔄 [2/9] 执行 requirements_analyzer...")
         print(f"{'='*60}")
-        try:
-            mark_stage_running(project_id, 'requirements_analysis') if mode == "remote" else None
-            requirements_result = agents["requirements_analyzer"](current_context)
-            execution_results["requirements_analyzer"] = requirements_result
-            execution_order.append("requirements_analyzer")
-            requirements_content = str(requirements_result.content) if hasattr(requirements_result, 'content') else str(requirements_result)
-            current_context = base_context + "\n===\nRequirements Analyzer Agent: " + requirements_content + "\n===\n"
-            mark_stage_completed(project_id, 'requirements_analysis', _parse_stage_output(requirements_content)) if mode == "remote" else None
-        except Exception as e:
-            mark_stage_failed(project_id, 'requirements_analysis', str(e)) if mode == "remote" else None
-            raise
+        if _should_skip_stage('requirements_analysis', resume_from_stage, stage_order):
+            print(f"⏭️ 跳过已完成阶段: requirements_analysis", flush=True)
+        else:
+            try:
+                mark_stage_running(project_id, 'requirements_analysis') if mode == "remote" else None
+                requirements_result = agents["requirements_analyzer"](current_context)
+                execution_results["requirements_analyzer"] = requirements_result
+                execution_order.append("requirements_analyzer")
+                requirements_content = str(requirements_result.content) if hasattr(requirements_result, 'content') else str(requirements_result)
+                current_context = base_context + "\n===\nRequirements Analyzer Agent: " + requirements_content + "\n===\n"
+                mark_stage_completed(project_id, 'requirements_analysis', _parse_stage_output(requirements_content)) if mode == "remote" else None
+            except Exception as e:
+                mark_stage_failed(project_id, 'requirements_analysis', str(e)) if mode == "remote" else None
+                raise
         
         # 3. System Architect
         print(f"\n{'='*60}")
         print(f"🔄 [3/9] 执行 system_architect...")
         print(f"{'='*60}")
-        try:
-            mark_stage_running(project_id, 'system_architecture') if mode == "remote" else None
-            architect_result = agents["system_architect"](current_context)
-            execution_results["system_architect"] = architect_result
-            execution_order.append("system_architect")
-            architect_content = str(architect_result.content) if hasattr(architect_result, 'content') else str(architect_result)
-            current_context = base_context + "\n===\nSystem Architect Agent: " + architect_content + "\n===\n"
-            mark_stage_completed(project_id, 'system_architecture', _parse_stage_output(architect_content)) if mode == "remote" else None
-        except Exception as e:
-            mark_stage_failed(project_id, 'system_architecture', str(e)) if mode == "remote" else None
-            raise
+        if _should_skip_stage('system_architecture', resume_from_stage, stage_order):
+            print(f"⏭️ 跳过已完成阶段: system_architecture", flush=True)
+        else:
+            try:
+                mark_stage_running(project_id, 'system_architecture') if mode == "remote" else None
+                architect_result = agents["system_architect"](current_context)
+                execution_results["system_architect"] = architect_result
+                execution_order.append("system_architect")
+                architect_content = str(architect_result.content) if hasattr(architect_result, 'content') else str(architect_result)
+                current_context = base_context + "\n===\nSystem Architect Agent: " + architect_content + "\n===\n"
+                mark_stage_completed(project_id, 'system_architecture', _parse_stage_output(architect_content)) if mode == "remote" else None
+            except Exception as e:
+                mark_stage_failed(project_id, 'system_architecture', str(e)) if mode == "remote" else None
+                raise
         
         # 4. Agent Designer
         print(f"\n{'='*60}")
         print(f"🔄 [4/9] 执行 agent_designer...")
         print(f"{'='*60}")
-        try:
-            mark_stage_running(project_id, 'agent_design') if mode == "remote" else None
-            designer_result = agents["agent_designer"](current_context)
-            execution_results["agent_designer"] = designer_result
-            execution_order.append("agent_designer")
-            designer_content = str(designer_result.content) if hasattr(designer_result, 'content') else str(designer_result)
-            current_context = base_context + "\n===\nAgent Designer Agent: " + designer_content + "\n===\n"
-            mark_stage_completed(project_id, 'agent_design', _parse_stage_output(designer_content)) if mode == "remote" else None
-        except Exception as e:
-            mark_stage_failed(project_id, 'agent_design', str(e)) if mode == "remote" else None
-            raise
+        if _should_skip_stage('agent_design', resume_from_stage, stage_order):
+            print(f"⏭️ 跳过已完成阶段: agent_design", flush=True)
+        else:
+            try:
+                mark_stage_running(project_id, 'agent_design') if mode == "remote" else None
+                designer_result = agents["agent_designer"](current_context)
+                execution_results["agent_designer"] = designer_result
+                execution_order.append("agent_designer")
+                designer_content = str(designer_result.content) if hasattr(designer_result, 'content') else str(designer_result)
+                current_context = base_context + "\n===\nAgent Designer Agent: " + designer_content + "\n===\n"
+                mark_stage_completed(project_id, 'agent_design', _parse_stage_output(designer_content)) if mode == "remote" else None
+            except Exception as e:
+                mark_stage_failed(project_id, 'agent_design', str(e)) if mode == "remote" else None
+                raise
         
         # 5. Tool Developer
         print(f"\n{'='*60}")
         print(f"🔄 [5/9] 执行 tool_developer...")
         print(f"{'='*60}")
-        try:
-            mark_stage_running(project_id, 'tools_developer') if mode == "remote" else None
-            tool_developer_result = agents["tool_developer"](current_context)
-            execution_results["tool_developer"] = tool_developer_result
-            execution_order.append("tool_developer")
-            tool_developer_content = str(tool_developer_result.content) if hasattr(tool_developer_result, 'content') else str(tool_developer_result)
-            current_context = current_context + "\n===\nTool Developer Agent: " + tool_developer_content + "\n===\n"
-            mark_stage_completed(project_id, 'tools_developer', _parse_stage_output(tool_developer_content)) if mode == "remote" else None
-        except Exception as e:
-            mark_stage_failed(project_id, 'tools_developer', str(e)) if mode == "remote" else None
-            raise
+        if _should_skip_stage('tools_developer', resume_from_stage, stage_order):
+            print(f"⏭️ 跳过已完成阶段: tools_developer", flush=True)
+        else:
+            try:
+                mark_stage_running(project_id, 'tools_developer') if mode == "remote" else None
+                tool_developer_result = agents["tool_developer"](current_context)
+                execution_results["tool_developer"] = tool_developer_result
+                execution_order.append("tool_developer")
+                tool_developer_content = str(tool_developer_result.content) if hasattr(tool_developer_result, 'content') else str(tool_developer_result)
+                current_context = current_context + "\n===\nTool Developer Agent: " + tool_developer_content + "\n===\n"
+                mark_stage_completed(project_id, 'tools_developer', _parse_stage_output(tool_developer_content)) if mode == "remote" else None
+            except Exception as e:
+                mark_stage_failed(project_id, 'tools_developer', str(e)) if mode == "remote" else None
+                raise
         
         # 6. Prompt Engineer
         print(f"\n{'='*60}")
         print(f"🔄 [6/9] 执行 prompt_engineer...")
         print(f"{'='*60}")
-        try:
-            mark_stage_running(project_id, 'prompt_engineer') if mode == "remote" else None
-            prompt_engineer_result = agents["prompt_engineer"](current_context)
-            execution_results["prompt_engineer"] = prompt_engineer_result
-            execution_order.append("prompt_engineer")
-            prompt_engineer_content = str(prompt_engineer_result.content) if hasattr(prompt_engineer_result, 'content') else str(prompt_engineer_result)
-            current_context = current_context + "\n===\nPrompt Engineer Agent: " + prompt_engineer_content + "\n===\n"
-            mark_stage_completed(project_id, 'prompt_engineer', _parse_stage_output(prompt_engineer_content)) if mode == "remote" else None
-        except Exception as e:
-            mark_stage_failed(project_id, 'prompt_engineer', str(e)) if mode == "remote" else None
-            raise
+        if _should_skip_stage('prompt_engineer', resume_from_stage, stage_order):
+            print(f"⏭️ 跳过已完成阶段: prompt_engineer", flush=True)
+        else:
+            try:
+                mark_stage_running(project_id, 'prompt_engineer') if mode == "remote" else None
+                prompt_engineer_result = agents["prompt_engineer"](current_context)
+                execution_results["prompt_engineer"] = prompt_engineer_result
+                execution_order.append("prompt_engineer")
+                prompt_engineer_content = str(prompt_engineer_result.content) if hasattr(prompt_engineer_result, 'content') else str(prompt_engineer_result)
+                current_context = current_context + "\n===\nPrompt Engineer Agent: " + prompt_engineer_content + "\n===\n"
+                mark_stage_completed(project_id, 'prompt_engineer', _parse_stage_output(prompt_engineer_content)) if mode == "remote" else None
+            except Exception as e:
+                mark_stage_failed(project_id, 'prompt_engineer', str(e)) if mode == "remote" else None
+                raise
         
         # 7. Agent Code Developer
         print(f"\n{'='*60}")
         print(f"🔄 [7/9] 执行 agent_code_developer...")
         print(f"{'='*60}")
-        try:
-            mark_stage_running(project_id, 'agent_code_developer') if mode == "remote" else None
-            agent_code_developer_result = agents["agent_code_developer"](current_context)
-            execution_results["agent_code_developer"] = agent_code_developer_result
-            execution_order.append("agent_code_developer")
-            agent_code_developer_content = str(agent_code_developer_result.content) if hasattr(agent_code_developer_result, 'content') else str(agent_code_developer_result)
-            current_context = current_context + "\n===\nAgent Code Developer Agent: " + agent_code_developer_content + "\n===\n"
-            mark_stage_completed(project_id, 'agent_code_developer', _parse_stage_output(agent_code_developer_content)) if mode == "remote" else None
-        except Exception as e:
-            mark_stage_failed(project_id, 'agent_code_developer', str(e)) if mode == "remote" else None
-            raise
+        if _should_skip_stage('agent_code_developer', resume_from_stage, stage_order):
+            print(f"⏭️ 跳过已完成阶段: agent_code_developer", flush=True)
+        else:
+            try:
+                mark_stage_running(project_id, 'agent_code_developer') if mode == "remote" else None
+                agent_code_developer_result = agents["agent_code_developer"](current_context)
+                execution_results["agent_code_developer"] = agent_code_developer_result
+                execution_order.append("agent_code_developer")
+                agent_code_developer_content = str(agent_code_developer_result.content) if hasattr(agent_code_developer_result, 'content') else str(agent_code_developer_result)
+                current_context = current_context + "\n===\nAgent Code Developer Agent: " + agent_code_developer_content + "\n===\n"
+                mark_stage_completed(project_id, 'agent_code_developer', _parse_stage_output(agent_code_developer_content)) if mode == "remote" else None
+            except Exception as e:
+                mark_stage_failed(project_id, 'agent_code_developer', str(e)) if mode == "remote" else None
+                raise
         
         # 8. Agent Developer Manager
         print(f"\n{'='*60}")
         print(f"🔄 [8/9] 执行 agent_developer_manager...")
         print(f"{'='*60}")
-        try:
-            mark_stage_running(project_id, 'agent_developer_manager') if mode == "remote" else None
-            developer_manager_result = agents["agent_developer_manager"](current_context)
-            execution_results["agent_developer_manager"] = developer_manager_result
-            execution_order.append("agent_developer_manager")
-            developer_manager_content = str(developer_manager_result.content) if hasattr(developer_manager_result, 'content') else str(developer_manager_result)
-            current_context = base_context + "\n===\nAgent Developer Manager Agent: " + developer_manager_content + "\n===\n"
-            mark_stage_completed(project_id, 'agent_developer_manager', _parse_stage_output(developer_manager_content)) if mode == "remote" else None
-        except Exception as e:
-            mark_stage_failed(project_id, 'agent_developer_manager', str(e)) if mode == "remote" else None
-            raise
+        if _should_skip_stage('agent_developer_manager', resume_from_stage, stage_order):
+            print(f"⏭️ 跳过已完成阶段: agent_developer_manager", flush=True)
+        else:
+            try:
+                mark_stage_running(project_id, 'agent_developer_manager') if mode == "remote" else None
+                developer_manager_result = agents["agent_developer_manager"](current_context)
+                execution_results["agent_developer_manager"] = developer_manager_result
+                execution_order.append("agent_developer_manager")
+                developer_manager_content = str(developer_manager_result.content) if hasattr(developer_manager_result, 'content') else str(developer_manager_result)
+                current_context = base_context + "\n===\nAgent Developer Manager Agent: " + developer_manager_content + "\n===\n"
+                mark_stage_completed(project_id, 'agent_developer_manager', _parse_stage_output(developer_manager_content)) if mode == "remote" else None
+            except Exception as e:
+                mark_stage_failed(project_id, 'agent_developer_manager', str(e)) if mode == "remote" else None
+                raise
         
         # 9. Agent Deployer
         print(f"\n{'='*60}")
         print(f"🔄 [9/9] 执行 agent_deployer...")
         print(f"{'='*60}")
-        if mode == "remote":
+        if _should_skip_stage('agent_deployer', resume_from_stage, stage_order):
+            print(f"⏭️ 跳过已完成阶段: agent_deployer", flush=True)
+        elif mode == "remote":
             try:
                 mark_stage_running(project_id, 'agent_deployer')
                 deployer_result = agents["agent_deployer"](current_context)

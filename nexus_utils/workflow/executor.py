@@ -8,8 +8,8 @@ Requirements:
     - 1.5: 从指定阶段执行到完成
     - 2.2: 收集执行指标
     - 2.3: 记录生成的文件
-    - 6.2: agent_designer 阶段迭代处理
-    - 6.3: tool_developer 阶段迭代处理
+    - 6.2: agent_design 阶段迭代处理
+    - 6.3: tools_developer 阶段迭代处理
     - 6.4: prompt_engineer 阶段迭代处理
     - 6.5: agent_code_developer 阶段迭代处理
 """
@@ -31,6 +31,14 @@ from .models import (
 )
 from .context import WorkflowContextManager, get_stage_context
 
+# 从统一配置模块导入阶段配置
+from api.v2.core.stage_config import (
+    STAGES,
+    ITERATIVE_STAGES as _ITERATIVE_STAGES,
+    get_prompt_path,
+    get_prompt_path_mapping,
+)
+
 if TYPE_CHECKING:
     from .multi_agent import MultiAgentIterator, MultiAgentStageExecutor
 
@@ -43,18 +51,8 @@ def _get_project_root() -> Path:
     return current_file.parent.parent.parent
 
 
-# 阶段到提示词模板路径的映射
-STAGE_PROMPT_MAPPING = {
-    "orchestrator": "system_agents_prompts/agent_build_workflow/orchestrator",
-    "requirements_analyzer": "system_agents_prompts/agent_build_workflow/requirements_analyzer",
-    "system_architect": "system_agents_prompts/agent_build_workflow/system_architect",
-    "agent_designer": "system_agents_prompts/agent_build_workflow/agent_designer",
-    "tool_developer": "system_agents_prompts/agent_build_workflow/tool_developer",
-    "prompt_engineer": "system_agents_prompts/agent_build_workflow/prompt_engineer",
-    "agent_code_developer": "system_agents_prompts/agent_build_workflow/agent_code_developer",
-    "agent_developer_manager": "system_agents_prompts/agent_build_workflow/agent_developer_manager",
-    "agent_deployer": "system_agents_prompts/agent_build_workflow/agent_deployer",
-}
+# 阶段到提示词模板路径的映射 - 从统一配置模块获取
+STAGE_PROMPT_MAPPING = get_prompt_path_mapping()
 
 
 class StageExecutionError(Exception):
@@ -84,19 +82,14 @@ class StageExecutor:
         - Requirement 1.4: 执行单个阶段
         - Requirement 2.2: 收集执行指标
         - Requirement 2.3: 记录生成的文件
-        - Requirement 6.2: agent_designer 阶段迭代处理
-        - Requirement 6.3: tool_developer 阶段迭代处理
+        - Requirement 6.2: agent_design 阶段迭代处理
+        - Requirement 6.3: tools_developer 阶段迭代处理
         - Requirement 6.4: prompt_engineer 阶段迭代处理
         - Requirement 6.5: agent_code_developer 阶段迭代处理
     """
     
-    # 需要迭代处理的阶段
-    ITERATIVE_STAGES = [
-        "agent_designer",
-        "tool_developer",
-        "prompt_engineer",
-        "agent_code_developer",
-    ]
+    # 需要迭代处理的阶段 - 从统一配置模块获取
+    ITERATIVE_STAGES = _ITERATIVE_STAGES
     
     def __init__(
         self, 
@@ -555,11 +548,11 @@ class StageExecutor:
         返回:
             tuple: (document_content, document_format)
         """
-        # 某些阶段产生设计文档
+        # 某些阶段产生设计文档 - 使用 BuildStage 枚举值
         design_stages = {
-            "requirements_analyzer": "markdown",
-            "system_architect": "json",
-            "agent_designer": "markdown",
+            "requirements_analysis": "markdown",
+            "system_architecture": "json",
+            "agent_design": "markdown",
         }
         
         if stage_name not in design_stages:
@@ -567,7 +560,7 @@ class StageExecutor:
         
         document_format = design_stages[stage_name]
         
-        # 对于 system_architect，尝试提取 JSON
+        # 对于 system_architecture，尝试提取 JSON
         if document_format == "json":
             import json
             try:

@@ -59,6 +59,10 @@ class BuildHandler:
         """
         处理构建任务消息
         
+        支持断点恢复：
+        - 首次执行时从头开始
+        - 重试时自动检测已完成阶段，从下一个待执行阶段继续
+        
         Args:
             message: SQS 消息内容
         
@@ -72,7 +76,7 @@ class BuildHandler:
         project_id = body.get('project_id')
         requirement = body.get('requirement')
         
-        # 新增：支持从指定阶段开始执行
+        # 支持从指定阶段开始执行
         target_stage = body.get('target_stage')
         execute_to_completion = body.get('execute_to_completion', True)
         action = body.get('action', 'execute')  # execute, resume, restart
@@ -81,10 +85,26 @@ class BuildHandler:
             logger.error(f"Invalid message: missing required fields (task_id, project_id)")
             return False
         
+        # 检查项目状态，判断是否需要从断点恢复
+        resume_info = self._check_resume_state(project_id)
+        if resume_info['should_resume']:
+            action = 'resume'
+            target_stage = resume_info['resume_from_stage']
+            logger.info(
+                f"Resuming from checkpoint: stage={target_stage}, "
+                f"completed={resume_info['completed_stages']}"
+            )
+        
         # 对于新项目，requirement 是必需的
         if action == 'execute' and not requirement and not target_stage:
-            logger.error(f"Invalid message: requirement is required for new execution")
-            return False
+            # 尝试从项目记录获取 requirement
+            project = self.db.get_project(project_id)
+            if project:
+                requirement = project.get('requirement')
+            
+            if not requirement:
+                logger.error(f"Invalid message: requirement is required for new execution")
+                return False
         
         logger.info(f"Processing build task {task_id} for project {project_id}")
         logger.info(f"Action: {action}, target_stage: {target_stage}, to_completion: {execute_to_completion}")
@@ -93,8 +113,8 @@ class BuildHandler:
             # 更新任务状态为运行中
             self._update_task_status(task_id, TaskStatus.RUNNING)
             
-            # 更新项目状态为构建中
-            self._update_project_status(project_id, ProjectStatus.BUILDING)
+            # 更新项目状态为构建中（清除之前的错误信息）
+            self._update_project_status(project_id, ProjectStatus.BUILDING, clear_error=True)
             
             # 根据配置选择执行模式
             if self.use_workflow_engine:
@@ -110,7 +130,8 @@ class BuildHandler:
                 result = self._execute_build_workflow(
                     project_id=project_id,
                     requirement=requirement,
-                    metadata=body.get('metadata', {})
+                    metadata=body.get('metadata', {}),
+                    resume_from_stage=target_stage if action == 'resume' else None
                 )
             
             # 检查执行结果
@@ -220,7 +241,8 @@ class BuildHandler:
             
             # 根据操作类型执行
             if action == 'resume':
-                # 恢复执行
+                # 恢复执行 - 从指定阶段或自动检测的下一个待执行阶段开始
+                logger.info(f"Resuming workflow from stage: {target_stage}")
                 engine.resume(from_stage=target_stage)
                 result = engine.execute_to_completion()
                 
@@ -228,13 +250,16 @@ class BuildHandler:
                 # 从指定阶段重新开始
                 if not target_stage:
                     raise ValueError("target_stage is required for restart action")
+                logger.info(f"Restarting workflow from stage: {target_stage}")
                 result = engine.execute_from_stage(target_stage, to_completion=execute_to_completion)
                 
             else:
-                # 正常执行
+                # 正常执行 - WorkflowEngine 会自动从下一个待执行阶段开始
                 if target_stage:
+                    logger.info(f"Executing workflow from specified stage: {target_stage}")
                     result = engine.execute_from_stage(target_stage, to_completion=execute_to_completion)
                 else:
+                    logger.info("Executing workflow to completion")
                     result = engine.execute_to_completion()
             
             # 转换结果
@@ -242,7 +267,10 @@ class BuildHandler:
             
         except ImportError as e:
             logger.warning(f"WorkflowEngine not available: {e}, falling back to legacy mode")
-            return self._execute_build_workflow(project_id, requirement, metadata)
+            return self._execute_build_workflow(
+                project_id, requirement, metadata,
+                resume_from_stage=target_stage if action == 'resume' else None
+            )
         
         except PrerequisiteError as e:
             logger.error(f"Prerequisite check failed: {e}")
@@ -299,16 +327,28 @@ class BuildHandler:
         self,
         project_id: str,
         requirement: str,
-        metadata: Dict[str, Any]
+        metadata: Dict[str, Any],
+        resume_from_stage: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         执行构建工作流
         
         调用现有的 agent_build_workflow 模块。
         阶段状态更新由 stage_tracker -> stage_service_v2 完成。
+        
+        参数:
+            project_id: 项目ID
+            requirement: 用户需求
+            metadata: 元数据
+            resume_from_stage: 恢复起始阶段（可选）
         """
         # 设置环境变量供工作流使用
         os.environ["NEXUS_STAGE_TRACKER_PROJECT_ID"] = project_id
+        
+        # 如果需要恢复，设置恢复阶段环境变量
+        if resume_from_stage:
+            os.environ["NEXUS_RESUME_FROM_STAGE"] = resume_from_stage
+            logger.info(f"Setting resume stage: {resume_from_stage}")
         
         try:
             # 导入并执行构建工作流
@@ -336,22 +376,45 @@ class BuildHandler:
             
         except ImportError as e:
             logger.warning(f"Could not import build workflow: {e}, using mock")
-            return self._mock_build_workflow(project_id, requirement)
+            return self._mock_build_workflow(project_id, requirement, resume_from_stage)
         
         finally:
             # 清理环境变量
             if "NEXUS_STAGE_TRACKER_PROJECT_ID" in os.environ:
                 del os.environ["NEXUS_STAGE_TRACKER_PROJECT_ID"]
+            if "NEXUS_RESUME_FROM_STAGE" in os.environ:
+                del os.environ["NEXUS_RESUME_FROM_STAGE"]
     
-    def _mock_build_workflow(self, project_id: str, requirement: str) -> Dict[str, Any]:
-        """模拟构建工作流（用于测试）"""
+    def _mock_build_workflow(
+        self, 
+        project_id: str, 
+        requirement: str,
+        resume_from_stage: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        模拟构建工作流（用于测试）
+        
+        参数:
+            project_id: 项目ID
+            requirement: 用户需求
+            resume_from_stage: 恢复起始阶段（可选）
+        """
         import time
         from api.v2.services.stage_service import stage_service_v2
         
         stages = list(BuildStage)
         total_stages = len(stages)
         
-        for i, stage in enumerate(stages):
+        # 如果需要恢复，跳过已完成的阶段
+        start_index = 0
+        if resume_from_stage:
+            for i, stage in enumerate(stages):
+                if stage.value == resume_from_stage:
+                    start_index = i
+                    break
+            logger.info(f"Mock workflow resuming from stage index {start_index}: {resume_from_stage}")
+        
+        for i, stage in enumerate(stages[start_index:], start=start_index):
             # 更新阶段状态为运行中
             stage_service_v2.mark_stage_running(project_id, stage.value)
             
@@ -364,7 +427,8 @@ class BuildHandler:
         return {
             'status': 'completed',
             'message': 'Mock build completed',
-            'stages_completed': total_stages
+            'stages_completed': total_stages - start_index,
+            'resumed_from': resume_from_stage
         }
     
     def _update_task_status(
@@ -396,19 +460,89 @@ class BuildHandler:
         
         self.db.update_task(task_id, updates)
     
+    def _check_resume_state(self, project_id: str) -> Dict[str, Any]:
+        """
+        检查项目状态，判断是否需要从断点恢复
+        
+        参数:
+            project_id: 项目ID
+            
+        返回:
+            包含恢复信息的字典:
+            - should_resume: 是否需要恢复
+            - resume_from_stage: 恢复起始阶段
+            - completed_stages: 已完成的阶段列表
+        """
+        result = {
+            'should_resume': False,
+            'resume_from_stage': None,
+            'completed_stages': [],
+        }
+        
+        try:
+            # 获取项目所有阶段
+            stages = self.db.list_stages(project_id)
+            if not stages:
+                return result
+            
+            # 按阶段序号排序
+            stages = sorted(stages, key=lambda x: x.get('stage_number', 0))
+            
+            # 找出已完成的阶段
+            completed_stages = []
+            first_pending_stage = None
+            
+            for stage in stages:
+                status = stage.get('status', 'pending')
+                stage_name = stage.get('stage_name')
+                
+                if status == 'completed':
+                    completed_stages.append(stage_name)
+                elif first_pending_stage is None and status in ['pending', 'failed', 'running']:
+                    # 找到第一个未完成的阶段
+                    first_pending_stage = stage_name
+            
+            result['completed_stages'] = completed_stages
+            
+            # 如果有已完成的阶段，且还有未完成的阶段，则需要恢复
+            if completed_stages and first_pending_stage:
+                result['should_resume'] = True
+                result['resume_from_stage'] = first_pending_stage
+                logger.info(
+                    f"Project {project_id} has {len(completed_stages)} completed stages, "
+                    f"will resume from {first_pending_stage}"
+                )
+            
+            return result
+            
+        except Exception as e:
+            logger.warning(f"Failed to check resume state for project {project_id}: {e}")
+            return result
+    
     def _update_project_status(
         self,
         project_id: str,
         status: ProjectStatus,
-        error_info: Optional[Dict[str, Any]] = None
+        error_info: Optional[Dict[str, Any]] = None,
+        clear_error: bool = False
     ):
-        """更新项目状态"""
+        """
+        更新项目状态
+        
+        参数:
+            project_id: 项目ID
+            status: 新状态
+            error_info: 错误信息（可选）
+            clear_error: 是否清除之前的错误信息
+        """
         now = datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
         
         updates = {'status': status.value}
         
         if status == ProjectStatus.BUILDING:
             updates['started_at'] = now
+            # 清除控制状态，允许继续执行
+            updates['control_status'] = 'running'
         
         if status in [ProjectStatus.COMPLETED, ProjectStatus.FAILED]:
             updates['completed_at'] = now
@@ -417,5 +551,8 @@ class BuildHandler:
         
         if error_info:
             updates['error_info'] = error_info
+        elif clear_error:
+            # 清除之前的错误信息（恢复执行时）
+            updates['error_info'] = None
         
         self.db.update_project(project_id, updates)

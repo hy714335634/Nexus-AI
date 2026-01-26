@@ -333,13 +333,16 @@ async def restart_workflow(
         if not from_stage:
             raise HTTPException(status_code=400, detail="from_stage is required")
         
-        # 验证阶段名称
+        # 验证阶段名称 - 使用 BuildStage 枚举值
         valid_stages = [
-            'orchestrator', 'requirements_analyzer', 'system_architect',
-            'agent_designer', 'tool_developer', 'prompt_engineer',
+            'orchestrator', 'requirements_analysis', 'system_architecture',
+            'agent_design', 'tools_developer', 'prompt_engineer',
             'agent_code_developer', 'agent_developer_manager', 'agent_deployer'
         ]
-        if from_stage not in valid_stages:
+        
+        # 标准化阶段名称（支持旧名称输入）
+        normalized_from_stage = stage_service._normalize_stage_name(from_stage)
+        if not normalized_from_stage or normalized_from_stage not in valid_stages:
             raise HTTPException(
                 status_code=400, 
                 detail=f"Invalid stage name: {from_stage}"
@@ -347,7 +350,7 @@ async def restart_workflow(
         
         # 如果需要清除后续阶段数据
         if request and request.clear_subsequent:
-            stage_index = valid_stages.index(from_stage)
+            stage_index = valid_stages.index(normalized_from_stage)
             stages_to_clear = valid_stages[stage_index:]
             
             for stage_name in stages_to_clear:
@@ -366,8 +369,8 @@ async def restart_workflow(
         updates = {
             'control_status': 'running',
             'status': 'building',  # 使用正确的 ProjectStatus 值
-            'current_stage': from_stage,
-            'resume_from_stage': from_stage,
+            'current_stage': normalized_from_stage,
+            'resume_from_stage': normalized_from_stage,
             'pause_requested_at': None,
             'stop_requested_at': None,
             'updated_at': now,
@@ -375,11 +378,11 @@ async def restart_workflow(
         
         db_client.update_project(project_id, updates)
         
-        logger.info(f"Workflow restarted from stage {from_stage} for project: {project_id}")
+        logger.info(f"Workflow restarted from stage {normalized_from_stage} for project: {project_id}")
         
         return ControlResponse(
             success=True,
-            message=f"Workflow restarted from stage: {from_stage}",
+            message=f"Workflow restarted from stage: {normalized_from_stage}",
             project_id=project_id,
             control_status='running',
             timestamp=now,

@@ -426,6 +426,24 @@ class DynamoDBClient:
         return self._from_dynamo(item) if item else None
     
     @retry_on_error()
+    def update_session(self, session_id: str, updates: Dict[str, Any]) -> Dict[str, Any]:
+        """更新会话"""
+        updates['last_active_at'] = datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
+        
+        update_expr = "SET " + ", ".join(f"#{k} = :{k}" for k in updates.keys())
+        expr_names = {f"#{k}": k for k in updates.keys()}
+        expr_values = {f":{k}": self._to_dynamo_value(v) for k, v in updates.items()}
+        
+        response = self.sessions_table.update_item(
+            Key={'session_id': session_id},
+            UpdateExpression=update_expr,
+            ExpressionAttributeNames=expr_names,
+            ExpressionAttributeValues=expr_values,
+            ReturnValues='ALL_NEW'
+        )
+        return self._from_dynamo(response.get('Attributes', {}))
+    
+    @retry_on_error()
     def list_sessions(self, agent_id: str, limit: int = 20) -> List[Dict[str, Any]]:
         """列表Agent的会话"""
         response = self.sessions_table.query(
@@ -435,6 +453,33 @@ class DynamoDBClient:
             ScanIndexForward=False  # 按时间倒序
         )
         return [self._from_dynamo(item) for item in response.get('Items', [])]
+    
+    @retry_on_error()
+    def delete_session(self, session_id: str) -> bool:
+        """删除会话"""
+        self.sessions_table.delete_item(Key={'session_id': session_id})
+        return True
+    
+    @retry_on_error()
+    def delete_session_messages(self, session_id: str) -> int:
+        """删除会话的所有消息"""
+        # 先查询所有消息
+        response = self.messages_table.query(
+            KeyConditionExpression=Key('session_id').eq(session_id)
+        )
+        items = response.get('Items', [])
+        
+        # 批量删除
+        deleted_count = 0
+        with self.messages_table.batch_writer() as batch:
+            for item in items:
+                batch.delete_item(Key={
+                    'session_id': item['session_id'],
+                    'message_id': item['message_id']
+                })
+                deleted_count += 1
+        
+        return deleted_count
 
     # ============== Messages ==============
     

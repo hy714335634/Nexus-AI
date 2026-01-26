@@ -69,7 +69,11 @@ class TaskType(str, Enum):
 
 
 class BuildStage(str, Enum):
-    """构建阶段"""
+    """
+    构建阶段枚举
+    
+    注意: 阶段的详细配置（显示名称、序号等）请使用 api.v2.core.stage_config 模块
+    """
     ORCHESTRATOR = "orchestrator"
     REQUIREMENTS_ANALYSIS = "requirements_analysis"
     SYSTEM_ARCHITECTURE = "system_architecture"
@@ -82,25 +86,23 @@ class BuildStage(str, Enum):
 
     @classmethod
     def get_stage_number(cls, stage: 'BuildStage') -> int:
-        """获取阶段序号 (1-9)"""
-        stage_order = list(cls)
-        return stage_order.index(stage) + 1
+        """
+        获取阶段序号 (1-9)
+        
+        推荐使用: api.v2.core.stage_config.get_stage_number()
+        """
+        from api.v2.core.stage_config import get_stage_number
+        return get_stage_number(stage.value)
 
     @classmethod
     def get_display_name(cls, stage: 'BuildStage') -> str:
-        """获取阶段显示名称"""
-        names = {
-            cls.ORCHESTRATOR: "工作流编排",
-            cls.REQUIREMENTS_ANALYSIS: "需求分析",
-            cls.SYSTEM_ARCHITECTURE: "系统架构设计",
-            cls.AGENT_DESIGN: "Agent设计",
-            cls.PROMPT_ENGINEER: "提示词工程",
-            cls.TOOLS_DEVELOPER: "工具开发",
-            cls.AGENT_CODE_DEVELOPER: "代码开发",
-            cls.AGENT_DEVELOPER_MANAGER: "开发管理",
-            cls.AGENT_DEPLOYER: "Agent部署",
-        }
-        return names.get(stage, stage.value)
+        """
+        获取阶段显示名称
+        
+        推荐使用: api.v2.core.stage_config.get_stage_display_name()
+        """
+        from api.v2.core.stage_config import get_stage_display_name
+        return get_stage_display_name(stage.value)
 
 
 class ToolSource(str, Enum):
