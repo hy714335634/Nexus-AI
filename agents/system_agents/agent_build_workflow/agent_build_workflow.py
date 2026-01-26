@@ -169,16 +169,6 @@ def _get_project_id():
     return os.environ.get("NEXUS_STAGE_TRACKER_PROJECT_ID") or str(uuid.uuid4())
 
 
-def _is_remote_mode():
-    """
-    检查是否为远程模式（通过 worker 调用）
-    
-    如果设置了 NEXUS_STAGE_TRACKER_PROJECT_ID 环境变量，
-    说明是通过 worker 调用的，使用 v2 API 更新状态。
-    """
-    return os.environ.get("NEXUS_STAGE_TRACKER_PROJECT_ID") is not None
-
-
 def _get_resume_from_stage():
     """
     获取恢复起始阶段（从环境变量）
@@ -452,10 +442,8 @@ def run_workflow(user_input: str, session_id: Optional[str] = None, project_name
         execution_order = []
         project_id = _get_project_id()
         
-        # 检查是否为远程模式（通过 worker 调用，使用 v2 API）
-        mode = "remote" if _is_remote_mode() else "local"
-        logger.info(f"工作流模式: {mode}, project_id: {project_id}")
-        print(f"ℹ️ 工作流模式: {mode}, project_id: {project_id}", flush=True)
+        logger.info(f"工作流 project_id: {project_id}")
+        print(f"ℹ️ 工作流 project_id: {project_id}", flush=True)
         
         # 检查是否需要从断点恢复
         resume_from_stage = _get_resume_from_stage()
@@ -484,15 +472,15 @@ def run_workflow(user_input: str, session_id: Optional[str] = None, project_name
             print(f"⏭️ 跳过已完成阶段: orchestrator", flush=True)
         else:
             try:
-                mark_stage_running(project_id, 'orchestrator') if mode == "remote" else None
+                mark_stage_running(project_id, 'orchestrator')
                 orchestrator_result = agents["orchestrator"](current_context)
                 execution_results["orchestrator"] = orchestrator_result
                 execution_order.append("orchestrator")
                 orchestrator_content = str(orchestrator_result.content) if hasattr(orchestrator_result, 'content') else str(orchestrator_result)
                 current_context = base_context + "\n===\nOrchestrator Agent: " + orchestrator_content + "\n===\n"
-                mark_stage_completed(project_id, 'orchestrator', _parse_stage_output(orchestrator_content)) if mode == "remote" else None
+                mark_stage_completed(project_id, 'orchestrator', _parse_stage_output(orchestrator_content))
             except Exception as e:
-                mark_stage_failed(project_id, 'orchestrator', str(e)) if mode == "remote" else None
+                mark_stage_failed(project_id, 'orchestrator', str(e))
                 raise
 
         # 2. Requirements Analyzer
@@ -503,15 +491,15 @@ def run_workflow(user_input: str, session_id: Optional[str] = None, project_name
             print(f"⏭️ 跳过已完成阶段: requirements_analysis", flush=True)
         else:
             try:
-                mark_stage_running(project_id, 'requirements_analysis') if mode == "remote" else None
+                mark_stage_running(project_id, 'requirements_analysis')
                 requirements_result = agents["requirements_analyzer"](current_context)
                 execution_results["requirements_analyzer"] = requirements_result
                 execution_order.append("requirements_analyzer")
                 requirements_content = str(requirements_result.content) if hasattr(requirements_result, 'content') else str(requirements_result)
                 current_context = base_context + "\n===\nRequirements Analyzer Agent: " + requirements_content + "\n===\n"
-                mark_stage_completed(project_id, 'requirements_analysis', _parse_stage_output(requirements_content)) if mode == "remote" else None
+                mark_stage_completed(project_id, 'requirements_analysis', _parse_stage_output(requirements_content))
             except Exception as e:
-                mark_stage_failed(project_id, 'requirements_analysis', str(e)) if mode == "remote" else None
+                mark_stage_failed(project_id, 'requirements_analysis', str(e))
                 raise
         
         # 3. System Architect
@@ -522,15 +510,15 @@ def run_workflow(user_input: str, session_id: Optional[str] = None, project_name
             print(f"⏭️ 跳过已完成阶段: system_architecture", flush=True)
         else:
             try:
-                mark_stage_running(project_id, 'system_architecture') if mode == "remote" else None
+                mark_stage_running(project_id, 'system_architecture')
                 architect_result = agents["system_architect"](current_context)
                 execution_results["system_architect"] = architect_result
                 execution_order.append("system_architect")
                 architect_content = str(architect_result.content) if hasattr(architect_result, 'content') else str(architect_result)
                 current_context = base_context + "\n===\nSystem Architect Agent: " + architect_content + "\n===\n"
-                mark_stage_completed(project_id, 'system_architecture', _parse_stage_output(architect_content)) if mode == "remote" else None
+                mark_stage_completed(project_id, 'system_architecture', _parse_stage_output(architect_content))
             except Exception as e:
-                mark_stage_failed(project_id, 'system_architecture', str(e)) if mode == "remote" else None
+                mark_stage_failed(project_id, 'system_architecture', str(e))
                 raise
         
         # 4. Agent Designer
@@ -541,15 +529,15 @@ def run_workflow(user_input: str, session_id: Optional[str] = None, project_name
             print(f"⏭️ 跳过已完成阶段: agent_design", flush=True)
         else:
             try:
-                mark_stage_running(project_id, 'agent_design') if mode == "remote" else None
+                mark_stage_running(project_id, 'agent_design')
                 designer_result = agents["agent_designer"](current_context)
                 execution_results["agent_designer"] = designer_result
                 execution_order.append("agent_designer")
                 designer_content = str(designer_result.content) if hasattr(designer_result, 'content') else str(designer_result)
                 current_context = base_context + "\n===\nAgent Designer Agent: " + designer_content + "\n===\n"
-                mark_stage_completed(project_id, 'agent_design', _parse_stage_output(designer_content)) if mode == "remote" else None
+                mark_stage_completed(project_id, 'agent_design', _parse_stage_output(designer_content))
             except Exception as e:
-                mark_stage_failed(project_id, 'agent_design', str(e)) if mode == "remote" else None
+                mark_stage_failed(project_id, 'agent_design', str(e))
                 raise
         
         # 5. Tool Developer
@@ -560,15 +548,15 @@ def run_workflow(user_input: str, session_id: Optional[str] = None, project_name
             print(f"⏭️ 跳过已完成阶段: tools_developer", flush=True)
         else:
             try:
-                mark_stage_running(project_id, 'tools_developer') if mode == "remote" else None
+                mark_stage_running(project_id, 'tools_developer')
                 tool_developer_result = agents["tool_developer"](current_context)
                 execution_results["tool_developer"] = tool_developer_result
                 execution_order.append("tool_developer")
                 tool_developer_content = str(tool_developer_result.content) if hasattr(tool_developer_result, 'content') else str(tool_developer_result)
                 current_context = current_context + "\n===\nTool Developer Agent: " + tool_developer_content + "\n===\n"
-                mark_stage_completed(project_id, 'tools_developer', _parse_stage_output(tool_developer_content)) if mode == "remote" else None
+                mark_stage_completed(project_id, 'tools_developer', _parse_stage_output(tool_developer_content))
             except Exception as e:
-                mark_stage_failed(project_id, 'tools_developer', str(e)) if mode == "remote" else None
+                mark_stage_failed(project_id, 'tools_developer', str(e))
                 raise
         
         # 6. Prompt Engineer
@@ -579,15 +567,15 @@ def run_workflow(user_input: str, session_id: Optional[str] = None, project_name
             print(f"⏭️ 跳过已完成阶段: prompt_engineer", flush=True)
         else:
             try:
-                mark_stage_running(project_id, 'prompt_engineer') if mode == "remote" else None
+                mark_stage_running(project_id, 'prompt_engineer')
                 prompt_engineer_result = agents["prompt_engineer"](current_context)
                 execution_results["prompt_engineer"] = prompt_engineer_result
                 execution_order.append("prompt_engineer")
                 prompt_engineer_content = str(prompt_engineer_result.content) if hasattr(prompt_engineer_result, 'content') else str(prompt_engineer_result)
                 current_context = current_context + "\n===\nPrompt Engineer Agent: " + prompt_engineer_content + "\n===\n"
-                mark_stage_completed(project_id, 'prompt_engineer', _parse_stage_output(prompt_engineer_content)) if mode == "remote" else None
+                mark_stage_completed(project_id, 'prompt_engineer', _parse_stage_output(prompt_engineer_content))
             except Exception as e:
-                mark_stage_failed(project_id, 'prompt_engineer', str(e)) if mode == "remote" else None
+                mark_stage_failed(project_id, 'prompt_engineer', str(e))
                 raise
         
         # 7. Agent Code Developer
@@ -598,15 +586,15 @@ def run_workflow(user_input: str, session_id: Optional[str] = None, project_name
             print(f"⏭️ 跳过已完成阶段: agent_code_developer", flush=True)
         else:
             try:
-                mark_stage_running(project_id, 'agent_code_developer') if mode == "remote" else None
+                mark_stage_running(project_id, 'agent_code_developer')
                 agent_code_developer_result = agents["agent_code_developer"](current_context)
                 execution_results["agent_code_developer"] = agent_code_developer_result
                 execution_order.append("agent_code_developer")
                 agent_code_developer_content = str(agent_code_developer_result.content) if hasattr(agent_code_developer_result, 'content') else str(agent_code_developer_result)
                 current_context = current_context + "\n===\nAgent Code Developer Agent: " + agent_code_developer_content + "\n===\n"
-                mark_stage_completed(project_id, 'agent_code_developer', _parse_stage_output(agent_code_developer_content)) if mode == "remote" else None
+                mark_stage_completed(project_id, 'agent_code_developer', _parse_stage_output(agent_code_developer_content))
             except Exception as e:
-                mark_stage_failed(project_id, 'agent_code_developer', str(e)) if mode == "remote" else None
+                mark_stage_failed(project_id, 'agent_code_developer', str(e))
                 raise
         
         # 8. Agent Developer Manager
@@ -617,15 +605,15 @@ def run_workflow(user_input: str, session_id: Optional[str] = None, project_name
             print(f"⏭️ 跳过已完成阶段: agent_developer_manager", flush=True)
         else:
             try:
-                mark_stage_running(project_id, 'agent_developer_manager') if mode == "remote" else None
+                mark_stage_running(project_id, 'agent_developer_manager')
                 developer_manager_result = agents["agent_developer_manager"](current_context)
                 execution_results["agent_developer_manager"] = developer_manager_result
                 execution_order.append("agent_developer_manager")
                 developer_manager_content = str(developer_manager_result.content) if hasattr(developer_manager_result, 'content') else str(developer_manager_result)
                 current_context = base_context + "\n===\nAgent Developer Manager Agent: " + developer_manager_content + "\n===\n"
-                mark_stage_completed(project_id, 'agent_developer_manager', _parse_stage_output(developer_manager_content)) if mode == "remote" else None
+                mark_stage_completed(project_id, 'agent_developer_manager', _parse_stage_output(developer_manager_content))
             except Exception as e:
-                mark_stage_failed(project_id, 'agent_developer_manager', str(e)) if mode == "remote" else None
+                mark_stage_failed(project_id, 'agent_developer_manager', str(e))
                 raise
         
         # 9. Agent Deployer
@@ -634,7 +622,7 @@ def run_workflow(user_input: str, session_id: Optional[str] = None, project_name
         print(f"{'='*60}")
         if _should_skip_stage('agent_deployer', resume_from_stage, stage_order):
             print(f"⏭️ 跳过已完成阶段: agent_deployer", flush=True)
-        elif mode == "remote":
+        else:
             try:
                 mark_stage_running(project_id, 'agent_deployer')
                 deployer_result = agents["agent_deployer"](current_context)
@@ -645,8 +633,6 @@ def run_workflow(user_input: str, session_id: Optional[str] = None, project_name
             except Exception as e:
                 mark_stage_failed(project_id, 'agent_deployer', str(e))
                 raise
-        else:
-            print(f"ℹ️ [LOCAL模式] 跳过agent_deployer执行", flush=True)
 
         end_time = time.time()
         execution_duration = end_time - start_time
@@ -654,10 +640,8 @@ def run_workflow(user_input: str, session_id: Optional[str] = None, project_name
 
         print("✅ 工作流执行完成")
 
-        # 更新项目状态为 COMPLETED（由 build_handler 处理，这里不需要重复更新）
         # 项目状态更新已在 build_handler._update_project_status 中完成
-        if mode == "remote":
-            print(f"✅ 项目状态将由 worker 更新为 COMPLETED")
+        print(f"✅ 项目状态将由 worker 更新为 COMPLETED")
 
         # 生成工作流总结报告
         print(f"\n{'='*80}")
@@ -689,32 +673,31 @@ def run_workflow(user_input: str, session_id: Optional[str] = None, project_name
             print(f"📄 报告路径: {report_path}")
         
         # 采集项目信息并同步到 DynamoDB
-        if mode == "remote":
-            try:
-                from nexus_utils.project_info_collector import collect_project_info_after_workflow
-                from nexus_utils.workflow_report_generator import extract_project_name_from_agent_results
-                
-                # 提取项目名称
-                local_project_name = extract_project_name_from_agent_results(execution_results)
-                
-                print(f"📊 [INFO] 开始采集项目信息并同步到 DynamoDB...")
-                collect_result = collect_project_info_after_workflow(
-                    project_name=local_project_name,
-                    project_id=project_id,
-                    project_root_path='./projects'
-                )
-                
-                if collect_result.get("success"):
-                    print(f"✅ [INFO] 项目信息已同步到 DynamoDB")
-                    if collect_result.get("sync_status", {}).get("stages_updated", 0) > 0:
-                        print(f"   - 更新了 {collect_result['sync_status']['stages_updated']} 个阶段的指标数据")
-                else:
-                    errors = collect_result.get("errors", [])
-                    print(f"⚠️ [WARN] 项目信息同步部分失败: {errors}")
-            except Exception as e:
-                print(f"⚠️ [WARN] 采集项目信息失败: {e}")
-                import traceback
-                traceback.print_exc()
+        try:
+            from nexus_utils.project_info_collector import collect_project_info_after_workflow
+            from nexus_utils.workflow_report_generator import extract_project_name_from_agent_results
+            
+            # 提取项目名称
+            local_project_name = extract_project_name_from_agent_results(execution_results)
+            
+            print(f"📊 [INFO] 开始采集项目信息并同步到 DynamoDB...")
+            collect_result = collect_project_info_after_workflow(
+                project_name=local_project_name,
+                project_id=project_id,
+                project_root_path='./projects'
+            )
+            
+            if collect_result.get("success"):
+                print(f"✅ [INFO] 项目信息已同步到 DynamoDB")
+                if collect_result.get("sync_status", {}).get("stages_updated", 0) > 0:
+                    print(f"   - 更新了 {collect_result['sync_status']['stages_updated']} 个阶段的指标数据")
+            else:
+                errors = collect_result.get("errors", [])
+                print(f"⚠️ [WARN] 项目信息同步部分失败: {errors}")
+        except Exception as e:
+            print(f"⚠️ [WARN] 采集项目信息失败: {e}")
+            import traceback
+            traceback.print_exc()
         
         # 同步Agent文件到S3（如果启用）
         # 优先级：环境变量 > 配置文件

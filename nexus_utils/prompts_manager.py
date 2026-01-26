@@ -289,6 +289,123 @@ class PromptManager:
         """获取指定agent的提示词管理器，支持agent名称或相对路径"""
         return self.agents.get(agent_name)
     
+    def reload(self) -> None:
+        """
+        重新加载所有提示词文件
+        
+        用于在运行时动态加载新增的提示词文件，无需重启服务
+        """
+        self.agents.clear()
+        self.agent_path_mapping.clear()
+        self.load_prompts()
+    
+    def load_single_prompt(self, prompt_file_path: str) -> bool:
+        """
+        加载单个提示词文件
+        
+        用于在部署新 Agent 后动态加载其提示词，无需重新加载全部文件
+        
+        参数:
+            prompt_file_path: 提示词文件的完整路径或相对于项目根目录的路径
+            
+        返回:
+            bool: 是否加载成功
+        """
+        import yaml
+        
+        prompts_base_dir = './prompts'
+        
+        # 处理路径
+        if not prompt_file_path.startswith(prompts_base_dir):
+            if prompt_file_path.startswith('prompts/'):
+                prompt_file_path = './' + prompt_file_path
+            else:
+                prompt_file_path = os.path.join(prompts_base_dir, prompt_file_path)
+        
+        # 确保有 .yaml 后缀
+        if not prompt_file_path.endswith('.yaml'):
+            prompt_file_path += '.yaml'
+        
+        if not os.path.exists(prompt_file_path):
+            print(f"提示词文件不存在: {prompt_file_path}")
+            return False
+        
+        try:
+            with open(prompt_file_path, 'r', encoding='utf-8') as f:
+                prompt_data = yaml.safe_load(f)
+            
+            if not prompt_data or 'agent' not in prompt_data:
+                print(f"提示词文件格式无效: {prompt_file_path}")
+                return False
+            
+            agent_config = prompt_data['agent']
+            agent_name = agent_config.get('name', 'template')
+            description = agent_config.get('description', '')
+            category = agent_config.get('category', 'assistant')
+            
+            # 计算相对路径
+            relative_path = os.path.relpath(prompt_file_path, prompts_base_dir)
+            relative_path = relative_path.replace('.yaml', '')
+            
+            # 存储映射
+            self.agent_path_mapping[agent_name] = relative_path
+            self.agent_path_mapping[relative_path] = relative_path
+            
+            # 解析环境配置
+            environments = {}
+            for env_name, env_data in agent_config.get('environments', {}).items():
+                environments[env_name] = self._parse_environment_config(env_data)
+            
+            # 解析版本
+            versions = {}
+            for version_config in agent_config.get('versions', []):
+                version = version_config.get('version', 'latest')
+                
+                tools = None
+                if 'tools' in version_config:
+                    tools = [self._parse_tool_config(tool) for tool in version_config['tools']]
+                
+                examples = None
+                if 'examples' in version_config:
+                    examples = self._parse_examples(version_config['examples'])
+                
+                metadata = None
+                if 'metadata' in version_config:
+                    metadata = self._parse_metadata(version_config['metadata'])
+                
+                versions[version] = PromptVersion(
+                    agent_name=agent_name,
+                    version=version,
+                    status=version_config.get('status', 'stable'),
+                    created_date=version_config.get('created_date', ''),
+                    author=version_config.get('author', ''),
+                    description=version_config.get('description', ''),
+                    system_prompt=version_config.get('system_prompt', ''),
+                    user_prompt_template=version_config.get('user_prompt_template'),
+                    context_window=version_config.get('context_window'),
+                    tools=tools,
+                    constraints=version_config.get('constraints'),
+                    examples=examples,
+                    metadata=metadata
+                )
+            
+            # 创建 agent
+            self.agents[agent_name] = PromptAgent(
+                agent_name=agent_name,
+                description=description,
+                category=category,
+                environments=environments,
+                versions=versions
+            )
+            self.agents[relative_path] = self.agents[agent_name]
+            
+            print(f"成功加载提示词: {relative_path}")
+            return True
+            
+        except Exception as e:
+            print(f"加载提示词文件 {prompt_file_path} 时出错: {str(e)}")
+            return False
+    
     def get_agent_by_path(self, relative_path: str) -> Optional[PromptAgent]:
         """通过相对路径获取agent"""
         return self.agents.get(relative_path)

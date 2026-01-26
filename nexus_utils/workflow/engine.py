@@ -262,7 +262,16 @@ class WorkflowEngine:
         self.context.current_stage = stage_name
         self.context.status = StageStatus.RUNNING
         
-        # 保存状态（标记阶段为运行中）
+        # 直接更新数据库中的阶段状态为 running，确保 started_at 被设置
+        from datetime import datetime, timezone
+        now = datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
+        self.db.update_stage(self.project_id, stage_name, {
+            'status': 'running',
+            'started_at': now,
+        })
+        logger.info(f"Stage {stage_name} marked as running with started_at={now}")
+        
+        # 保存上下文状态
         self._save_context()
         
         # 再次检查控制信号（确保状态更新后仍然可以继续）

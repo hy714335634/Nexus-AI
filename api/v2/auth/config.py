@@ -22,8 +22,8 @@ def _load_auth_from_config() -> dict:
         from nexus_utils.config_loader import get_config
         config = get_config()
         
-        # 从配置文件读取认证信息
-        nexus_config = config.config.get('nexus_ai', {})
+        # 从配置文件读取认证信息（使用正确的配置访问方法）
+        nexus_config = config.get_nexus_ai_config()
         auth_config = nexus_config.get('auth', {})
         
         username = auth_config.get('user', 'admin')

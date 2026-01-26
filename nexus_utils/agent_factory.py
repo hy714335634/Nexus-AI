@@ -540,6 +540,12 @@ def create_agent_from_prompt_template(
         # 尝试通过agent名称或相对路径获取agent模板
         agent_template = manager.get_agent(agent_name)
         
+        # 如果找不到，尝试动态加载该提示词文件
+        if not agent_template:
+            print(f"Agent template '{agent_name}' not found in cache, trying to load dynamically...")
+            if manager.load_single_prompt(agent_name):
+                agent_template = manager.get_agent(agent_name)
+        
         if not agent_template:
             print(f"Agent template '{agent_name}' not found")
             return None
