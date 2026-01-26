@@ -103,7 +103,7 @@ class StageServiceV2:
         """
         normalized_name = self._normalize_stage_name(stage_name)
         if not normalized_name:
-            logger.warning(f"Unknown stage name: {stage_name}")
+            logger.warning(f"Unknown stage name: {stage_name}, cannot normalize")
             return False
         
         try:
@@ -111,7 +111,11 @@ class StageServiceV2:
             
             # 检查项目控制状态，如果已暂停或停止，不更新项目状态
             project = self.db.get_project(project_id)
-            control_status = project.get('control_status', 'running') if project else 'running'
+            if not project:
+                logger.warning(f"Project {project_id} not found in database")
+                return False
+            
+            control_status = project.get('control_status', 'running')
             
             # 如果项目已暂停或停止，不继续执行
             if control_status in ['paused', 'stopped']:
@@ -126,7 +130,8 @@ class StageServiceV2:
             if not existing_stage:
                 logger.warning(
                     f"Stage {normalized_name} not found for project {project_id}, "
-                    f"original name: {stage_name}"
+                    f"original name: {stage_name}. "
+                    f"This may indicate stages were not initialized properly."
                 )
                 return False
             

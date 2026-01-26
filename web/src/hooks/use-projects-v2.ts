@@ -102,7 +102,20 @@ export function useProjectStagesV2(
       return response.data || [];
     },
     enabled: Boolean(projectId),
-    staleTime: 10_000,
+    staleTime: 5_000,
+    // 构建过程中每5秒轮询一次阶段状态
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      if (!data) return false;
+      
+      // 如果有任何阶段处于运行中或等待中，继续轮询
+      const hasActiveStage = data.some(
+        (stage) => stage.status === 'running' || stage.status === 'pending'
+      );
+      
+      if (!hasActiveStage) return false;
+      return 5_000; // 每5秒轮询一次
+    },
     ...options,
   });
 }
@@ -119,7 +132,7 @@ export function useBuildDashboardV2(
       return response.data || null;
     },
     enabled: Boolean(projectId),
-    staleTime: 5_000,
+    staleTime: 3_000,
     refetchOnReconnect: true,
     refetchOnWindowFocus: false,
     retry: false,
@@ -129,9 +142,14 @@ export function useBuildDashboardV2(
 
       const isBuilding = data.status === 'building' || data.status === 'pending' || data.status === 'queued';
       const hasRunningStage = data.stages.some((stage) => stage.status === 'running');
+      const hasPendingStage = data.stages.some((stage) => stage.status === 'pending');
 
-      if (!isBuilding && !hasRunningStage) return false;
-      return 8_000; // Poll every 8 seconds during build
+      // 如果正在构建或有活跃阶段，每3秒轮询一次
+      if (isBuilding || hasRunningStage || hasPendingStage) {
+        return 3_000;
+      }
+      
+      return false;
     },
     ...options,
   });

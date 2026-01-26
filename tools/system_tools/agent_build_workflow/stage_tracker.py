@@ -109,17 +109,28 @@ def initialize_project_record(
     logger.info(f"initialize_project_record: {project_id} (v2 handled by project_service)")
 
 
-def mark_stage_running(project_id: str, stage_name: str) -> None:
+def mark_stage_running(project_id: str, stage_name: str) -> bool:
     """
     标记阶段为运行中
     
     Args:
         project_id: 项目ID
         stage_name: 阶段名称（支持工作流名称和枚举值）
+        
+    Returns:
+        bool: 是否成功更新状态
     """
     try:
         service = _get_stage_service()
-        service.mark_stage_running(project_id, stage_name)
+        result = service.mark_stage_running(project_id, stage_name)
+        if not result:
+            logger.warning(
+                f"mark_stage_running returned False for project={project_id}, "
+                f"stage={stage_name}. Stage status may not be updated in database."
+            )
+        else:
+            logger.info(f"Stage {stage_name} marked as running for project {project_id}")
+        return result
     except Exception as e:
         logger.error(f"Failed to mark stage running: {e}")
         raise

@@ -73,13 +73,24 @@ class BuildStage(str, Enum):
     构建阶段枚举
     
     注意: 阶段的详细配置（显示名称、序号等）请使用 api.v2.core.stage_config 模块
+    
+    执行顺序：
+    1. orchestrator - 工作流编排
+    2. requirements_analysis - 需求分析
+    3. system_architecture - 系统架构设计
+    4. agent_design - Agent设计
+    5. tools_developer - 工具开发（先开发工具）
+    6. prompt_engineer - 提示词工程（基于已有工具）
+    7. agent_code_developer - 代码开发
+    8. agent_developer_manager - 开发管理
+    9. agent_deployer - Agent部署
     """
     ORCHESTRATOR = "orchestrator"
     REQUIREMENTS_ANALYSIS = "requirements_analysis"
     SYSTEM_ARCHITECTURE = "system_architecture"
     AGENT_DESIGN = "agent_design"
-    PROMPT_ENGINEER = "prompt_engineer"
     TOOLS_DEVELOPER = "tools_developer"
+    PROMPT_ENGINEER = "prompt_engineer"
     AGENT_CODE_DEVELOPER = "agent_code_developer"
     AGENT_DEVELOPER_MANAGER = "agent_developer_manager"
     AGENT_DEPLOYER = "agent_deployer"

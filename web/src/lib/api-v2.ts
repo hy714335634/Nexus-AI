@@ -345,10 +345,10 @@ function parseSSEChunk(chunk: string): StreamEvent | null {
 
 /**
  * 获取流式 API 的直接后端 URL
- * 绕过 Next.js rewrites 代理，避免响应被缓冲
+ * 获取流式 API 的 URL
  * 
- * 注意：Next.js 的 NEXT_PUBLIC_* 环境变量在构建时内联
- * 如果未设置，默认使用当前页面的 origin（同源）或 localhost:8000
+ * 生产环境：使用相对路径，通过 ELB/CloudFront 转发到后端
+ * 开发环境：直接访问 localhost:8000
  */
 function getStreamApiUrl(path: string): string {
   // 优先使用环境变量（构建时内联）
@@ -358,15 +358,22 @@ function getStreamApiUrl(path: string): string {
     return `${envUrl}/api/v2${path}`;
   }
   
-  // 在浏览器端，尝试使用同源后端（如果前后端部署在同一域名下）
-  // 否则回退到 localhost:8000
+  // 在浏览器端
   if (typeof window !== 'undefined') {
-    // 开发环境默认使用 localhost:8000
-    // 生产环境如果前后端同源，可以使用 window.location.origin
-    const backendUrl = 'http://localhost:8000';
-    return `${backendUrl}/api/v2${path}`;
+    // 检查是否为开发环境（localhost 或 127.0.0.1）
+    const isDev = window.location.hostname === 'localhost' || 
+                  window.location.hostname === '127.0.0.1';
+    
+    if (isDev) {
+      // 开发环境：直接访问后端
+      return `http://localhost:8000/api/v2${path}`;
+    }
+    
+    // 生产环境：使用相对路径，通过 ELB/CloudFront 转发
+    return `/api/v2${path}`;
   }
   
+  // 服务端渲染时的默认值
   return `http://localhost:8000/api/v2${path}`;
 }
 

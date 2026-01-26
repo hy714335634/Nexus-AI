@@ -4,6 +4,9 @@
 此模块是整个系统中阶段相关配置的唯一权威来源。
 所有需要阶段信息的地方都应该从这里导入，而不是自己定义。
 
+配置来源: config/workflows.yaml
+默认工作流: agent_build
+
 使用方式:
     from api.v2.core.stage_config import (
         STAGES,
@@ -12,367 +15,416 @@
         normalize_stage_name,
         get_prompt_path,
         get_log_filename,
+        get_workflow_config,
     )
 """
 from enum import Enum
 from typing import Optional, Dict, List
 from dataclasses import dataclass
+import logging
+
+# 导入工作流配置管理器
+from nexus_utils.workflow_config import (
+    WorkflowConfigManager,
+    WorkflowConfig,
+    StageConfig as WorkflowStageConfig,
+    WorkflowType,
+    get_agent_build_workflow,
+    get_workflow_config as _get_workflow_config,
+)
+
+logger = logging.getLogger(__name__)
 
 
-class BuildStage(str, Enum):
+# ============================================================================
+# 工作流配置获取
+# ============================================================================
+
+def get_workflow_config(workflow_type: str = "agent_build") -> WorkflowConfig:
     """
-    构建阶段枚举 - 标准阶段命名
+    获取工作流配置
     
-    这是系统中所有阶段名称的唯一标准定义。
-    数据库、API、前端都应该使用这些枚举值。
+    参数:
+        workflow_type: 工作流类型，默认为 'agent_build'
+    
+    返回:
+        WorkflowConfig 对象
+    
+    异常:
+        ValueError: 工作流配置不存在
     """
-    ORCHESTRATOR = "orchestrator"
-    REQUIREMENTS_ANALYSIS = "requirements_analysis"
-    SYSTEM_ARCHITECTURE = "system_architecture"
-    AGENT_DESIGN = "agent_design"
-    PROMPT_ENGINEER = "prompt_engineer"
-    TOOLS_DEVELOPER = "tools_developer"
-    AGENT_CODE_DEVELOPER = "agent_code_developer"
-    AGENT_DEVELOPER_MANAGER = "agent_developer_manager"
-    AGENT_DEPLOYER = "agent_deployer"
+    config = _get_workflow_config(workflow_type)
+    if not config:
+        raise ValueError(f"Workflow config not found: {workflow_type}")
+    return config
 
+
+# ============================================================================
+# 默认使用 Agent Build 工作流（向后兼容）
+# ============================================================================
+
+def _get_default_workflow() -> WorkflowConfig:
+    """获取默认工作流配置（Agent Build）"""
+    return get_agent_build_workflow()
+
+
+# ============================================================================
+# BuildStage 枚举 - 动态生成
+# ============================================================================
+
+def _create_build_stage_enum():
+    """
+    从配置文件动态创建 BuildStage 枚举
+    
+    返回:
+        BuildStage 枚举类
+    """
+    workflow = _get_default_workflow()
+    members = {}
+    for stage in workflow.stages:
+        # 枚举成员名称为大写
+        enum_name = stage.name.upper()
+        members[enum_name] = stage.name
+    
+    return Enum('BuildStage', members, type=str)
+
+
+# 创建枚举（延迟初始化）
+BuildStage = _create_build_stage_enum()
+
+
+# ============================================================================
+# StageConfig 数据类（向后兼容）
+# ============================================================================
 
 @dataclass
 class StageConfig:
-    """阶段配置数据类"""
-    # 标准名称（BuildStage 枚举值）
-    name: str
-    # 阶段序号（1-9）
-    order: int
-    # 中文显示名称
-    display_name: str
-    # 提示词模板路径
-    prompt_path: str
-    # 日志文件名（不含扩展名）
-    log_filename: str
-    # Agent 显示名称（英文）
-    agent_display_name: str
-    # 是否支持迭代（多 Agent 场景）
-    supports_iteration: bool = False
-
-
-# ============== 阶段配置定义 ==============
-# 这是整个系统的单一数据源
-
-STAGES: Dict[str, StageConfig] = {
-    BuildStage.ORCHESTRATOR.value: StageConfig(
-        name=BuildStage.ORCHESTRATOR.value,
-        order=1,
-        display_name="工作流编排",
-        prompt_path="system_agents_prompts/agent_build_workflow/orchestrator",
-        log_filename="orchestrator",
-        agent_display_name="Orchestrator",
-        supports_iteration=False,
-    ),
-    BuildStage.REQUIREMENTS_ANALYSIS.value: StageConfig(
-        name=BuildStage.REQUIREMENTS_ANALYSIS.value,
-        order=2,
-        display_name="需求分析",
-        prompt_path="system_agents_prompts/agent_build_workflow/requirements_analyzer",
-        log_filename="requirements_analyzer",
-        agent_display_name="Requirements Analyzer",
-        supports_iteration=False,
-    ),
-    BuildStage.SYSTEM_ARCHITECTURE.value: StageConfig(
-        name=BuildStage.SYSTEM_ARCHITECTURE.value,
-        order=3,
-        display_name="系统架构设计",
-        prompt_path="system_agents_prompts/agent_build_workflow/system_architect",
-        log_filename="system_architect",
-        agent_display_name="System Architect",
-        supports_iteration=False,
-    ),
-    BuildStage.AGENT_DESIGN.value: StageConfig(
-        name=BuildStage.AGENT_DESIGN.value,
-        order=4,
-        display_name="Agent设计",
-        prompt_path="system_agents_prompts/agent_build_workflow/agent_designer",
-        log_filename="agent_designer",
-        agent_display_name="Agent Designer",
-        supports_iteration=True,
-    ),
-    BuildStage.PROMPT_ENGINEER.value: StageConfig(
-        name=BuildStage.PROMPT_ENGINEER.value,
-        order=5,
-        display_name="提示词工程",
-        prompt_path="system_agents_prompts/agent_build_workflow/prompt_engineer",
-        log_filename="prompt_engineer",
-        agent_display_name="Prompt Engineer",
-        supports_iteration=True,
-    ),
-    BuildStage.TOOLS_DEVELOPER.value: StageConfig(
-        name=BuildStage.TOOLS_DEVELOPER.value,
-        order=6,
-        display_name="工具开发",
-        prompt_path="system_agents_prompts/agent_build_workflow/tool_developer",
-        log_filename="tool_developer",
-        agent_display_name="Tool Developer",
-        supports_iteration=True,
-    ),
-    BuildStage.AGENT_CODE_DEVELOPER.value: StageConfig(
-        name=BuildStage.AGENT_CODE_DEVELOPER.value,
-        order=7,
-        display_name="代码开发",
-        prompt_path="system_agents_prompts/agent_build_workflow/agent_code_developer",
-        log_filename="agent_code_developer",
-        agent_display_name="Agent Code Developer",
-        supports_iteration=True,
-    ),
-    BuildStage.AGENT_DEVELOPER_MANAGER.value: StageConfig(
-        name=BuildStage.AGENT_DEVELOPER_MANAGER.value,
-        order=8,
-        display_name="开发管理",
-        prompt_path="system_agents_prompts/agent_build_workflow/agent_developer_manager",
-        log_filename="agent_developer_manager",
-        agent_display_name="Agent Developer Manager",
-        supports_iteration=False,
-    ),
-    BuildStage.AGENT_DEPLOYER.value: StageConfig(
-        name=BuildStage.AGENT_DEPLOYER.value,
-        order=9,
-        display_name="Agent部署",
-        prompt_path="system_agents_prompts/agent_build_workflow/agent_deployer",
-        log_filename="agent_deployer",
-        agent_display_name="Agent Deployer",
-        supports_iteration=False,
-    ),
-}
-
-
-# ============== 旧命名兼容映射 ==============
-# 用于处理历史数据和旧代码的兼容
-
-LEGACY_NAME_MAPPING: Dict[str, str] = {
-    # 旧命名 -> 新命名（BuildStage 枚举值）
-    "requirements_analyzer": BuildStage.REQUIREMENTS_ANALYSIS.value,
-    "system_architect": BuildStage.SYSTEM_ARCHITECTURE.value,
-    "agent_designer": BuildStage.AGENT_DESIGN.value,
-    "tool_developer": BuildStage.TOOLS_DEVELOPER.value,
-}
-
-
-# ============== 阶段顺序列表 ==============
-
-STAGE_SEQUENCE: List[str] = [
-    BuildStage.ORCHESTRATOR.value,
-    BuildStage.REQUIREMENTS_ANALYSIS.value,
-    BuildStage.SYSTEM_ARCHITECTURE.value,
-    BuildStage.AGENT_DESIGN.value,
-    BuildStage.PROMPT_ENGINEER.value,
-    BuildStage.TOOLS_DEVELOPER.value,
-    BuildStage.AGENT_CODE_DEVELOPER.value,
-    BuildStage.AGENT_DEVELOPER_MANAGER.value,
-    BuildStage.AGENT_DEPLOYER.value,
-]
-
-
-# ============== 支持迭代的阶段 ==============
-
-ITERATIVE_STAGES: List[str] = [
-    stage_name for stage_name, config in STAGES.items()
-    if config.supports_iteration
-]
-
-
-# ============== 辅助函数 ==============
-
-def normalize_stage_name(stage_name: str) -> Optional[str]:
     """
-    将各种阶段名称标准化为 BuildStage 枚举值
+    阶段配置数据类（向后兼容）
+    
+    此类保持与旧代码的兼容性，内部使用 WorkflowStageConfig
+    """
+    name: str
+    order: int
+    display_name: str
+    prompt_path: str
+    log_filename: str
+    agent_display_name: str
+    supports_iteration: bool = False
+    
+    @classmethod
+    def from_workflow_stage(cls, stage: WorkflowStageConfig) -> 'StageConfig':
+        """从 WorkflowStageConfig 创建"""
+        return cls(
+            name=stage.name,
+            order=stage.order,
+            display_name=stage.display_name,
+            prompt_path=stage.prompt_path,
+            log_filename=stage.log_filename,
+            agent_display_name=stage.agent_display_name,
+            supports_iteration=stage.supports_iteration,
+        )
+
+
+# ============================================================================
+# STAGES 字典 - 从配置文件加载
+# ============================================================================
+
+def _load_stages() -> Dict[str, StageConfig]:
+    """从配置文件加载阶段配置"""
+    workflow = _get_default_workflow()
+    stages = {}
+    for stage in workflow.stages:
+        stages[stage.name] = StageConfig.from_workflow_stage(stage)
+    return stages
+
+
+STAGES: Dict[str, StageConfig] = _load_stages()
+
+
+# ============================================================================
+# 旧命名兼容映射 - 从配置文件加载
+# ============================================================================
+
+def _load_legacy_mapping() -> Dict[str, str]:
+    """从配置文件加载旧命名映射"""
+    workflow = _get_default_workflow()
+    return workflow.legacy_name_mapping.copy()
+
+
+LEGACY_NAME_MAPPING: Dict[str, str] = _load_legacy_mapping()
+
+
+# ============================================================================
+# 阶段顺序列表 - 从配置文件加载
+# ============================================================================
+
+def _load_stage_sequence() -> List[str]:
+    """从配置文件加载阶段顺序"""
+    workflow = _get_default_workflow()
+    return workflow.get_stage_sequence()
+
+
+STAGE_SEQUENCE: List[str] = _load_stage_sequence()
+
+
+# ============================================================================
+# 支持迭代的阶段 - 从配置文件加载
+# ============================================================================
+
+def _load_iterative_stages() -> List[str]:
+    """从配置文件加载支持迭代的阶段"""
+    workflow = _get_default_workflow()
+    return workflow.get_iterative_stages()
+
+
+ITERATIVE_STAGES: List[str] = _load_iterative_stages()
+
+
+# ============================================================================
+# 辅助函数
+# ============================================================================
+
+def normalize_stage_name(stage_name: str, workflow_type: str = "agent_build") -> Optional[str]:
+    """
+    将各种阶段名称标准化为标准枚举值
     
     支持:
     - 新命名（直接返回）
     - 旧命名（转换为新命名）
     - 大小写不敏感
     
-    Args:
+    参数:
         stage_name: 阶段名称（可以是新命名、旧命名或枚举值）
+        workflow_type: 工作流类型，默认为 'agent_build'
     
-    Returns:
-        标准化的阶段名称（BuildStage.value）或 None（如果无法识别）
+    返回:
+        标准化的阶段名称或 None（如果无法识别）
     
     示例:
         >>> normalize_stage_name("requirements_analyzer")
         "requirements_analysis"
         >>> normalize_stage_name("requirements_analysis")
         "requirements_analysis"
-        >>> normalize_stage_name("REQUIREMENTS_ANALYSIS")
-        "requirements_analysis"
     """
     if not stage_name:
         return None
     
-    name_lower = stage_name.lower()
-    
-    # 1. 检查是否是标准名称
-    if name_lower in STAGES:
-        return name_lower
-    
-    # 2. 检查是否是旧命名
-    if name_lower in LEGACY_NAME_MAPPING:
-        return LEGACY_NAME_MAPPING[name_lower]
-    
-    # 3. 尝试作为 BuildStage 枚举
-    try:
-        return BuildStage(name_lower).value
-    except ValueError:
-        pass
-    
-    return None
+    workflow = get_workflow_config(workflow_type)
+    return workflow.normalize_stage_name(stage_name)
 
 
-def get_stage_display_name(stage_name: str) -> str:
+def get_stage_display_name(stage_name: str, workflow_type: str = "agent_build") -> str:
     """
     获取阶段的中文显示名称
     
-    Args:
+    参数:
         stage_name: 阶段名称（支持新旧命名）
+        workflow_type: 工作流类型
     
-    Returns:
+    返回:
         中文显示名称，如果无法识别则返回原始名称
     """
-    normalized = normalize_stage_name(stage_name)
-    if normalized and normalized in STAGES:
-        return STAGES[normalized].display_name
-    return stage_name
+    workflow = get_workflow_config(workflow_type)
+    return workflow.get_stage_display_name(stage_name)
 
 
-def get_stage_number(stage_name: str) -> int:
+def get_stage_number(stage_name: str, workflow_type: str = "agent_build") -> int:
     """
-    获取阶段序号（1-9）
+    获取阶段序号
     
-    Args:
+    参数:
         stage_name: 阶段名称（支持新旧命名）
+        workflow_type: 工作流类型
     
-    Returns:
+    返回:
         阶段序号，如果无法识别则返回 0
     """
-    normalized = normalize_stage_name(stage_name)
-    if normalized and normalized in STAGES:
-        return STAGES[normalized].order
-    return 0
+    workflow = get_workflow_config(workflow_type)
+    stage = workflow.get_stage(stage_name)
+    return stage.order if stage else 0
 
 
-def get_prompt_path(stage_name: str) -> Optional[str]:
+def get_prompt_path(stage_name: str, workflow_type: str = "agent_build") -> Optional[str]:
     """
     获取阶段的提示词模板路径
     
-    Args:
+    参数:
         stage_name: 阶段名称（支持新旧命名）
+        workflow_type: 工作流类型
     
-    Returns:
+    返回:
         提示词模板路径，如果无法识别则返回 None
     """
-    normalized = normalize_stage_name(stage_name)
-    if normalized and normalized in STAGES:
-        return STAGES[normalized].prompt_path
-    return None
+    workflow = get_workflow_config(workflow_type)
+    return workflow.get_prompt_path(stage_name)
 
 
-def get_log_filename(stage_name: str) -> Optional[str]:
+def get_log_filename(stage_name: str, workflow_type: str = "agent_build") -> Optional[str]:
     """
     获取阶段的日志文件名（不含扩展名）
     
-    Args:
+    参数:
         stage_name: 阶段名称（支持新旧命名）
+        workflow_type: 工作流类型
     
-    Returns:
+    返回:
         日志文件名，如果无法识别则返回 None
     """
-    normalized = normalize_stage_name(stage_name)
-    if normalized and normalized in STAGES:
-        return STAGES[normalized].log_filename
-    return None
+    workflow = get_workflow_config(workflow_type)
+    stage = workflow.get_stage(stage_name)
+    return stage.log_filename if stage else None
 
 
-def get_agent_display_name(stage_name: str) -> str:
+def get_agent_display_name(stage_name: str, workflow_type: str = "agent_build") -> str:
     """
     获取阶段对应 Agent 的英文显示名称
     
-    Args:
+    参数:
         stage_name: 阶段名称（支持新旧命名）
+        workflow_type: 工作流类型
     
-    Returns:
+    返回:
         Agent 英文显示名称，如果无法识别则返回原始名称
     """
-    normalized = normalize_stage_name(stage_name)
-    if normalized and normalized in STAGES:
-        return STAGES[normalized].agent_display_name
-    return stage_name
+    workflow = get_workflow_config(workflow_type)
+    stage = workflow.get_stage(stage_name)
+    return stage.agent_display_name if stage else stage_name
 
 
-def is_iterative_stage(stage_name: str) -> bool:
+def is_iterative_stage(stage_name: str, workflow_type: str = "agent_build") -> bool:
     """
     检查阶段是否支持迭代（多 Agent 场景）
     
-    Args:
+    参数:
         stage_name: 阶段名称（支持新旧命名）
+        workflow_type: 工作流类型
     
-    Returns:
+    返回:
         是否支持迭代
     """
-    normalized = normalize_stage_name(stage_name)
-    if normalized and normalized in STAGES:
-        return STAGES[normalized].supports_iteration
-    return False
+    workflow = get_workflow_config(workflow_type)
+    stage = workflow.get_stage(stage_name)
+    return stage.supports_iteration if stage else False
 
 
-def get_stage_config(stage_name: str) -> Optional[StageConfig]:
+def get_stage_config(stage_name: str, workflow_type: str = "agent_build") -> Optional[StageConfig]:
     """
     获取阶段的完整配置
     
-    Args:
+    参数:
         stage_name: 阶段名称（支持新旧命名）
+        workflow_type: 工作流类型
     
-    Returns:
+    返回:
         StageConfig 对象，如果无法识别则返回 None
     """
-    normalized = normalize_stage_name(stage_name)
-    if normalized and normalized in STAGES:
-        return STAGES[normalized]
-    return None
+    workflow = get_workflow_config(workflow_type)
+    stage = workflow.get_stage(stage_name)
+    return StageConfig.from_workflow_stage(stage) if stage else None
 
 
-def get_all_stage_names() -> List[str]:
+def get_all_stage_names(workflow_type: str = "agent_build") -> List[str]:
     """
     获取所有阶段名称（按顺序）
     
-    Returns:
+    参数:
+        workflow_type: 工作流类型
+    
+    返回:
         阶段名称列表
     """
-    return STAGE_SEQUENCE.copy()
+    workflow = get_workflow_config(workflow_type)
+    return workflow.get_stage_sequence()
 
 
-def get_stage_display_name_mapping() -> Dict[str, str]:
+def get_stage_display_name_mapping(workflow_type: str = "agent_build") -> Dict[str, str]:
     """
     获取阶段名称到显示名称的映射
     
-    Returns:
+    参数:
+        workflow_type: 工作流类型
+    
+    返回:
         {stage_name: display_name} 字典
     """
-    return {name: config.display_name for name, config in STAGES.items()}
+    workflow = get_workflow_config(workflow_type)
+    return {s.name: s.display_name for s in workflow.stages}
 
 
-def get_prompt_path_mapping() -> Dict[str, str]:
+def get_prompt_path_mapping(workflow_type: str = "agent_build") -> Dict[str, str]:
     """
     获取阶段名称到提示词路径的映射
     
-    Returns:
+    参数:
+        workflow_type: 工作流类型
+    
+    返回:
         {stage_name: prompt_path} 字典
     """
-    return {name: config.prompt_path for name, config in STAGES.items()}
+    workflow = get_workflow_config(workflow_type)
+    return {s.name: s.prompt_path for s in workflow.stages}
 
 
-def get_log_filename_mapping() -> Dict[str, str]:
+def get_log_filename_mapping(workflow_type: str = "agent_build") -> Dict[str, str]:
     """
     获取阶段名称到日志文件名的映射
     
-    Returns:
+    参数:
+        workflow_type: 工作流类型
+    
+    返回:
         {stage_name: log_filename} 字典
     """
-    return {name: config.log_filename for name, config in STAGES.items()}
+    workflow = get_workflow_config(workflow_type)
+    return {s.name: s.log_filename for s in workflow.stages}
+
+
+# ============================================================================
+# 工作流相关函数
+# ============================================================================
+
+def get_available_workflows() -> List[str]:
+    """
+    获取所有可用的工作流类型
+    
+    返回:
+        工作流类型列表
+    """
+    manager = WorkflowConfigManager()
+    return list(manager.get_enabled_workflows().keys())
+
+
+def get_workflow_stages(workflow_type: str) -> List[str]:
+    """
+    获取指定工作流的所有阶段
+    
+    参数:
+        workflow_type: 工作流类型
+    
+    返回:
+        阶段名称列表
+    """
+    workflow = get_workflow_config(workflow_type)
+    return workflow.get_stage_sequence()
+
+
+def reload_workflow_config() -> None:
+    """
+    重新加载工作流配置
+    
+    用于配置文件更新后刷新内存中的配置
+    """
+    global STAGES, LEGACY_NAME_MAPPING, STAGE_SEQUENCE, ITERATIVE_STAGES, BuildStage
+    
+    manager = WorkflowConfigManager()
+    manager.reload()
+    
+    # 重新加载各项配置
+    STAGES = _load_stages()
+    LEGACY_NAME_MAPPING = _load_legacy_mapping()
+    STAGE_SEQUENCE = _load_stage_sequence()
+    ITERATIVE_STAGES = _load_iterative_stages()
+    BuildStage = _create_build_stage_enum()
+    
+    logger.info("Workflow config reloaded")

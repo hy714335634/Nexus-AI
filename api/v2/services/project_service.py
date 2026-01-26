@@ -297,15 +297,23 @@ class ProjectService:
         }
     
     def _initialize_stages(self, project_id: str):
-        """初始化项目的所有阶段"""
-        stages = list(BuildStage)
+        """
+        初始化项目的所有阶段
         
-        for i, stage in enumerate(stages):
+        使用统一配置模块的阶段顺序，确保 stage_number 与配置一致
+        """
+        from api.v2.core.stage_config import STAGES, STAGE_SEQUENCE
+        
+        for stage_name in STAGE_SEQUENCE:
+            stage_config = STAGES.get(stage_name)
+            if not stage_config:
+                continue
+            
             stage_data = {
                 'project_id': project_id,
-                'stage_name': stage.value,
-                'stage_number': i + 1,
-                'display_name': BuildStage.get_display_name(stage),
+                'stage_name': stage_name,
+                'stage_number': stage_config.order,
+                'display_name': stage_config.display_name,
                 'status': 'pending',
                 'agent_name': None,
                 'started_at': None,

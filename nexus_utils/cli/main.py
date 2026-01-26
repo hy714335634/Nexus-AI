@@ -10,6 +10,7 @@ import click
 import sys
 import os
 import json
+import time
 from pathlib import Path
 from typing import Optional, Dict, Any, List
 
@@ -76,7 +77,7 @@ class CLIContext:
 
 
 @click.group()
-@click.version_option(version="2.2.0", prog_name="nexus-cli")
+@click.version_option(version="2.3.0", prog_name="nexus-cli")
 @click.option('--base-path', default=".", help='Base path to Nexus-AI installation')
 @click.option('--lang', type=click.Choice(['en', 'zh']), default='en', help='Language (en/zh)')
 @click.pass_context
@@ -92,6 +93,7 @@ def cli(ctx, base_path, lang):
       artifact  Manage S3 artifacts (sync, list, versions, describe, delete)
       backup    Manage project backups (list, describe, validate, delete)
       job       Manage tasks and queues (list, view, clear, delete)
+      service   Manage services (start, stop, restart, status, logs)
       init      Initialize infrastructure (DynamoDB tables, SQS queues, S3 buckets)
       overview  Display system-wide overview
     
@@ -105,6 +107,8 @@ def cli(ctx, base_path, lang):
       nexus-cli artifact sync my-agent    # Sync agent to S3
       nexus-cli artifact list             # List synced agents
       nexus-cli job list                  # List tasks
+      nexus-cli service start             # Start all services
+      nexus-cli service status            # Check service status
       nexus-cli init                      # Initialize infrastructure
     
     \b
@@ -3032,6 +3036,391 @@ def artifact_delete(ctx, agent_name, version, delete_s3, force):
     except Exception as e:
         click.secho(f"Error: {e}", fg='red', err=True)
         sys.exit(1)
+
+
+# ============================================================================
+# SERVICE COMMANDS - 服务管理命令
+# ============================================================================
+
+@cli.group()
+def service():
+    """Manage Nexus-AI services (API, Worker, Web)
+    
+    \b
+    SUBCOMMANDS:
+      start     Start services
+      stop      Stop services
+      restart   Restart services
+      status    Show service status
+      logs      View service logs
+    
+    \b
+    EXAMPLES:
+      nexus-cli service start              # Start all services
+      nexus-cli service start --api        # Start API only
+      nexus-cli service stop               # Stop all services
+      nexus-cli service restart            # Restart all services
+      nexus-cli service status             # Show status
+      nexus-cli service logs               # View all logs
+      nexus-cli service logs --api         # View API logs
+    """
+    pass
+
+
+def _get_service_manager(ctx):
+    """获取服务管理器实例"""
+    from .managers.service_manager import ServiceManager
+    return ServiceManager(ctx.base_path)
+
+
+def _print_service_banner():
+    """打印服务管理横幅"""
+    click.echo()
+    click.secho("╔══════════════════════════════════════════════════════════════════╗", fg='cyan')
+    click.secho("║              Nexus-AI Service Manager                            ║", fg='cyan')
+    click.secho("╚══════════════════════════════════════════════════════════════════╝", fg='cyan')
+    click.echo()
+
+
+def _print_status_table(services):
+    """打印服务状态表格"""
+    click.echo()
+    click.secho("Service Status:", fg='cyan')
+    click.echo("━" * 50)
+    
+    for svc in services:
+        status_color = 'green' if svc.status.value == 'running' else 'red'
+        status_icon = '●' if svc.status.value == 'running' else '○'
+        
+        click.echo(f"  {svc.name:10} ", nl=False)
+        click.secho(f"{status_icon} {svc.status.value:10}", fg=status_color, nl=False)
+        
+        if svc.pid:
+            click.echo(f" (PID: {svc.pid})", nl=False)
+        if svc.port:
+            click.echo(f" Port: {svc.port}", nl=False)
+        click.echo()
+    
+    click.echo("━" * 50)
+
+
+def _print_access_urls(urls):
+    """打印访问地址"""
+    click.echo()
+    click.secho("Access URLs:", fg='cyan')
+    click.echo("━" * 50)
+    click.echo(f"  Web:      {urls['web']}")
+    click.echo(f"  API:      {urls['api']}")
+    click.echo(f"  API Docs: {urls['api_docs']}")
+    click.echo(f"  Health:   {urls['health']}")
+    click.echo("━" * 50)
+
+
+@service.command('start')
+@click.option('--api', 'start_api', is_flag=True, help='Start API service only')
+@click.option('--worker', 'start_worker', is_flag=True, help='Start Worker service only')
+@click.option('--web', 'start_web', is_flag=True, help='Start Web service only')
+@click.option('--force-build', is_flag=True, help='Force rebuild frontend')
+@click.option('--dev', 'dev_mode', is_flag=True, help='Start in development mode')
+@click.pass_obj
+def service_start(ctx, start_api, start_worker, start_web, force_build, dev_mode):
+    """Start Nexus-AI services
+    
+    \b
+    EXAMPLES:
+      nexus-cli service start              # Start all services
+      nexus-cli service start --api        # Start API only
+      nexus-cli service start --worker     # Start Worker only
+      nexus-cli service start --web        # Start Web only
+      nexus-cli service start --force-build  # Force rebuild frontend
+      nexus-cli service start --dev        # Start in development mode
+    """
+    _print_service_banner()
+    
+    # 设置运行模式
+    if dev_mode:
+        os.environ["RUN_MODE"] = "dev"
+    
+    sm = _get_service_manager(ctx)
+    
+    # 检查虚拟环境
+    if not sm.check_venv():
+        click.secho(f"✗ Virtual environment not found: {sm.venv_dir}", fg='red')
+        click.echo("  Please run: uv venv --python python3.12")
+        sys.exit(1)
+    
+    # 如果没有指定具体服务，启动所有服务
+    start_all = not (start_api or start_worker or start_web)
+    
+    results = []
+    
+    if start_all:
+        click.secho("Starting all services...", fg='blue')
+        click.echo()
+        results = sm.start_all(force_build)
+    else:
+        if start_api:
+            click.secho("Starting API service...", fg='blue')
+            success, msg = sm.start_api()
+            results.append(("api", success, msg))
+        
+        if start_worker:
+            click.secho("Starting Worker service...", fg='blue')
+            success, msg = sm.start_worker()
+            results.append(("worker", success, msg))
+        
+        if start_web:
+            click.secho("Starting Web service...", fg='blue')
+            success, msg = sm.start_web(force_build)
+            results.append(("web", success, msg))
+    
+    # 显示结果
+    click.echo()
+    all_success = True
+    for name, success, msg in results:
+        if success:
+            click.secho(f"  ✓ {name}: {msg}", fg='green')
+        else:
+            click.secho(f"  ✗ {name}: {msg}", fg='red')
+            all_success = False
+    
+    # 显示状态和访问地址
+    if all_success:
+        _print_status_table(sm.get_all_status())
+        _print_access_urls(sm.get_access_urls())
+        
+        click.echo()
+        click.secho("Tips:", fg='yellow')
+        click.echo("  - View logs:   nexus-cli service logs")
+        click.echo("  - View status: nexus-cli service status")
+        click.echo("  - Stop:        nexus-cli service stop")
+    else:
+        sys.exit(1)
+
+
+@service.command('stop')
+@click.option('--api', 'stop_api', is_flag=True, help='Stop API service only')
+@click.option('--worker', 'stop_worker', is_flag=True, help='Stop Worker service only')
+@click.option('--web', 'stop_web', is_flag=True, help='Stop Web service only')
+@click.pass_obj
+def service_stop(ctx, stop_api, stop_worker, stop_web):
+    """Stop Nexus-AI services
+    
+    \b
+    EXAMPLES:
+      nexus-cli service stop              # Stop all services
+      nexus-cli service stop --api        # Stop API only
+      nexus-cli service stop --worker     # Stop Worker only
+      nexus-cli service stop --web        # Stop Web only
+    """
+    _print_service_banner()
+    
+    sm = _get_service_manager(ctx)
+    
+    # 如果没有指定具体服务，停止所有服务
+    stop_all = not (stop_api or stop_worker or stop_web)
+    
+    results = []
+    
+    if stop_all:
+        click.secho("Stopping all services...", fg='blue')
+        click.echo()
+        results = sm.stop_all()
+    else:
+        from .managers.service_manager import ServiceType
+        
+        if stop_web:
+            click.secho("Stopping Web service...", fg='blue')
+            success, msg = sm.stop_service(ServiceType.WEB)
+            results.append(("web", success, msg))
+        
+        if stop_worker:
+            click.secho("Stopping Worker service...", fg='blue')
+            success, msg = sm.stop_service(ServiceType.WORKER)
+            results.append(("worker", success, msg))
+        
+        if stop_api:
+            click.secho("Stopping API service...", fg='blue')
+            success, msg = sm.stop_service(ServiceType.API)
+            results.append(("api", success, msg))
+    
+    # 显示结果
+    click.echo()
+    for name, success, msg in results:
+        if success:
+            click.secho(f"  ✓ {name}: {msg}", fg='green')
+        else:
+            click.secho(f"  ✗ {name}: {msg}", fg='red')
+    
+    click.echo()
+    click.secho("All services stopped.", fg='green')
+
+
+@service.command('restart')
+@click.option('--api', 'restart_api', is_flag=True, help='Restart API service only')
+@click.option('--worker', 'restart_worker', is_flag=True, help='Restart Worker service only')
+@click.option('--web', 'restart_web', is_flag=True, help='Restart Web service only')
+@click.option('--force-build', is_flag=True, help='Force rebuild frontend')
+@click.pass_obj
+def service_restart(ctx, restart_api, restart_worker, restart_web, force_build):
+    """Restart Nexus-AI services
+    
+    \b
+    EXAMPLES:
+      nexus-cli service restart              # Restart all services
+      nexus-cli service restart --api        # Restart API only
+      nexus-cli service restart --force-build  # Restart with frontend rebuild
+    """
+    _print_service_banner()
+    
+    sm = _get_service_manager(ctx)
+    
+    # 如果没有指定具体服务，重启所有服务
+    restart_all = not (restart_api or restart_worker or restart_web)
+    
+    if restart_all:
+        click.secho("Restarting all services...", fg='blue')
+        click.echo()
+        results = sm.restart_all(force_build)
+    else:
+        from .managers.service_manager import ServiceType
+        results = []
+        
+        if restart_api:
+            click.secho("Restarting API service...", fg='blue')
+            sm.stop_service(ServiceType.API)
+            time.sleep(1)
+            success, msg = sm.start_api()
+            results.append(("api", success, msg))
+        
+        if restart_worker:
+            click.secho("Restarting Worker service...", fg='blue')
+            sm.stop_service(ServiceType.WORKER)
+            time.sleep(1)
+            success, msg = sm.start_worker()
+            results.append(("worker", success, msg))
+        
+        if restart_web:
+            click.secho("Restarting Web service...", fg='blue')
+            sm.stop_service(ServiceType.WEB)
+            time.sleep(1)
+            success, msg = sm.start_web(force_build)
+            results.append(("web", success, msg))
+    
+    # 显示结果
+    click.echo()
+    all_success = True
+    for name, success, msg in results:
+        if success:
+            click.secho(f"  ✓ {name}: {msg}", fg='green')
+        else:
+            click.secho(f"  ✗ {name}: {msg}", fg='red')
+            all_success = False
+    
+    if all_success:
+        _print_status_table(sm.get_all_status())
+        _print_access_urls(sm.get_access_urls())
+
+
+@service.command('status')
+@click.option('--output', '-o', type=click.Choice(['table', 'json']), default='table',
+              help='Output format')
+@click.pass_obj
+def service_status(ctx, output):
+    """Show service status
+    
+    \b
+    EXAMPLES:
+      nexus-cli service status              # Show status table
+      nexus-cli service status -o json      # Show status as JSON
+    """
+    sm = _get_service_manager(ctx)
+    services = sm.get_all_status()
+    
+    if output == 'json':
+        data = {
+            'services': [
+                {
+                    'name': s.name,
+                    'status': s.status.value,
+                    'pid': s.pid,
+                    'port': s.port,
+                    'log_file': s.log_file
+                }
+                for s in services
+            ],
+            'urls': sm.get_access_urls()
+        }
+        click.echo(json_dumps_utf8(data))
+    else:
+        _print_service_banner()
+        _print_status_table(services)
+        
+        # 显示日志文件位置
+        click.echo()
+        click.secho("Log Files:", fg='cyan')
+        for s in services:
+            click.echo(f"  - {s.name:10} {s.log_file}")
+        
+        # 如果有服务在运行，显示访问地址
+        running_count = sum(1 for s in services if s.status.value == 'running')
+        if running_count > 0:
+            _print_access_urls(sm.get_access_urls())
+
+
+@service.command('logs')
+@click.option('--api', 'show_api', is_flag=True, help='Show API logs only')
+@click.option('--worker', 'show_worker', is_flag=True, help='Show Worker logs only')
+@click.option('--web', 'show_web', is_flag=True, help='Show Web logs only')
+@click.option('--lines', '-n', default=50, help='Number of lines to show')
+@click.option('--follow', '-f', is_flag=True, help='Follow log output (like tail -f)')
+@click.pass_obj
+def service_logs(ctx, show_api, show_worker, show_web, lines, follow):
+    """View service logs
+    
+    \b
+    EXAMPLES:
+      nexus-cli service logs              # Show all logs
+      nexus-cli service logs --api        # Show API logs only
+      nexus-cli service logs -n 100       # Show last 100 lines
+      nexus-cli service logs -f           # Follow logs (Ctrl+C to exit)
+    """
+    from .managers.service_manager import ServiceType
+    
+    sm = _get_service_manager(ctx)
+    
+    # 确定要显示的服务
+    show_all = not (show_api or show_worker or show_web)
+    services = []
+    
+    if show_all or show_api:
+        services.append(ServiceType.API)
+    if show_all or show_worker:
+        services.append(ServiceType.WORKER)
+    if show_all or show_web:
+        services.append(ServiceType.WEB)
+    
+    if follow:
+        # 实时跟踪日志
+        log_files = [str(sm._get_log_file(s)) for s in services]
+        click.secho(f"Following logs... (Ctrl+C to exit)", fg='yellow')
+        click.echo()
+        
+        try:
+            import subprocess
+            subprocess.run(["tail", "-f"] + log_files)
+        except KeyboardInterrupt:
+            click.echo()
+            click.secho("Log following stopped.", fg='yellow')
+    else:
+        # 显示最近的日志
+        for svc in services:
+            logs = sm.get_logs(svc, lines)
+            log_content = logs.get(svc.value, "")
+            
+            click.echo()
+            click.secho(f"═══ {svc.value.upper()} LOGS ═══", fg='cyan')
+            click.echo(log_content if log_content else "(empty)")
 
 
 if __name__ == '__main__':

@@ -14,6 +14,9 @@ default-config:
     artifacts_s3_bucket: 'nexus-ai-artifacts-2026'  # S3桶名称，部署时需要修改
     session_storage_s3_bucket: 'nexus-ai-session-2026' # S3桶名称，部署时需要修改
     auto_sync_to_s3: true  # 是否在Agent构建完成后自动同步到S3（也可通过环境变量NEXUS_AUTO_SYNC_TO_S3控制）
+    auth:
+      user: 'admin'
+      password: 'nexus'
   
   # 工作流引擎配置
   # Requirements: 8.1, 8.2, 8.3, 8.4, 8.5

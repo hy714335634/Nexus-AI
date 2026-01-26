@@ -1,0 +1,333 @@
+# ============================================================================
+# Nexus-AI 工作流配置文件
+# 
+# 此文件定义所有工作流的阶段、顺序和配置
+# 所有工作流执行都应该基于此配置文件
+# ============================================================================
+
+# 工作流版本
+version: "1.0.0"
+
+# 默认配置
+defaults:
+  # 执行配置
+  execution:
+    max_retries: 3                    # 阶段失败最大重试次数
+    retry_delay_seconds: 5            # 重试间隔（秒）
+    stage_timeout_seconds: 3600       # 单阶段超时时间（秒）
+    total_timeout_seconds: 21600      # 总工作流超时时间（秒，6小时）
+    checkpoint_interval_seconds: 60   # 检查点保存间隔（秒）
+  
+  # 上下文配置
+  context:
+    max_tokens: 100000                # 最大上下文 token 数
+    summary_threshold_tokens: 5000    # 触发摘要的阈值
+    include_rules: true               # 是否包含工作流规则
+    include_local_docs: true          # 是否包含本地文档
+
+# ============================================================================
+# Agent 构建工作流
+# ============================================================================
+agent_build:
+  name: "Agent Build Workflow"
+  display_name: "Agent 构建工作流"
+  description: "通过自然语言描述自动构建 AI Agent"
+  version: "latest"
+  enabled: true
+  
+  # 提示词基础路径
+  prompt_base_path: "system_agents_prompts/agent_build_workflow"
+  
+  # 阶段定义（按执行顺序）
+  stages:
+    - name: "orchestrator"
+      display_name: "工作流编排"
+      agent_display_name: "Orchestrator"
+      prompt_file: "orchestrator"
+      log_filename: "orchestrator"
+      order: 1
+      prerequisites: []
+      supports_iteration: false
+      optional: false
+      description: "解析用户意图，规划工作流执行"
+    
+    - name: "requirements_analysis"
+      display_name: "需求分析"
+      agent_display_name: "Requirements Analyzer"
+      prompt_file: "requirements_analyzer"
+      log_filename: "requirements_analyzer"
+      order: 2
+      prerequisites: ["orchestrator"]
+      supports_iteration: false
+      optional: false
+      description: "分析用户需求，提取关键信息，生成需求文档"
+    
+    - name: "system_architecture"
+      display_name: "系统架构设计"
+      agent_display_name: "System Architect"
+      prompt_file: "system_architect"
+      log_filename: "system_architect"
+      order: 3
+      prerequisites: ["requirements_analysis"]
+      supports_iteration: false
+      optional: false
+      description: "设计系统架构，定义组件关系，生成架构文档"
+    
+    - name: "agent_design"
+      display_name: "Agent设计"
+      agent_display_name: "Agent Designer"
+      prompt_file: "agent_designer"
+      log_filename: "agent_designer"
+      order: 4
+      prerequisites: ["system_architecture"]
+      supports_iteration: true
+      optional: false
+      description: "设计 Agent 结构，定义 Agent 能力，生成设计文档"
+    
+    - name: "tools_developer"
+      display_name: "工具开发"
+      agent_display_name: "Tool Developer"
+      prompt_file: "tool_developer"
+      log_filename: "tool_developer"
+      order: 5
+      prerequisites: ["agent_design"]
+      supports_iteration: true
+      optional: false
+      description: "开发工具函数，实现业务逻辑，生成工具代码"
+    
+    - name: "prompt_engineer"
+      display_name: "提示词工程"
+      agent_display_name: "Prompt Engineer"
+      prompt_file: "prompt_engineer"
+      log_filename: "prompt_engineer"
+      order: 6
+      prerequisites: ["tools_developer"]
+      supports_iteration: true
+      optional: false
+      description: "设计提示词模板，优化提示词效果，生成提示词文件"
+    
+    - name: "agent_code_developer"
+      display_name: "代码开发"
+      agent_display_name: "Agent Code Developer"
+      prompt_file: "agent_code_developer"
+      log_filename: "agent_code_developer"
+      order: 7
+      prerequisites: ["tools_developer", "prompt_engineer"]
+      supports_iteration: true
+      optional: false
+      description: "开发 Agent 代码，集成工具和提示词，生成完整 Agent"
+    
+    - name: "agent_developer_manager"
+      display_name: "开发管理"
+      agent_display_name: "Agent Developer Manager"
+      prompt_file: "agent_developer_manager"
+      log_filename: "agent_developer_manager"
+      order: 8
+      prerequisites: ["agent_code_developer"]
+      supports_iteration: false
+      optional: false
+      description: "管理开发流程，协调各阶段工作，生成最终文档"
+    
+    - name: "agent_deployer"
+      display_name: "Agent部署"
+      agent_display_name: "Agent Deployer"
+      prompt_file: "agent_deployer"
+      log_filename: "agent_deployer"
+      order: 9
+      prerequisites: ["agent_developer_manager"]
+      supports_iteration: false
+      optional: true
+      description: "部署 Agent 到 AgentCore 运行时"
+  
+  # 旧命名兼容映射
+  legacy_name_mapping:
+    requirements_analyzer: "requirements_analysis"
+    system_architect: "system_architecture"
+    agent_designer: "agent_design"
+    tool_developer: "tools_developer"
+
+# ============================================================================
+# Agent 更新工作流
+# ============================================================================
+agent_update:
+  name: "Agent Update Workflow"
+  display_name: "Agent 更新工作流"
+  description: "更新已有 Agent 的功能和配置"
+  version: "latest"
+  enabled: true
+  
+  # 提示词基础路径
+  prompt_base_path: "system_agents_prompts/agent_update_workflow"
+  
+  # 阶段定义（按执行顺序）
+  stages:
+    - name: "update_orchestrator"
+      display_name: "更新编排"
+      agent_display_name: "Update Orchestrator"
+      prompt_file: "update_orchestrator"
+      log_filename: "update_orchestrator"
+      order: 1
+      prerequisites: []
+      supports_iteration: false
+      optional: false
+      description: "解析更新需求，规划更新流程"
+    
+    - name: "requirements_update"
+      display_name: "需求更新"
+      agent_display_name: "Requirements Update"
+      prompt_file: "requirements_update"
+      log_filename: "requirements_update"
+      order: 2
+      prerequisites: ["update_orchestrator"]
+      supports_iteration: false
+      optional: false
+      description: "分析更新需求，确定更新范围"
+    
+    - name: "tool_update"
+      display_name: "工具更新"
+      agent_display_name: "Tool Update"
+      prompt_file: "tool_update"
+      log_filename: "tool_update"
+      order: 3
+      prerequisites: ["requirements_update"]
+      supports_iteration: true
+      optional: true
+      description: "更新工具函数，修改业务逻辑"
+    
+    - name: "prompt_update"
+      display_name: "提示词更新"
+      agent_display_name: "Prompt Update"
+      prompt_file: "prompt_update"
+      log_filename: "prompt_update"
+      order: 4
+      prerequisites: ["tool_update"]
+      supports_iteration: true
+      optional: true
+      description: "更新提示词模板，优化提示词效果"
+    
+    - name: "code_update"
+      display_name: "代码更新"
+      agent_display_name: "Code Update"
+      prompt_file: "code_update"
+      log_filename: "code_update"
+      order: 5
+      prerequisites: ["prompt_update"]
+      supports_iteration: true
+      optional: false
+      description: "更新 Agent 代码，集成更新内容"
+  
+  # 旧命名兼容映射
+  legacy_name_mapping: {}
+
+# ============================================================================
+# Tool 构建工作流
+# ============================================================================
+tool_build:
+  name: "Tool Build Workflow"
+  display_name: "工具构建工作流"
+  description: "通过自然语言描述自动构建工具函数"
+  version: "latest"
+  enabled: true
+  
+  # 提示词基础路径
+  prompt_base_path: "system_agents_prompts/tool_build_workflow"
+  
+  # 阶段定义（按执行顺序）
+  stages:
+    - name: "orchestrator"
+      display_name: "工作流编排"
+      agent_display_name: "Tool Build Orchestrator"
+      prompt_file: "orchestrator"
+      log_filename: "tool_build_orchestrator"
+      order: 1
+      prerequisites: []
+      supports_iteration: false
+      optional: false
+      description: "解析工具需求，规划构建流程"
+    
+    - name: "requirements_analyzer"
+      display_name: "需求分析"
+      agent_display_name: "Tool Requirements Analyzer"
+      prompt_file: "requirements_analyzer"
+      log_filename: "tool_requirements_analyzer"
+      order: 2
+      prerequisites: ["orchestrator"]
+      supports_iteration: false
+      optional: false
+      description: "分析工具需求，提取功能要求"
+    
+    - name: "tool_designer"
+      display_name: "工具设计"
+      agent_display_name: "Tool Designer"
+      prompt_file: "tool_designer"
+      log_filename: "tool_designer"
+      order: 3
+      prerequisites: ["requirements_analyzer"]
+      supports_iteration: false
+      optional: false
+      description: "设计工具接口，定义输入输出"
+    
+    - name: "tool_developer"
+      display_name: "工具开发"
+      agent_display_name: "Tool Developer"
+      prompt_file: "tool_developer"
+      log_filename: "tool_developer"
+      order: 4
+      prerequisites: ["tool_designer"]
+      supports_iteration: true
+      optional: false
+      description: "开发工具代码，实现功能逻辑"
+    
+    - name: "tool_validator"
+      display_name: "工具验证"
+      agent_display_name: "Tool Validator"
+      prompt_file: "tool_validator"
+      log_filename: "tool_validator"
+      order: 5
+      prerequisites: ["tool_developer"]
+      supports_iteration: false
+      optional: false
+      description: "验证工具功能，测试边界情况"
+    
+    - name: "tool_documenter"
+      display_name: "文档生成"
+      agent_display_name: "Tool Documenter"
+      prompt_file: "tool_documenter"
+      log_filename: "tool_documenter"
+      order: 6
+      prerequisites: ["tool_validator"]
+      supports_iteration: false
+      optional: false
+      description: "生成工具文档，编写使用说明"
+  
+  # 旧命名兼容映射
+  legacy_name_mapping: {}
+
+# ============================================================================
+# Magician 工作流（智能路由）
+# ============================================================================
+magician:
+  name: "Magician Workflow"
+  display_name: "Magician 智能路由"
+  description: "智能识别用户意图并路由到合适的工作流"
+  version: "latest"
+  enabled: true
+  
+  # 提示词基础路径
+  prompt_base_path: "system_agents_prompts/magician_workflow"
+  
+  # 阶段定义
+  stages:
+    - name: "magician_orchestrator"
+      display_name: "智能编排"
+      agent_display_name: "Magician Orchestrator"
+      prompt_file: "magician_orchestrator"
+      log_filename: "magician_orchestrator"
+      order: 1
+      prerequisites: []
+      supports_iteration: false
+      optional: false
+      description: "智能识别用户意图，路由到合适的工作流"
+  
+  # 旧命名兼容映射
+  legacy_name_mapping: {}

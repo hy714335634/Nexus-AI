@@ -1,13 +1,43 @@
 """
 认证配置
 
-简单的用户认证配置，支持从环境变量或配置文件读取
+简单的用户认证配置，支持从配置文件或环境变量读取
 """
 import os
 import hashlib
 import secrets
 from typing import Optional
 from pydantic_settings import BaseSettings
+
+
+def _load_auth_from_config() -> dict:
+    """
+    从配置文件加载认证信息
+    
+    返回:
+        dict: 用户名到密码哈希的映射
+    """
+    try:
+        # 导入配置加载器
+        from nexus_utils.config_loader import get_config
+        config = get_config()
+        
+        # 从配置文件读取认证信息
+        nexus_config = config.config.get('nexus_ai', {})
+        auth_config = nexus_config.get('auth', {})
+        
+        username = auth_config.get('user', 'admin')
+        password = auth_config.get('password', 'nexus')
+        
+        # 返回用户名到密码哈希的映射
+        return {
+            username: hashlib.sha256(password.encode()).hexdigest()
+        }
+    except Exception:
+        # 配置加载失败时使用默认值
+        return {
+            "admin": hashlib.sha256("nexus".encode()).hexdigest()
+        }
 
 
 class AuthSettings(BaseSettings):
@@ -18,16 +48,19 @@ class AuthSettings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_HOURS: int = 24
     
-    # 预设用户账号 - 可通过环境变量覆盖
-    # 格式: username:password_hash (SHA256)
-    # 默认账号: admin / nexus
-    USERS: dict = {
-        "admin": hashlib.sha256("nexus".encode()).hexdigest()
-    }
+    # 用户账号 - 从配置文件加载，可通过环境变量覆盖
+    # 配置文件路径: config/default_config.yaml -> nexus_ai.auth
+    USERS: dict = {}
 
     
     class Config:
         env_prefix = "AUTH_"
+    
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # 从配置文件加载用户信息
+        if not self.USERS:
+            self.USERS = _load_auth_from_config()
 
 
 auth_settings = AuthSettings()
