@@ -162,19 +162,13 @@ class ProjectService:
             return None
     
     def _get_stage_display_name(self, stage_name: str) -> str:
-        """获取阶段显示名称"""
-        names = {
-            'requirements_analyzer': '需求分析',
-            'system_architect': '系统架构设计',
-            'agent_designer': 'Agent设计',
-            'prompt_engineer': '提示词工程',
-            'tools_developer': '工具开发',
-            'agent_code_developer': '代码开发',
-            'agent_developer_manager': '开发管理',
-            'agent_deployer': 'Agent部署',
-            'orchestrator': '工作流编排',
-        }
-        return names.get(stage_name, stage_name)
+        """
+        获取阶段显示名称
+        
+        使用统一配置模块 api.v2.core.stage_config
+        """
+        from api.v2.core.stage_config import get_stage_display_name
+        return get_stage_display_name(stage_name)
     
     def _get_local_projects(self, force_refresh: bool = False) -> List[Dict[str, Any]]:
         """获取本地项目（带缓存）"""
@@ -327,12 +321,21 @@ class ProjectService:
             self.db.create_stage(stage_data)
     
     def _generate_project_name(self, requirement: str) -> str:
-        """从需求描述生成项目名称"""
-        # 简单实现：取前30个字符
-        name = requirement.strip()[:30]
-        if len(requirement) > 30:
-            name += "..."
-        return name
+        """
+        从需求描述生成项目名称
+        
+        当用户未指定项目名称时，生成一个临时名称。
+        实际的项目目录名称将由 Agent 在 project_init 时决定。
+        """
+        import hashlib
+        from datetime import datetime
+        
+        # 生成一个基于时间和需求的短哈希作为临时标识
+        timestamp = datetime.now().strftime('%m%d%H%M')
+        req_hash = hashlib.md5(requirement.encode()).hexdigest()[:6]
+        
+        # 返回一个临时名称，格式：agent_MMDDHHMMSS_hash
+        return f"agent_{timestamp}_{req_hash}"
     
     def get_project(self, project_id: str) -> Optional[Dict[str, Any]]:
         """获取项目详情 - 先从数据库查找，再从本地目录查找"""
@@ -428,9 +431,12 @@ class ProjectService:
             # 转换阶段数据格式
             dashboard_stages = []
             for stage in stages:
+                stage_name = stage.get('stage_name', '')
+                # 确保 display_name 不为 None，使用阶段名称作为默认值
+                display_name = stage.get('display_name') or self._get_stage_display_name(stage_name) or stage_name
                 dashboard_stages.append({
-                    'name': stage.get('stage_name'),
-                    'display_name': stage.get('display_name'),
+                    'name': stage_name,
+                    'display_name': display_name,
                     'order': stage.get('stage_number', 0),
                     'status': stage.get('status', 'pending'),
                     'started_at': stage.get('started_at'),
@@ -595,33 +601,132 @@ class ProjectService:
         控制项目状态
         
         支持的操作:
-        - pause: 暂停构建
+        - pause: 暂停构建（完成当前阶段后停止）
         - resume: 恢复构建
-        - stop: 停止构建
+        - stop: 停止构建（完成当前 LLM 调用后停止）
         - cancel: 取消构建
+        - restart: 从指定阶段重新开始
+        
+        Validates:
+            - Requirement 3.1: 支持暂停控制
+            - Requirement 3.2: 支持停止控制
+            - Requirement 3.3: 支持恢复执行
+            - Requirement 3.4: 支持从指定阶段重新开始
         """
         project = self.db.get_project(project_id)
         if not project:
             raise ValueError(f"Project {project_id} not found")
         
         current_status = project.get('status')
+        now = datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
         new_status = None
+        updates = {}
         
         if action == 'pause':
             if current_status in [ProjectStatus.BUILDING.value, ProjectStatus.QUEUED.value]:
                 new_status = ProjectStatus.PAUSED.value
+                updates['control_status'] = 'paused'
+                updates['pause_requested_at'] = now
+                updates['last_control_action'] = 'pause'
             else:
                 raise ValueError(f"Cannot pause project in {current_status} status")
         
         elif action == 'resume':
             if current_status == ProjectStatus.PAUSED.value:
-                new_status = ProjectStatus.BUILDING.value
+                # 获取当前阶段，从下一个待执行阶段恢复
+                current_stage = project.get('current_stage')
+                resume_from_stage = project.get('resume_from_stage')
+                
+                # 确定恢复的起始阶段
+                target_stage = resume_from_stage or current_stage
+                
+                # 如果没有指定阶段，查找下一个待执行阶段
+                if not target_stage:
+                    stages = self.db.list_stages(project_id)
+                    for stage in sorted(stages, key=lambda x: x.get('stage_number', 0)):
+                        if stage.get('status') != 'completed':
+                            target_stage = stage.get('stage_name')
+                            break
+                
+                new_status = ProjectStatus.QUEUED.value
+                updates['control_status'] = 'running'
+                updates['pause_requested_at'] = None
+                updates['stop_requested_at'] = None
+                updates['last_control_action'] = 'resume'
+                
+                # 更新状态
+                updates['status'] = new_status
+                if reason:
+                    updates['control_action_reason'] = reason
+                
+                self.db.update_project(project_id, updates)
+                
+                # 创建新任务并发送到 SQS
+                task_id = f"task_{uuid.uuid4().hex[:12]}"
+                task_data = {
+                    'task_id': task_id,
+                    'task_type': TaskType.BUILD_AGENT.value,
+                    'project_id': project_id,
+                    'status': TaskStatus.PENDING.value,
+                    'priority': project.get('priority', 3),
+                    'payload': {
+                        'requirement': project.get('requirement'),
+                        'project_name': project.get('project_name'),
+                        'from_stage': target_stage,
+                        'action': 'resume',
+                    },
+                    'result': None,
+                    'error_message': None,
+                    'retry_count': 0,
+                    'started_at': None,
+                    'completed_at': None,
+                    'worker_id': None
+                }
+                self.db.create_task(task_data)
+                
+                # 发送到 SQS
+                self.sqs.send_build_task(
+                    task_id=task_id,
+                    project_id=project_id,
+                    requirement=project.get('requirement'),
+                    priority=project.get('priority', 3),
+                    metadata={
+                        'project_name': project.get('project_name'),
+                    },
+                    target_stage=target_stage,
+                    action='resume'
+                )
+                
+                self.db.update_task(task_id, {'status': TaskStatus.QUEUED.value})
+                
+                return {
+                    'project_id': project_id,
+                    'task_id': task_id,
+                    'action': action,
+                    'previous_status': current_status,
+                    'new_status': new_status,
+                    'resume_from_stage': target_stage,
+                    'message': f'Project resume from stage {target_stage} queued successfully'
+                }
             else:
                 raise ValueError(f"Cannot resume project in {current_status} status")
         
-        elif action == 'stop' or action == 'cancel':
+        elif action == 'stop':
             if current_status in [ProjectStatus.BUILDING.value, ProjectStatus.QUEUED.value, ProjectStatus.PAUSED.value]:
                 new_status = ProjectStatus.CANCELLED.value
+                updates['control_status'] = 'stopped'
+                updates['stop_requested_at'] = now
+                updates['last_control_action'] = 'stop'
+                updates['completed_at'] = now
+            else:
+                raise ValueError(f"Cannot stop project in {current_status} status")
+        
+        elif action == 'cancel':
+            if current_status in [ProjectStatus.BUILDING.value, ProjectStatus.QUEUED.value, ProjectStatus.PAUSED.value]:
+                new_status = ProjectStatus.CANCELLED.value
+                updates['control_status'] = 'cancelled'
+                updates['last_control_action'] = 'cancel'
+                updates['completed_at'] = now
             else:
                 raise ValueError(f"Cannot cancel project in {current_status} status")
         
@@ -629,9 +734,9 @@ class ProjectService:
             raise ValueError(f"Unknown action: {action}")
         
         # 更新状态
-        updates = {'status': new_status}
-        if action in ['stop', 'cancel']:
-            updates['completed_at'] = datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
+        updates['status'] = new_status
+        if reason:
+            updates['control_action_reason'] = reason
         
         self.db.update_project(project_id, updates)
         
@@ -643,16 +748,265 @@ class ProjectService:
             'message': f'Project {action} successfully'
         }
     
-    def delete_project(self, project_id: str) -> bool:
-        """删除项目及其关联数据"""
-        # 删除阶段
+    def restart_from_stage(
+        self, 
+        project_id: str, 
+        from_stage: str,
+        user_id: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        从指定阶段重新开始构建
+        
+        Args:
+            project_id: 项目ID
+            from_stage: 起始阶段名称
+            user_id: 操作用户ID
+            
+        Returns:
+            操作结果
+            
+        Validates: Requirement 3.4 - 支持从指定阶段重新开始
+        """
+        project = self.db.get_project(project_id)
+        if not project:
+            raise ValueError(f"Project {project_id} not found")
+        
+        current_status = project.get('status')
+        
+        # 只有已完成、失败或已取消的项目可以重新开始
+        if current_status not in [
+            ProjectStatus.COMPLETED.value, 
+            ProjectStatus.FAILED.value, 
+            ProjectStatus.CANCELLED.value,
+            ProjectStatus.PAUSED.value
+        ]:
+            raise ValueError(f"Cannot restart project in {current_status} status")
+        
+        now = datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
+        task_id = f"task_{uuid.uuid4().hex[:12]}"
+        
+        # 更新项目状态
+        updates = {
+            'status': ProjectStatus.QUEUED.value,
+            'control_status': 'running',
+            'resume_from_stage': from_stage,
+            'last_control_action': 'restart',
+            'control_action_by': user_id,
+            'completed_at': None,
+            'error_info': None,
+        }
+        self.db.update_project(project_id, updates)
+        
+        # 重置从指定阶段开始的所有阶段状态
+        stages = self.db.list_stages(project_id)
+        stage_order = [s.get('stage_name') for s in sorted(stages, key=lambda x: x.get('stage_number', 0))]
+        
+        if from_stage not in stage_order:
+            raise ValueError(f"Unknown stage: {from_stage}")
+        
+        start_index = stage_order.index(from_stage)
+        for stage_name in stage_order[start_index:]:
+            self.db.update_stage(project_id, stage_name, {
+                'status': 'pending',
+                'started_at': None,
+                'completed_at': None,
+                'duration_seconds': None,
+                'error_message': None,
+                'agent_output_content': None,
+                'agent_output_s3_ref': None,
+                'metrics': None,
+                'generated_files': None,
+                'design_document': None,
+            })
+        
+        # 创建新任务
+        task_data = {
+            'task_id': task_id,
+            'task_type': TaskType.BUILD_AGENT.value,
+            'project_id': project_id,
+            'status': TaskStatus.PENDING.value,
+            'priority': project.get('priority', 3),
+            'payload': {
+                'requirement': project.get('requirement'),
+                'user_id': user_id,
+                'project_name': project.get('project_name'),
+                'from_stage': from_stage,
+                'action': 'restart',
+            },
+            'result': None,
+            'error_message': None,
+            'retry_count': 0,
+            'started_at': None,
+            'completed_at': None,
+            'worker_id': None
+        }
+        self.db.create_task(task_data)
+        
+        # 发送到 SQS
+        try:
+            self.sqs.send_build_task(
+                task_id=task_id,
+                project_id=project_id,
+                requirement=project.get('requirement'),
+                user_id=user_id,
+                priority=project.get('priority', 3),
+                metadata={
+                    'project_name': project.get('project_name'),
+                },
+                target_stage=from_stage,
+                action='restart'
+            )
+            
+            self.db.update_task(task_id, {'status': TaskStatus.QUEUED.value})
+            
+        except Exception as e:
+            logger.error(f"Failed to send restart task to SQS: {e}")
+            self.db.update_project(project_id, {
+                'status': ProjectStatus.FAILED.value,
+                'error_info': {'message': f'Failed to queue restart task: {str(e)}'}
+            })
+            raise
+        
+        return {
+            'project_id': project_id,
+            'task_id': task_id,
+            'from_stage': from_stage,
+            'status': ProjectStatus.QUEUED.value,
+            'message': f'Project restart from stage {from_stage} queued successfully'
+        }
+    
+    def get_control_status(self, project_id: str) -> Dict[str, Any]:
+        """
+        获取项目控制状态
+        
+        Args:
+            project_id: 项目ID
+            
+        Returns:
+            控制状态信息
+            
+        Validates: Requirement 3.5 - 支持查询控制状态
+        """
+        project = self.db.get_project(project_id)
+        if not project:
+            raise ValueError(f"Project {project_id} not found")
+        
+        return {
+            'project_id': project_id,
+            'status': project.get('status'),
+            'control_status': project.get('control_status', 'running'),
+            'current_stage': project.get('current_stage'),
+            'progress': project.get('progress', 0.0),
+            'pause_requested_at': project.get('pause_requested_at'),
+            'stop_requested_at': project.get('stop_requested_at'),
+            'resume_from_stage': project.get('resume_from_stage'),
+            'last_control_action': project.get('last_control_action'),
+            'control_action_by': project.get('control_action_by'),
+        }
+    
+    def get_aggregated_metrics(self, project_id: str) -> Optional[Dict[str, Any]]:
+        """
+        获取项目聚合指标
+        
+        Args:
+            project_id: 项目ID
+            
+        Returns:
+            聚合指标数据
+            
+        Validates: Requirement 2.5 - 支持查询聚合指标
+        """
+        project = self.db.get_project(project_id)
+        if not project:
+            return None
+        
+        return project.get('aggregated_metrics', {
+            'total_input_tokens': 0,
+            'total_output_tokens': 0,
+            'total_tokens': 0,
+            'total_cost': 0.0,
+            'total_execution_time': 0.0,
+            'total_tool_calls': 0,
+        })
+    
+    def delete_project(self, project_id: str, delete_local_files: bool = True) -> bool:
+        """
+        删除项目及其关联数据
+        
+        Args:
+            project_id: 项目ID
+            delete_local_files: 是否删除本地文件，默认为True
+            
+        Returns:
+            是否删除成功
+        """
+        import shutil
+        
+        project_root = _get_project_root()
+        deleted_paths = []
+        errors = []
+        
+        # 获取项目信息，用于确定本地目录名
+        project = self.db.get_project(project_id)
+        local_project_dir = None
+        
+        if project:
+            # 优先使用 local_project_dir，否则使用 project_name
+            local_project_dir = project.get('local_project_dir') or project.get('project_name')
+        
+        # 如果数据库中没有项目记录，尝试从本地项目查找
+        if not local_project_dir:
+            local_projects = self._get_local_projects()
+            for local_project in local_projects:
+                if local_project['project_id'] == project_id:
+                    local_project_dir = project_id
+                    break
+        
+        # 删除本地文件
+        if delete_local_files and local_project_dir:
+            # 需要删除的目录列表
+            dirs_to_delete = [
+                project_root / "projects" / local_project_dir,
+                project_root / "agents" / "generated_agents" / local_project_dir,
+                project_root / "prompts" / "generated_agents_prompts" / local_project_dir,
+                project_root / "tools" / "generated_tools" / local_project_dir,
+            ]
+            
+            for dir_path in dirs_to_delete:
+                if dir_path.exists() and dir_path.is_dir():
+                    try:
+                        shutil.rmtree(dir_path)
+                        deleted_paths.append(str(dir_path))
+                        logger.info(f"Deleted directory: {dir_path}")
+                    except Exception as e:
+                        error_msg = f"Failed to delete {dir_path}: {e}"
+                        errors.append(error_msg)
+                        logger.warning(error_msg)
+        
+        # 删除 DynamoDB 中的阶段记录
         stages = self.db.list_stages(project_id)
         for stage in stages:
-            # DynamoDB 不支持批量删除，需要逐个删除
-            pass  # stages 表使用复合主键，删除项目时会级联
+            stage_name = stage.get('stage_name')
+            if stage_name:
+                try:
+                    self.db.delete_stage(project_id, stage_name)
+                    logger.info(f"Deleted stage: {project_id}/{stage_name}")
+                except Exception as e:
+                    logger.warning(f"Failed to delete stage {stage_name}: {e}")
         
-        # 删除项目
-        return self.db.delete_project(project_id)
+        # 删除 DynamoDB 中的项目记录
+        result = self.db.delete_project(project_id)
+        
+        # 清除本地项目缓存
+        self._local_projects_cache = None
+        self._cache_time = None
+        
+        if deleted_paths:
+            logger.info(f"Project {project_id} deleted. Removed directories: {deleted_paths}")
+        if errors:
+            logger.warning(f"Project {project_id} deleted with errors: {errors}")
+        
+        return result
 
 
 # 全局单例

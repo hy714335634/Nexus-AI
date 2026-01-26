@@ -20,6 +20,19 @@ class ProjectStatus(str, Enum):
     CANCELLED = "cancelled"  # 已取消
 
 
+class ControlStatus(str, Enum):
+    """
+    工作流控制状态
+    
+    用于前端控制工作流执行。
+    Validates: Requirement 3.1, 3.2 - 支持暂停和停止控制
+    """
+    RUNNING = "running"      # 正在运行
+    PAUSED = "paused"        # 已暂停（完成当前阶段后停止）
+    STOPPED = "stopped"      # 已停止（完成当前 LLM 调用后停止）
+    CANCELLED = "cancelled"  # 已取消
+
+
 class StageStatus(str, Enum):
     """阶段状态"""
     PENDING = "pending"
@@ -56,7 +69,11 @@ class TaskType(str, Enum):
 
 
 class BuildStage(str, Enum):
-    """构建阶段"""
+    """
+    构建阶段枚举
+    
+    注意: 阶段的详细配置（显示名称、序号等）请使用 api.v2.core.stage_config 模块
+    """
     ORCHESTRATOR = "orchestrator"
     REQUIREMENTS_ANALYSIS = "requirements_analysis"
     SYSTEM_ARCHITECTURE = "system_architecture"
@@ -69,25 +86,23 @@ class BuildStage(str, Enum):
 
     @classmethod
     def get_stage_number(cls, stage: 'BuildStage') -> int:
-        """获取阶段序号 (1-9)"""
-        stage_order = list(cls)
-        return stage_order.index(stage) + 1
+        """
+        获取阶段序号 (1-9)
+        
+        推荐使用: api.v2.core.stage_config.get_stage_number()
+        """
+        from api.v2.core.stage_config import get_stage_number
+        return get_stage_number(stage.value)
 
     @classmethod
     def get_display_name(cls, stage: 'BuildStage') -> str:
-        """获取阶段显示名称"""
-        names = {
-            cls.ORCHESTRATOR: "工作流编排",
-            cls.REQUIREMENTS_ANALYSIS: "需求分析",
-            cls.SYSTEM_ARCHITECTURE: "系统架构设计",
-            cls.AGENT_DESIGN: "Agent设计",
-            cls.PROMPT_ENGINEER: "提示词工程",
-            cls.TOOLS_DEVELOPER: "工具开发",
-            cls.AGENT_CODE_DEVELOPER: "代码开发",
-            cls.AGENT_DEVELOPER_MANAGER: "开发管理",
-            cls.AGENT_DEPLOYER: "Agent部署",
-        }
-        return names.get(stage, stage.value)
+        """
+        获取阶段显示名称
+        
+        推荐使用: api.v2.core.stage_config.get_stage_display_name()
+        """
+        from api.v2.core.stage_config import get_stage_display_name
+        return get_stage_display_name(stage.value)
 
 
 class ToolSource(str, Enum):
@@ -129,6 +144,67 @@ class PaginatedResponse(APIResponse):
     pagination: Optional[PaginationMeta] = None
 
 
+# ============== Stage Models ==============
+
+class StageMetricsSchema(BaseModel):
+    """
+    阶段执行指标 Schema
+    
+    记录单个阶段执行过程中的资源消耗和性能指标。
+    Validates: Requirement 2.2 - Stage_Output 包含执行指标
+    """
+    input_tokens: int = 0
+    output_tokens: int = 0
+    execution_time_seconds: float = 0.0
+    tool_calls_count: int = 0
+    model_id: Optional[str] = None
+    
+    @property
+    def total_tokens(self) -> int:
+        """计算总 token 数量"""
+        return self.input_tokens + self.output_tokens
+
+
+class FileMetadataSchema(BaseModel):
+    """
+    生成文件的元数据 Schema
+    
+    记录阶段执行过程中生成的文件信息。
+    Validates: Requirement 2.3 - Stage_Output 包含生成文件路径列表
+    """
+    path: str
+    size: int = 0
+    checksum: Optional[str] = None
+    last_modified: Optional[str] = None
+
+
+class DesignDocumentSchema(BaseModel):
+    """
+    设计文档 Schema
+    
+    存储阶段产生的设计文档内容。
+    Validates: Requirement 2.4 - 阶段完成时存储完整设计文档内容
+    """
+    content: str = ""
+    format: str = "markdown"  # json/markdown
+    version: str = "1.0"
+
+
+class AggregatedMetricsSchema(BaseModel):
+    """
+    项目聚合指标 Schema
+    
+    存储项目级别的聚合执行指标。
+    Validates: Requirement 2.5 - Project_Record 包含聚合指标
+    """
+    total_input_tokens: int = 0
+    total_output_tokens: int = 0
+    total_tokens: int = 0
+    total_cost: float = 0.0
+    total_execution_time: float = 0.0
+    total_tool_calls: int = 0
+
+
 # ============== Project Models ==============
 
 class CreateProjectRequest(BaseModel):
@@ -149,7 +225,15 @@ class CreateProjectRequest(BaseModel):
 
 
 class ProjectRecord(TimestampMixin):
-    """项目记录"""
+    """
+    项目记录
+    
+    存储项目的完整信息，包括控制状态和聚合指标。
+    
+    Validates:
+        - Requirement 2.5: 包含聚合指标
+        - Requirement 3.1, 3.2: 包含控制状态字段
+    """
     project_id: str
     project_name: Optional[str] = None
     status: ProjectStatus = ProjectStatus.PENDING
@@ -164,6 +248,38 @@ class ProjectRecord(TimestampMixin):
     started_at: Optional[str] = None
     completed_at: Optional[str] = None
     metrics: Optional[Dict[str, Any]] = None
+    
+    # 新增字段 - 控制状态（Requirement 3.1, 3.2）
+    control_status: Optional[ControlStatus] = Field(
+        default=ControlStatus.RUNNING,
+        description="工作流控制状态"
+    )
+    pause_requested_at: Optional[str] = Field(
+        None,
+        description="暂停请求时间"
+    )
+    stop_requested_at: Optional[str] = Field(
+        None,
+        description="停止请求时间"
+    )
+    resume_from_stage: Optional[str] = Field(
+        None,
+        description="恢复起始阶段"
+    )
+    last_control_action: Optional[str] = Field(
+        None,
+        description="最后控制操作"
+    )
+    control_action_by: Optional[str] = Field(
+        None,
+        description="操作用户"
+    )
+    
+    # 新增字段 - 聚合指标（Requirement 2.5）
+    aggregated_metrics: Optional[AggregatedMetricsSchema] = Field(
+        None,
+        description="项目聚合指标"
+    )
 
 
 class ProjectSummary(BaseModel):
@@ -204,10 +320,18 @@ class ProjectControlRequest(BaseModel):
     reason: Optional[str] = Field(None, max_length=500)
 
 
-# ============== Stage Models ==============
-
 class StageRecord(BaseModel):
-    """阶段记录"""
+    """
+    阶段记录
+    
+    存储单个阶段的完整执行信息，包括状态、输出、指标和生成的文件。
+    
+    Validates:
+        - Requirement 2.1: agent_output_content 最大 400KB
+        - Requirement 2.2: 包含执行指标
+        - Requirement 2.3: 包含生成文件路径列表
+        - Requirement 2.4: 包含设计文档内容
+    """
     project_id: str
     stage_name: str
     stage_number: int
@@ -217,17 +341,71 @@ class StageRecord(BaseModel):
     started_at: Optional[str] = None
     completed_at: Optional[str] = None
     duration_seconds: Optional[float] = None
+    
+    # 现有字段（保持兼容）
     input_tokens: Optional[int] = None
     output_tokens: Optional[int] = None
     tool_calls: Optional[int] = None
     output_data: Optional[Dict[str, Any]] = None
     error_message: Optional[str] = None
     logs: Optional[List[str]] = None
+    doc_path: Optional[str] = None
+    
+    # 新增字段 - Agent 输出内容
+    agent_output_content: Optional[str] = Field(
+        None, 
+        description="Agent 输出内容，最大 400KB"
+    )
+    agent_output_s3_ref: Optional[str] = Field(
+        None, 
+        description="超大输出的 S3 引用"
+    )
+    
+    # 新增字段 - 执行指标
+    metrics: Optional[StageMetricsSchema] = Field(
+        None, 
+        description="阶段执行指标"
+    )
+    
+    # 新增字段 - 生成的文件列表
+    generated_files: Optional[List[FileMetadataSchema]] = Field(
+        default_factory=list, 
+        description="生成的文件列表"
+    )
+    
+    # 新增字段 - 设计文档
+    design_document: Optional[DesignDocumentSchema] = Field(
+        None, 
+        description="设计文档内容"
+    )
+
+
+class StageOutputRequest(BaseModel):
+    """
+    阶段输出更新请求
+    
+    用于更新阶段完成时的输出数据。
+    """
+    agent_output_content: Optional[str] = None
+    metrics: Optional[StageMetricsSchema] = None
+    generated_files: Optional[List[FileMetadataSchema]] = None
+    design_document: Optional[DesignDocumentSchema] = None
+    doc_path: Optional[str] = None
 
 
 class StageListResponse(APIResponse):
     """阶段列表响应"""
     data: Optional[List[StageRecord]] = None
+
+
+class StageDetailResponse(APIResponse):
+    """阶段详情响应"""
+    data: Optional[StageRecord] = None
+
+
+class StageOutputResponse(APIResponse):
+    """阶段输出响应"""
+    data: Optional[Dict[str, Any]] = None
 
 
 # ============== Agent Models ==============

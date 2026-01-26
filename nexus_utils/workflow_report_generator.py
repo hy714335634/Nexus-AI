@@ -88,17 +88,9 @@ class WorkflowReportGenerator:
     """工作流报告生成器"""
     
     def __init__(self):
-        self.stages_order = [
-            "orchestrator",
-            "requirements_analyzer", 
-            "system_architect",
-            "agent_designer",
-            "tool_developer",
-            "prompt_engineer",
-            "agent_code_developer",
-            "agent_developer_manager",
-            "agent_deployer"
-        ]
+        # 从统一配置模块获取阶段顺序
+        from api.v2.core.stage_config import STAGE_SEQUENCE
+        self.stages_order = STAGE_SEQUENCE.copy()
     
     def _load_project_config(self, project_dir: str) -> tuple[Optional[Dict[str, Any]], int]:
         """

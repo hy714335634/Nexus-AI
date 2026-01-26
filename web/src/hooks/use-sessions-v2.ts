@@ -41,9 +41,9 @@ export function useSessionMessagesV2(
       const response = await apiV2.listMessages(sessionId, limit);
       return response.data || [];
     },
-    enabled: Boolean(sessionId),
-    staleTime: 5_000,
-    refetchInterval: 10_000, // Auto-refresh every 10 seconds
+    enabled: Boolean(sessionId) && sessionId.length > 0,
+    staleTime: 5_000, // 减少 stale time 到 5 秒，确保切换会话时能更快获取新数据
+    refetchInterval: false, // 禁用自动轮询，由前端手动控制刷新时机
     ...options,
   });
 }
@@ -68,20 +68,22 @@ export function useSendMessageV2(
   });
 }
 
-// ============== Close Session ==============
-export function useCloseSessionV2(
+// ============== Delete Session ==============
+export function useDeleteSessionV2(
   options?: UseMutationOptions<{ success: boolean; message?: string }, Error, string>
 ) {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (sessionId: string) => {
-      const response = await apiV2.closeSession(sessionId);
+      const response = await apiV2.deleteSession(sessionId);
       return { success: response.success, message: response.message };
     },
     onSuccess: (_, sessionId) => {
       queryClient.removeQueries({ queryKey: sessionKeys.detail(sessionId) });
       queryClient.removeQueries({ queryKey: sessionKeys.messages(sessionId) });
+      // 同时刷新会话列表
+      queryClient.invalidateQueries({ queryKey: sessionKeys.lists() });
     },
     ...options,
   });

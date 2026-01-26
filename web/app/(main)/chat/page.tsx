@@ -8,7 +8,7 @@ import { Card, Button, Badge, Input, Empty } from '@/components/ui';
 import { MessageContent } from '@components/viewer';
 import { StatusBadge } from '@/components/status-badge';
 import { useAgentsV2, useAgentContextV2 } from '@/hooks/use-agents-v2';
-import { useAgentSessionsV2, useCreateSessionV2 } from '@/hooks/use-sessions-v2';
+import { useAgentSessionsV2, useCreateSessionV2, useDeleteSessionV2 } from '@/hooks/use-sessions-v2';
 import { useSessionMessagesV2 } from '@/hooks/use-sessions-v2';
 import { streamChat, streamChatDirect, StreamEvent } from '@/lib/api-v2';
 import { formatRelativeTime, truncate } from '@/lib/utils';
@@ -44,13 +44,27 @@ interface ToolCallInfo {
   status: ToolCallStatus;
 }
 
+// 内容块类型 - 用于保持文本和工具调用的顺序
+type ContentBlockType = 'text' | 'tool';
+
+interface ContentBlock {
+  type: ContentBlockType;
+  id: string;
+  // 文本块
+  text?: string;
+  // 工具块
+  toolCall?: ToolCallInfo;
+}
+
 interface ChatMessage {
   id: string;
   role: 'user' | 'assistant' | 'system';
-  content: string;
+  content: string;  // 保留用于兼容性（用户消息和数据库加载）
   timestamp: string;
   isStreaming?: boolean;
-  toolCalls?: ToolCallInfo[];
+  toolCalls?: ToolCallInfo[];  // 保留用于兼容性（数据库加载）
+  // 新增：有序内容块数组，用于保持文本和工具调用的交替顺序
+  contentBlocks?: ContentBlock[];
 }
 
 // 工具调用卡片组件
@@ -174,6 +188,76 @@ function ToolCallsList({ toolCalls }: { toolCalls: ToolCallInfo[] }) {
         />
       ))}
     </div>
+  );
+}
+
+// 内容块列表组件 - 按顺序渲染文本和工具调用
+function ContentBlocksList({ 
+  blocks, 
+  isStreaming 
+}: { 
+  blocks: ContentBlock[]; 
+  isStreaming?: boolean;
+}) {
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  
+  const toggleExpand = (id: string) => {
+    setExpandedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+  
+  // 调试日志：查看 blocks 的内容
+  console.log('[ContentBlocksList] Rendering blocks:', blocks?.length, blocks?.map(b => ({ type: b.type, id: b.id, hasText: !!b.text, textLen: b.text?.length })));
+  
+  if (!blocks || blocks.length === 0) return null;
+  
+  return (
+    <>
+      {blocks.map((block, blockIndex) => {
+        if (block.type === 'text' && block.text) {
+          // 判断是否是最后一个文本块且正在流式输出
+          const isLastTextBlock = blocks
+            .slice(blockIndex + 1)
+            .every(b => b.type !== 'text');
+          const shouldStream = isStreaming && isLastTextBlock;
+          
+          return (
+            <div key={block.id} className="bg-gray-50 border border-gray-100 rounded-2xl px-4 py-3">
+              {shouldStream ? (
+                <TypewriterMessage
+                  content={block.text}
+                  isStreaming={true}
+                  variant="assistant"
+                />
+              ) : (
+                <MessageContent
+                  content={block.text}
+                  isStreaming={false}
+                  variant="assistant"
+                />
+              )}
+            </div>
+          );
+        } else if (block.type === 'tool' && block.toolCall) {
+          return (
+            <ToolCallCard
+              key={block.id}
+              toolCall={block.toolCall}
+              isExpanded={expandedIds.has(block.id)}
+              onToggle={() => toggleExpand(block.id)}
+            />
+          );
+        }
+        return null;
+      })}
+    </>
   );
 }
 
@@ -319,6 +403,15 @@ function ChatPageContent() {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  // 使用 ref 跟踪当前工具调用 ID，避免 useCallback 依赖问题
+  const currentToolCallIdRef = useRef<string | null>(null);
+  // 使用 ref 跟踪当前文本块 ID 和工具调用结束状态，确保在异步事件处理中保持同步
+  const currentTextBlockIdRef = useRef<string | null>(null);
+  const justEndedToolCallRef = useRef<boolean>(false);
+  // 使用 ref 同步跟踪 contentBlocks，避免 React 状态更新的竞态条件
+  const contentBlocksRef = useRef<ContentBlock[]>([]);
+  const toolCallsRef = useRef<ToolCallInfo[]>([]);
+  const messageContentRef = useRef<string>('');
 
   // 获取选中 Agent 的上下文信息（包含 AgentCore 配置）
   const { data: agentContext } = useAgentContextV2(selectedAgentId || '');
@@ -337,7 +430,13 @@ function ChatPageContent() {
 
   const { data: sessions, refetch: refetchSessions } = useAgentSessionsV2(selectedAgentId || '');
   const createSession = useCreateSessionV2();
+  const deleteSession = useDeleteSessionV2();
+  
+  // 删除会话相关状态
+  const [sessionToDelete, setSessionToDelete] = useState<string | null>(null);
 
+  // 消息存储优化：禁用自动轮询，只在会话切换时从数据库加载
+  // 聊天过程中的消息存储在组件状态中，流式结束后延迟同步
   const { data: messages, isLoading: isLoadingMessages, refetch: refetchMessages } = useSessionMessagesV2(
     activeSessionId || '',
     100
@@ -361,31 +460,118 @@ function ChatPageContent() {
     }
   }, [chatMessages]);
 
-  // Sync database messages to chat messages when session changes
+  // 消息同步：只在会话切换时从数据库加载消息
+  // 流式输出过程中的消息保存在组件状态中，不会被数据库消息覆盖
+  // 使用 Map 存储流式消息的 contentBlocks，key 为消息内容的前100字符哈希
+  const streamContentBlocksMapRef = useRef<Map<string, ContentBlock[]>>(new Map());
+  // 跟踪是否刚完成流式输出，用于决定是否跳过数据库同步
+  const justFinishedStreamingRef = useRef<boolean>(false);
+  // 跟踪当前流式消息的 ID，用于在同步时保护该消息
+  const streamingMessageIdRef = useRef<string | null>(null);
+  
   useEffect(() => {
+    // 流式输出时完全不同步数据库消息，避免覆盖正在显示的内容
+    if (isStreaming) {
+      return;
+    }
+    
+    // 如果刚完成流式输出，跳过这次同步，保留流式消息的 contentBlocks
+    if (justFinishedStreamingRef.current) {
+      justFinishedStreamingRef.current = false;
+      return;
+    }
+    
     if (messages && messages.length > 0) {
-      const dbMessages: ChatMessage[] = messages.map((msg) => {
-        // 从 metadata 中提取工具调用信息
-        const toolCalls = msg.metadata?.tool_calls as ToolCallInfo[] | undefined;
-        return {
-          id: msg.message_id,
-          role: msg.role as 'user' | 'assistant' | 'system',
-          content: msg.content,
-          timestamp: msg.created_at,
-          toolCalls: toolCalls?.map(tc => ({
-            name: tc.name,
-            id: tc.id,
-            input: tc.input || '',
-            result: tc.result,
-            status: (tc.status || 'success') as ToolCallStatus,
-          })),
-        };
+      setChatMessages((prevMessages) => {
+        // 如果有正在流式输出的消息，保护它不被覆盖
+        const streamingMsgId = streamingMessageIdRef.current;
+        const streamingMsg = streamingMsgId ? prevMessages.find(m => m.id === streamingMsgId) : null;
+        
+        // 收集当前所有有 contentBlocks 的流式消息
+        prevMessages.forEach(m => {
+          if (m.contentBlocks && m.contentBlocks.length > 0 && m.content) {
+            // 使用内容前100字符作为 key
+            const contentKey = m.content.slice(0, 100);
+            streamContentBlocksMapRef.current.set(contentKey, m.contentBlocks);
+          }
+        });
+        
+        // 从数据库消息构建新的消息列表
+        const dbMessages: ChatMessage[] = messages.map((msg) => {
+          const toolCalls = msg.metadata?.tool_calls as ToolCallInfo[] | undefined;
+          // 从数据库 metadata 中获取 content_blocks
+          const dbContentBlocks = msg.metadata?.content_blocks as ContentBlock[] | undefined;
+          
+          const baseMsg: ChatMessage = {
+            id: msg.message_id,
+            role: msg.role as 'user' | 'assistant' | 'system',
+            content: msg.content,
+            timestamp: msg.created_at,
+            toolCalls: toolCalls?.map(tc => ({
+              name: tc.name,
+              id: tc.id,
+              input: tc.input || '',
+              result: tc.result,
+              status: (tc.status || 'success') as ToolCallStatus,
+            })),
+          };
+          
+          // 尝试恢复 contentBlocks
+          if (msg.role === 'assistant') {
+            // 优先从缓存中恢复（流式输出的完整数据）
+            if (msg.content) {
+              const contentKey = msg.content.slice(0, 100);
+              const cachedBlocks = streamContentBlocksMapRef.current.get(contentKey);
+              if (cachedBlocks && cachedBlocks.length > 0) {
+                baseMsg.contentBlocks = cachedBlocks;
+              }
+            }
+            
+            // 如果缓存中没有，从数据库 metadata 恢复
+            if (!baseMsg.contentBlocks && dbContentBlocks && dbContentBlocks.length > 0) {
+              // 重建完整的 contentBlocks，合并 toolCalls 的完整数据
+              const rebuiltBlocks: ContentBlock[] = dbContentBlocks.map(block => {
+                if (block.type === 'tool') {
+                  // 从 toolCalls 中找到对应的完整工具调用数据
+                  const fullToolCall = baseMsg.toolCalls?.find(tc => tc.id === block.id);
+                  if (fullToolCall) {
+                    return {
+                      type: 'tool' as ContentBlockType,
+                      id: block.id,
+                      toolCall: fullToolCall,
+                    };
+                  }
+                }
+                return block;
+              });
+              baseMsg.contentBlocks = rebuiltBlocks;
+            }
+          }
+          
+          return baseMsg;
+        });
+        
+        // 如果有正在流式输出的消息，将其添加回列表末尾
+        if (streamingMsg && streamingMsg.isStreaming) {
+          // 检查数据库消息中是否已有该消息（通过内容匹配）
+          const existsInDb = dbMessages.some(m => 
+            m.role === 'assistant' && 
+            m.content && 
+            streamingMsg.content && 
+            m.content.startsWith(streamingMsg.content.slice(0, 50))
+          );
+          
+          if (!existsInDb) {
+            dbMessages.push(streamingMsg);
+          }
+        }
+        
+        return dbMessages;
       });
-      setChatMessages(dbMessages);
     } else {
       setChatMessages([]);
     }
-  }, [messages]);
+  }, [messages, isStreaming]);
 
   // Set initial agent and session if provided
   useEffect(() => {
@@ -438,6 +624,24 @@ function ChatPageContent() {
     }
   }, [selectedAgentId, createSession, refetchSessions]);
 
+  // 删除会话处理函数
+  const handleDeleteSession = useCallback(async (sessionId: string) => {
+    try {
+      await deleteSession.mutateAsync(sessionId);
+      // 如果删除的是当前活动会话，清空选择
+      if (activeSessionId === sessionId) {
+        setActiveSessionId(null);
+        setChatMessages([]);
+      }
+      refetchSessions();
+      toast.success('会话已删除');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : '删除会话失败');
+    } finally {
+      setSessionToDelete(null);
+    }
+  }, [activeSessionId, deleteSession, refetchSessions]);
+
 
   const handleSendMessage = useCallback(async () => {
     if (!inputValue.trim() || !activeSessionId || isStreaming) return;
@@ -462,104 +666,247 @@ function ChatPageContent() {
       timestamp: new Date().toISOString(),
       isStreaming: true,
       toolCalls: [],
+      contentBlocks: [],  // 初始化有序内容块数组
     };
     setChatMessages((prev) => [...prev, assistantMessage]);
 
+    // 重置 ref 状态
+    currentTextBlockIdRef.current = null;
+    justEndedToolCallRef.current = false;
+    // 重置内容跟踪 ref
+    contentBlocksRef.current = [];
+    toolCallsRef.current = [];
+    messageContentRef.current = '';
+    // 记录当前流式消息 ID，用于保护该消息不被数据库同步覆盖
+    streamingMessageIdRef.current = assistantMessageId;
+
     // 处理流式事件的通用函数
     const handleStreamEvent = (event: StreamEvent) => {
+      // 调试日志
+      console.log('[handleStreamEvent] Received event:', event.event, event.type, event.data?.slice(0, 50));
+      
       if (event.event === 'message') {
         if (event.type === 'text' && event.data) {
+          // 使用 ref 同步更新，避免 React 状态竞态条件
+          messageContentRef.current += event.data;
+          
+          // 如果刚结束工具调用或没有当前文本块，创建新的文本块
+          if (justEndedToolCallRef.current || !currentTextBlockIdRef.current) {
+            const newBlockId = `text-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+            currentTextBlockIdRef.current = newBlockId;
+            justEndedToolCallRef.current = false;
+            
+            const newBlock: ContentBlock = {
+              type: 'text',
+              id: newBlockId,
+              text: event.data,
+            };
+            
+            // 同步更新 ref - 这是关键！
+            const prevLength = contentBlocksRef.current.length;
+            contentBlocksRef.current = [...contentBlocksRef.current, newBlock];
+            console.log('[handleStreamEvent] Creating new text block:', newBlockId, 'blocks before:', prevLength, 'blocks after:', contentBlocksRef.current.length);
+          } else {
+            // 追加到现有文本块
+            const targetBlockId = currentTextBlockIdRef.current;
+            contentBlocksRef.current = contentBlocksRef.current.map(block =>
+              block.id === targetBlockId && block.type === 'text'
+                ? { ...block, text: (block.text || '') + event.data }
+                : block
+            );
+          }
+          
+          // 更新 React 状态以触发渲染
           setChatMessages((prev) =>
-            prev.map((msg) =>
-              msg.id === assistantMessageId
-                ? { ...msg, content: msg.content + event.data }
-                : msg
-            )
+            prev.map((msg) => {
+              if (msg.id !== assistantMessageId) return msg;
+              return {
+                ...msg,
+                content: messageContentRef.current,
+                contentBlocks: [...contentBlocksRef.current],
+              };
+            })
           );
         } else if (event.type === 'tool_use') {
-          // 工具调用开始
+          // 工具调用开始 - 使用 tool_id 作为唯一标识
+          const toolId = event.tool_id || `tool-${Date.now()}`;
+          const toolName = event.tool_name || 'unknown';
+          
+          console.log('[handleStreamEvent] tool_use event, toolId:', toolId, 'toolName:', toolName, 'currentTextBlockId:', currentTextBlockIdRef.current);
+          
+          // 重置当前文本块，下次文本会创建新块
+          currentTextBlockIdRef.current = null;
+          
+          // 更新 ref 和 state
+          currentToolCallIdRef.current = toolId;
+          setCurrentToolCall({
+            name: toolName,
+            id: toolId,
+            input: '',
+          });
+          
+          // 检查是否已存在相同 tool_id 的工具调用
+          const existingIndex = toolCallsRef.current.findIndex(tc => tc.id === toolId);
+          if (existingIndex >= 0) {
+            // 已存在，不重复添加
+            return;
+          }
+          
+          // 添加新的工具调用到 ref
           const newToolCall: ToolCallInfo = {
-            name: event.tool_name || 'unknown',
-            id: event.tool_id || `tool-${Date.now()}`,
+            name: toolName,
+            id: toolId,
             input: '',
             status: 'running',
           };
-          setCurrentToolCall({
-            name: newToolCall.name,
-            id: newToolCall.id,
-            input: '',
-          });
+          toolCallsRef.current = [...toolCallsRef.current, newToolCall];
+          
+          // 添加工具块到 contentBlocks ref
+          const newBlock: ContentBlock = {
+            type: 'tool',
+            id: toolId,
+            toolCall: newToolCall,
+          };
+          contentBlocksRef.current = [...contentBlocksRef.current, newBlock];
+          
+          console.log('[handleStreamEvent] Adding tool block, existing blocks:', contentBlocksRef.current.length - 1, contentBlocksRef.current.map(b => ({ type: b.type, id: b.id })));
+          
+          // 更新 React 状态
           setChatMessages((prev) =>
-            prev.map((msg) =>
-              msg.id === assistantMessageId
-                ? {
-                    ...msg,
-                    toolCalls: [...(msg.toolCalls || []), newToolCall],
-                  }
-                : msg
-            )
+            prev.map((msg) => {
+              if (msg.id !== assistantMessageId) return msg;
+              return {
+                ...msg,
+                toolCalls: [...toolCallsRef.current],
+                contentBlocks: [...contentBlocksRef.current],
+              };
+            })
           );
         } else if (event.type === 'tool_input' && event.data) {
-          // 工具输入增量
+          // 工具输入增量 - 使用 ref 同步更新
+          const targetId = event.tool_id || currentToolCallIdRef.current;
+          
           setCurrentToolCall((prev) =>
             prev ? { ...prev, input: prev.input + event.data } : null
           );
-          // 更新消息中的工具调用输入
+          
+          // 更新 ref 中的 toolCalls
+          toolCallsRef.current = toolCallsRef.current.map(tc =>
+            (targetId && tc.id === targetId) || (!targetId && tc.status === 'running')
+              ? { ...tc, input: tc.input + event.data }
+              : tc
+          );
+          
+          // 更新 ref 中的 contentBlocks
+          contentBlocksRef.current = contentBlocksRef.current.map(block => {
+            if (block.type === 'tool' && block.toolCall) {
+              const isTarget = (targetId && block.id === targetId) || 
+                               (!targetId && block.toolCall.status === 'running');
+              if (isTarget) {
+                return {
+                  ...block,
+                  toolCall: { ...block.toolCall, input: block.toolCall.input + event.data },
+                };
+              }
+            }
+            return block;
+          });
+          
+          // 更新 React 状态
           setChatMessages((prev) =>
             prev.map((msg) => {
               if (msg.id !== assistantMessageId) return msg;
-              const toolCalls = msg.toolCalls || [];
-              if (toolCalls.length === 0) return msg;
-              // 更新最后一个工具调用的输入
-              const updatedToolCalls = [...toolCalls];
-              const lastIdx = updatedToolCalls.length - 1;
-              updatedToolCalls[lastIdx] = {
-                ...updatedToolCalls[lastIdx],
-                input: updatedToolCalls[lastIdx].input + event.data,
+              return {
+                ...msg,
+                toolCalls: [...toolCallsRef.current],
+                contentBlocks: [...contentBlocksRef.current],
               };
-              return { ...msg, toolCalls: updatedToolCalls };
             })
           );
         } else if (event.type === 'tool_end') {
-          // 工具调用结束
+          // 工具调用结束 - 使用 ref 同步更新
           const toolResult = event.tool_result || event.tool_input || '';
+          const targetToolId = event.tool_id || currentToolCallIdRef.current;
+          
+          // 标记刚结束工具调用，下次文本需要创建新块
+          justEndedToolCallRef.current = true;
+          
+          // 更新 ref 中的 toolCalls
+          toolCallsRef.current = toolCallsRef.current.map(tc => {
+            if (targetToolId && tc.id === targetToolId) {
+              return {
+                ...tc,
+                status: 'success' as ToolCallStatus,
+                result: toolResult,
+                input: event.tool_input || tc.input,
+              };
+            }
+            return tc;
+          });
+          
+          // 更新 ref 中的 contentBlocks
+          contentBlocksRef.current = contentBlocksRef.current.map(block => {
+            if (block.type === 'tool' && block.toolCall && targetToolId && block.id === targetToolId) {
+              return {
+                ...block,
+                toolCall: {
+                  ...block.toolCall,
+                  status: 'success' as ToolCallStatus,
+                  result: toolResult,
+                  input: event.tool_input || block.toolCall.input,
+                },
+              };
+            }
+            return block;
+          });
+          
+          // 更新 React 状态
           setChatMessages((prev) =>
             prev.map((msg) => {
               if (msg.id !== assistantMessageId) return msg;
-              const toolCalls = msg.toolCalls || [];
-              if (toolCalls.length === 0) return msg;
-              // 更新最后一个工具调用的状态和结果
-              const updatedToolCalls = [...toolCalls];
-              const lastIdx = updatedToolCalls.length - 1;
-              updatedToolCalls[lastIdx] = {
-                ...updatedToolCalls[lastIdx],
-                status: 'success',
-                result: toolResult,
+              return {
+                ...msg,
+                toolCalls: [...toolCallsRef.current],
+                contentBlocks: [...contentBlocksRef.current],
               };
-              return { ...msg, toolCalls: updatedToolCalls };
             })
           );
+          
+          // 清空工具调用状态
+          currentToolCallIdRef.current = null;
           setCurrentToolCall(null);
         }
       } else if (event.event === 'error') {
         toast.error(event.error || '对话出错');
         // 如果有正在执行的工具调用，标记为失败
+        // 更新 ref
+        toolCallsRef.current = toolCallsRef.current.map((tc) =>
+          tc.status === 'running' ? { ...tc, status: 'error' as ToolCallStatus, result: event.error } : tc
+        );
+        contentBlocksRef.current = contentBlocksRef.current.map(block => {
+          if (block.type === 'tool' && block.toolCall && block.toolCall.status === 'running') {
+            return {
+              ...block,
+              toolCall: { ...block.toolCall, status: 'error' as ToolCallStatus, result: event.error },
+            };
+          }
+          return block;
+        });
+        
         setChatMessages((prev) =>
           prev.map((msg) => {
             if (msg.id !== assistantMessageId) return msg;
-            const toolCalls = msg.toolCalls || [];
-            const updatedToolCalls = toolCalls.map((tc) =>
-              tc.status === 'running' ? { ...tc, status: 'error' as ToolCallStatus, result: event.error } : tc
-            );
             return {
               ...msg,
-              content: msg.content || `错误: ${event.error}`,
+              content: messageContentRef.current || `错误: ${event.error}`,
               isStreaming: false,
-              toolCalls: updatedToolCalls,
+              toolCalls: [...toolCallsRef.current],
+              contentBlocks: [...contentBlocksRef.current],
             };
           })
         );
       } else if (event.event === 'done') {
+        console.log('[handleStreamEvent] Stream done, finalizing message');
         setChatMessages((prev) =>
           prev.map((msg) =>
             msg.id === assistantMessageId ? { ...msg, isStreaming: false } : msg
@@ -607,15 +954,29 @@ function ChatPageContent() {
       );
     } finally {
       setIsStreaming(false);
+      // 清空工具调用状态和文本块跟踪状态
+      currentToolCallIdRef.current = null;
+      currentTextBlockIdRef.current = null;
+      justEndedToolCallRef.current = false;
       setCurrentToolCall(null);
       abortControllerRef.current = null;
-      refetchMessages();
+      
+      // 标记刚完成流式输出，跳过下一次数据库同步
+      justFinishedStreamingRef.current = true;
+      
+      // 延迟刷新消息，给足够时间让 contentBlocks 被缓存
+      // 第一次 refetch 会被 justFinishedStreamingRef 跳过
+      // 第二次 refetch 会从缓存中恢复 contentBlocks
+      setTimeout(() => {
+        refetchMessages();
+      }, 1000);
     }
   }, [inputValue, activeSessionId, isStreaming, refetchMessages, agentContext]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
+      // Shift+Enter 发送消息，单独 Enter 换行
+      if (e.key === 'Enter' && e.shiftKey) {
         e.preventDefault();
         handleSendMessage();
       }
@@ -625,14 +986,14 @@ function ChatPageContent() {
 
 
   return (
-    <div className="page-container">
+    <div className="flex flex-col h-screen overflow-hidden">
       <Header
         title="会话"
         description="与 Agent 进行对话交互"
       />
 
-      <div className="page-content">
-        <div className="grid grid-cols-12 gap-6 h-[calc(100vh-180px)]">
+      <div className="flex-1 p-6 overflow-hidden">
+        <div className="grid grid-cols-12 gap-6 h-full">
           {/* Left Panel - Agent Selection & Sessions */}
           <div className="col-span-3 flex flex-col gap-4 h-full">
             {/* Agent Selector */}
@@ -749,25 +1110,40 @@ function ChatPageContent() {
                   </div>
                 ) : (
                   sessions.map((session) => (
-                    <button
+                    <div
                       key={session.session_id}
-                      onClick={() => setActiveSessionId(session.session_id)}
-                      className={`w-full text-left p-4 transition-colors ${
+                      className={`relative flex items-center justify-between w-full text-left p-4 transition-colors ${
                         activeSessionId === session.session_id
                           ? 'bg-primary-50 border-l-2 border-primary-500'
                           : 'hover:bg-gray-50 border-l-2 border-transparent'
                       }`}
                     >
-                      <div className="font-medium text-gray-900 truncate text-sm">
-                        {session.display_name || session.session_id.slice(0, 12)}
-                      </div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        {formatRelativeTime(session.last_active_at || session.created_at)}
-                        {session.message_count > 0 && (
-                          <span className="ml-2">· {session.message_count} 条消息</span>
-                        )}
-                      </div>
-                    </button>
+                      <button
+                        onClick={() => setActiveSessionId(session.session_id)}
+                        className="flex-1 text-left min-w-0"
+                      >
+                        <div className="font-medium text-gray-900 truncate text-sm">
+                          {session.display_name || session.session_id.slice(0, 12)}
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          {formatRelativeTime(session.last_active_at || session.created_at)}
+                          {session.message_count > 0 && (
+                            <span className="ml-2">· {session.message_count} 条消息</span>
+                          )}
+                        </div>
+                      </button>
+                      {/* 删除按钮 */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSessionToDelete(session.session_id);
+                        }}
+                        className="flex-shrink-0 ml-2 p-1.5 rounded-md text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors"
+                        title="删除会话"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   ))
                 )}
               </div>
@@ -776,8 +1152,8 @@ function ChatPageContent() {
 
 
           {/* Right Panel - Chat Area */}
-          <div className="col-span-9 h-full">
-            <Card padding="none" className="h-full flex flex-col">
+          <div className="col-span-9 h-full min-h-0">
+            <Card padding="none" className="h-full flex flex-col min-h-0">
               {/* Chat Header */}
               <div className="p-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
                 {selectedAgent ? (
@@ -810,7 +1186,7 @@ function ChatPageContent() {
               {/* Messages - Fixed height with scroll */}
               <div 
                 ref={messagesContainerRef}
-                className="flex-1 overflow-y-auto p-4 space-y-4"
+                className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4"
               >
                 {!selectedAgentId ? (
                   <div className="h-full flex items-center justify-center">
@@ -877,13 +1253,8 @@ function ChatPageContent() {
                         {/* 助手消息 */}
                         {message.role === 'assistant' && (
                           <div className="space-y-2">
-                            {/* 工具调用列表 - 使用新的可展开组件 */}
-                            {message.toolCalls && message.toolCalls.length > 0 && (
-                              <ToolCallsList toolCalls={message.toolCalls} />
-                            )}
-                            
                             {/* 思考中状态 - 流式输出但还没有内容和工具调用时显示 */}
-                            {message.isStreaming && !message.content && (!message.toolCalls || message.toolCalls.length === 0) && (
+                            {message.isStreaming && !message.content && (!message.contentBlocks || message.contentBlocks.length === 0) && (
                               <div className="bg-gray-50 border border-gray-100 rounded-2xl px-4 py-3">
                                 <div className="flex items-center gap-2 text-gray-500">
                                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -892,30 +1263,44 @@ function ChatPageContent() {
                               </div>
                             )}
                             
-                            {/* 文本内容 */}
-                            {message.content && (
-                              <div className="bg-gray-50 border border-gray-100 rounded-2xl px-4 py-3">
-                                {message.isStreaming ? (
-                                  <TypewriterMessage
-                                    content={message.content}
-                                    isStreaming={message.isStreaming}
-                                    variant="assistant"
-                                  />
-                                ) : (
-                                  <MessageContent
-                                    content={message.content}
-                                    isStreaming={false}
-                                    variant="assistant"
-                                  />
+                            {/* 按顺序渲染内容块 */}
+                            {message.contentBlocks && message.contentBlocks.length > 0 ? (
+                              // 使用 ContentBlocksList 组件保持顺序并管理展开状态
+                              <ContentBlocksList 
+                                blocks={message.contentBlocks} 
+                                isStreaming={message.isStreaming} 
+                              />
+                            ) : (
+                              // 回退：使用旧的渲染方式（用于从数据库加载的消息）
+                              <>
+                                {/* 工具调用列表 */}
+                                {message.toolCalls && message.toolCalls.length > 0 && (
+                                  <ToolCallsList toolCalls={message.toolCalls} />
                                 )}
-                                <div className="text-xs mt-2 text-gray-400">
-                                  {formatRelativeTime(message.timestamp)}
-                                </div>
-                              </div>
+                                
+                                {/* 文本内容 */}
+                                {message.content && (
+                                  <div className="bg-gray-50 border border-gray-100 rounded-2xl px-4 py-3">
+                                    {message.isStreaming ? (
+                                      <TypewriterMessage
+                                        content={message.content}
+                                        isStreaming={message.isStreaming}
+                                        variant="assistant"
+                                      />
+                                    ) : (
+                                      <MessageContent
+                                        content={message.content}
+                                        isStreaming={false}
+                                        variant="assistant"
+                                      />
+                                    )}
+                                  </div>
+                                )}
+                              </>
                             )}
                             
-                            {/* 如果只有工具调用没有文本，显示时间戳 */}
-                            {!message.content && message.toolCalls && message.toolCalls.length > 0 && (
+                            {/* 时间戳 */}
+                            {(message.content || (message.contentBlocks && message.contentBlocks.length > 0)) && (
                               <div className="text-xs text-gray-400 px-1">
                                 {formatRelativeTime(message.timestamp)}
                               </div>
@@ -936,24 +1321,40 @@ function ChatPageContent() {
 
               {/* Input Area */}
               {activeSessionId && (
-                <div className="p-4 border-t border-gray-100 flex-shrink-0">
-                  <div className="flex gap-3">
-                    <textarea
-                      value={inputValue}
-                      onChange={(e) => setInputValue(e.target.value)}
-                      onKeyDown={handleKeyDown}
-                      placeholder="输入消息..."
-                      className="flex-1 resize-none rounded-xl border border-gray-200 px-4 py-3 text-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none"
-                      rows={1}
-                      disabled={isStreaming}
-                    />
-                    <Button
+                <div className="p-4 border-t border-gray-100 flex-shrink-0 bg-white">
+                  <div className="flex gap-3 items-end">
+                    <div className="flex-1 relative">
+                      <textarea
+                        value={inputValue}
+                        onChange={(e) => setInputValue(e.target.value)}
+                        onKeyDown={handleKeyDown}
+                        placeholder="输入消息..."
+                        className="w-full resize-none rounded-xl border border-gray-200 px-4 py-3 pr-20 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-100 outline-none transition-all min-h-[52px]"
+                        rows={1}
+                        disabled={isStreaming}
+                        style={{ height: 'auto', maxHeight: '120px' }}
+                        onInput={(e) => {
+                          const target = e.target as HTMLTextAreaElement;
+                          target.style.height = 'auto';
+                          target.style.height = Math.min(target.scrollHeight, 120) + 'px';
+                        }}
+                      />
+                      <div className="absolute right-3 bottom-3 text-[10px] text-gray-400 pointer-events-none">
+                        ⇧+↵ 发送
+                      </div>
+                    </div>
+                    <button
                       onClick={handleSendMessage}
                       disabled={!inputValue.trim() || isStreaming}
-                      loading={isStreaming}
+                      title="Shift+Enter 发送"
+                      className="flex items-center justify-center w-[52px] h-[52px] rounded-xl bg-primary-600 text-white hover:bg-primary-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex-shrink-0"
                     >
-                      <Send className="w-4 h-4" />
-                    </Button>
+                      {isStreaming ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                      ) : (
+                        <Send className="w-5 h-5" />
+                      )}
+                    </button>
                   </div>
                 </div>
               )}
@@ -961,6 +1362,34 @@ function ChatPageContent() {
           </div>
         </div>
       </div>
+
+      {/* 删除确认对话框 */}
+      {sessionToDelete && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4 shadow-xl">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">确认删除</h3>
+            <p className="text-gray-600 mb-6">
+              确定要删除这个会话吗？此操作将同时删除会话中的所有消息，且无法恢复。
+            </p>
+            <div className="flex justify-end gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setSessionToDelete(null)}
+              >
+                取消
+              </Button>
+              <Button
+                variant="danger"
+                onClick={() => handleDeleteSession(sessionToDelete)}
+                loading={deleteSession.isPending}
+              >
+                <Trash2 className="w-4 h-4" />
+                删除
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -15,6 +15,7 @@ from nexus_utils.config_loader import get_config
 _config = get_config()
 _aws_config = _config.get_aws_config()
 _agentcore_config = _config.get_agentcore_config()
+_nexus_ai_config = _config.get_nexus_ai_config()
 
 
 class Settings(BaseSettings):
@@ -60,6 +61,10 @@ class Settings(BaseSettings):
     AGENTCORE_POST_DEPLOY_TEST_PROMPT: str = _agentcore_config.get('post_deploy_test_prompt', 'Hello')
     AGENTCORE_REQUIREMENTS_PATH: str = "requirements.txt"
     AGENTCORE_IMAGE_TAG_TEMPLATE: str = "{agent_name}:{timestamp}"
+    
+    # Session Storage Configuration - 从 default_config.yaml 读取
+    SESSION_STORAGE_S3_BUCKET: Optional[str] = _nexus_ai_config.get('session_storage_s3_bucket') or None
+    SESSION_STORAGE_S3_PREFIX: str = "sessions/"  # S3 存储前缀
     
     # CORS Configuration
     CORS_ORIGINS: list = ["*"]

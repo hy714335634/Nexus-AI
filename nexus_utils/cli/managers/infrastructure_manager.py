@@ -7,11 +7,13 @@ Provides functionality for:
 - Clearing table data
 - Purging queue messages
 - Deleting agent-specific data
+- Validating workflow configuration
 """
 
 import logging
 from typing import Dict, Any, List, Optional, Tuple
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +38,16 @@ class InfrastructureResult:
     def __post_init__(self):
         if self.errors is None:
             self.errors = []
+
+
+@dataclass
+class WorkflowConfigValidationResult:
+    """工作流配置验证结果"""
+    valid: bool
+    errors: List[str] = field(default_factory=list)
+    warnings: List[str] = field(default_factory=list)
+    stages_count: int = 0
+    config_path: str = ''
 
 
 class InfrastructureManager:
@@ -501,6 +513,165 @@ class InfrastructureManager:
         
         return results
 
+    def validate_workflow_config(self, base_path: str = '.') -> WorkflowConfigValidationResult:
+        """
+        验证工作流配置是否正确。
+        
+        检查项目：
+        - 配置文件存在性
+        - 工作流阶段定义完整性
+        - 提示词路径有效性
+        - DynamoDB 表配置
+        - SQS 队列配置
+        
+        Args:
+            base_path: 项目根目录路径
+        
+        Returns:
+            WorkflowConfigValidationResult: 验证结果
+        """
+        import yaml
+        
+        result = WorkflowConfigValidationResult(
+            valid=True,
+            errors=[],
+            warnings=[],
+            stages_count=0,
+            config_path=''
+        )
+        
+        base = Path(base_path)
+        config_path = base / 'config' / 'default_config.yaml'
+        result.config_path = str(config_path)
+        
+        # 检查配置文件存在性
+        if not config_path.exists():
+            result.valid = False
+            result.errors.append(f"配置文件不存在: {config_path}")
+            return result
+        
+        # 加载配置
+        try:
+            with open(config_path, 'r', encoding='utf-8') as f:
+                config = yaml.safe_load(f)
+        except Exception as e:
+            result.valid = False
+            result.errors.append(f"配置文件解析失败: {e}")
+            return result
+        
+        default_config = config.get('default-config', {})
+        
+        # 验证工作流配置
+        workflow_config = default_config.get('workflow', {})
+        if not workflow_config:
+            result.warnings.append("未找到工作流配置 (workflow)，将使用默认值")
+        else:
+            # 验证阶段定义
+            stages = workflow_config.get('stages', [])
+            if not stages:
+                result.warnings.append("未定义工作流阶段 (workflow.stages)")
+            else:
+                result.stages_count = len(stages)
+                
+                # 验证每个阶段
+                required_fields = ['name', 'display_name', 'order', 'prerequisites', 'prompt_path']
+                for i, stage in enumerate(stages):
+                    stage_name = stage.get('name', f'stage_{i}')
+                    
+                    # 检查必需字段
+                    for field in required_fields:
+                        if field not in stage:
+                            result.warnings.append(f"阶段 '{stage_name}' 缺少字段: {field}")
+                    
+                    # 验证提示词路径
+                    prompt_path = stage.get('prompt_path', '')
+                    if prompt_path:
+                        prompts_dir = base / 'prompts'
+                        full_prompt_path = prompts_dir / prompt_path
+                        
+                        # 检查目录或 YAML 文件
+                        yaml_path = full_prompt_path.with_suffix('.yaml')
+                        if not full_prompt_path.exists() and not yaml_path.exists():
+                            if not full_prompt_path.is_dir():
+                                result.warnings.append(
+                                    f"阶段 '{stage_name}' 的提示词路径不存在: {prompt_path}"
+                                )
+            
+            # 验证执行配置
+            execution = workflow_config.get('execution', {})
+            if not execution:
+                result.warnings.append("未找到执行配置 (workflow.execution)")
+            else:
+                # 检查超时配置合理性
+                stage_timeout = execution.get('stage_timeout_seconds', 3600)
+                total_timeout = execution.get('total_timeout_seconds', 21600)
+                if stage_timeout > total_timeout:
+                    result.warnings.append(
+                        f"阶段超时 ({stage_timeout}s) 大于总超时 ({total_timeout}s)"
+                    )
+            
+            # 验证上下文配置
+            context = workflow_config.get('context', {})
+            if not context:
+                result.warnings.append("未找到上下文配置 (workflow.context)")
+            
+            # 验证存储配置
+            storage = workflow_config.get('storage', {})
+            if not storage:
+                result.warnings.append("未找到存储配置 (workflow.storage)")
+        
+        # 验证 DynamoDB 配置
+        dynamodb_config = default_config.get('dynamodb', {})
+        if not dynamodb_config:
+            result.warnings.append("未找到 DynamoDB 配置 (dynamodb)")
+        else:
+            tables = dynamodb_config.get('tables', {})
+            required_tables = ['projects', 'stages', 'tasks', 'agents']
+            for table in required_tables:
+                if table not in tables:
+                    result.warnings.append(f"DynamoDB 配置缺少表定义: {table}")
+        
+        # 验证 SQS 配置
+        sqs_config = default_config.get('sqs', {})
+        if not sqs_config:
+            result.warnings.append("未找到 SQS 配置 (sqs)")
+        else:
+            queues = sqs_config.get('queues', {})
+            required_queues = ['build', 'deploy']
+            for queue in required_queues:
+                if queue not in queues:
+                    result.warnings.append(f"SQS 配置缺少队列定义: {queue}")
+        
+        # 如果有错误，标记为无效
+        if result.errors:
+            result.valid = False
+        
+        return result
+    
+    def get_workflow_stages_from_config(self, base_path: str = '.') -> List[Dict[str, Any]]:
+        """
+        从配置文件获取工作流阶段定义。
+        
+        Args:
+            base_path: 项目根目录路径
+        
+        Returns:
+            List[Dict]: 阶段定义列表
+        """
+        import yaml
+        
+        config_path = Path(base_path) / 'config' / 'default_config.yaml'
+        
+        if not config_path.exists():
+            return []
+        
+        try:
+            with open(config_path, 'r', encoding='utf-8') as f:
+                config = yaml.safe_load(f)
+            
+            return config.get('default-config', {}).get('workflow', {}).get('stages', [])
+        except Exception:
+            return []
     def list_tasks(self, status: Optional[str] = None, task_type: Optional[str] = None, 
                    limit: int = 50) -> Dict[str, Any]:
         """

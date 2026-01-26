@@ -8,7 +8,7 @@ import { Card, Button, Badge, Empty } from '@/components/ui';
 import { MessageContent } from '@components/viewer';
 import { StatusBadge } from '@/components/status-badge';
 import { useAgentDetailV2, useAgentSessionsV2, useCreateSessionV2 } from '@/hooks/use-agents-v2';
-import { useSessionMessagesV2 } from '@/hooks/use-sessions-v2';
+import { useSessionMessagesV2, useDeleteSessionV2 } from '@/hooks/use-sessions-v2';
 import { streamChat, type StreamEvent } from '@/lib/api-v2';
 import { formatRelativeTime } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -22,6 +22,7 @@ import {
   Loader2,
   RefreshCw,
   Wrench,
+  Trash2,
 } from 'lucide-react';
 
 interface PageProps {
@@ -165,12 +166,14 @@ export default function AgentChatPage({ params }: PageProps) {
   const { data: agent, isLoading: isLoadingAgent } = useAgentDetailV2(agentId);
   const { data: sessions, refetch: refetchSessions } = useAgentSessionsV2(agentId, 20);
   const createSession = useCreateSessionV2();
+  const deleteSession = useDeleteSessionV2();
 
   const [activeSessionId, setActiveSessionId] = useState<string | null>(initialSessionId);
   const [inputValue, setInputValue] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [currentToolCall, setCurrentToolCall] = useState<{ name: string; id: string; input: string } | null>(null);
+  const [sessionToDelete, setSessionToDelete] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -245,6 +248,23 @@ export default function AgentChatPage({ params }: PageProps) {
       toast.error(error instanceof Error ? error.message : '创建会话失败');
     }
   }, [agentId, createSession, refetchSessions]);
+
+  const handleDeleteSession = useCallback(async (sessionId: string) => {
+    try {
+      await deleteSession.mutateAsync(sessionId);
+      // 如果删除的是当前活动会话，清空选择
+      if (activeSessionId === sessionId) {
+        setActiveSessionId(null);
+        setChatMessages([]);
+      }
+      refetchSessions();
+      toast.success('会话已删除');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : '删除会话失败');
+    } finally {
+      setSessionToDelete(null);
+    }
+  }, [activeSessionId, deleteSession, refetchSessions]);
 
   const handleSendMessage = useCallback(async () => {
     if (!inputValue.trim() || !activeSessionId || isStreaming) return;
@@ -360,10 +380,11 @@ export default function AgentChatPage({ params }: PageProps) {
       setIsStreaming(false);
       setCurrentToolCall(null);
       abortControllerRef.current = null;
-      // Refresh messages from database
+      // 刷新消息和会话列表（会话名称可能已更新）
       refetchMessages();
+      refetchSessions();
     }
-  }, [inputValue, activeSessionId, isStreaming, refetchMessages]);
+  }, [inputValue, activeSessionId, isStreaming, refetchMessages, refetchSessions]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -462,25 +483,40 @@ export default function AgentChatPage({ params }: PageProps) {
                   </div>
                 ) : (
                   sessions.map((session) => (
-                    <button
+                    <div
                       key={session.session_id}
-                      onClick={() => setActiveSessionId(session.session_id)}
-                      className={`w-full text-left p-4 transition-colors ${
+                      className={`relative flex items-center justify-between w-full text-left p-4 transition-colors ${
                         activeSessionId === session.session_id
                           ? 'bg-primary-50 border-l-2 border-primary-500'
                           : 'hover:bg-gray-50 border-l-2 border-transparent'
                       }`}
                     >
-                      <div className="font-medium text-gray-900 truncate text-sm">
-                        {session.display_name || session.session_id.slice(0, 12)}
-                      </div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        {formatRelativeTime(session.last_active_at || session.created_at)}
-                        {session.message_count > 0 && (
-                          <span className="ml-2">· {session.message_count} 条消息</span>
-                        )}
-                      </div>
-                    </button>
+                      <button
+                        onClick={() => setActiveSessionId(session.session_id)}
+                        className="flex-1 text-left min-w-0"
+                      >
+                        <div className="font-medium text-gray-900 truncate text-sm">
+                          {session.display_name || session.session_id.slice(0, 12)}
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          {formatRelativeTime(session.last_active_at || session.created_at)}
+                          {session.message_count > 0 && (
+                            <span className="ml-2">· {session.message_count} 条消息</span>
+                          )}
+                        </div>
+                      </button>
+                      {/* 删除按钮 */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSessionToDelete(session.session_id);
+                        }}
+                        className="flex-shrink-0 ml-2 p-1.5 rounded-md text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors"
+                        title="删除会话"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   ))
                 )}
               </div>
@@ -643,6 +679,34 @@ export default function AgentChatPage({ params }: PageProps) {
           </div>
         </div>
       </div>
+
+      {/* 删除确认对话框 */}
+      {sessionToDelete && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4 shadow-xl">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">确认删除</h3>
+            <p className="text-gray-600 mb-6">
+              确定要删除这个会话吗？此操作将同时删除会话中的所有消息，且无法恢复。
+            </p>
+            <div className="flex justify-end gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setSessionToDelete(null)}
+              >
+                取消
+              </Button>
+              <Button
+                variant="danger"
+                onClick={() => handleDeleteSession(sessionToDelete)}
+                loading={deleteSession.isPending}
+              >
+                <Trash2 className="w-4 h-4" />
+                删除
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -471,23 +471,14 @@ class ProjectInfoCollector:
         """同步阶段数据到 DynamoDB"""
         updated_count = 0
         
-        # 阶段名称映射（从报告中的名称到数据库中的名称）
-        stage_name_mapping = {
-            "orchestrator": "orchestrator",
-            "requirements_analyzer": "requirements_analysis",
-            "system_architect": "system_architecture",
-            "agent_designer": "agent_design",
-            "tool_developer": "tools_developer",
-            "prompt_engineer": "prompt_engineer",
-            "agent_code_developer": "agent_code_developer",
-            "agent_developer_manager": "agent_developer_manager",
-            "agent_deployer": "agent_deployer"
-        }
+        # 使用统一配置模块进行阶段名称标准化
+        from api.v2.core.stage_config import normalize_stage_name, LEGACY_NAME_MAPPING
         
         for stage_data in stages:
             try:
                 stage_name = stage_data.get("stage_name", "")
-                db_stage_name = stage_name_mapping.get(stage_name, stage_name)
+                # 使用统一配置模块标准化阶段名称
+                db_stage_name = normalize_stage_name(stage_name) or stage_name
                 
                 updates = {
                     "duration_seconds": stage_data.get("duration_seconds", 0),

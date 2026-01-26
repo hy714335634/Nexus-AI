@@ -7,6 +7,7 @@ Stage Tracker - 构建阶段状态跟踪
 兼容性说明:
 - 保持原有函数签名不变
 - 内部实现改为调用 api.v2.services.stage_service
+- 阶段配置从 api.v2.core.stage_config 统一获取
 """
 from __future__ import annotations
 
@@ -16,24 +17,78 @@ from typing import Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
-# 阶段序列（保留用于兼容性）
-STAGE_SEQUENCE: List[Tuple[str, str]] = [
-    ("orchestrator", "工作流编排"),
-    ("requirements_analyzer", "需求分析"),
-    ("system_architect", "系统架构设计"),
-    ("agent_designer", "Agent设计"),
-    ("tools_developer", "工具开发"),
-    ("prompt_engineer", "提示词工程"),
-    ("agent_code_developer", "代码开发"),
-    ("agent_developer_manager", "开发管理"),
-    ("agent_deployer", "Agent部署"),
-]
+
+def _get_stage_sequence() -> List[Tuple[str, str]]:
+    """
+    从统一配置模块获取阶段序列
+    
+    延迟导入以避免循环依赖
+    """
+    from api.v2.core.stage_config import STAGES
+    return [(name, config.display_name) for name, config in STAGES.items()]
+
+
+# 阶段序列 - 从统一配置模块获取
+STAGE_SEQUENCE: List[Tuple[str, str]] = _get_stage_sequence()
+
+
+class WorkflowPausedError(Exception):
+    """工作流已暂停异常"""
+    pass
+
+
+class WorkflowStoppedError(Exception):
+    """工作流已停止异常"""
+    pass
 
 
 def _get_stage_service():
     """延迟导入 v2 stage service，避免循环依赖"""
     from api.v2.services.stage_service import stage_service_v2
     return stage_service_v2
+
+
+def _get_db_client():
+    """延迟导入数据库客户端"""
+    from api.v2.database import db_client
+    return db_client
+
+
+def check_control_status(project_id: str) -> str:
+    """
+    检查项目控制状态
+    
+    Args:
+        project_id: 项目ID
+        
+    Returns:
+        控制状态字符串: 'running', 'paused', 'stopped'
+        
+    Raises:
+        WorkflowPausedError: 如果项目已暂停
+        WorkflowStoppedError: 如果项目已停止
+    """
+    try:
+        db = _get_db_client()
+        project = db.get_project(project_id)
+        if not project:
+            return 'running'
+        
+        control_status = project.get('control_status', 'running')
+        
+        if control_status == 'paused':
+            logger.info(f"Project {project_id} is paused")
+            raise WorkflowPausedError(f"Project {project_id} is paused")
+        elif control_status == 'stopped':
+            logger.info(f"Project {project_id} is stopped")
+            raise WorkflowStoppedError(f"Project {project_id} is stopped")
+        
+        return control_status
+    except (WorkflowPausedError, WorkflowStoppedError):
+        raise
+    except Exception as e:
+        logger.warning(f"Failed to check control status: {e}")
+        return 'running'
 
 
 def initialize_project_record(

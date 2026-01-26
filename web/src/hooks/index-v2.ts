@@ -31,7 +31,7 @@ export {
   useSessionMessagesV2,
   useCreateSessionV2,
   useSendMessageV2,
-  useCloseSessionV2,
+  useDeleteSessionV2,
   useStreamingChatV2,
   type StreamingState,
 } from './use-sessions-v2';

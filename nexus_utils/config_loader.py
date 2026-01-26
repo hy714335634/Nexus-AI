@@ -212,6 +212,24 @@ class ConfigLoader:
         """
         return self.get("agentcore", {})
     
+    def get_nexus_ai_config(self) -> Dict[str, Any]:
+        """
+        获取Nexus-AI核心配置
+        
+        包含：
+        - base_rule_path: 基础规则文件路径
+        - base_rule_version: 基础规则版本
+        - workflow_default_version: 工作流默认版本
+        - OTEL_EXPORTER_OTLP_ENDPOINT: OpenTelemetry端点
+        - artifacts_s3_bucket: 制品S3存储桶
+        - session_storage_s3_bucket: 会话存储S3存储桶
+        - auto_sync_to_s3: 是否自动同步到S3
+        
+        Returns:
+            Dict: Nexus-AI核心配置字典
+        """
+        return self.get("nexus_ai", {})
+    
     def get_mcp_config(self) -> Dict[str, Any]:
         """
         获取MCP配置
@@ -247,6 +265,128 @@ class ConfigLoader:
             Dict: 工作流版本配置字典，包含 agent_build, agent_update, tool_build
         """
         return self.get_nested("nexus_ai", "workflow_default_version", default={})
+    
+    def get_workflow_config(self) -> Dict[str, Any]:
+        """
+        获取工作流引擎配置
+        
+        支持环境变量覆盖：
+        - NEXUS_WORKFLOW_MAX_RETRIES: 最大重试次数
+        - NEXUS_WORKFLOW_STAGE_TIMEOUT: 阶段超时时间（秒）
+        - NEXUS_WORKFLOW_MAX_CONTEXT_TOKENS: 最大上下文 token 数
+        
+        Returns:
+            Dict: 工作流配置字典
+            
+        Validates: Requirement 8.6 - 环境变量覆盖
+        """
+        workflow_config = self.get("workflow", {})
+        
+        # 应用环境变量覆盖
+        execution = workflow_config.get("execution", {})
+        execution["max_retries"] = int(os.environ.get(
+            "NEXUS_WORKFLOW_MAX_RETRIES", 
+            execution.get("max_retries", 3)
+        ))
+        execution["stage_timeout_seconds"] = int(os.environ.get(
+            "NEXUS_WORKFLOW_STAGE_TIMEOUT",
+            execution.get("stage_timeout_seconds", 3600)
+        ))
+        workflow_config["execution"] = execution
+        
+        context = workflow_config.get("context", {})
+        context["max_tokens"] = int(os.environ.get(
+            "NEXUS_WORKFLOW_MAX_CONTEXT_TOKENS",
+            context.get("max_tokens", 100000)
+        ))
+        workflow_config["context"] = context
+        
+        return workflow_config
+    
+    def get_workflow_stages(self) -> list:
+        """
+        获取工作流阶段定义
+        
+        Returns:
+            list: 阶段定义列表
+        """
+        workflow_config = self.get("workflow", {})
+        return workflow_config.get("stages", [])
+    
+    def get_dynamodb_config(self) -> Dict[str, Any]:
+        """
+        获取 DynamoDB 配置
+        
+        支持环境变量覆盖：
+        - NEXUS_DYNAMODB_TABLE_PREFIX: 表名前缀
+        - NEXUS_DYNAMODB_PROJECTS_TABLE: 项目表名
+        - NEXUS_DYNAMODB_STAGES_TABLE: 阶段表名
+        - NEXUS_DYNAMODB_TASKS_TABLE: 任务表名
+        
+        Returns:
+            Dict: DynamoDB 配置字典
+            
+        Validates: Requirement 8.6 - 环境变量覆盖
+        """
+        dynamodb_config = self.get("dynamodb", {})
+        
+        # 应用环境变量覆盖
+        dynamodb_config["table_prefix"] = os.environ.get(
+            "NEXUS_DYNAMODB_TABLE_PREFIX",
+            dynamodb_config.get("table_prefix", "nexus_")
+        )
+        
+        tables = dynamodb_config.get("tables", {})
+        tables["projects"] = os.environ.get(
+            "NEXUS_DYNAMODB_PROJECTS_TABLE",
+            tables.get("projects", "nexus_projects")
+        )
+        tables["stages"] = os.environ.get(
+            "NEXUS_DYNAMODB_STAGES_TABLE",
+            tables.get("stages", "nexus_stages")
+        )
+        tables["tasks"] = os.environ.get(
+            "NEXUS_DYNAMODB_TASKS_TABLE",
+            tables.get("tasks", "nexus_tasks")
+        )
+        dynamodb_config["tables"] = tables
+        
+        return dynamodb_config
+    
+    def get_sqs_config(self) -> Dict[str, Any]:
+        """
+        获取 SQS 配置
+        
+        支持环境变量覆盖：
+        - NEXUS_SQS_BUILD_QUEUE: 构建队列名
+        - NEXUS_SQS_DEPLOY_QUEUE: 部署队列名
+        - NEXUS_SQS_VISIBILITY_TIMEOUT: 消息可见性超时
+        
+        Returns:
+            Dict: SQS 配置字典
+            
+        Validates: Requirement 8.6 - 环境变量覆盖
+        """
+        sqs_config = self.get("sqs", {})
+        
+        # 应用环境变量覆盖
+        queues = sqs_config.get("queues", {})
+        queues["build"] = os.environ.get(
+            "NEXUS_SQS_BUILD_QUEUE",
+            queues.get("build", "nexus-build-queue")
+        )
+        queues["deploy"] = os.environ.get(
+            "NEXUS_SQS_DEPLOY_QUEUE",
+            queues.get("deploy", "nexus-deploy-queue")
+        )
+        sqs_config["queues"] = queues
+        
+        sqs_config["visibility_timeout"] = int(os.environ.get(
+            "NEXUS_SQS_VISIBILITY_TIMEOUT",
+            sqs_config.get("visibility_timeout", 3600)
+        ))
+        
+        return sqs_config
     
     def has_section(self, section_name: str) -> bool:
         """
@@ -302,6 +442,10 @@ if __name__ == "__main__":
     print("多模态解析器配置:", loader.get_multimodal_parser_config())
     print("日志配置:", loader.get_logging_config())
     print("工作流版本配置:", loader.get_workflow_version_config())
+    print("工作流引擎配置:", loader.get_workflow_config())
+    print("工作流阶段定义:", loader.get_workflow_stages())
+    print("DynamoDB配置:", loader.get_dynamodb_config())
+    print("SQS配置:", loader.get_sqs_config())
     print("所有配置部分:", loader.list_sections())
     
     # 测试嵌套配置获取
@@ -311,3 +455,12 @@ if __name__ == "__main__":
     # 测试部分配置获取
     multimodal_config = loader.get_section("multimodal_parser")
     print(f"多模态解析器配置部分: {multimodal_config}")
+    
+    # 测试环境变量覆盖
+    print("\n测试环境变量覆盖:")
+    otel_endpoint = loader.get_with_env_override(
+        "OTEL_EXPORTER_OTLP_ENDPOINT",
+        "nexus_ai", "OTEL_EXPORTER_OTLP_ENDPOINT",
+        default="http://localhost:4318"
+    )
+    print(f"OTEL端点: {otel_endpoint}")

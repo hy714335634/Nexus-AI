@@ -422,7 +422,7 @@ class CloudResourceManager:
         
         Args:
             agent: 要删除的 DynamoDBAgent
-            delete_related: 如果为 True，同时删除关联的会话和消息
+            delete_related: 如果为 True，同时删除关联的会话、消息和 SQS 任务
         
         Returns:
             DeleteResult 操作结果
@@ -440,6 +440,8 @@ class CloudResourceManager:
             # 删除关联的会话和消息
             if delete_related:
                 self._delete_agent_sessions(db_client, agent.agent_id)
+                # 清理 SQS 中相关的任务消息
+                self._cleanup_sqs_messages(agent.agent_id, agent.project_id)
             
             # 删除 Agent 记录
             db_client.delete_agent(agent.agent_id)
@@ -506,6 +508,74 @@ class CloudResourceManager:
         except Exception as e:
             logger.debug(f"Failed to delete agent sessions: {e}")
             return deleted_count
+    
+    def _cleanup_sqs_messages(self, agent_id: str, project_id: str = None) -> int:
+        """
+        清理 SQS 中与 Agent 相关的任务消息
+        
+        Args:
+            agent_id: Agent ID
+            project_id: 项目 ID
+        
+        Returns:
+            清理的消息数量
+        """
+        cleaned_count = 0
+        try:
+            from api.v2.database import sqs_client
+            from api.v2.config import settings
+            
+            # 需要检查的队列列表
+            queues_to_check = [
+                settings.SQS_BUILD_QUEUE_NAME,
+                settings.SQS_DEPLOY_QUEUE_NAME,
+            ]
+            
+            for queue_name in queues_to_check:
+                try:
+                    # 接收并检查消息
+                    messages = sqs_client.receive_messages(
+                        queue_name=queue_name,
+                        max_messages=10,
+                        wait_time_seconds=1,
+                        visibility_timeout=30
+                    )
+                    
+                    for msg in messages:
+                        body = msg.get('body', {})
+                        msg_agent_id = body.get('agent_id', '')
+                        msg_project_id = body.get('project_id', '')
+                        
+                        # 检查消息是否与要删除的 Agent 相关
+                        should_delete = (
+                            msg_agent_id == agent_id or
+                            (project_id and msg_project_id == project_id)
+                        )
+                        
+                        if should_delete:
+                            # 删除消息
+                            if sqs_client.delete_message(queue_name, msg.get('receipt_handle')):
+                                cleaned_count += 1
+                                logger.debug(f"Deleted SQS message {msg.get('message_id')} from {queue_name}")
+                        else:
+                            # 恢复消息可见性
+                            sqs_client.change_message_visibility(
+                                queue_name, msg.get('receipt_handle'), 0
+                            )
+                            
+                except Exception as e:
+                    logger.debug(f"Failed to check queue {queue_name}: {e}")
+            
+            if cleaned_count > 0:
+                logger.info(f"Cleaned {cleaned_count} SQS messages for agent {agent_id}")
+            return cleaned_count
+            
+        except ImportError:
+            logger.debug("SQS client not available, skipping SQS cleanup")
+            return cleaned_count
+        except Exception as e:
+            logger.debug(f"Failed to cleanup SQS messages: {e}")
+            return cleaned_count
     
     def delete_all_resources(self, resources: CloudResources) -> List[DeleteResult]:
         """

@@ -80,9 +80,17 @@ export default function NewAgentPage() {
       return;
     }
 
+    // 如果用户指定了项目名称，将其拼接到需求描述中，约束 Agent 使用此名称
+    let finalRequirement = requirement.trim();
+    const trimmedProjectName = projectName.trim();
+    
+    if (trimmedProjectName) {
+      finalRequirement = `[项目名称约束: ${trimmedProjectName}] 请务必使用 "${trimmedProjectName}" 作为项目名称（project_name），不要自行生成其他名称。\n\n${finalRequirement}`;
+    }
+
     createProject.mutate({
-      requirement: requirement.trim(),
-      project_name: projectName.trim() || undefined,
+      requirement: finalRequirement,
+      project_name: trimmedProjectName || undefined,
     });
   };
 

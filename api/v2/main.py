@@ -22,6 +22,8 @@ from api.v2.routers.config import router as config_router
 from api.v2.routers.agentcore import router as agentcore_router
 from api.v2.routers.agent_files import router as agent_files_router
 from api.v2.routers.agent_tools import router as agent_tools_router
+from api.v2.routers.workflow_control import router as workflow_control_router
+from api.v2.routers.auth import router as auth_router
 from api.v2.database import db_client, sqs_client
 
 # 配置日志
@@ -82,6 +84,10 @@ async def add_request_id(request: Request, call_next):
 
 # ============== 路由注册 ==============
 
+# 认证路由 (无需认证)
+app.include_router(auth_router, prefix="/api/v2")
+app.include_router(auth_router, prefix="/api/v1")
+
 # API v2 路由
 app.include_router(projects_router, prefix="/api/v2")
 app.include_router(agents_router, prefix="/api/v2")
@@ -92,6 +98,20 @@ app.include_router(tasks_router, prefix="/api/v2")
 app.include_router(statistics_router, prefix="/api/v2")
 app.include_router(config_router, prefix="/api/v2")
 app.include_router(agentcore_router, prefix="/api/v2")
+app.include_router(workflow_control_router, prefix="/api/v2")
+
+# API v1 兼容路由 - 前端当前使用 /api/v1 路径
+# 将 v1 请求映射到 v2 处理器，保持向后兼容
+app.include_router(projects_router, prefix="/api/v1")
+app.include_router(agents_router, prefix="/api/v1")
+app.include_router(agent_files_router, prefix="/api/v1")
+app.include_router(agent_tools_router, prefix="/api/v1")
+app.include_router(sessions_router, prefix="/api/v1")
+app.include_router(tasks_router, prefix="/api/v1")
+app.include_router(statistics_router, prefix="/api/v1")
+app.include_router(config_router, prefix="/api/v1")
+app.include_router(agentcore_router, prefix="/api/v1")
+app.include_router(workflow_control_router, prefix="/api/v1")
 
 
 # ============== 健康检查 ==============
