@@ -24,6 +24,7 @@ class AuthSettings(BaseSettings):
     USERS: dict = {
         "admin": hashlib.sha256("nexus".encode()).hexdigest()
     }
+
     
     class Config:
         env_prefix = "AUTH_"
