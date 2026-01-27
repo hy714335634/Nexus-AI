@@ -175,7 +175,10 @@ class AgentDeploymentService:
 
             self._ensure_local_package_installation(project_name)
 
-            launch_result = runtime.launch()
+            # 启用 auto_update_on_conflict 以支持更新已存在的同名 Agent
+            launch_result = runtime.launch(
+                auto_update_on_conflict=settings.AGENTCORE_AUTO_UPDATE_ON_CONFLICT
+            )
             status_response = runtime.status()
 
             # 部署完成后将生成的配置文件移动到 deployment 目录，保持主目录整洁

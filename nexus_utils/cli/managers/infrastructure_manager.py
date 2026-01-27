@@ -51,16 +51,20 @@ class WorkflowConfigValidationResult:
 
 
 class InfrastructureManager:
-    """Manages AWS infrastructure for Nexus-AI"""
+    """
+    管理 Nexus-AI 的 AWS 基础设施
+    
+    包括 DynamoDB 表、SQS 队列和 S3 存储桶的创建和管理
+    """
     
     def __init__(self, region: str = None, dynamodb_endpoint: str = None, sqs_endpoint: str = None):
         """
-        Initialize infrastructure manager.
+        初始化基础设施管理器
         
-        Args:
-            region: AWS region
-            dynamodb_endpoint: Custom DynamoDB endpoint (for local development)
-            sqs_endpoint: Custom SQS endpoint (for local development)
+        参数:
+            region: AWS 区域
+            dynamodb_endpoint: 自定义 DynamoDB 端点（用于本地开发）
+            sqs_endpoint: 自定义 SQS 端点（用于本地开发）
         """
         self.region = region or 'us-west-2'
         self.dynamodb_endpoint = dynamodb_endpoint
@@ -68,6 +72,7 @@ class InfrastructureManager:
         self._dynamodb_client = None
         self._dynamodb_resource = None
         self._sqs_client = None
+        self._s3_client = None
     
     @classmethod
     def from_settings(cls) -> 'InfrastructureManager':
@@ -103,7 +108,7 @@ class InfrastructureManager:
         return self._dynamodb_resource
     
     def _get_sqs_client(self):
-        """Get or create SQS client"""
+        """获取或创建 SQS 客户端"""
         if self._sqs_client is None:
             import boto3
             kwargs = {'region_name': self.region}
@@ -111,6 +116,106 @@ class InfrastructureManager:
                 kwargs['endpoint_url'] = self.sqs_endpoint
             self._sqs_client = boto3.client('sqs', **kwargs)
         return self._sqs_client
+    
+    def _get_s3_client(self):
+        """获取或创建 S3 客户端"""
+        if self._s3_client is None:
+            import boto3
+            self._s3_client = boto3.client('s3', region_name=self.region)
+        return self._s3_client
+    
+    def get_s3_bucket_names(self) -> List[Dict[str, str]]:
+        """
+        获取需要创建的 S3 存储桶配置
+        
+        返回:
+            List[Dict]: 包含桶名称和用途的字典列表
+        """
+        try:
+            # 从配置文件加载
+            import yaml
+            from pathlib import Path
+            
+            config_path = Path('config/default_config.yaml')
+            if config_path.exists():
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    config = yaml.safe_load(f)
+                
+                nexus_config = config.get('default-config', {}).get('nexus_ai', {})
+                artifacts_bucket = nexus_config.get('artifacts_s3_bucket', 'nexus-ai-artifacts')
+                session_bucket = nexus_config.get('session_storage_s3_bucket', 'nexus-ai-session')
+                
+                return [
+                    {'name': artifacts_bucket, 'purpose': 'artifacts'},
+                    {'name': session_bucket, 'purpose': 'session'},
+                ]
+        except Exception:
+            pass
+        
+        # 默认值
+        return [
+            {'name': 'nexus-ai-artifacts', 'purpose': 'artifacts'},
+            {'name': 'nexus-ai-session', 'purpose': 'session'},
+        ]
+    
+    def create_s3_bucket(self, bucket_name: str, enable_versioning: bool = True) -> Tuple[bool, str]:
+        """
+        创建单个 S3 存储桶
+        
+        参数:
+            bucket_name: 存储桶名称
+            enable_versioning: 是否启用版本控制
+        
+        返回:
+            Tuple[bool, str]: (是否创建成功, 状态信息)
+            - (True, 'created') 如果桶被创建
+            - (False, 'exists') 如果桶已存在
+            - (False, 'error: ...') 如果发生错误
+        """
+        from botocore.exceptions import ClientError
+        
+        client = self._get_s3_client()
+        
+        # 检查桶是否存在
+        try:
+            client.head_bucket(Bucket=bucket_name)
+            return (False, 'exists')
+        except ClientError as e:
+            error_code = e.response['Error']['Code']
+            if error_code == '404':
+                # 桶不存在，继续创建
+                pass
+            elif error_code == '403':
+                return (False, 'access_denied')
+            else:
+                return (False, f'error: {e}')
+        
+        # 创建桶
+        try:
+            if self.region == 'us-east-1':
+                # us-east-1 不需要 LocationConstraint
+                client.create_bucket(Bucket=bucket_name)
+            else:
+                client.create_bucket(
+                    Bucket=bucket_name,
+                    CreateBucketConfiguration={'LocationConstraint': self.region}
+                )
+            
+            # 启用版本控制
+            if enable_versioning:
+                try:
+                    client.put_bucket_versioning(
+                        Bucket=bucket_name,
+                        VersioningConfiguration={'Status': 'Enabled'}
+                    )
+                except ClientError:
+                    # 版本控制启用失败不影响桶创建
+                    pass
+            
+            return (True, 'created')
+            
+        except ClientError as e:
+            return (False, f'error: {e}')
     
     def get_table_definitions(self) -> List[TableDefinition]:
         """Get all table definitions"""

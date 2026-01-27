@@ -2075,12 +2075,13 @@ def overview(ctx, output):
 @cli.command()
 @click.option('--tables-only', is_flag=True, help='Only initialize DynamoDB tables')
 @click.option('--queues-only', is_flag=True, help='Only initialize SQS queues')
+@click.option('--buckets-only', is_flag=True, help='Only initialize S3 buckets')
 @click.option('--skip-validation', is_flag=True, help='Skip workflow configuration validation')
 @click.pass_obj
-def init(ctx, tables_only, queues_only, skip_validation):
-    """Initialize infrastructure (DynamoDB tables and SQS queues)
+def init(ctx, tables_only, queues_only, buckets_only, skip_validation):
+    """Initialize infrastructure (DynamoDB tables, SQS queues, and S3 buckets)
     
-    Creates the required DynamoDB tables and SQS queues for Nexus-AI.
+    Creates the required DynamoDB tables, SQS queues, and S3 buckets for Nexus-AI.
     Skips resources that already exist.
     Also validates workflow configuration unless --skip-validation is used.
     
@@ -2094,6 +2095,9 @@ def init(ctx, tables_only, queues_only, skip_validation):
       
       # Initialize only SQS queues
       nexus-cli init --queues-only
+      
+      # Initialize only S3 buckets
+      nexus-cli init --buckets-only
       
       # Skip workflow configuration validation
       nexus-cli init --skip-validation
@@ -2116,6 +2120,10 @@ def init(ctx, tables_only, queues_only, skip_validation):
         • nexus-notification-queue
         • nexus-build-dlq
         • nexus-deploy-dlq
+      
+      S3 Buckets (from config/default_config.yaml):
+        • artifacts_s3_bucket - Agent artifacts storage
+        • session_storage_s3_bucket - Session data storage
     
     \b
     WORKFLOW VALIDATION:
@@ -2159,8 +2167,13 @@ def init(ctx, tables_only, queues_only, skip_validation):
         
         tables_created = 0
         queues_created = 0
+        buckets_created = 0
         
-        if not queues_only:
+        # 判断是否只初始化特定资源
+        init_all = not (tables_only or queues_only or buckets_only)
+        
+        # 初始化 DynamoDB 表
+        if init_all or tables_only:
             click.echo()
             click.echo(f"📦 {t('init.init_tables')}")
             click.echo(f"   {t('init.region', region=infra.region)}")
@@ -2179,7 +2192,8 @@ def init(ctx, tables_only, queues_only, skip_validation):
             
             click.echo(f"\n   {t('init.tables_created_count', count=tables_created)}")
         
-        if not tables_only:
+        # 初始化 SQS 队列
+        if init_all or queues_only:
             click.echo()
             click.echo(f"📬 {t('init.init_queues')}")
             click.echo(f"   {t('init.region', region=infra.region)}")
@@ -2197,6 +2211,27 @@ def init(ctx, tables_only, queues_only, skip_validation):
                     click.echo(f"  ✗ {queue_name}: {status}", err=True)
             
             click.echo(f"\n   {t('init.queues_created_count', count=queues_created)}")
+        
+        # 初始化 S3 存储桶
+        if init_all or buckets_only:
+            click.echo()
+            click.echo(f"🪣 {t('init.init_buckets')}")
+            click.echo(f"   {t('init.region', region=infra.region)}")
+            
+            for bucket_config in infra.get_s3_bucket_names():
+                bucket_name = bucket_config['name']
+                created, status = infra.create_s3_bucket(bucket_name)
+                if created:
+                    click.echo(f"  ✓ {t('init.bucket_created', name=bucket_name)}")
+                    buckets_created += 1
+                elif status == 'exists':
+                    click.echo(f"  ⚠ {t('init.bucket_exists', name=bucket_name)}")
+                elif status == 'access_denied':
+                    click.echo(f"  ⚠ {t('init.bucket_access_denied', name=bucket_name)}")
+                else:
+                    click.echo(f"  ✗ {bucket_name}: {status}", err=True)
+            
+            click.echo(f"\n   {t('init.buckets_created_count', count=buckets_created)}")
         
         click.echo()
         click.echo("=" * 50)

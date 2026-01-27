@@ -65,6 +65,7 @@ default-config:
     default_alias: 'DEFAULT'                 # Default agent alias
     post_deploy_test: False                  # Run test after deployment
     post_deploy_test_prompt: 'Hello'         # Test prompt for post-deploy test
+    auto_update_on_conflict: True            # 部署时自动更新已存在的同名 Agent
   
   bedrock:
     model_id: 'us.anthropic.claude-sonnet-4-5-20250929-v1:0'    # Default model

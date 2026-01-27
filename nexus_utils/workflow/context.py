@@ -449,17 +449,23 @@ class WorkflowContextManager:
         
         self.db.update_project(context.project_id, project_updates)
         
-        # 如果当前阶段正在运行，先更新其状态为 running
-        # 这是因为 stage_outputs 只在阶段完成后才会有记录
+        # 如果当前阶段正在运行，使用 stage_service 更新状态
+        # 这确保阶段名称被正确规范化
         if context.current_stage and context.status == StageStatus.RUNNING:
             current_stage = context.current_stage
             if current_stage not in context.stage_outputs:
                 # 当前阶段还没有输出记录，说明正在运行中
-                self.db.update_stage(context.project_id, current_stage, {
-                    'status': 'running',
-                    'started_at': now,
-                })
-                logger.info(f"Stage {current_stage} marked as running for project {context.project_id}")
+                try:
+                    from api.v2.services.stage_service import stage_service_v2
+                    stage_service_v2.mark_stage_running(context.project_id, current_stage)
+                    logger.info(f"Stage {current_stage} marked as running via stage_service for project {context.project_id}")
+                except Exception as e:
+                    # 回退到直接更新数据库
+                    logger.warning(f"Could not use stage_service: {e}, falling back to direct update")
+                    self.db.update_stage(context.project_id, current_stage, {
+                        'status': 'running',
+                        'started_at': now,
+                    })
         
         # 更新已有输出的阶段记录
         for stage_name, output in context.stage_outputs.items():

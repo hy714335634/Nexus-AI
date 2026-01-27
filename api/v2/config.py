@@ -59,6 +59,7 @@ class Settings(BaseSettings):
     AGENTCORE_AUTO_CREATE_ECR: bool = _agentcore_config.get('ecr_auto_create', True)
     AGENTCORE_POST_DEPLOY_TEST: bool = _agentcore_config.get('post_deploy_test', False)
     AGENTCORE_POST_DEPLOY_TEST_PROMPT: str = _agentcore_config.get('post_deploy_test_prompt', 'Hello')
+    AGENTCORE_AUTO_UPDATE_ON_CONFLICT: bool = _agentcore_config.get('auto_update_on_conflict', True)
     AGENTCORE_REQUIREMENTS_PATH: str = "requirements.txt"
     AGENTCORE_IMAGE_TAG_TEMPLATE: str = "{agent_name}:{timestamp}"
     

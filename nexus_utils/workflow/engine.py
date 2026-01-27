@@ -262,14 +262,16 @@ class WorkflowEngine:
         self.context.current_stage = stage_name
         self.context.status = StageStatus.RUNNING
         
-        # 直接更新数据库中的阶段状态为 running，确保 started_at 被设置
-        from datetime import datetime, timezone
-        now = datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
-        self.db.update_stage(self.project_id, stage_name, {
-            'status': 'running',
-            'started_at': now,
-        })
-        logger.info(f"Stage {stage_name} marked as running with started_at={now}")
+        # 使用 stage_service 更新阶段状态，确保名称规范化和 started_at 被正确设置
+        try:
+            from api.v2.services.stage_service import stage_service_v2
+            success = stage_service_v2.mark_stage_running(self.project_id, stage_name)
+            if success:
+                logger.info(f"Stage {stage_name} marked as running via stage_service")
+            else:
+                logger.warning(f"Failed to mark stage {stage_name} as running via stage_service")
+        except Exception as e:
+            logger.warning(f"Could not use stage_service to mark stage running: {e}")
         
         # 保存上下文状态
         self._save_context()
