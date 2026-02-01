@@ -1,0 +1,79 @@
+created_at: '2026-01-31T16:04:22.264491+00:00'
+last_updated: '2026-01-31T16:11:35.942674+00:00'
+progress:
+  completed: 3
+  percentage: 50.0
+  total: 6
+stages:
+  orchestrator:
+    doc_path: ''
+    status: true
+    summary: 工具项目初始化完成，已创建项目目录结构。用户需求：构建通用多搜索引擎访问工具，支持国内外主流搜索引擎（百度、必应、Google、DuckDuckGo等），满足Agent在中国境内和海外的多样化搜索需求。项目名称：tool_build_multi_search_engine
+    updated_at: '2026-01-31T16:04:26.068804+00:00'
+  requirements_analyzer:
+    doc_path: tools/generated_tools/tool_build_multi_search_engine/stages/requirements_analyzer.json
+    status: true
+    summary: 需求分析完成。识别5个核心功能需求：(1)多搜索引擎支持(百度/搜狗/360/Google/Bing/DuckDuckGo)，(2)自动环境适配，(3)结果标准化处理，(4)搜索引擎健康检查，(5)结果过滤和排序。定义7个依赖包(requests/beautifulsoup4/lxml等)，明确技术和业务约束，设定8项成功标准。
+    updated_at: '2026-01-31T16:05:30.375714+00:00'
+  tool_designer:
+    doc_path: stages/tool_designer.json
+    status: true
+    summary: 完成多搜索引擎工具的详细技术设计，包括5个核心模块的架构设计、6个搜索引擎适配器、自动环境检测机制、结果标准化和格式化功能。设计了3个主要工具函数：search（统一搜索接口）、check_engine_health（健康检查）、filter_and_sort_results（结果过滤和排序）。定义了完整的实现计划（10个步骤）和17个测试用例，确保工具能够在国内外环境稳定运行。
+    updated_at: '2026-01-31T16:08:23.520374+00:00'
+  tool_developer:
+    doc_path: ''
+    status: false
+  tool_documenter:
+    doc_path: ''
+    status: false
+  tool_validator:
+    doc_path: ''
+    status: false
+status: initialized
+tool_project: tool_build_multi_search_engine
+tools:
+- description: 检查搜索引擎的可用性和响应时间，用于监控和诊断
+  file_path: multi_search_engine.py
+  function_name: check_engine_health
+  parameters:
+  - default: ''
+    description: 需要检查的搜索引擎列表，JSON数组字符串格式（如：'["baidu", "google"]'），为空时检查所有支持的引擎
+    name: engines
+    required: false
+    type: str
+  - default: 5
+    description: 每个引擎的检查超时时间（秒），默认为5
+    name: check_timeout
+    required: false
+    type: int
+  registered_at: '2026-01-31T16:11:35.942669+00:00'
+
+    name: num_results
+    required: false
+    type: int
+  - default: auto
+    description: 搜索结果语言偏好（zh-CN/en-US/auto），默认为auto
+    name: language
+    required: false
+    type: str
+  - default: auto
+    description: 地区提示（china/overseas/auto），用于优化搜索引擎选择策略，默认为auto
+    name: region
+    required: false
+    type: str
+  - default: 15
+    description: 搜索超时时间（秒），范围5-30，默认为15
+    name: timeout
+    required: false
+    type: int
+  - default: json
+    description: 输出格式（json/markdown/text），默认为json
+    name: format
+    required: false
+    type: str
+  - default: true
+    description: 是否包含元数据（搜索时间、引擎信息等），默认为true
+    name: include_metadata
+    required: false
+    type: bool
+  registered_at: '2026-01-31T16:11:35.940387+00:00'

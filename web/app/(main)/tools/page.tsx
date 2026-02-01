@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useToolList, useToolCategories, useMCPServers, useTestTool, useUpdateMCPServer } from '@/hooks/use-agents-v2';
+import { useRouter } from 'next/navigation';
+import { useToolList, useToolCategories, useMCPServers, useTestTool, useUpdateMCPServer, useCreateToolBuild } from '@/hooks/use-agents-v2';
 import type { ToolInfo, ToolParameter } from '@/types/api-v2';
 import { 
   Search, 
@@ -17,7 +18,9 @@ import {
   Zap,
   Box,
   Layers,
-  RotateCcw
+  RotateCcw,
+  Plus,
+  X,
 } from 'lucide-react';
 
 // 工具类型图标和颜色映射
@@ -29,7 +32,139 @@ const toolTypeConfig: Record<string, { icon: React.ElementType; color: string; l
   mcp: { icon: Server, color: 'bg-cyan-100 text-cyan-600', label: 'MCP 工具' },
 };
 
+// 构建工具对话框组件
+function BuildToolDialog({
+  isOpen,
+  onClose,
+  onConfirm,
+  isBuilding,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: (data: { requirement: string; toolName?: string; category?: string }) => void;
+  isBuilding: boolean;
+}) {
+  const [requirement, setRequirement] = useState('');
+  const [toolName, setToolName] = useState('');
+  const [category, setCategory] = useState('');
+
+  if (!isOpen) return null;
+
+  const handleSubmit = () => {
+    if (requirement.trim().length >= 10) {
+      onConfirm({
+        requirement: requirement.trim(),
+        toolName: toolName.trim() || undefined,
+        category: category.trim() || undefined,
+      });
+    }
+  };
+
+  const handleClose = () => {
+    setRequirement('');
+    setToolName('');
+    setCategory('');
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/50" onClick={handleClose} />
+      <div className="relative bg-white rounded-xl shadow-xl max-w-lg w-full mx-4 p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-gray-900">构建新工具</h3>
+          <button onClick={handleClose} className="p-1 hover:bg-gray-100 rounded">
+            <X className="w-5 h-5 text-gray-500" />
+          </button>
+        </div>
+        
+        <p className="text-gray-600 mb-4">
+          通过自然语言描述您需要的工具功能，系统将自动生成工具代码
+        </p>
+        
+        <div className="space-y-4 mb-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              工具需求描述 <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              value={requirement}
+              onChange={(e) => setRequirement(e.target.value)}
+              placeholder="请详细描述您需要的工具功能，例如：创建一个工具用于查询天气信息，支持输入城市名称，返回当前温度、湿度和天气状况..."
+              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              rows={4}
+              disabled={isBuilding}
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              至少输入 10 个字符，详细描述工具需求
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                工具名称（可选）
+              </label>
+              <input
+                type="text"
+                value={toolName}
+                onChange={(e) => setToolName(e.target.value)}
+                placeholder="例如：weather_query"
+                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={isBuilding}
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                工具分类（可选）
+              </label>
+              <input
+                type="text"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                placeholder="例如：network"
+                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={isBuilding}
+              />
+            </div>
+          </div>
+        </div>
+        
+        <div className="flex gap-3 justify-end">
+          <button
+            onClick={handleClose}
+            disabled={isBuilding}
+            className="px-4 py-2 text-gray-700 border rounded-lg hover:bg-gray-50 disabled:opacity-50"
+          >
+            取消
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={isBuilding || requirement.trim().length < 10}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            {isBuilding ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                创建中...
+              </>
+            ) : (
+              <>
+                <Plus className="w-4 h-4" />
+                创建构建任务
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ToolsPage() {
+  const router = useRouter();
+  
   // 状态管理
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState<string>('');
@@ -37,6 +172,7 @@ export default function ToolsPage() {
   const [selectedTool, setSelectedTool] = useState<ToolInfo | null>(null);
   const [activeTab, setActiveTab] = useState<'tools' | 'mcp'>('tools');
   const [testParams, setTestParams] = useState<Record<string, string>>({});  // 测试参数
+  const [buildDialogOpen, setBuildDialogOpen] = useState(false);  // 构建工具对话框
 
   // 数据获取
   const { data: toolsData, isLoading: toolsLoading } = useToolList({
@@ -51,6 +187,24 @@ export default function ToolsPage() {
   // 工具测试
   const testToolMutation = useTestTool();
   const updateMCPMutation = useUpdateMCPServer();
+  
+  // 构建工具
+  const buildToolMutation = useCreateToolBuild({
+    onSuccess: (data) => {
+      setBuildDialogOpen(false);
+      // 跳转到项目详情页查看构建进度
+      router.push(`/projects/${data.project_id}`);
+    },
+  });
+
+  // 处理构建工具
+  const handleBuildTool = (data: { requirement: string; toolName?: string; category?: string }) => {
+    buildToolMutation.mutate({
+      requirement: data.requirement,
+      tool_name: data.toolName,
+      category: data.category,
+    });
+  };
 
   // 按类型分组工具
   const groupedTools = useMemo(() => {
@@ -488,21 +642,32 @@ export default function ToolsPage() {
             </p>
           </div>
           
-          {/* 统计信息 */}
-          {toolsData && (
-            <div className="flex items-center gap-4 text-sm">
-              <div className="flex items-center gap-1.5">
-                <Box className="w-4 h-4 text-gray-400" />
-                <span className="text-gray-600">共 {toolsData.total} 个工具</span>
-              </div>
-              {mcpData && (
+          <div className="flex items-center gap-4">
+            {/* 统计信息 */}
+            {toolsData && (
+              <div className="flex items-center gap-4 text-sm">
                 <div className="flex items-center gap-1.5">
-                  <Server className="w-4 h-4 text-gray-400" />
-                  <span className="text-gray-600">{mcpData.enabled} 个 MCP 服务器</span>
+                  <Box className="w-4 h-4 text-gray-400" />
+                  <span className="text-gray-600">共 {toolsData.total} 个工具</span>
                 </div>
-              )}
-            </div>
-          )}
+                {mcpData && (
+                  <div className="flex items-center gap-1.5">
+                    <Server className="w-4 h-4 text-gray-400" />
+                    <span className="text-gray-600">{mcpData.enabled} 个 MCP 服务器</span>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {/* 构建工具按钮 */}
+            <button
+              onClick={() => setBuildDialogOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              构建工具
+            </button>
+          </div>
         </div>
 
         {/* Tab 切换 */}
@@ -624,6 +789,14 @@ export default function ToolsPage() {
           {renderMCPServers()}
         </div>
       )}
+      
+      {/* 构建工具对话框 */}
+      <BuildToolDialog
+        isOpen={buildDialogOpen}
+        onClose={() => setBuildDialogOpen(false)}
+        onConfirm={handleBuildTool}
+        isBuilding={buildToolMutation.isPending}
+      />
     </div>
   );
 }

@@ -1,0 +1,145 @@
+{
+  "tool_config": {
+    "tool_project_name": "tool_build_multi_search_engine",
+    "version": "1.0",
+    "generated_at": "2026-01-31T16:16:15.000Z",
+    "description": "通用多搜索引擎访问工具，支持国内外主流搜索引擎（百度、搜狗、360搜索、Google、Bing、DuckDuckGo），提供统一的搜索接口，自动适配网络环境，满足Agent在中国境内和海外的多样化搜索需求",
+    "tools": [
+      {
+        "tool_name": "search",
+        "description": "统一的搜索接口，支持多个搜索引擎，自动适配网络环境。可以指定搜索引擎或自动选择最佳引擎，支持多种输出格式（JSON/Markdown/Text），搜索失败时自动切换备用引擎",
+        "input_parameters": [
+          {
+            "name": "query",
+            "type": "str",
+            "description": "搜索关键词或查询语句",
+            "required": true,
+            "default": null
+          },
+          {
+            "name": "engine",
+            "type": "str",
+            "description": "指定搜索引擎（baidu/sogou/so360/google/bing/duckduckgo/auto），默认为auto自动选择最佳引擎",
+            "required": false,
+            "default": "auto"
+          },
+          {
+            "name": "num_results",
+            "type": "int",
+            "description": "返回的搜索结果数量，范围1-20",
+            "required": false,
+            "default": 10
+          },
+          {
+            "name": "language",
+            "type": "str",
+            "description": "搜索结果语言偏好（zh-CN/en-US/auto），用于优化搜索引擎选择",
+            "required": false,
+            "default": "auto"
+          },
+          {
+            "name": "region",
+            "type": "str",
+            "description": "地区提示（china/overseas/auto），用于优化搜索引擎选择策略",
+            "required": false,
+            "default": "auto"
+          },
+          {
+            "name": "timeout",
+            "type": "int",
+            "description": "搜索超时时间（秒），范围5-30",
+            "required": false,
+            "default": 15
+          },
+          {
+            "name": "format",
+            "type": "str",
+            "description": "输出格式（json/markdown/text），默认为json",
+            "required": false,
+            "default": "json"
+          },
+          {
+            "name": "include_metadata",
+            "type": "bool",
+            "description": "是否包含元数据（搜索时间、引擎信息等）",
+            "required": false,
+            "default": true
+          }
+        ],
+        "output_parameters": {
+          "return_type": "str",
+          "description": "JSON字符串（或Markdown/Text格式），包含搜索结果列表和元数据。成功时返回：{\"status\": \"success\", \"engine_used\": \"baidu\", \"query\": \"人工智能\", \"results\": [{\"title\": \"...\", \"url\": \"...\", \"snippet\": \"...\", \"rank\": 1, \"source\": \"baidu\"}], \"total_results\": 10, \"metadata\": {\"search_time_ms\": 235, \"timestamp\": \"2026-01-31T16:00:00Z\"}}。错误时返回：{\"status\": \"error\", \"error_type\": \"ValidationError\", \"message\": \"错误信息\"}"
+        }
+      },
+      {
+        "tool_name": "check_engine_health",
+        "description": "检查搜索引擎的可用性和响应时间，支持批量检查或指定引擎检查。使用并发检查（线程池），返回每个引擎的可用状态、响应时间和错误信息，用于系统监控和问题诊断",
+        "input_parameters": [
+          {
+            "name": "engines",
+            "type": "str",
+            "description": "需要检查的搜索引擎列表，JSON数组字符串格式（如：'[\"baidu\", \"google\"]'），为空时检查所有支持的引擎",
+            "required": false,
+            "default": ""
+          },
+          {
+            "name": "check_timeout",
+            "type": "int",
+            "description": "每个引擎的检查超时时间（秒），范围1-30",
+            "required": false,
+            "default": 5
+          }
+        ],
+        "output_parameters": {
+          "return_type": "str",
+          "description": "JSON字符串，包含各搜索引擎健康状态。格式：{\"status\": \"success\", \"check_time\": \"2026-01-31T16:00:00Z\", \"total_engines\": 6, \"available_engines\": 4, \"unavailable_engines\": 2, \"engines_status\": [{\"engine\": \"baidu\", \"available\": true, \"response_time_ms\": 150, \"error\": null}, {\"engine\": \"google\", \"available\": false, \"response_time_ms\": -1, \"error\": \"Connection timeout\"}]}"
+        }
+      },
+      {
+        "tool_name": "filter_and_sort_results",
+        "description": "对搜索结果进行过滤和自定义排序。支持关键词过滤（只保留包含指定关键词的结果）、排除关键词过滤（移除包含指定关键词的结果）、URL去重、多种排序方式（相关性/日期/随机）",
+        "input_parameters": [
+          {
+            "name": "results_json",
+            "type": "str",
+            "description": "待处理的搜索结果JSON字符串（来自search函数的返回值）",
+            "required": true,
+            "default": null
+          },
+          {
+            "name": "filter_keywords",
+            "type": "str",
+            "description": "过滤关键词列表，JSON数组字符串格式（如：'[\"AI\", \"机器学习\"]'），只返回包含这些关键词的结果（标题或摘要中包含）",
+            "required": false,
+            "default": ""
+          },
+          {
+            "name": "exclude_keywords",
+            "type": "str",
+            "description": "排除关键词列表，JSON数组字符串格式（如：'[\"广告\", \"推广\"]'），过滤掉包含这些关键词的结果",
+            "required": false,
+            "default": ""
+          },
+          {
+            "name": "sort_by",
+            "type": "str",
+            "description": "排序方式（relevance/date/random），relevance保持原序，date按日期排序，random随机排序",
+            "required": false,
+            "default": "relevance"
+          },
+          {
+            "name": "deduplicate",
+            "type": "bool",
+            "description": "是否去除重复结果（基于URL去重）",
+            "required": false,
+            "default": true
+          }
+        ],
+        "output_parameters": {
+          "return_type": "str",
+          "description": "JSON字符串，包含过滤和排序后的搜索结果。格式：{\"status\": \"success\", \"original_count\": 50, \"filtered_count\": 10, \"removed_by_filter\": 30, \"removed_by_exclude\": 5, \"removed_by_dedup\": 5, \"results\": [{\"title\": \"...\", \"url\": \"...\", \"snippet\": \"...\", \"rank\": 1, \"source\": \"baidu\"}]}"
+        }
+      }
+    ]
+  }
+}

@@ -115,13 +115,17 @@ class WorkflowEngine:
         
         参数:
             project_id: 项目唯一标识
-            config: 可选的配置覆盖
+            config: 可选的配置覆盖，支持以下字段：
+                - workflow_type: 工作流类型 (agent_build, agent_update, tool_build)
             db_client: DynamoDB 客户端（可选）
             
         Validates: Requirement 1.1 - 封装为独立的类
         """
         self.project_id = project_id
         self.config = config or {}
+        
+        # 获取工作流类型，默认为 agent_build
+        self.workflow_type = self.config.get('workflow_type', 'agent_build')
         
         # 初始化上下文管理器
         self.context_manager = WorkflowContextManager(db_client)
@@ -140,6 +144,8 @@ class WorkflowEngine:
         self._on_stage_start: Optional[Callable[[str], None]] = None
         self._on_stage_complete: Optional[Callable[[str, StageOutput], None]] = None
         self._on_stage_error: Optional[Callable[[str, Exception], None]] = None
+        
+        logger.info(f"WorkflowEngine initialized for project {project_id}, workflow_type: {self.workflow_type}")
     
     @property
     def context(self) -> WorkflowContext:
@@ -158,6 +164,7 @@ class WorkflowEngine:
                 on_stage_start=self._on_stage_start,
                 on_stage_complete=self._on_stage_complete,
                 on_stage_error=self._on_stage_error,
+                workflow_type=self.workflow_type,
             )
         return self._executor
     

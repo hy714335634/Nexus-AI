@@ -36,6 +36,14 @@ def _get_projects_dir() -> str:
     return str(project_root / "projects")
 
 
+def _get_tools_dir() -> str:
+    """获取工具生成目录路径"""
+    from pathlib import Path as PathLib
+    current_file = PathLib(__file__).resolve()
+    project_root = current_file.parent.parent.parent.parent
+    return str(project_root / "tools" / "generated_tools")
+
+
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
 
@@ -536,19 +544,27 @@ async def get_stage_document(
 ):
     """
     获取特定阶段的设计文档
-    优先从文件系统读取 projects/<project>/agents/<agent>/<stage>.json
+    
+    根据工作流类型在不同目录查找：
+    - agent_build/agent_update: projects/<project>/agents/<agent>/<stage>.json
+    - tool_build: tools/generated_tools/tool_build_<tool_name>/<stage>.json
+    
     如果文件不存在，再回退到数据库的 output_data
     """
     try:
         from pathlib import Path as PathLib
         project_root = PathLib(__file__).resolve().parent.parent.parent.parent
         projects_dir = _get_projects_dir()
+        tools_dir = _get_tools_dir()
         
         # 将 BuildStage 枚举值映射到实际文件名
         file_stage_name = STAGE_NAME_TO_FILE_NAME.get(stage_name, stage_name)
         
         # 获取项目信息
         db_project = project_service.db.get_project(project_id)
+        
+        # 获取工作流类型
+        workflow_type = db_project.get('workflow_type', 'agent_build') if db_project else 'agent_build'
         
         # 尝试从数据库 stage 记录获取 doc_path
         db_stage = project_service.db.get_stage(project_id, stage_name)
@@ -580,78 +596,116 @@ async def get_stage_document(
                 request_id=_request_id()
             )
         
-        # 尝试多种方式确定项目目录
+        # 根据工作流类型确定搜索目录
         project_path = None
         possible_project_names = []
         
-        # 1. 首先尝试直接使用 project_id 作为目录名（适用于本地项目）
-        possible_project_names.append(project_id)
-        
-        # 2. 如果有数据库项目，尝试使用 local_project_dir 和 project_name
-        if db_project:
-            # 优先使用 local_project_dir（本地项目目录名）
-            local_dir = db_project.get('local_project_dir')
-            if local_dir:
-                possible_project_names.insert(0, local_dir)  # 插入到最前面
+        if workflow_type == 'tool_build':
+            # 工具构建：在 tools/generated_tools 目录下查找
+            if db_project:
+                metadata = db_project.get('metadata', {})
+                tool_name = metadata.get('tool_name') or db_project.get('project_name')
+                if tool_name:
+                    # 尝试多种可能的目录名
+                    possible_names = [
+                        f"tool_build_{tool_name}",
+                        tool_name,
+                    ]
+                    for name in possible_names:
+                        candidate_path = os.path.join(tools_dir, name)
+                        if os.path.exists(candidate_path):
+                            project_path = candidate_path
+                            logger.info(f"Found tool build directory: {candidate_path}")
+                            break
             
-            project_name = db_project.get('project_name')
-            if project_name:
-                possible_project_names.append(project_name)
+            # 如果还没找到，扫描 tools/generated_tools 目录
+            if not project_path and os.path.exists(tools_dir):
+                for item in os.listdir(tools_dir):
+                    if item.startswith('tool_build_'):
+                        item_path = os.path.join(tools_dir, item)
+                        if os.path.isdir(item_path):
+                            # 检查是否有 status.yaml 或 config.yaml 匹配
+                            status_file = os.path.join(item_path, 'status.yaml')
+                            if os.path.exists(status_file):
+                                try:
+                                    with open(status_file, 'r', encoding='utf-8') as f:
+                                        status_data = yaml.safe_load(f)
+                                    if status_data.get('project_id') == project_id:
+                                        project_path = item_path
+                                        logger.info(f"Found tool build via status.yaml: {item_path}")
+                                        break
+                                except Exception as e:
+                                    logger.warning(f"Failed to parse status.yaml in {item_path}: {e}")
+        else:
+            # Agent 构建/更新：在 projects 目录下查找
+            # 1. 首先尝试直接使用 project_id 作为目录名（适用于本地项目）
+            possible_project_names.append(project_id)
+            
+            # 2. 如果有数据库项目，尝试使用 local_project_dir 和 project_name
+            if db_project:
+                # 优先使用 local_project_dir（本地项目目录名）
+                local_dir = db_project.get('local_project_dir')
+                if local_dir:
+                    possible_project_names.insert(0, local_dir)  # 插入到最前面
+                
+                project_name = db_project.get('project_name')
+                if project_name:
+                    possible_project_names.append(project_name)
+            
+            # 尝试每个可能的项目名
+            for name in possible_project_names:
+                candidate_path = os.path.join(projects_dir, name)
+                if os.path.exists(candidate_path):
+                    project_path = candidate_path
+                    logger.info(f"Found project directory: {candidate_path}")
+                    break
         
-        # 尝试每个可能的项目名
-        for name in possible_project_names:
-            candidate_path = os.path.join(projects_dir, name)
-            if os.path.exists(candidate_path):
-                project_path = candidate_path
-                logger.info(f"Found project directory: {candidate_path}")
-                break
-        
-        # 如果还没找到，扫描 projects 目录查找匹配的项目
-        if not project_path and os.path.exists(projects_dir):
-            for item in os.listdir(projects_dir):
-                item_path = os.path.join(projects_dir, item)
-                if os.path.isdir(item_path):
-                    # 检查 status.yaml 中的 project 字段或 project_id
-                    status_file = os.path.join(item_path, 'status.yaml')
-                    config_file = os.path.join(item_path, 'config.yaml')
-                    project_config_file = os.path.join(item_path, 'project_config.json')
-                    
-                    if os.path.exists(status_file):
-                        try:
-                            with open(status_file, 'r', encoding='utf-8') as f:
-                                status_data = yaml.safe_load(f)
-                            # 检查 project 字段（目录名）或 project_id
-                            if status_data.get('project') == project_id or status_data.get('project_id') == project_id:
-                                project_path = item_path
-                                logger.info(f"Found project via status.yaml: {item_path}")
-                                break
-                        except Exception as e:
-                            logger.warning(f"Failed to parse status.yaml in {item_path}: {e}")
-                    
-                    if not project_path and os.path.exists(config_file):
-                        try:
-                            with open(config_file, 'r', encoding='utf-8') as f:
-                                config_data = yaml.safe_load(f)
-                            # 检查 project.name 或 project_id
-                            project_section = config_data.get('project', {})
-                            if isinstance(project_section, dict):
-                                if project_section.get('name') == project_id or config_data.get('project_id') == project_id:
+            # 如果还没找到，扫描 projects 目录查找匹配的项目
+            if not project_path and os.path.exists(projects_dir):
+                for item in os.listdir(projects_dir):
+                    item_path = os.path.join(projects_dir, item)
+                    if os.path.isdir(item_path):
+                        # 检查 status.yaml 中的 project 字段或 project_id
+                        status_file = os.path.join(item_path, 'status.yaml')
+                        config_file = os.path.join(item_path, 'config.yaml')
+                        project_config_file = os.path.join(item_path, 'project_config.json')
+                        
+                        if os.path.exists(status_file):
+                            try:
+                                with open(status_file, 'r', encoding='utf-8') as f:
+                                    status_data = yaml.safe_load(f)
+                                # 检查 project 字段（目录名）或 project_id
+                                if status_data.get('project') == project_id or status_data.get('project_id') == project_id:
                                     project_path = item_path
-                                    logger.info(f"Found project via config.yaml: {item_path}")
+                                    logger.info(f"Found project via status.yaml: {item_path}")
                                     break
-                        except Exception as e:
-                            logger.warning(f"Failed to parse config.yaml in {item_path}: {e}")
-                    
-                    if not project_path and os.path.exists(project_config_file):
-                        try:
-                            with open(project_config_file, 'r', encoding='utf-8') as f:
-                                project_config_data = json.load(f)
-                            if project_config_data.get('project_id') == project_id:
-                                project_path = item_path
-                                logger.info(f"Found project via project_config.json: {item_path}")
-                                break
-                        except Exception as e:
-                            logger.warning(f"Failed to parse project_config.json in {item_path}: {e}")
+                            except Exception as e:
+                                logger.warning(f"Failed to parse status.yaml in {item_path}: {e}")
+                        
+                        if not project_path and os.path.exists(config_file):
+                            try:
+                                with open(config_file, 'r', encoding='utf-8') as f:
+                                    config_data = yaml.safe_load(f)
+                                # 检查 project.name 或 project_id
+                                project_section = config_data.get('project', {})
+                                if isinstance(project_section, dict):
+                                    if project_section.get('name') == project_id or config_data.get('project_id') == project_id:
+                                        project_path = item_path
+                                        logger.info(f"Found project via config.yaml: {item_path}")
+                                        break
+                            except Exception as e:
+                                logger.warning(f"Failed to parse config.yaml in {item_path}: {e}")
+                        
+                        if not project_path and os.path.exists(project_config_file):
+                            try:
+                                with open(project_config_file, 'r', encoding='utf-8') as f:
+                                    project_config_data = json.load(f)
+                                if project_config_data.get('project_id') == project_id:
+                                    project_path = item_path
+                                    logger.info(f"Found project via project_config.json: {item_path}")
+                                    break
+                            except Exception as e:
+                                logger.warning(f"Failed to parse project_config.json in {item_path}: {e}")
         
         # 尝试从文件系统读取阶段文档
         doc_path = None
@@ -689,27 +743,39 @@ async def get_stage_document(
             if doc_path_from_status:
                 possible_paths.append(os.path.join(str(project_root), doc_path_from_status))
             
-            # 如果有 agent_name，尝试在 agents/{agent_name}/ 目录下查找
-            if agent_name:
-                possible_paths.append(os.path.join(project_path, 'agents', agent_name, f'{file_stage_name}.json'))
-                if file_stage_name != stage_name:
-                    possible_paths.append(os.path.join(project_path, 'agents', agent_name, f'{stage_name}.json'))
-            
-            # 尝试扫描 agents 目录下的所有子目录
-            agents_dir = os.path.join(project_path, 'agents')
-            if os.path.exists(agents_dir):
-                for item in os.listdir(agents_dir):
-                    item_path = os.path.join(agents_dir, item)
-                    if os.path.isdir(item_path):
-                        possible_paths.append(os.path.join(item_path, f'{file_stage_name}.json'))
-                        if file_stage_name != stage_name:
-                            possible_paths.append(os.path.join(item_path, f'{stage_name}.json'))
-            
-            # 添加其他可能的路径
-            possible_paths.extend([
-                os.path.join(project_path, 'agents', f'{file_stage_name}.json'),
-                os.path.join(project_path, f'{file_stage_name}.json'),
-            ])
+            if workflow_type == 'tool_build':
+                # 工具构建：文档在 stages 子目录下或直接在工具目录下
+                possible_paths.extend([
+                    os.path.join(project_path, 'stages', f'{file_stage_name}.json'),
+                    os.path.join(project_path, 'stages', f'{stage_name}.json'),
+                    os.path.join(project_path, f'{file_stage_name}.json'),
+                    os.path.join(project_path, f'{stage_name}.json'),
+                    os.path.join(project_path, 'docs', f'{file_stage_name}.json'),
+                    os.path.join(project_path, 'docs', f'{stage_name}.json'),
+                ])
+            else:
+                # Agent 构建/更新：文档在 agents/{agent_name}/ 目录下
+                # 如果有 agent_name，尝试在 agents/{agent_name}/ 目录下查找
+                if agent_name:
+                    possible_paths.append(os.path.join(project_path, 'agents', agent_name, f'{file_stage_name}.json'))
+                    if file_stage_name != stage_name:
+                        possible_paths.append(os.path.join(project_path, 'agents', agent_name, f'{stage_name}.json'))
+                
+                # 尝试扫描 agents 目录下的所有子目录
+                agents_dir = os.path.join(project_path, 'agents')
+                if os.path.exists(agents_dir):
+                    for item in os.listdir(agents_dir):
+                        item_path = os.path.join(agents_dir, item)
+                        if os.path.isdir(item_path):
+                            possible_paths.append(os.path.join(item_path, f'{file_stage_name}.json'))
+                            if file_stage_name != stage_name:
+                                possible_paths.append(os.path.join(item_path, f'{stage_name}.json'))
+                
+                # 添加其他可能的路径
+                possible_paths.extend([
+                    os.path.join(project_path, 'agents', f'{file_stage_name}.json'),
+                    os.path.join(project_path, f'{file_stage_name}.json'),
+                ])
             
             # 查找第一个存在的文件
             for path in possible_paths:

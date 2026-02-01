@@ -1,0 +1,20 @@
+# 多搜索引擎工具依赖包
+# HTTP请求库
+requests>=2.31.0
+
+# HTML解析库
+beautifulsoup4>=4.12.0
+lxml>=4.9.0
+
+# HTTP库
+urllib3>=2.0.0
+httpx>=0.24.0
+
+# User-Agent生成
+fake-useragent>=1.4.0
+
+# 环境变量管理
+python-dotenv>=1.0.0
+
+# Strands SDK（由项目提供）
+# strands

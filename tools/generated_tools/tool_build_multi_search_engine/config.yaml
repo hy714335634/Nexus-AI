@@ -1,0 +1,6 @@
+tool_project:
+  created_date: '2026-01-31T16:04:22.263998+00:00'
+  description: 通用多搜索引擎访问工具，支持国内外主流搜索引擎（百度、必应、Google、DuckDuckGo等），满足Agent在中国境内和海外的多样化搜索需求
+  name: tool_build_multi_search_engine
+  status: initialized
+  version: 1.0.0

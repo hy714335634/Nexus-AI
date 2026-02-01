@@ -161,14 +161,18 @@ class ProjectService:
             logger.warning(f"Failed to parse local project {project_dir.name}: {e}")
             return None
     
-    def _get_stage_display_name(self, stage_name: str) -> str:
+    def _get_stage_display_name(self, stage_name: str, workflow_type: str = "agent_build") -> str:
         """
         获取阶段显示名称
         
         使用统一配置模块 api.v2.core.stage_config
+        
+        Args:
+            stage_name: 阶段名称
+            workflow_type: 工作流类型，默认为 'agent_build'
         """
         from api.v2.core.stage_config import get_stage_display_name
-        return get_stage_display_name(stage_name)
+        return get_stage_display_name(stage_name, workflow_type)
     
     def _get_local_projects(self, force_refresh: bool = False) -> List[Dict[str, Any]]:
         """获取本地项目（带缓存）"""
@@ -429,19 +433,30 @@ class ProjectService:
         }
     
     def get_build_dashboard(self, project_id: str) -> Optional[Dict[str, Any]]:
-        """获取构建仪表板数据 - 支持数据库和本地项目"""
+        """
+        获取构建仪表板数据 - 支持数据库和本地项目
+        
+        根据 workflow_type 确定产物目录：
+        - agent_build: projects/{project_name}
+        - agent_update: projects/{project_name}  
+        - tool_build: tools/generated_tools/tool_build_{tool_name}
+        """
         # 先从数据库获取
         project = self.db.get_project(project_id)
         
         if project:
             stages = self.db.list_stages(project_id)
+            workflow_type = project.get('workflow_type', 'agent_build')
+            
+            # 根据工作流类型确定本地项目目录
+            local_project_dir = self._get_workflow_artifact_dir(project, workflow_type)
             
             # 转换阶段数据格式
             dashboard_stages = []
             for stage in stages:
                 stage_name = stage.get('stage_name', '')
                 # 确保 display_name 不为 None，使用阶段名称作为默认值
-                display_name = stage.get('display_name') or self._get_stage_display_name(stage_name) or stage_name
+                display_name = stage.get('display_name') or self._get_stage_display_name(stage_name, workflow_type) or stage_name
                 dashboard_stages.append({
                     'name': stage_name,
                     'display_name': display_name,
@@ -483,7 +498,8 @@ class ProjectService:
             return {
                 'project_id': project_id,
                 'project_name': project.get('project_name'),
-                'local_project_dir': project.get('local_project_dir'),
+                'workflow_type': workflow_type,
+                'local_project_dir': local_project_dir,
                 'status': project.get('status'),
                 'progress': project.get('progress', 0.0),
                 'requirement': project.get('requirement'),
@@ -507,6 +523,7 @@ class ProjectService:
                 return {
                     'project_id': project_id,
                     'project_name': local_project.get('project_name'),
+                    'workflow_type': local_project.get('workflow_type', 'agent_build'),
                     'status': local_project.get('status'),
                     'progress': local_project.get('progress', 0.0),
                     'requirement': local_project.get('requirement'),
@@ -521,6 +538,42 @@ class ProjectService:
                 }
         
         return None
+    
+    def _get_workflow_artifact_dir(self, project: Dict[str, Any], workflow_type: str) -> Optional[str]:
+        """
+        根据工作流类型获取产物目录路径
+        
+        Args:
+            project: 项目数据
+            workflow_type: 工作流类型
+            
+        Returns:
+            产物目录的相对路径
+        """
+        project_name = project.get('project_name', '')
+        metadata = project.get('metadata', {})
+        
+        if workflow_type == 'tool_build':
+            # 工具构建：产物在 tools/generated_tools/tool_build_{tool_name}
+            tool_name = metadata.get('tool_name') or project_name
+            # 确保目录名以 tool_build_ 开头
+            if tool_name and not tool_name.startswith('tool_build_'):
+                tool_name = f"tool_build_{tool_name}"
+            return f"tools/generated_tools/{tool_name}" if tool_name else None
+        elif workflow_type == 'agent_update':
+            # Agent 更新：产物在原 Agent 的项目目录
+            agent_name = metadata.get('agent_name')
+            original_project_id = metadata.get('original_project_id')
+            # 优先使用原项目目录
+            if original_project_id:
+                return f"projects/{original_project_id}"
+            elif agent_name:
+                return f"projects/{agent_name}"
+            return None
+        else:
+            # Agent 构建：产物在 projects/{project_name}
+            local_dir = project.get('local_project_dir') or project_name
+            return f"projects/{local_dir}" if local_dir else None
     
     def _load_local_project_metrics(self, project_id: str) -> Optional[Dict[str, Any]]:
         """从本地项目文件加载指标数据"""

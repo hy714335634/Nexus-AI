@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Header } from '@/components/layout';
 import { Card, CardHeader, CardTitle, CardContent, Button, Badge, Empty } from '@/components/ui';
 import { StatusBadge } from '@/components/status-badge';
-import { useAgentDetailV2, useAgentSessionsV2, useDeleteAgentV2 } from '@/hooks/use-agents-v2';
+import { useAgentDetailV2, useAgentSessionsV2, useDeleteAgentV2, useCreateAgentUpdate } from '@/hooks/use-agents-v2';
 import { formatDate, formatRelativeTime, formatNumber } from '@/lib/utils';
 import {
   ArrowLeft,
@@ -26,6 +26,8 @@ import {
   Activity,
   FileSearch,
   Trash2,
+  RefreshCw,
+  X,
 } from 'lucide-react';
 
 interface PageProps {
@@ -34,6 +36,88 @@ interface PageProps {
 
 // Tab 类型定义
 type TabType = 'basic' | 'agentcore';
+
+// 更新 Agent 对话框组件
+function UpdateAgentDialog({
+  agent,
+  isOpen,
+  onClose,
+  onConfirm,
+  isUpdating,
+}: {
+  agent: { agent_id: string; agent_name: string } | null;
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: (requirement: string) => void;
+  isUpdating: boolean;
+}) {
+  const [requirement, setRequirement] = useState('');
+
+  if (!isOpen || !agent) return null;
+
+  const handleSubmit = () => {
+    if (requirement.trim().length >= 10) {
+      onConfirm(requirement.trim());
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="relative bg-white rounded-xl shadow-xl max-w-lg w-full mx-4 p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-gray-900">更新 Agent</h3>
+          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded">
+            <X className="w-5 h-5 text-gray-500" />
+          </button>
+        </div>
+        
+        <p className="text-gray-600 mb-4">
+          为 <span className="font-medium text-gray-900">{agent.agent_name}</span> 创建更新任务
+        </p>
+        
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            更新需求描述 <span className="text-red-500">*</span>
+          </label>
+          <textarea
+            value={requirement}
+            onChange={(e) => setRequirement(e.target.value)}
+            placeholder="请描述您希望对该 Agent 进行的更新，例如：添加新的工具函数、修改提示词、优化响应格式等..."
+            className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
+            rows={5}
+            disabled={isUpdating}
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            至少输入 10 个字符，详细描述更新需求
+          </p>
+        </div>
+        
+        <div className="flex gap-3 justify-end">
+          <Button variant="outline" onClick={onClose} disabled={isUpdating}>
+            取消
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={isUpdating || requirement.trim().length < 10}
+          >
+            {isUpdating ? (
+              <>
+                <RefreshCw className="w-4 h-4 animate-spin" />
+                创建中...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="w-4 h-4" />
+                创建更新任务
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // 删除确认对话框组件
 function DeleteAgentDialog({
@@ -131,6 +215,26 @@ export default function AgentDetailPage({ params }: PageProps) {
       router.push('/agents');
     },
   });
+
+  // 更新 Agent 相关状态
+  const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
+  const updateAgent = useCreateAgentUpdate({
+    onSuccess: (data) => {
+      setUpdateDialogOpen(false);
+      // 跳转到项目详情页查看更新进度
+      router.push(`/projects/${data.project_id}`);
+    },
+  });
+
+  // 确认更新 Agent
+  const handleConfirmUpdate = (requirement: string) => {
+    if (agent) {
+      updateAgent.mutate({
+        agent_id: agent.agent_id,
+        update_requirement: requirement,
+      });
+    }
+  };
 
   // 确认删除
   const handleConfirmDelete = (options: { deleteLocalFiles: boolean; deleteCloudResources: boolean }) => {
@@ -578,6 +682,14 @@ export default function AgentDetailPage({ params }: PageProps) {
                     查看项目
                   </Button>
                 </Link>
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start"
+                  onClick={() => setUpdateDialogOpen(true)}
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  更新 Agent
+                </Button>
               </CardContent>
             </Card>
 
@@ -623,6 +735,15 @@ export default function AgentDetailPage({ params }: PageProps) {
         onClose={() => setDeleteDialogOpen(false)}
         onConfirm={handleConfirmDelete}
         isDeleting={deleteAgent.isPending}
+      />
+      
+      {/* 更新 Agent 对话框 */}
+      <UpdateAgentDialog
+        agent={agent}
+        isOpen={updateDialogOpen}
+        onClose={() => setUpdateDialogOpen(false)}
+        onConfirm={handleConfirmUpdate}
+        isUpdating={updateAgent.isPending}
       />
     </div>
   );

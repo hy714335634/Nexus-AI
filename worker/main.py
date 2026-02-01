@@ -26,6 +26,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from api.v2.database import sqs_client
 from worker.config import worker_settings
 from worker.handlers import BuildHandler
+from worker.handlers.workflow_handler import WorkflowHandler
 
 # 配置日志
 logging.basicConfig(
@@ -47,7 +48,8 @@ class Worker:
         # 根据队列类型选择队列名称和处理器
         if queue_type == "build":
             self.queue_name = worker_settings.SQS_BUILD_QUEUE_NAME
-            self.handler = BuildHandler()
+            # 使用统一的 WorkflowHandler 处理所有工作流类型
+            self.handler = WorkflowHandler()
             self.visibility_timeout = worker_settings.VISIBILITY_TIMEOUT
         elif queue_type == "deploy":
             self.queue_name = worker_settings.SQS_DEPLOY_QUEUE_NAME

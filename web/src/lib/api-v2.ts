@@ -732,3 +732,52 @@ export async function updateMCPServer(
     body: JSON.stringify(config),
   });
 }
+
+
+// ============== Workflows API ==============
+
+import type {
+  UpdateAgentRequest,
+  UpdateAgentResponse,
+  BuildToolRequest,
+  BuildToolResponse,
+  WorkflowTypesResponse,
+} from '@/types/api-v2';
+
+/**
+ * 创建 Agent 更新工作流
+ */
+export async function createAgentUpdate(
+  request: UpdateAgentRequest
+): Promise<UpdateAgentResponse> {
+  return apiFetch<UpdateAgentResponse>('/workflows/agent-update', {
+    method: 'POST',
+    body: JSON.stringify(request),
+  });
+}
+
+/**
+ * 创建工具构建工作流
+ */
+export async function createToolBuild(
+  request: BuildToolRequest
+): Promise<BuildToolResponse> {
+  return apiFetch<BuildToolResponse>('/workflows/tool-build', {
+    method: 'POST',
+    body: JSON.stringify(request),
+  });
+}
+
+/**
+ * 获取工作流类型列表
+ */
+export async function listWorkflowTypes(): Promise<WorkflowTypesResponse> {
+  return apiFetch<WorkflowTypesResponse>('/workflows/types');
+}
+
+/**
+ * 获取工作流状态
+ */
+export async function getWorkflowStatus(projectId: string): Promise<APIResponse> {
+  return apiFetch<APIResponse>(`/workflows/${projectId}/status`);
+}

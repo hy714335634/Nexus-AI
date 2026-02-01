@@ -99,6 +99,7 @@ class StageExecutor:
         on_stage_complete: Optional[Callable[[str, StageOutput], None]] = None,
         on_stage_error: Optional[Callable[[str, Exception], None]] = None,
         enable_multi_agent: bool = True,
+        workflow_type: str = "agent_build",
     ):
         """
         初始化阶段执行器
@@ -110,6 +111,7 @@ class StageExecutor:
             on_stage_complete: 阶段完成回调
             on_stage_error: 阶段错误回调
             enable_multi_agent: 是否启用多 Agent 迭代处理
+            workflow_type: 工作流类型 (agent_build, agent_update, tool_build)
         """
         self.context = context
         self.context_manager = context_manager or WorkflowContextManager()
@@ -117,6 +119,7 @@ class StageExecutor:
         self.on_stage_complete = on_stage_complete
         self.on_stage_error = on_stage_error
         self.enable_multi_agent = enable_multi_agent
+        self.workflow_type = workflow_type
         
         # 执行过程中的指标收集
         self._current_metrics = StageMetrics()
@@ -125,6 +128,32 @@ class StageExecutor:
         # 多 Agent 支持（延迟初始化）
         self._multi_agent_iterator: Optional['MultiAgentIterator'] = None
         self._multi_agent_executor: Optional['MultiAgentStageExecutor'] = None
+        
+        # 根据工作流类型加载阶段配置
+        self._stage_prompt_mapping = self._load_stage_prompt_mapping()
+    
+    def _load_stage_prompt_mapping(self) -> Dict[str, str]:
+        """
+        根据工作流类型加载阶段到提示词路径的映射
+        
+        返回:
+            Dict[str, str]: 阶段名称到提示词路径的映射
+        """
+        try:
+            from nexus_utils.workflow_config import get_workflow_config
+            
+            workflow_config = get_workflow_config(self.workflow_type)
+            if workflow_config:
+                mapping = {}
+                for stage in workflow_config.stages:
+                    mapping[stage.name] = stage.prompt_path
+                logger.info(f"Loaded stage prompt mapping for workflow type: {self.workflow_type}")
+                return mapping
+        except Exception as e:
+            logger.warning(f"Failed to load workflow config for {self.workflow_type}: {e}")
+        
+        # 回退到默认的 agent_build 映射
+        return STAGE_PROMPT_MAPPING
     
     @property
     def multi_agent_iterator(self) -> 'MultiAgentIterator':
@@ -179,12 +208,16 @@ class StageExecutor:
         """
         from nexus_utils.agent_factory import create_agent_from_prompt_template
         
-        # 获取提示词模板路径
-        prompt_path = STAGE_PROMPT_MAPPING.get(stage_name)
+        # 获取提示词模板路径（使用工作流类型特定的映射）
+        prompt_path = self._stage_prompt_mapping.get(stage_name)
+        if not prompt_path:
+            # 回退到默认映射
+            prompt_path = STAGE_PROMPT_MAPPING.get(stage_name)
+        
         if not prompt_path:
             raise StageExecutionError(
                 stage_name, 
-                f"Unknown stage: {stage_name}", 
+                f"Unknown stage: {stage_name} for workflow type: {self.workflow_type}", 
                 recoverable=False
             )
         

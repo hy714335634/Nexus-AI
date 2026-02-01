@@ -1,0 +1,768 @@
+{
+  "design_document": {
+    "tool_name": "multi_search_engine",
+    "version": "1.0",
+    "date": "2026-01-31",
+    "architecture": {
+      "file_structure": [
+        {
+          "file_name": "multi_search_engine.py",
+          "description": "多搜索引擎工具主文件，包含统一的搜索接口和环境适配功能",
+          "functions": [
+            {
+              "function_name": "search",
+              "description": "统一的搜索接口，支持多个搜索引擎，自动适配网络环境",
+              "parameters": [
+                {
+                  "name": "query",
+                  "type": "str",
+                  "required": true,
+                  "description": "搜索关键词或查询语句"
+                },
+                {
+                  "name": "engine",
+                  "type": "str",
+                  "required": false,
+                  "description": "指定搜索引擎（baidu/sogou/so360/google/bing/duckduckgo/auto），默认为auto自动选择"
+                },
+                {
+                  "name": "num_results",
+                  "type": "int",
+                  "required": false,
+                  "description": "返回的搜索结果数量，范围1-20，默认为10"
+                },
+                {
+                  "name": "language",
+                  "type": "str",
+                  "required": false,
+                  "description": "搜索结果语言偏好（zh-CN/en-US/auto），默认为auto"
+                },
+                {
+                  "name": "region",
+                  "type": "str",
+                  "required": false,
+                  "description": "地区提示（china/overseas/auto），用于优化搜索引擎选择策略，默认为auto"
+                },
+                {
+                  "name": "timeout",
+                  "type": "int",
+                  "required": false,
+                  "description": "搜索超时时间（秒），范围5-30，默认为15"
+                },
+                {
+                  "name": "format",
+                  "type": "str",
+                  "required": false,
+                  "description": "输出格式（json/markdown/text），默认为json"
+                },
+                {
+                  "name": "include_metadata",
+                  "type": "bool",
+                  "required": false,
+                  "description": "是否包含元数据（搜索时间、引擎信息等），默认为true"
+                }
+              ],
+              "return_type": "str",
+              "return_description": "JSON字符串，包含搜索结果列表和元数据。成功格式：{\"status\": \"success\", \"engine_used\": \"baidu\", \"query\": \"人工智能\", \"results\": [{\"title\": \"...\", \"url\": \"...\", \"snippet\": \"...\", \"rank\": 1}], \"total_results\": 10, \"search_time_ms\": 235}。错误格式：{\"status\": \"error\", \"error_type\": \"...\", \"message\": \"...\"}",
+              "implementation_logic": "1. 参数验证（query非空、num_results在有效范围、engine在允许值范围）\n2. 如果engine为auto，调用_detect_best_engine()自动选择最佳搜索引擎\n3. 根据选定的引擎调用对应的搜索函数（_search_baidu、_search_google等）\n4. 调用_standardize_results()标准化搜索结果格式\n5. 根据format参数转换输出格式（JSON/Markdown/Text）\n6. 如果搜索失败且engine为auto，自动切换到备用引擎重试（最多3次）\n7. 返回格式化的JSON字符串",
+              "error_handling": "1. 参数验证错误：返回{\"status\": \"error\", \"error_type\": \"ValidationError\", \"message\": \"具体错误信息\"}\n2. 搜索引擎不可用：自动切换备用引擎或返回引擎不可用错误\n3. 网络超时：捕获Timeout异常，返回超时错误信息\n4. 解析失败：记录详细日志，返回部分成功的结果或错误信息\n5. 所有引擎都失败：返回明确的错误信息，建议检查网络连接"
+            },
+            {
+              "function_name": "check_engine_health",
+              "description": "检查搜索引擎的可用性和响应时间",
+              "parameters": [
+                {
+                  "name": "engines",
+                  "type": "str",
+                  "required": false,
+                  "description": "需要检查的搜索引擎列表，JSON数组字符串格式（如：'[\"baidu\", \"google\"]'），为空时检查所有支持的引擎"
+                },
+                {
+                  "name": "check_timeout",
+                  "type": "int",
+                  "required": false,
+                  "description": "每个引擎的检查超时时间（秒），默认为5"
+                }
+              ],
+              "return_type": "str",
+              "return_description": "JSON字符串，包含各搜索引擎健康状态。格式：{\"status\": \"success\", \"check_time\": \"2026-01-31T16:00:00Z\", \"engines_status\": [{\"engine\": \"baidu\", \"available\": true, \"response_time_ms\": 150}, {\"engine\": \"google\", \"available\": false, \"error\": \"Connection timeout\"}]}",
+              "implementation_logic": "1. 解析engines参数，如果为空则检查所有支持的引擎\n2. 并发检查每个引擎的可用性（使用线程池，最大并发6）\n3. 对每个引擎发送简单的测试查询（如\"test\"）\n4. 记录响应时间和可用性状态\n5. 捕获并记录每个引擎的错误信息\n6. 返回汇总的健康检查结果JSON",
+              "error_handling": "1. 单个引擎检查失败不影响其他引擎的检查\n2. 全部检查超时时返回已完成的部分结果\n3. 网络完全不可用时返回明确提示\n4. 解析engines参数失败时返回参数错误"
+            },
+            {
+              "function_name": "filter_and_sort_results",
+              "description": "对搜索结果进行过滤和自定义排序",
+              "parameters": [
+                {
+                  "name": "results_json",
+                  "type": "str",
+                  "required": true,
+                  "description": "待处理的搜索结果JSON字符串（来自search函数的返回值）"
+                },
+                {
+                  "name": "filter_keywords",
+                  "type": "str",
+                  "required": false,
+                  "description": "过滤关键词列表，JSON数组字符串格式（如：'[\"AI\", \"机器学习\"]'），只返回包含这些关键词的结果"
+                },
+                {
+                  "name": "exclude_keywords",
+                  "type": "str",
+                  "required": false,
+                  "description": "排除关键词列表，JSON数组字符串格式，过滤掉包含这些关键词的结果"
+                },
+                {
+                  "name": "sort_by",
+                  "type": "str",
+                  "required": false,
+                  "description": "排序方式（relevance/date/random），默认为relevance"
+                },
+                {
+                  "name": "deduplicate",
+                  "type": "bool",
+                  "required": false,
+                  "description": "是否去除重复结果（基于URL），默认为true"
+                }
+              ],
+              "return_type": "str",
+              "return_description": "JSON字符串，包含过滤和排序后的搜索结果。格式：{\"status\": \"success\", \"original_count\": 50, \"filtered_count\": 10, \"results\": [{\"title\": \"...\", \"url\": \"...\", \"snippet\": \"...\"}]}",
+              "implementation_logic": "1. 解析results_json为Python对象\n2. 如果filter_keywords不为空，过滤只包含指定关键词的结果\n3. 如果exclude_keywords不为空，排除包含指定关键词的结果\n4. 如果deduplicate为true，基于URL去重\n5. 根据sort_by参数排序：relevance（保持原序）、date（按发布时间）、random（随机）\n6. 返回处理后的结果JSON",
+              "error_handling": "1. results_json解析失败：返回JSON解析错误\n2. 过滤条件过严导致结果为空：返回提示放宽条件的信息\n3. 排序参数无效：使用默认排序并记录警告\n4. 去重失败：返回原始结果并记录错误"
+            }
+          ]
+        },
+        {
+          "file_name": "engine_adapters.py",
+          "description": "各搜索引擎的适配器模块，实现统一的搜索接口",
+          "functions": [
+            {
+              "function_name": "_search_baidu",
+              "description": "百度搜索适配器",
+              "parameters": [
+                {
+                  "name": "query",
+                  "type": "str",
+                  "required": true,
+                  "description": "搜索关键词"
+                },
+                {
+                  "name": "num_results",
+                  "type": "int",
+                  "required": true,
+                  "description": "结果数量"
+                },
+                {
+                  "name": "timeout",
+                  "type": "int",
+                  "required": true,
+                  "description": "超时时间"
+                }
+              ],
+              "return_type": "list",
+              "return_description": "标准化的搜索结果列表",
+              "implementation_logic": "1. 构建百度搜索URL（https://www.baidu.com/s?wd=query）\n2. 设置请求头（User-Agent、Referer等）\n3. 发送HTTP GET请求\n4. 使用BeautifulSoup解析HTML响应\n5. 提取搜索结果（标题、URL、摘要）\n6. 返回标准格式的结果列表",
+              "error_handling": "1. 网络请求失败：抛出SearchEngineError异常\n2. HTML解析失败：记录错误，返回部分结果\n3. 反爬虫检测：使用User-Agent轮换和延迟重试"
+            },
+            {
+              "function_name": "_search_sogou",
+              "description": "搜狗搜索适配器",
+              "parameters": [
+                {
+                  "name": "query",
+                  "type": "str",
+                  "required": true,
+                  "description": "搜索关键词"
+                },
+                {
+                  "name": "num_results",
+                  "type": "int",
+                  "required": true,
+                  "description": "结果数量"
+                },
+                {
+                  "name": "timeout",
+                  "type": "int",
+                  "required": true,
+                  "description": "超时时间"
+                }
+              ],
+              "return_type": "list",
+              "return_description": "标准化的搜索结果列表",
+              "implementation_logic": "1. 构建搜狗搜索URL（https://www.sogou.com/web?query=query）\n2. 设置请求头\n3. 发送HTTP GET请求\n4. 解析HTML响应\n5. 提取搜索结果\n6. 返回标准格式的结果列表",
+              "error_handling": "同_search_baidu"
+            },
+            {
+              "function_name": "_search_so360",
+              "description": "360搜索适配器",
+              "parameters": [
+                {
+                  "name": "query",
+                  "type": "str",
+                  "required": true,
+                  "description": "搜索关键词"
+                },
+                {
+                  "name": "num_results",
+                  "type": "int",
+                  "required": true,
+                  "description": "结果数量"
+                },
+                {
+                  "name": "timeout",
+                  "type": "int",
+                  "required": true,
+                  "description": "超时时间"
+                }
+              ],
+              "return_type": "list",
+              "return_description": "标准化的搜索结果列表",
+              "implementation_logic": "1. 构建360搜索URL（https://www.so.com/s?q=query）\n2. 设置请求头\n3. 发送HTTP GET请求\n4. 解析HTML响应\n5. 提取搜索结果\n6. 返回标准格式的结果列表",
+              "error_handling": "同_search_baidu"
+            },
+            {
+              "function_name": "_search_google",
+              "description": "Google搜索适配器",
+              "parameters": [
+                {
+                  "name": "query",
+                  "type": "str",
+                  "required": true,
+                  "description": "搜索关键词"
+                },
+                {
+                  "name": "num_results",
+                  "type": "int",
+                  "required": true,
+                  "description": "结果数量"
+                },
+                {
+                  "name": "timeout",
+                  "type": "int",
+                  "required": true,
+                  "description": "超时时间"
+                }
+              ],
+              "return_type": "list",
+              "return_description": "标准化的搜索结果列表",
+              "implementation_logic": "1. 构建Google搜索URL（https://www.google.com/search?q=query）\n2. 设置请求头（包含Accept-Language）\n3. 发送HTTP GET请求\n4. 解析HTML响应\n5. 提取搜索结果（处理Google特殊的HTML结构）\n6. 返回标准格式的结果列表",
+              "error_handling": "同_search_baidu，额外处理Google的CAPTCHA检测"
+            },
+            {
+              "function_name": "_search_bing",
+              "description": "Bing搜索适配器",
+              "parameters": [
+                {
+                  "name": "query",
+                  "type": "str",
+                  "required": true,
+                  "description": "搜索关键词"
+                },
+                {
+                  "name": "num_results",
+                  "type": "int",
+                  "required": true,
+                  "description": "结果数量"
+                },
+                {
+                  "name": "timeout",
+                  "type": "int",
+                  "required": true,
+                  "description": "超时时间"
+                }
+              ],
+              "return_type": "list",
+              "return_description": "标准化的搜索结果列表",
+              "implementation_logic": "1. 构建Bing搜索URL（https://www.bing.com/search?q=query）\n2. 设置请求头\n3. 发送HTTP GET请求\n4. 解析HTML响应\n5. 提取搜索结果\n6. 返回标准格式的结果列表",
+              "error_handling": "同_search_baidu"
+            },
+            {
+              "function_name": "_search_duckduckgo",
+              "description": "DuckDuckGo搜索适配器",
+              "parameters": [
+                {
+                  "name": "query",
+                  "type": "str",
+                  "required": true,
+                  "description": "搜索关键词"
+                },
+                {
+                  "name": "num_results",
+                  "type": "int",
+                  "required": true,
+                  "description": "结果数量"
+                },
+                {
+                  "name": "timeout",
+                  "type": "int",
+                  "required": true,
+                  "description": "超时时间"
+                }
+              ],
+              "return_type": "list",
+              "return_description": "标准化的搜索结果列表",
+              "implementation_logic": "1. 构建DuckDuckGo搜索URL（https://duckduckgo.com/html/?q=query）\n2. 设置请求头\n3. 发送HTTP GET请求\n4. 解析HTML响应\n5. 提取搜索结果\n6. 返回标准格式的结果列表",
+              "error_handling": "同_search_baidu"
+            }
+          ]
+        },
+        {
+          "file_name": "environment_detector.py",
+          "description": "网络环境检测和搜索引擎选择策略模块",
+          "functions": [
+            {
+              "function_name": "_detect_best_engine",
+              "description": "自动检测最佳搜索引擎",
+              "parameters": [
+                {
+                  "name": "region",
+                  "type": "str",
+                  "required": false,
+                  "description": "地区提示（china/overseas/auto）"
+                },
+                {
+                  "name": "language",
+                  "type": "str",
+                  "required": false,
+                  "description": "语言偏好"
+                }
+              ],
+              "return_type": "str",
+              "return_description": "推荐的搜索引擎名称",
+              "implementation_logic": "1. 如果region为china，优先选择国内搜索引擎（baidu、sogou、so360）\n2. 如果region为overseas，优先选择海外搜索引擎（google、bing、duckduckgo）\n3. 如果region为auto，执行网络环境检测：\n   - 并发测试国内外搜索引擎的可达性（超时3秒）\n   - 选择响应时间最快且可用的引擎\n   - 如果language为zh-CN，优先国内引擎\n   - 如果language为en-US，优先海外引擎\n4. 返回选定的引擎名称",
+              "error_handling": "1. 所有引擎都不可用：返回默认引擎（baidu）\n2. 检测超时：根据language选择默认引擎\n3. 网络异常：使用保守策略（国内环境默认baidu，海外默认google）"
+            },
+            {
+              "function_name": "_check_engine_availability",
+              "description": "检查单个搜索引擎的可用性",
+              "parameters": [
+                {
+                  "name": "engine",
+                  "type": "str",
+                  "required": true,
+                  "description": "搜索引擎名称"
+                },
+                {
+                  "name": "timeout",
+                  "type": "int",
+                  "required": true,
+                  "description": "检查超时时间"
+                }
+              ],
+              "return_type": "dict",
+              "return_description": "包含可用性和响应时间的字典",
+              "implementation_logic": "1. 根据engine获取对应的测试URL\n2. 发送HEAD或GET请求\n3. 记录响应时间\n4. 返回{\"available\": True/False, \"response_time_ms\": 150, \"error\": None}",
+              "error_handling": "1. 请求超时：返回available=False，记录超时错误\n2. 连接失败：返回available=False，记录连接错误\n3. 其他异常：捕获并记录详细错误信息"
+            }
+          ]
+        },
+        {
+          "file_name": "result_formatter.py",
+          "description": "搜索结果格式化和标准化模块",
+          "functions": [
+            {
+              "function_name": "_standardize_results",
+              "description": "标准化不同搜索引擎的结果格式",
+              "parameters": [
+                {
+                  "name": "raw_results",
+                  "type": "list",
+                  "required": true,
+                  "description": "原始搜索结果列表"
+                },
+                {
+                  "name": "engine",
+                  "type": "str",
+                  "required": true,
+                  "description": "搜索引擎名称"
+                }
+              ],
+              "return_type": "list",
+              "return_description": "标准化后的结果列表",
+              "implementation_logic": "1. 遍历raw_results中的每个结果\n2. 提取并标准化字段：title、url、snippet、rank\n3. 添加source字段标识来源引擎\n4. 清理HTML标签和特殊字符\n5. 返回标准格式的结果列表：[{\"title\": \"...\", \"url\": \"...\", \"snippet\": \"...\", \"rank\": 1, \"source\": \"baidu\"}]",
+              "error_handling": "1. 字段缺失：使用默认值填充\n2. 格式异常：记录警告，跳过该结果\n3. 编码问题：自动检测并转换编码"
+            },
+            {
+              "function_name": "_format_as_markdown",
+              "description": "将搜索结果格式化为Markdown",
+              "parameters": [
+                {
+                  "name": "results",
+                  "type": "list",
+                  "required": true,
+                  "description": "标准化的搜索结果列表"
+                }
+              ],
+              "return_type": "str",
+              "return_description": "Markdown格式的搜索结果",
+              "implementation_logic": "1. 创建Markdown标题\n2. 遍历results，为每个结果生成Markdown格式：\n   - 标题作为二级标题\n   - URL作为链接\n   - 摘要作为正文\n   - 排名和来源作为元信息\n3. 返回完整的Markdown字符串",
+              "error_handling": "1. 结果为空：返回\"无搜索结果\"\n2. 格式化失败：回退到纯文本格式"
+            },
+            {
+              "function_name": "_format_as_text",
+              "description": "将搜索结果格式化为纯文本",
+              "parameters": [
+                {
+                  "name": "results",
+                  "type": "list",
+                  "required": true,
+                  "description": "标准化的搜索结果列表"
+                }
+              ],
+              "return_type": "str",
+              "return_description": "纯文本格式的搜索结果",
+              "implementation_logic": "1. 创建文本标题\n2. 遍历results，为每个结果生成纯文本格式：\n   - 序号 + 标题\n   - URL\n   - 摘要\n   - 分隔线\n3. 返回完整的文本字符串",
+              "error_handling": "1. 结果为空：返回\"无搜索结果\"\n2. 格式化失败：返回原始JSON字符串"
+            }
+          ]
+        },
+        {
+          "file_name": "utils.py",
+          "description": "工具函数模块，包含User-Agent生成、请求重试等辅助功能",
+          "functions": [
+            {
+              "function_name": "get_random_user_agent",
+              "description": "生成随机User-Agent",
+              "parameters": [],
+              "return_type": "str",
+              "return_description": "随机的User-Agent字符串",
+              "implementation_logic": "1. 使用fake-useragent库生成随机User-Agent\n2. 如果生成失败，从预定义列表中随机选择\n3. 返回User-Agent字符串",
+              "error_handling": "1. fake-useragent库异常：使用备选列表\n2. 备选列表为空：返回默认User-Agent"
+            },
+            {
+              "function_name": "retry_on_failure",
+              "description": "请求重试装饰器",
+              "parameters": [
+                {
+                  "name": "max_retries",
+                  "type": "int",
+                  "required": false,
+                  "description": "最大重试次数，默认为3"
+                },
+                {
+                  "name": "delay",
+                  "type": "int",
+                  "required": false,
+                  "description": "重试延迟（秒），默认为1"
+                }
+              ],
+              "return_type": "function",
+              "return_description": "装饰后的函数",
+              "implementation_logic": "1. 装饰目标函数\n2. 捕获指定异常（网络错误、超时等）\n3. 按指数退避策略重试（delay * 2^retry_count）\n4. 达到最大重试次数后抛出异常",
+              "error_handling": "1. 所有重试都失败：抛出最后一次的异常\n2. 记录每次重试的日志"
+            },
+            {
+              "function_name": "clean_html",
+              "description": "清理HTML标签和特殊字符",
+              "parameters": [
+                {
+                  "name": "html_text",
+                  "type": "str",
+                  "required": true,
+                  "description": "包含HTML标签的文本"
+                }
+              ],
+              "return_type": "str",
+              "return_description": "清理后的纯文本",
+              "implementation_logic": "1. 使用正则表达式或BeautifulSoup移除HTML标签\n2. 替换HTML实体（&nbsp;、&lt;等）\n3. 移除多余的空白字符\n4. 返回清理后的文本",
+              "error_handling": "1. 解析失败：返回原始文本\n2. 编码错误：尝试自动检测编码"
+            }
+          ]
+        },
+        {
+          "file_name": "exceptions.py",
+          "description": "自定义异常类模块",
+          "functions": [
+            {
+              "function_name": "SearchEngineError",
+              "description": "搜索引擎错误基类",
+              "parameters": [],
+              "return_type": "Exception",
+              "return_description": "异常对象",
+              "implementation_logic": "继承自Exception，添加engine和message属性",
+              "error_handling": "标准异常处理"
+            },
+            {
+              "function_name": "EngineUnavailableError",
+              "description": "搜索引擎不可用异常",
+              "parameters": [],
+              "return_type": "SearchEngineError",
+              "return_description": "异常对象",
+              "implementation_logic": "继承自SearchEngineError",
+              "error_handling": "标准异常处理"
+            },
+            {
+              "function_name": "ParseError",
+              "description": "结果解析错误异常",
+              "parameters": [],
+              "return_type": "SearchEngineError",
+              "return_description": "异常对象",
+              "implementation_logic": "继承自SearchEngineError",
+              "error_handling": "标准异常处理"
+            }
+          ]
+        }
+      ]
+    },
+    "implementation_plan": {
+      "steps": [
+        {
+          "step": 1,
+          "description": "创建项目基础结构和依赖管理文件",
+          "code_snippet": "# requirements.txt\nrequests>=2.31.0\nbeautifulsoup4>=4.12.0\nlxml>=4.9.0\nurllib3>=2.0.0\nhttpx>=0.24.0\nfake-useragent>=1.4.0\npython-dotenv>=1.0.0"
+        },
+        {
+          "step": 2,
+          "description": "实现exceptions.py模块，定义自定义异常类",
+          "code_snippet": "class SearchEngineError(Exception):\n    \"\"\"搜索引擎错误基类\"\"\"\n    def __init__(self, engine: str, message: str):\n        self.engine = engine\n        self.message = message\n        super().__init__(f\"[{engine}] {message}\")\n\nclass EngineUnavailableError(SearchEngineError):\n    \"\"\"搜索引擎不可用异常\"\"\"\n    pass\n\nclass ParseError(SearchEngineError):\n    \"\"\"结果解析错误异常\"\"\"\n    pass"
+        },
+        {
+          "step": 3,
+          "description": "实现utils.py模块，提供辅助工具函数",
+          "code_snippet": "from fake_useragent import UserAgent\nimport random\nimport re\nfrom bs4 import BeautifulSoup\nimport time\nfrom functools import wraps\n\ndef get_random_user_agent() -> str:\n    \"\"\"生成随机User-Agent\"\"\"\n    try:\n        ua = UserAgent()\n        return ua.random\n    except Exception:\n        user_agents = [\n            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',\n            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',\n            'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36'\n        ]\n        return random.choice(user_agents)\n\ndef retry_on_failure(max_retries=3, delay=1):\n    \"\"\"请求重试装饰器\"\"\"\n    def decorator(func):\n        @wraps(func)\n        def wrapper(*args, **kwargs):\n            for attempt in range(max_retries):\n                try:\n                    return func(*args, **kwargs)\n                except Exception as e:\n                    if attempt == max_retries - 1:\n                        raise\n                    time.sleep(delay * (2 ** attempt))\n            return None\n        return wrapper\n    return decorator\n\ndef clean_html(html_text: str) -> str:\n    \"\"\"清理HTML标签和特殊字符\"\"\"\n    try:\n        soup = BeautifulSoup(html_text, 'lxml')\n        text = soup.get_text()\n        text = re.sub(r'\\s+', ' ', text).strip()\n        return text\n    except Exception:\n        return html_text"
+        },
+        {
+          "step": 4,
+          "description": "实现result_formatter.py模块，标准化和格式化搜索结果",
+          "code_snippet": "from typing import List, Dict, Any\nfrom .utils import clean_html\n\ndef _standardize_results(raw_results: List[Dict], engine: str) -> List[Dict[str, Any]]:\n    \"\"\"标准化不同搜索引擎的结果格式\"\"\"\n    standardized = []\n    for idx, result in enumerate(raw_results, 1):\n        standardized.append({\n            'title': clean_html(result.get('title', '')),\n            'url': result.get('url', ''),\n            'snippet': clean_html(result.get('snippet', '')),\n            'rank': idx,\n            'source': engine\n        })\n    return standardized\n\ndef _format_as_markdown(results: List[Dict]) -> str:\n    \"\"\"将搜索结果格式化为Markdown\"\"\"\n    if not results:\n        return \"无搜索结果\"\n    \n    markdown = \"# 搜索结果\\n\\n\"\n    for result in results:\n        markdown += f\"## {result['rank']}. {result['title']}\\n\"\n        markdown += f\"**链接**: [{result['url']}]({result['url']})\\n\"\n        markdown += f\"**摘要**: {result['snippet']}\\n\"\n        markdown += f\"**来源**: {result['source']}\\n\\n\"\n        markdown += \"---\\n\\n\"\n    return markdown\n\ndef _format_as_text(results: List[Dict]) -> str:\n    \"\"\"将搜索结果格式化为纯文本\"\"\"\n    if not results:\n        return \"无搜索结果\"\n    \n    text = \"搜索结果\\n\" + \"=\"*50 + \"\\n\\n\"\n    for result in results:\n        text += f\"{result['rank']}. {result['title']}\\n\"\n        text += f\"链接: {result['url']}\\n\"\n        text += f\"摘要: {result['snippet']}\\n\"\n        text += f\"来源: {result['source']}\\n\"\n        text += \"-\"*50 + \"\\n\\n\"\n    return text"
+        },
+        {
+          "step": 5,
+          "description": "实现environment_detector.py模块，检测网络环境和选择最佳引擎",
+          "code_snippet": "import requests\nimport time\nfrom concurrent.futures import ThreadPoolExecutor, as_completed\nfrom typing import Dict, Optional\n\nENGINE_TEST_URLS = {\n    'baidu': 'https://www.baidu.com',\n    'sogou': 'https://www.sogou.com',\n    'so360': 'https://www.so.com',\n    'google': 'https://www.google.com',\n    'bing': 'https://www.bing.com',\n    'duckduckgo': 'https://duckduckgo.com'\n}\n\ndef _check_engine_availability(engine: str, timeout: int) -> Dict:\n    \"\"\"检查单个搜索引擎的可用性\"\"\"\n    try:\n        start_time = time.time()\n        response = requests.head(ENGINE_TEST_URLS[engine], timeout=timeout)\n        response_time = int((time.time() - start_time) * 1000)\n        return {\n            'engine': engine,\n            'available': response.status_code < 400,\n            'response_time_ms': response_time,\n            'error': None\n        }\n    except Exception as e:\n        return {\n            'engine': engine,\n            'available': False,\n            'response_time_ms': -1,\n            'error': str(e)\n        }\n\ndef _detect_best_engine(region: str = 'auto', language: str = 'auto') -> str:\n    \"\"\"自动检测最佳搜索引擎\"\"\"\n    if region == 'china':\n        return 'baidu'\n    elif region == 'overseas':\n        return 'google'\n    \n    # Auto detection\n    china_engines = ['baidu', 'sogou', 'so360']\n    overseas_engines = ['google', 'bing', 'duckduckgo']\n    \n    with ThreadPoolExecutor(max_workers=6) as executor:\n        futures = {executor.submit(_check_engine_availability, engine, 3): engine \n                   for engine in china_engines + overseas_engines}\n        \n        available_engines = []\n        for future in as_completed(futures):\n            result = future.result()\n            if result['available']:\n                available_engines.append(result)\n        \n        if not available_engines:\n            return 'baidu'  # Default fallback\n        \n        # Sort by response time\n        available_engines.sort(key=lambda x: x['response_time_ms'])\n        \n        # Prefer engines based on language\n        if language == 'zh-CN':\n            for engine in available_engines:\n                if engine['engine'] in china_engines:\n                    return engine['engine']\n        elif language == 'en-US':\n            for engine in available_engines:\n                if engine['engine'] in overseas_engines:\n                    return engine['engine']\n        \n        return available_engines[0]['engine']"
+        },
+        {
+          "step": 6,
+          "description": "实现engine_adapters.py模块，为每个搜索引擎实现适配器",
+          "code_snippet": "import requests\nfrom bs4 import BeautifulSoup\nfrom typing import List, Dict\nfrom .utils import get_random_user_agent, retry_on_failure, clean_html\nfrom .exceptions import EngineUnavailableError, ParseError\nimport urllib.parse\n\n@retry_on_failure(max_retries=3, delay=1)\ndef _search_baidu(query: str, num_results: int, timeout: int) -> List[Dict]:\n    \"\"\"百度搜索适配器\"\"\"\n    try:\n        url = f\"https://www.baidu.com/s?wd={urllib.parse.quote(query)}&rn={num_results}\"\n        headers = {\n            'User-Agent': get_random_user_agent(),\n            'Referer': 'https://www.baidu.com'\n        }\n        response = requests.get(url, headers=headers, timeout=timeout)\n        response.raise_for_status()\n        \n        soup = BeautifulSoup(response.text, 'lxml')\n        results = []\n        \n        # 百度搜索结果的CSS选择器\n        for item in soup.select('.result.c-container')[:num_results]:\n            title_elem = item.select_one('h3.t a')\n            snippet_elem = item.select_one('.c-abstract')\n            \n            if title_elem:\n                results.append({\n                    'title': title_elem.get_text(strip=True),\n                    'url': title_elem.get('href', ''),\n                    'snippet': snippet_elem.get_text(strip=True) if snippet_elem else ''\n                })\n        \n        return results\n    except requests.RequestException as e:\n        raise EngineUnavailableError('baidu', f\"网络请求失败: {str(e)}\")\n    except Exception as e:\n        raise ParseError('baidu', f\"解析失败: {str(e)}\")\n\n# 类似地实现其他搜索引擎的适配器\n# _search_sogou, _search_so360, _search_google, _search_bing, _search_duckduckgo"
+        },
+        {
+          "step": 7,
+          "description": "实现multi_search_engine.py主文件，整合所有功能并定义@tool函数",
+          "code_snippet": "from strands import tool\nimport json\nfrom typing import Optional\nimport time\nfrom .engine_adapters import (_search_baidu, _search_sogou, _search_so360,\n                               _search_google, _search_bing, _search_duckduckgo)\nfrom .environment_detector import _detect_best_engine, _check_engine_availability\nfrom .result_formatter import _standardize_results, _format_as_markdown, _format_as_text\nfrom .exceptions import SearchEngineError\n\nENGINE_MAP = {\n    'baidu': _search_baidu,\n    'sogou': _search_sogou,\n    'so360': _search_so360,\n    'google': _search_google,\n    'bing': _search_bing,\n    'duckduckgo': _search_duckduckgo\n}\n\n@tool\ndef search(query: str, engine: str = 'auto', num_results: int = 10, \n           language: str = 'auto', region: str = 'auto', timeout: int = 15,\n           format: str = 'json', include_metadata: bool = True) -> str:\n    \"\"\"统一的搜索接口，支持多个搜索引擎，自动适配网络环境\n    \n    Args:\n        query: 搜索关键词或查询语句\n        engine: 指定搜索引擎（baidu/sogou/so360/google/bing/duckduckgo/auto）\n        num_results: 返回的搜索结果数量，范围1-20\n        language: 搜索结果语言偏好（zh-CN/en-US/auto）\n        region: 地区提示（china/overseas/auto）\n        timeout: 搜索超时时间（秒），范围5-30\n        format: 输出格式（json/markdown/text）\n        include_metadata: 是否包含元数据\n    \n    Returns:\n        str: JSON字符串，包含搜索结果列表和元数据\n    \"\"\"\n    start_time = time.time()\n    \n    # 参数验证\n    if not query or not query.strip():\n        return json.dumps({\n            'status': 'error',\n            'error_type': 'ValidationError',\n            'message': '搜索关键词不能为空'\n        }, ensure_ascii=False)\n    \n    if num_results < 1 or num_results > 20:\n        return json.dumps({\n            'status': 'error',\n            'error_type': 'ValidationError',\n            'message': 'num_results必须在1-20之间'\n        }, ensure_ascii=False)\n    \n    # 自动选择引擎\n    if engine == 'auto':\n        engine = _detect_best_engine(region, language)\n    \n    if engine not in ENGINE_MAP:\n        return json.dumps({\n            'status': 'error',\n            'error_type': 'ValidationError',\n            'message': f'不支持的搜索引擎: {engine}'\n        }, ensure_ascii=False)\n    \n    # 执行搜索\n    try:\n        search_func = ENGINE_MAP[engine]\n        raw_results = search_func(query, num_results, timeout)\n        standardized_results = _standardize_results(raw_results, engine)\n        \n        search_time_ms = int((time.time() - start_time) * 1000)\n        \n        # 构建响应\n        response = {\n            'status': 'success',\n            'engine_used': engine,\n            'query': query,\n            'results': standardized_results,\n            'total_results': len(standardized_results)\n        }\n        \n        if include_metadata:\n            response['metadata'] = {\n                'search_time_ms': search_time_ms,\n                'timestamp': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())\n            }\n        \n        # 格式化输出\n        if format == 'markdown':\n            return _format_as_markdown(standardized_results)\n        elif format == 'text':\n            return _format_as_text(standardized_results)\n        else:\n            return json.dumps(response, ensure_ascii=False, indent=2)\n    \n    except SearchEngineError as e:\n        return json.dumps({\n            'status': 'error',\n            'error_type': e.__class__.__name__,\n            'engine': e.engine,\n            'message': e.message\n        }, ensure_ascii=False)\n    except Exception as e:\n        return json.dumps({\n            'status': 'error',\n            'error_type': 'UnknownError',\n            'message': str(e)\n        }, ensure_ascii=False)"
+        },
+        {
+          "step": 8,
+          "description": "实现check_engine_health工具函数",
+          "code_snippet": "@tool\ndef check_engine_health(engines: str = '', check_timeout: int = 5) -> str:\n    \"\"\"检查搜索引擎的可用性和响应时间\n    \n    Args:\n        engines: 需要检查的搜索引擎列表，JSON数组字符串格式\n        check_timeout: 每个引擎的检查超时时间（秒）\n    \n    Returns:\n        str: JSON字符串，包含各搜索引擎健康状态\n    \"\"\"\n    import json\n    from concurrent.futures import ThreadPoolExecutor, as_completed\n    import time\n    \n    # 解析engines参数\n    try:\n        if engines:\n            engines_list = json.loads(engines)\n        else:\n            engines_list = list(ENGINE_MAP.keys())\n    except json.JSONDecodeError:\n        return json.dumps({\n            'status': 'error',\n            'message': 'engines参数格式错误，应为JSON数组字符串'\n        }, ensure_ascii=False)\n    \n    # 并发检查所有引擎\n    results = []\n    with ThreadPoolExecutor(max_workers=6) as executor:\n        futures = {executor.submit(_check_engine_availability, engine, check_timeout): engine \n                   for engine in engines_list}\n        \n        for future in as_completed(futures):\n            results.append(future.result())\n    \n    return json.dumps({\n        'status': 'success',\n        'check_time': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),\n        'engines_status': results\n    }, ensure_ascii=False, indent=2)"
+        },
+        {
+          "step": 9,
+          "description": "实现filter_and_sort_results工具函数",
+          "code_snippet": "@tool\ndef filter_and_sort_results(results_json: str, filter_keywords: str = '', \n                             exclude_keywords: str = '', sort_by: str = 'relevance',\n                             deduplicate: bool = True) -> str:\n    \"\"\"对搜索结果进行过滤和自定义排序\n    \n    Args:\n        results_json: 待处理的搜索结果JSON字符串\n        filter_keywords: 过滤关键词列表，JSON数组字符串格式\n        exclude_keywords: 排除关键词列表，JSON数组字符串格式\n        sort_by: 排序方式（relevance/date/random）\n        deduplicate: 是否去除重复结果\n    \n    Returns:\n        str: JSON字符串，包含过滤和排序后的搜索结果\n    \"\"\"\n    import json\n    import random\n    \n    try:\n        # 解析输入\n        data = json.loads(results_json)\n        results = data.get('results', [])\n        original_count = len(results)\n        \n        # 解析过滤关键词\n        filter_kw = json.loads(filter_keywords) if filter_keywords else []\n        exclude_kw = json.loads(exclude_keywords) if exclude_keywords else []\n        \n        # 过滤\n        if filter_kw:\n            results = [r for r in results if any(kw.lower() in (r['title'] + r['snippet']).lower() for kw in filter_kw)]\n        \n        if exclude_kw:\n            results = [r for r in results if not any(kw.lower() in (r['title'] + r['snippet']).lower() for kw in exclude_kw)]\n        \n        # 去重\n        if deduplicate:\n            seen_urls = set()\n            unique_results = []\n            for r in results:\n                if r['url'] not in seen_urls:\n                    seen_urls.add(r['url'])\n                    unique_results.append(r)\n            results = unique_results\n        \n        # 排序\n        if sort_by == 'random':\n            random.shuffle(results)\n        elif sort_by == 'date':\n            # 简单实现：保持原序（实际需要从snippet中提取日期）\n            pass\n        # relevance: 保持原序\n        \n        return json.dumps({\n            'status': 'success',\n            'original_count': original_count,\n            'filtered_count': len(results),\n            'results': results\n        }, ensure_ascii=False, indent=2)\n    \n    except json.JSONDecodeError as e:\n        return json.dumps({\n            'status': 'error',\n            'message': f'JSON解析错误: {str(e)}'\n        }, ensure_ascii=False)\n    except Exception as e:\n        return json.dumps({\n            'status': 'error',\n            'message': f'处理失败: {str(e)}'\n        }, ensure_ascii=False)"
+        },
+        {
+          "step": 10,
+          "description": "创建测试文件，验证所有工具功能",
+          "code_snippet": "# test_multi_search_engine.py\nimport json\nfrom multi_search_engine import search, check_engine_health, filter_and_sort_results\n\ndef test_basic_search():\n    \"\"\"测试基本搜索功能\"\"\"\n    result = search(query='人工智能', engine='baidu', num_results=5)\n    data = json.loads(result)\n    assert data['status'] == 'success'\n    assert len(data['results']) > 0\n    print(\"✓ 基本搜索测试通过\")\n\ndef test_auto_engine_selection():\n    \"\"\"测试自动引擎选择\"\"\"\n    result = search(query='artificial intelligence', engine='auto', num_results=5)\n    data = json.loads(result)\n    assert data['status'] == 'success'\n    print(f\"✓ 自动选择引擎: {data['engine_used']}\")\n\ndef test_health_check():\n    \"\"\"测试健康检查\"\"\"\n    result = check_engine_health()\n    data = json.loads(result)\n    assert data['status'] == 'success'\n    assert 'engines_status' in data\n    print(\"✓ 健康检查测试通过\")\n\ndef test_filter_results():\n    \"\"\"测试结果过滤\"\"\"\n    search_result = search(query='机器学习', num_results=10)\n    filtered = filter_and_sort_results(\n        results_json=search_result,\n        filter_keywords='[\"深度学习\", \"神经网络\"]',\n        deduplicate=True\n    )\n    data = json.loads(filtered)\n    assert data['status'] == 'success'\n    print(\"✓ 结果过滤测试通过\")\n\nif __name__ == '__main__':\n    test_basic_search()\n    test_auto_engine_selection()\n    test_health_check()\n    test_filter_results()\n    print(\"\\n所有测试通过！\")"
+        }
+      ]
+    },
+    "dependencies": [
+      {
+        "package": "requests",
+        "version": ">=2.31.0",
+        "purpose": "HTTP请求库，用于访问搜索引擎网页"
+      },
+      {
+        "package": "beautifulsoup4",
+        "version": ">=4.12.0",
+        "purpose": "HTML解析库，用于解析搜索结果页面"
+      },
+      {
+        "package": "lxml",
+        "version": ">=4.9.0",
+        "purpose": "高性能XML/HTML解析器，配合BeautifulSoup使用"
+      },
+      {
+        "package": "urllib3",
+        "version": ">=2.0.0",
+        "purpose": "底层HTTP库，处理连接池和重试逻辑"
+      },
+      {
+        "package": "httpx",
+        "version": ">=0.24.0",
+        "purpose": "现代HTTP客户端，支持异步请求（可选）"
+      },
+      {
+        "package": "fake-useragent",
+        "version": ">=1.4.0",
+        "purpose": "生成随机User-Agent，避免被搜索引擎拦截"
+      },
+      {
+        "package": "python-dotenv",
+        "version": ">=1.0.0",
+        "purpose": "环境变量管理，用于配置API密钥等敏感信息（如果使用API）"
+      }
+    ],
+    "testing_strategy": {
+      "test_cases": [
+        {
+          "test_name": "test_basic_search_baidu",
+          "description": "测试百度基本搜索功能",
+          "input": {
+            "query": "人工智能",
+            "engine": "baidu",
+            "num_results": 5
+          },
+          "expected_output": "{\"status\": \"success\", \"engine_used\": \"baidu\", \"results\": [...], \"total_results\": 5}"
+        },
+        {
+          "test_name": "test_basic_search_google",
+          "description": "测试Google基本搜索功能",
+          "input": {
+            "query": "artificial intelligence",
+            "engine": "google",
+            "num_results": 5
+          },
+          "expected_output": "{\"status\": \"success\", \"engine_used\": \"google\", \"results\": [...], \"total_results\": 5}"
+        },
+        {
+          "test_name": "test_auto_engine_selection",
+          "description": "测试自动引擎选择功能",
+          "input": {
+            "query": "machine learning",
+            "engine": "auto",
+            "region": "auto",
+            "language": "auto"
+          },
+          "expected_output": "{\"status\": \"success\", \"engine_used\": \"baidu或google等\", \"results\": [...]}"
+        },
+        {
+          "test_name": "test_region_china",
+          "description": "测试中国地区优先选择",
+          "input": {
+            "query": "深度学习",
+            "engine": "auto",
+            "region": "china",
+            "language": "zh-CN"
+          },
+          "expected_output": "{\"status\": \"success\", \"engine_used\": \"baidu\", \"results\": [...]}"
+        },
+        {
+          "test_name": "test_region_overseas",
+          "description": "测试海外地区优先选择",
+          "input": {
+            "query": "deep learning",
+            "engine": "auto",
+            "region": "overseas",
+            "language": "en-US"
+          },
+          "expected_output": "{\"status\": \"success\", \"engine_used\": \"google\", \"results\": [...]}"
+        },
+        {
+          "test_name": "test_health_check_all",
+          "description": "测试所有搜索引擎健康检查",
+          "input": {
+            "engines": "",
+            "check_timeout": 5
+          },
+          "expected_output": "{\"status\": \"success\", \"engines_status\": [{\"engine\": \"baidu\", \"available\": true, \"response_time_ms\": 150}, ...]}"
+        },
+        {
+          "test_name": "test_health_check_specific",
+          "description": "测试指定搜索引擎健康检查",
+          "input": {
+            "engines": "[\"baidu\", \"google\"]",
+            "check_timeout": 5
+          },
+          "expected_output": "{\"status\": \"success\", \"engines_status\": [{\"engine\": \"baidu\", \"available\": true}, {\"engine\": \"google\", \"available\": true}]}"
+        },
+        {
+          "test_name": "test_filter_with_keywords",
+          "description": "测试关键词过滤功能",
+          "input": {
+            "results_json": "{\"results\": [...]}",
+            "filter_keywords": "[\"AI\", \"机器学习\"]",
+            "exclude_keywords": "[]",
+            "deduplicate": true
+          },
+          "expected_output": "{\"status\": \"success\", \"original_count\": 10, \"filtered_count\": 5, \"results\": [...]}"
+        },
+        {
+          "test_name": "test_exclude_keywords",
+          "description": "测试排除关键词功能",
+          "input": {
+            "results_json": "{\"results\": [...]}",
+            "filter_keywords": "[]",
+            "exclude_keywords": "[\"广告\", \"推广\"]",
+            "deduplicate": true
+          },
+          "expected_output": "{\"status\": \"success\", \"filtered_count\": 8, \"results\": [...]}"
+        },
+        {
+          "test_name": "test_deduplicate",
+          "description": "测试去重功能",
+          "input": {
+            "results_json": "{\"results\": [{\"url\": \"http://example.com\"}, {\"url\": \"http://example.com\"}, {\"url\": \"http://example2.com\"}]}",
+            "deduplicate": true
+          },
+          "expected_output": "{\"status\": \"success\", \"filtered_count\": 2, \"results\": [...]}"
+        },
+        {
+          "test_name": "test_markdown_format",
+          "description": "测试Markdown输出格式",
+          "input": {
+            "query": "Python教程",
+            "engine": "baidu",
+            "format": "markdown"
+          },
+          "expected_output": "# 搜索结果\\n\\n## 1. Python教程\\n**链接**: [...]\\n..."
+        },
+        {
+          "test_name": "test_text_format",
+          "description": "测试纯文本输出格式",
+          "input": {
+            "query": "Java教程",
+            "engine": "baidu",
+            "format": "text"
+          },
+          "expected_output": "搜索结果\\n==========\\n1. Java教程\\n链接: ...\\n..."
+        },
+        {
+          "test_name": "test_empty_query_error",
+          "description": "测试空查询错误处理",
+          "input": {
+            "query": "",
+            "engine": "baidu"
+          },
+          "expected_output": "{\"status\": \"error\", \"error_type\": \"ValidationError\", \"message\": \"搜索关键词不能为空\"}"
+        },
+        {
+          "test_name": "test_invalid_engine_error",
+          "description": "测试无效引擎错误处理",
+          "input": {
+            "query": "test",
+            "engine": "invalid_engine"
+          },
+          "expected_output": "{\"status\": \"error\", \"error_type\": \"ValidationError\", \"message\": \"不支持的搜索引擎: invalid_engine\"}"
+        },
+        {
+          "test_name": "test_invalid_num_results",
+          "description": "测试无效结果数量错误处理",
+          "input": {
+            "query": "test",
+            "engine": "baidu",
+            "num_results": 100
+          },
+          "expected_output": "{\"status\": \"error\", \"error_type\": \"ValidationError\", \"message\": \"num_results必须在1-20之间\"}"
+        },
+        {
+          "test_name": "test_timeout_handling",
+          "description": "测试超时错误处理",
+          "input": {
+            "query": "test",
+            "engine": "baidu",
+            "timeout": 1
+          },
+          "expected_output": "{\"status\": \"error\", \"error_type\": \"EngineUnavailableError\", \"message\": \"...超时...\"}"
+        },
+        {
+          "test_name": "test_all_engines_unavailable",
+          "description": "测试所有引擎不可用场景",
+          "input": "模拟网络完全不可用的情况",
+          "expected_output": "{\"status\": \"error\", \"message\": \"所有搜索引擎都不可用，请检查网络连接\"}"
+        }
+      ]
+    }
+  }
+}

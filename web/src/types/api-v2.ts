@@ -297,6 +297,8 @@ export interface BuildDashboardMetrics {
 export interface BuildDashboardData {
   project_id: string;
   project_name?: string;
+  workflow_type?: 'agent_build' | 'agent_update' | 'tool_build';
+  local_project_dir?: string;
   status: ProjectStatus;
   progress: number;
   requirement?: string;
@@ -460,3 +462,49 @@ export type ToolTestResponse = APIResponse<ToolTestResult>;
 export type ToolCategoriesResponse = APIResponse<ToolCategoriesData>;
 export type MCPServerListResponse = APIResponse<MCPServerListData>;
 export type MCPServerDetailResponse = APIResponse<MCPServerInfo>;
+
+
+// ============== Workflow 类型 ==============
+
+export type WorkflowType = 'agent_build' | 'agent_update' | 'tool_build' | 'magician';
+
+export interface UpdateAgentRequest {
+  agent_id: string;
+  update_requirement: string;
+  user_id?: string;
+  user_name?: string;
+  priority?: number;
+}
+
+export interface BuildToolRequest {
+  tool_name?: string;
+  requirement: string;
+  category?: string;
+  target_agent?: string;
+  user_id?: string;
+  user_name?: string;
+  priority?: number;
+  tags?: string[];
+}
+
+export interface WorkflowCreateResult {
+  project_id: string;
+  task_id: string;
+  project_name: string;
+  workflow_type: WorkflowType;
+  status: ProjectStatus;
+  message: string;
+}
+
+export interface WorkflowTypeInfo {
+  type: WorkflowType;
+  name: string;
+  display_name: string;
+  description: string;
+  stages_count: number;
+  enabled: boolean;
+}
+
+export type UpdateAgentResponse = APIResponse<WorkflowCreateResult>;
+export type BuildToolResponse = APIResponse<WorkflowCreateResult>;
+export type WorkflowTypesResponse = APIResponse<WorkflowTypeInfo[]>;

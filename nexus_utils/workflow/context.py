@@ -305,6 +305,9 @@ class WorkflowContextManager:
         except ValueError:
             status = StageStatus.PENDING
         
+        # 获取工作流类型
+        workflow_type = project.get('workflow_type', 'agent_build')
+        
         # 创建上下文
         context = WorkflowContext(
             project_id=project_id,
@@ -322,6 +325,7 @@ class WorkflowContextManager:
             pause_requested_at=pause_requested_at,
             stop_requested_at=stop_requested_at,
             resume_from_stage=project.get('resume_from_stage'),
+            workflow_type=workflow_type,
         )
         
         return context

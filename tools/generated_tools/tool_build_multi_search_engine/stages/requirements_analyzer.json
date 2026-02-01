@@ -1,0 +1,286 @@
+{
+  "requirements_document": {
+    "tool_name": "multi_search_engine",
+    "version": "1.0",
+    "date": "2026-01-31",
+    "overview": "通用多搜索引擎访问工具，为Agent提供统一的搜索接口，支持国内外主流搜索引擎的查询功能。工具能够自动适配网络环境，根据可用性智能选择最佳搜索引擎，并对搜索结果进行标准化处理，确保Agent在中国境内和海外都能获得高质量的搜索服务。",
+    "functional_requirements": [
+      {
+        "id": "FR-001",
+        "title": "多搜索引擎支持",
+        "description": "支持多个国内外主流搜索引擎，包括百度、搜狗、360搜索、Google、Bing、DuckDuckGo等，提供灵活的搜索引擎选择机制",
+        "input_parameters": [
+          {
+            "name": "query",
+            "type": "string",
+            "required": true,
+            "description": "搜索关键词或查询语句"
+          },
+          {
+            "name": "engine",
+            "type": "string",
+            "required": false,
+            "description": "指定搜索引擎（baidu/sogou/so360/google/bing/duckduckgo/auto），默认为auto自动选择",
+            "default": "auto"
+          },
+          {
+            "name": "num_results",
+            "type": "integer",
+            "required": false,
+            "description": "返回的搜索结果数量，范围1-20",
+            "default": "10"
+          },
+          {
+            "name": "language",
+            "type": "string",
+            "required": false,
+            "description": "搜索结果语言偏好（zh-CN/en-US/auto），默认为auto",
+            "default": "auto"
+          }
+        ],
+        "output_format": {
+          "type": "JSON string",
+          "description": "包含搜索结果列表的JSON字符串，每个结果包含标题、链接、摘要和来源引擎",
+          "example": "{\"status\": \"success\", \"engine_used\": \"baidu\", \"query\": \"人工智能\", \"results\": [{\"title\": \"人工智能_百度百科\", \"url\": \"https://baike.baidu.com/item/人工智能\", \"snippet\": \"人工智能是计算机科学的一个分支...\", \"rank\": 1}], \"total_results\": 10, \"search_time_ms\": 235}"
+        },
+        "use_cases": [
+          "Agent需要搜索最新的技术资料",
+          "Agent需要查找特定主题的参考信息",
+          "Agent需要验证事实信息的准确性",
+          "Agent需要在不同地区环境下进行搜索"
+        ],
+        "error_handling": [
+          "搜索引擎不可用时自动切换到备用引擎",
+          "网络连接失败时返回友好错误信息",
+          "查询参数无效时返回参数错误提示",
+          "搜索结果为空时返回空结果集而非错误"
+        ]
+      },
+      {
+        "id": "FR-002",
+        "title": "自动环境适配",
+        "description": "根据网络环境自动检测并选择可用的搜索引擎，优先使用访问速度快且可靠的引擎",
+        "input_parameters": [
+          {
+            "name": "region",
+            "type": "string",
+            "required": false,
+            "description": "地区提示（china/overseas/auto），用于优化搜索引擎选择策略",
+            "default": "auto"
+          },
+          {
+            "name": "timeout",
+            "type": "integer",
+            "required": false,
+            "description": "搜索超时时间（秒），范围5-30",
+            "default": "15"
+          }
+        ],
+        "output_format": {
+          "type": "JSON string",
+          "description": "包含环境检测结果和推荐搜索引擎的JSON字符串",
+          "example": "{\"status\": \"success\", \"region_detected\": \"china\", \"available_engines\": [\"baidu\", \"sogou\", \"bing\"], \"recommended_engine\": \"baidu\", \"detection_time_ms\": 120}"
+        },
+        "use_cases": [
+          "Agent在不同网络环境中启动时自动配置",
+          "搜索失败时自动切换到可用引擎",
+          "根据地理位置优化搜索引擎选择"
+        ],
+        "error_handling": [
+          "无法检测网络环境时使用保守策略",
+          "所有搜索引擎都不可用时返回明确错误",
+          "检测超时时使用默认配置"
+        ]
+      },
+      {
+        "id": "FR-003",
+        "title": "结果标准化处理",
+        "description": "将不同搜索引擎返回的结果统一为标准格式，包括标题、链接、摘要、排名等信息",
+        "input_parameters": [
+          {
+            "name": "format",
+            "type": "string",
+            "required": false,
+            "description": "输出格式（json/markdown/text），默认为json",
+            "default": "json"
+          },
+          {
+            "name": "include_metadata",
+            "type": "boolean",
+            "required": false,
+            "description": "是否包含元数据（搜索时间、引擎信息等）",
+            "default": "true"
+          }
+        ],
+        "output_format": {
+          "type": "JSON string",
+          "description": "标准化后的搜索结果，包含统一的字段结构",
+          "example": "{\"status\": \"success\", \"results\": [{\"title\": \"标题\", \"url\": \"链接\", \"snippet\": \"摘要\", \"rank\": 1, \"source\": \"baidu\"}], \"metadata\": {\"query\": \"查询词\", \"engine\": \"baidu\", \"timestamp\": \"2026-01-31T16:00:00Z\"}}"
+        },
+        "use_cases": [
+          "Agent需要以统一格式处理不同来源的搜索结果",
+          "需要将搜索结果转换为Markdown格式展示",
+          "需要提取关键信息进行进一步分析"
+        ],
+        "error_handling": [
+          "解析失败时返回原始结果和错误信息",
+          "部分字段缺失时使用默认值填充",
+          "格式转换失败时回退到JSON格式"
+        ]
+      },
+      {
+        "id": "FR-004",
+        "title": "搜索引擎健康检查",
+        "description": "提供搜索引擎可用性检查功能，帮助Agent了解当前环境下哪些搜索引擎可用",
+        "input_parameters": [
+          {
+            "name": "engines",
+            "type": "list",
+            "required": false,
+            "description": "需要检查的搜索引擎列表，为空时检查所有支持的引擎",
+            "default": "[]"
+          },
+          {
+            "name": "check_timeout",
+            "type": "integer",
+            "required": false,
+            "description": "每个引擎的检查超时时间（秒）",
+            "default": "5"
+          }
+        ],
+        "output_format": {
+          "type": "JSON string",
+          "description": "包含各搜索引擎健康状态的JSON字符串",
+          "example": "{\"status\": \"success\", \"check_time\": \"2026-01-31T16:00:00Z\", \"engines_status\": [{\"engine\": \"baidu\", \"available\": true, \"response_time_ms\": 150}, {\"engine\": \"google\", \"available\": false, \"error\": \"Connection timeout\"}]}"
+        },
+        "use_cases": [
+          "系统启动时进行健康检查",
+          "定期监控搜索引擎可用性",
+          "诊断搜索功能问题"
+        ],
+        "error_handling": [
+          "单个引擎检查失败不影响其他引擎",
+          "全部检查超时时返回部分结果",
+          "网络完全不可用时返回明确提示"
+        ]
+      },
+      {
+        "id": "FR-005",
+        "title": "搜索结果过滤和排序",
+        "description": "提供结果过滤和自定义排序功能，支持按相关性、时间等维度筛选和排序",
+        "input_parameters": [
+          {
+            "name": "filter_keywords",
+            "type": "list",
+            "required": false,
+            "description": "过滤关键词列表，只返回包含这些关键词的结果",
+            "default": "[]"
+          },
+          {
+            "name": "exclude_keywords",
+            "type": "list",
+            "required": false,
+            "description": "排除关键词列表，过滤掉包含这些关键词的结果",
+            "default": "[]"
+          },
+          {
+            "name": "sort_by",
+            "type": "string",
+            "required": false,
+            "description": "排序方式（relevance/date/random），默认为relevance",
+            "default": "relevance"
+          },
+          {
+            "name": "deduplicate",
+            "type": "boolean",
+            "required": false,
+            "description": "是否去除重复结果",
+            "default": "true"
+          }
+        ],
+        "output_format": {
+          "type": "JSON string",
+          "description": "过滤和排序后的搜索结果",
+          "example": "{\"status\": \"success\", \"original_count\": 50, \"filtered_count\": 10, \"results\": [{\"title\": \"...\", \"url\": \"...\", \"snippet\": \"...\"}]}"
+        },
+        "use_cases": [
+          "需要精确匹配特定主题的搜索结果",
+          "需要排除广告或不相关内容",
+          "需要对多个来源的结果进行去重"
+        ],
+        "error_handling": [
+          "过滤条件过严导致结果为空时提示放宽条件",
+          "排序参数无效时使用默认排序",
+          "去重失败时返回原始结果"
+        ]
+      }
+    ],
+    "dependencies": [
+      {
+        "package": "requests",
+        "version": ">=2.31.0",
+        "purpose": "HTTP请求库，用于访问搜索引擎API或网页"
+      },
+      {
+        "package": "beautifulsoup4",
+        "version": ">=4.12.0",
+        "purpose": "HTML解析库，用于解析搜索结果页面"
+      },
+      {
+        "package": "lxml",
+        "version": ">=4.9.0",
+        "purpose": "高性能XML/HTML解析器，配合BeautifulSoup使用"
+      },
+      {
+        "package": "urllib3",
+        "version": ">=2.0.0",
+        "purpose": "底层HTTP库，处理连接池和重试逻辑"
+      },
+      {
+        "package": "httpx",
+        "version": ">=0.24.0",
+        "purpose": "现代HTTP客户端，支持异步请求（可选）"
+      },
+      {
+        "package": "fake-useragent",
+        "version": ">=1.4.0",
+        "purpose": "生成随机User-Agent，避免被搜索引擎拦截"
+      },
+      {
+        "package": "python-dotenv",
+        "version": ">=1.0.0",
+        "purpose": "环境变量管理，用于配置API密钥等敏感信息（如果使用API）"
+      }
+    ],
+    "constraints": {
+      "technical": [
+        "必须使用@tool装饰器，符合Strands SDK规范",
+        "所有函数必须返回JSON字符串或明确的错误信息字符串",
+        "必须处理网络超时、连接失败等异常情况",
+        "需要实现请求频率限制，避免被搜索引擎封禁",
+        "必须支持代理配置，以适应不同网络环境",
+        "需要实现User-Agent轮换机制",
+        "搜索结果必须包含足够的元数据用于溯源",
+        "代码必须具有良好的错误处理和日志记录"
+      ],
+      "business": [
+        "必须遵守各搜索引擎的服务条款和robots.txt规则",
+        "不得用于恶意爬取或DDoS攻击",
+        "需要尊重搜索引擎的访问频率限制",
+        "对于需要API密钥的搜索引擎，必须安全存储凭证",
+        "搜索内容不得违反法律法规",
+        "必须提供清晰的数据来源标识"
+      ]
+    },
+    "success_criteria": [
+      "成功实现至少6个搜索引擎的支持（3个国内+3个海外）",
+      "自动环境检测准确率达到90%以上",
+      "搜索响应时间在正常网络环境下不超过5秒",
+      "结果解析成功率达到95%以上",
+      "能够处理至少95%的常见错误场景并返回友好提示",
+      "所有工具函数都通过单元测试",
+      "生成完整的使用文档和示例代码",
+      "工具能够在中国境内和海外环境下稳定运行"
+    ]
+  }
+}

@@ -3458,5 +3458,319 @@ def service_logs(ctx, show_api, show_worker, show_web, lines, follow):
             click.echo(log_content if log_content else "(empty)")
 
 
+# ============================================================================
+# WORKFLOW COMMANDS
+# ============================================================================
+
+@cli.group()
+def workflow():
+    """Manage workflows (Agent Update, Tool Build)
+    
+    \b
+    SUBCOMMANDS:
+      update-agent    Trigger Agent update workflow
+      build-tool      Trigger Tool build workflow
+      status          Check workflow status
+      types           List available workflow types
+    
+    \b
+    EXAMPLES:
+      nexus-cli workflow update-agent my-agent --requirement "Add new feature"
+      nexus-cli workflow build-tool --requirement "Create a web scraper tool"
+      nexus-cli workflow status <project-id>
+      nexus-cli workflow types
+    """
+    pass
+
+
+@workflow.command('update-agent')
+@click.argument('agent_id')
+@click.option('--requirement', '-r', required=True, help='Update requirement description')
+@click.option('--user-id', help='User ID')
+@click.option('--user-name', help='User name')
+@click.option('--priority', '-p', type=click.IntRange(1, 5), default=3, help='Priority (1-5)')
+@click.option('--api-url', default='http://localhost:8000', help='API server URL')
+@click.option('--output', '-o', type=click.Choice(['json', 'text']), default='text', help='Output format')
+@click.pass_obj
+def workflow_update_agent(ctx, agent_id, requirement, user_id, user_name, priority, api_url, output):
+    """Trigger Agent update workflow
+    
+    Updates an existing Agent based on the provided requirements.
+    The workflow will analyze the update needs and modify tools,
+    prompts, and agent code as necessary.
+    
+    \b
+    EXAMPLES:
+      # Update agent with new feature
+      nexus-cli workflow update-agent my-agent -r "Add support for PDF parsing"
+      
+      # Update with priority
+      nexus-cli workflow update-agent my-agent -r "Fix bug in data processing" -p 5
+      
+      # JSON output
+      nexus-cli workflow update-agent my-agent -r "Update API endpoints" -o json
+    """
+    from .managers.workflow_manager import WorkflowManager
+    
+    try:
+        wm = WorkflowManager(ctx.fs_adapter, ctx.config_loader, api_url)
+        
+        click.echo(f"Triggering Agent update workflow for: {agent_id}")
+        click.echo(f"Requirement: {requirement[:100]}{'...' if len(requirement) > 100 else ''}")
+        click.echo()
+        
+        result = wm.trigger_agent_update(
+            agent_id=agent_id,
+            update_requirement=requirement,
+            user_id=user_id,
+            user_name=user_name,
+            priority=priority
+        )
+        
+        if output == 'json':
+            import json
+            click.echo(json.dumps({
+                'success': result.success,
+                'project_id': result.project_id,
+                'task_id': result.task_id,
+                'workflow_type': result.workflow_type,
+                'message': result.message,
+                'data': result.data
+            }, indent=2, ensure_ascii=False))
+        else:
+            if result.success:
+                click.secho("✓ Agent update workflow triggered successfully!", fg='green')
+                click.echo()
+                click.echo(f"  Project ID: {result.project_id}")
+                click.echo(f"  Task ID:    {result.task_id}")
+                click.echo()
+                click.echo("Track progress with:")
+                click.echo(f"  nexus-cli workflow status {result.project_id}")
+            else:
+                click.secho(f"✗ Failed to trigger workflow: {result.message}", fg='red', err=True)
+                sys.exit(1)
+    
+    except ConnectionError as e:
+        click.secho(f"✗ Connection error: {e}", fg='red', err=True)
+        click.echo("Make sure the API server is running: nexus-cli service start --api")
+        sys.exit(1)
+    except Exception as e:
+        click.secho(f"✗ Error: {e}", fg='red', err=True)
+        sys.exit(1)
+
+
+@workflow.command('build-tool')
+@click.option('--requirement', '-r', required=True, help='Tool requirement description')
+@click.option('--name', '-n', help='Tool name (auto-generated if not provided)')
+@click.option('--category', '-c', help='Tool category')
+@click.option('--target-agent', '-t', help='Target Agent to integrate with')
+@click.option('--user-id', help='User ID')
+@click.option('--user-name', help='User name')
+@click.option('--priority', '-p', type=click.IntRange(1, 5), default=3, help='Priority (1-5)')
+@click.option('--tags', help='Comma-separated tags')
+@click.option('--api-url', default='http://localhost:8000', help='API server URL')
+@click.option('--output', '-o', type=click.Choice(['json', 'text']), default='text', help='Output format')
+@click.pass_obj
+def workflow_build_tool(ctx, requirement, name, category, target_agent, user_id, user_name, priority, tags, api_url, output):
+    """Trigger Tool build workflow
+    
+    Builds a new tool based on the provided requirements.
+    The workflow will analyze requirements, design the tool interface,
+    develop the code, validate functionality, and generate documentation.
+    
+    \b
+    EXAMPLES:
+      # Build a simple tool
+      nexus-cli workflow build-tool -r "Create a tool to fetch weather data from OpenWeather API"
+      
+      # Build with name and category
+      nexus-cli workflow build-tool -r "Web scraper for news sites" -n news_scraper -c network
+      
+      # Build for specific agent
+      nexus-cli workflow build-tool -r "Database query tool" -t my-data-agent
+      
+      # With tags
+      nexus-cli workflow build-tool -r "PDF parser" --tags "document,parser,pdf"
+    """
+    from .managers.workflow_manager import WorkflowManager
+    
+    try:
+        wm = WorkflowManager(ctx.fs_adapter, ctx.config_loader, api_url)
+        
+        click.echo(f"Triggering Tool build workflow")
+        click.echo(f"Requirement: {requirement[:100]}{'...' if len(requirement) > 100 else ''}")
+        if name:
+            click.echo(f"Tool name: {name}")
+        click.echo()
+        
+        # 解析标签
+        tag_list = [t.strip() for t in tags.split(',')] if tags else None
+        
+        result = wm.trigger_tool_build(
+            requirement=requirement,
+            tool_name=name,
+            category=category,
+            target_agent=target_agent,
+            user_id=user_id,
+            user_name=user_name,
+            priority=priority,
+            tags=tag_list
+        )
+        
+        if output == 'json':
+            import json
+            click.echo(json.dumps({
+                'success': result.success,
+                'project_id': result.project_id,
+                'task_id': result.task_id,
+                'workflow_type': result.workflow_type,
+                'message': result.message,
+                'data': result.data
+            }, indent=2, ensure_ascii=False))
+        else:
+            if result.success:
+                click.secho("✓ Tool build workflow triggered successfully!", fg='green')
+                click.echo()
+                click.echo(f"  Project ID: {result.project_id}")
+                click.echo(f"  Task ID:    {result.task_id}")
+                if result.data and result.data.get('tool_name'):
+                    click.echo(f"  Tool Name:  {result.data.get('tool_name')}")
+                click.echo()
+                click.echo("Track progress with:")
+                click.echo(f"  nexus-cli workflow status {result.project_id}")
+            else:
+                click.secho(f"✗ Failed to trigger workflow: {result.message}", fg='red', err=True)
+                sys.exit(1)
+    
+    except ConnectionError as e:
+        click.secho(f"✗ Connection error: {e}", fg='red', err=True)
+        click.echo("Make sure the API server is running: nexus-cli service start --api")
+        sys.exit(1)
+    except Exception as e:
+        click.secho(f"✗ Error: {e}", fg='red', err=True)
+        sys.exit(1)
+
+
+@workflow.command('status')
+@click.argument('project_id')
+@click.option('--api-url', default='http://localhost:8000', help='API server URL')
+@click.option('--output', '-o', type=click.Choice(['json', 'text']), default='text', help='Output format')
+@click.pass_obj
+def workflow_status(ctx, project_id, api_url, output):
+    """Check workflow status
+    
+    Shows the current status of a workflow including completed stages,
+    pending stages, and any error information.
+    
+    \b
+    EXAMPLES:
+      nexus-cli workflow status abc123-def456
+      nexus-cli workflow status abc123-def456 -o json
+    """
+    from .managers.workflow_manager import WorkflowManager
+    
+    try:
+        wm = WorkflowManager(ctx.fs_adapter, ctx.config_loader, api_url)
+        
+        status = wm.get_workflow_status(project_id)
+        
+        if output == 'json':
+            import json
+            click.echo(json.dumps(status, indent=2, ensure_ascii=False))
+        else:
+            if 'error' in status:
+                click.secho(f"✗ Error: {status['error']}", fg='red', err=True)
+                sys.exit(1)
+            
+            click.echo(f"Workflow Status: {project_id}")
+            click.echo("=" * 60)
+            click.echo()
+            click.echo(f"  Type:           {status.get('workflow_type', 'N/A')}")
+            click.echo(f"  Status:         {status.get('status', 'N/A')}")
+            click.echo(f"  Control Status: {status.get('control_status', 'N/A')}")
+            click.echo(f"  Current Stage:  {status.get('current_stage', 'N/A')}")
+            click.echo(f"  Progress:       {status.get('progress', 0):.1f}%")
+            click.echo()
+            
+            completed = status.get('completed_stages', [])
+            pending = status.get('pending_stages', [])
+            
+            if completed:
+                click.secho("  Completed Stages:", fg='green')
+                for stage in completed:
+                    click.echo(f"    ✓ {stage}")
+            
+            if pending:
+                click.secho("  Pending Stages:", fg='yellow')
+                for stage in pending:
+                    click.echo(f"    ○ {stage}")
+            
+            error_info = status.get('error_info')
+            if error_info:
+                click.echo()
+                click.secho("  Error Info:", fg='red')
+                click.echo(f"    {error_info.get('message', 'Unknown error')}")
+    
+    except ConnectionError as e:
+        click.secho(f"✗ Connection error: {e}", fg='red', err=True)
+        sys.exit(1)
+    except Exception as e:
+        click.secho(f"✗ Error: {e}", fg='red', err=True)
+        sys.exit(1)
+
+
+@workflow.command('types')
+@click.option('--api-url', default='http://localhost:8000', help='API server URL')
+@click.option('--output', '-o', type=click.Choice(['json', 'table']), default='table', help='Output format')
+@click.pass_obj
+def workflow_types(ctx, api_url, output):
+    """List available workflow types
+    
+    Shows all workflow types supported by the system.
+    
+    \b
+    EXAMPLES:
+      nexus-cli workflow types
+      nexus-cli workflow types -o json
+    """
+    from .managers.workflow_manager import WorkflowManager
+    
+    try:
+        wm = WorkflowManager(ctx.fs_adapter, ctx.config_loader, api_url)
+        
+        types = wm.list_workflow_types()
+        
+        if output == 'json':
+            import json
+            click.echo(json.dumps(types, indent=2, ensure_ascii=False))
+        else:
+            if not types:
+                click.echo("No workflow types available or API not reachable.")
+                return
+            
+            click.echo("Available Workflow Types")
+            click.echo("=" * 60)
+            click.echo()
+            
+            for wf in types:
+                enabled_mark = "✓" if wf.get('enabled') else "✗"
+                enabled_color = 'green' if wf.get('enabled') else 'red'
+                
+                click.echo(f"  {wf.get('type', 'N/A')}")
+                click.echo(f"    Name:        {wf.get('display_name', wf.get('name', 'N/A'))}")
+                click.echo(f"    Description: {wf.get('description', 'N/A')}")
+                click.echo(f"    Stages:      {wf.get('stages_count', 0)}")
+                click.secho(f"    Enabled:     {enabled_mark}", fg=enabled_color)
+                click.echo()
+    
+    except ConnectionError as e:
+        click.secho(f"✗ Connection error: {e}", fg='red', err=True)
+        click.echo("Make sure the API server is running: nexus-cli service start --api")
+        sys.exit(1)
+    except Exception as e:
+        click.secho(f"✗ Error: {e}", fg='red', err=True)
+        sys.exit(1)
+
+
 if __name__ == '__main__':
     main()

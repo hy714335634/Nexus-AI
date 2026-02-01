@@ -17,14 +17,20 @@ from enum import Enum
 from typing import Optional, List, Dict, Any
 
 
-def _get_stage_sequence() -> List[str]:
+def _get_stage_sequence(workflow_type: str = "agent_build") -> List[str]:
     """
     从统一配置模块获取阶段顺序
     
     延迟导入以避免循环依赖
+    
+    参数:
+        workflow_type: 工作流类型，默认为 'agent_build'
+        
+    返回:
+        List[str]: 阶段名称列表
     """
-    from api.v2.core.stage_config import STAGE_SEQUENCE
-    return STAGE_SEQUENCE.copy()
+    from api.v2.core.stage_config import get_all_stage_names
+    return get_all_stage_names(workflow_type)
 
 
 def _get_stage_order() -> List[str]:
@@ -33,34 +39,48 @@ def _get_stage_order() -> List[str]:
     
     提供模块级别的 STAGE_ORDER 访问，保持向后兼容性
     """
-    return _get_stage_sequence()
+    return _get_stage_sequence("agent_build")
 
 
 # 模块级别导出 - 延迟初始化以避免循环依赖
 # 使用时会从统一配置模块获取最新值
 class _LazyStageOrder:
-    """延迟加载的阶段顺序列表"""
+    """
+    延迟加载的阶段顺序列表
+    
+    默认使用 agent_build 工作流的阶段顺序
+    """
     _cached: List[str] = None
     
     def __iter__(self):
         if self._cached is None:
-            self._cached = _get_stage_sequence()
+            self._cached = _get_stage_sequence("agent_build")
         return iter(self._cached)
     
     def __getitem__(self, index):
         if self._cached is None:
-            self._cached = _get_stage_sequence()
+            self._cached = _get_stage_sequence("agent_build")
         return self._cached[index]
     
     def __len__(self):
         if self._cached is None:
-            self._cached = _get_stage_sequence()
+            self._cached = _get_stage_sequence("agent_build")
         return len(self._cached)
     
     def __repr__(self):
         if self._cached is None:
-            self._cached = _get_stage_sequence()
+            self._cached = _get_stage_sequence("agent_build")
         return repr(self._cached)
+    
+    def __contains__(self, item):
+        if self._cached is None:
+            self._cached = _get_stage_sequence("agent_build")
+        return item in self._cached
+    
+    def index(self, item):
+        if self._cached is None:
+            self._cached = _get_stage_sequence("agent_build")
+        return self._cached.index(item)
 
 
 # 导出模块级别的 STAGE_ORDER
@@ -722,6 +742,7 @@ class WorkflowContext:
         pause_requested_at: 暂停请求时间
         stop_requested_at: 停止请求时间
         resume_from_stage: 恢复起始阶段
+        workflow_type: 工作流类型
     """
     project_id: str
     project_name: str = ""
@@ -738,9 +759,31 @@ class WorkflowContext:
     pause_requested_at: Optional[datetime] = None
     stop_requested_at: Optional[datetime] = None
     resume_from_stage: Optional[str] = None
+    workflow_type: str = "agent_build"
     
-    # 工作流阶段顺序定义 - 从统一配置模块获取
-    STAGE_ORDER: List[str] = field(default_factory=lambda: _get_stage_sequence())
+    # 工作流阶段顺序定义 - 延迟初始化
+    _stage_order: List[str] = field(default_factory=list, repr=False)
+    
+    @property
+    def STAGE_ORDER(self) -> List[str]:
+        """
+        获取工作流阶段顺序
+        
+        根据 workflow_type 动态获取对应的阶段顺序
+        """
+        if not self._stage_order:
+            self._stage_order = _get_stage_sequence(self.workflow_type)
+        return self._stage_order
+    
+    def set_workflow_type(self, workflow_type: str) -> None:
+        """
+        设置工作流类型并更新阶段顺序
+        
+        参数:
+            workflow_type: 工作流类型
+        """
+        self.workflow_type = workflow_type
+        self._stage_order = _get_stage_sequence(workflow_type)
     
     def get_completed_stages(self) -> List[str]:
         """
@@ -859,6 +902,7 @@ class WorkflowContext:
             "pause_requested_at": self.pause_requested_at.isoformat() if self.pause_requested_at else None,
             "stop_requested_at": self.stop_requested_at.isoformat() if self.stop_requested_at else None,
             "resume_from_stage": self.resume_from_stage,
+            "workflow_type": self.workflow_type,
         }
     
     @classmethod
@@ -911,6 +955,9 @@ class WorkflowContext:
         aggregated_metrics_data = data.get("aggregated_metrics", {})
         aggregated_metrics = AggregatedMetrics.from_dict(aggregated_metrics_data) if aggregated_metrics_data else AggregatedMetrics()
         
+        # 获取工作流类型
+        workflow_type = data.get("workflow_type", "agent_build")
+        
         return cls(
             project_id=data.get("project_id", ""),
             project_name=data.get("project_name", ""),
@@ -927,4 +974,5 @@ class WorkflowContext:
             pause_requested_at=pause_requested_at,
             stop_requested_at=stop_requested_at,
             resume_from_stage=data.get("resume_from_stage"),
+            workflow_type=workflow_type,
         )

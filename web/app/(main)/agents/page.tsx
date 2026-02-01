@@ -19,6 +19,7 @@ import {
   MessageSquare,
   Trash2,
   MoreVertical,
+  Network,
 } from 'lucide-react';
 import type { AgentStatus, AgentSummary, AgentDeploymentType } from '@/types/api-v2';
 
@@ -192,12 +193,20 @@ export default function AgentsPage() {
         title="Agent"
         description="管理和监控您的智能 Agent"
         actions={
-          <Link href="/agents/new">
-            <Button className="bg-gradient-to-r from-primary-600 to-accent-600 hover:from-primary-700 hover:to-accent-700">
-              <Plus className="w-4 h-4" />
-              创建 Agent
-            </Button>
-          </Link>
+          <div className="flex gap-3">
+            <Link href="/agents/network">
+              <Button variant="outline">
+                <Network className="w-4 h-4" />
+                交互网络
+              </Button>
+            </Link>
+            <Link href="/agents/new">
+              <Button className="bg-gradient-to-r from-primary-600 to-accent-600 hover:from-primary-700 hover:to-accent-700">
+                <Plus className="w-4 h-4" />
+                创建 Agent
+              </Button>
+            </Link>
+          </div>
         }
       />
 

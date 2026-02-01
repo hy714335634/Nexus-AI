@@ -438,3 +438,76 @@ export function useUpdateMCPServer(
     ...options,
   });
 }
+
+
+// ============== Workflow Hooks ==============
+
+export const workflowKeys = {
+  all: ['v2', 'workflows'] as const,
+  types: () => [...workflowKeys.all, 'types'] as const,
+  status: (projectId: string) => [...workflowKeys.all, 'status', projectId] as const,
+};
+
+// ============== Create Agent Update ==============
+export function useCreateAgentUpdate(
+  options?: UseMutationOptions<
+    import('@/types/api-v2').WorkflowCreateResult,
+    Error,
+    import('@/types/api-v2').UpdateAgentRequest
+  >
+) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (request) => {
+      const response = await apiV2.createAgentUpdate(request);
+      if (!response.data) throw new Error(response.message || '创建 Agent 更新任务失败');
+      return response.data;
+    },
+    onSuccess: () => {
+      // 刷新项目列表
+      queryClient.invalidateQueries({ queryKey: ['v2', 'projects'] });
+    },
+    ...options,
+  });
+}
+
+// ============== Create Tool Build ==============
+export function useCreateToolBuild(
+  options?: UseMutationOptions<
+    import('@/types/api-v2').WorkflowCreateResult,
+    Error,
+    import('@/types/api-v2').BuildToolRequest
+  >
+) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (request) => {
+      const response = await apiV2.createToolBuild(request);
+      if (!response.data) throw new Error(response.message || '创建工具构建任务失败');
+      return response.data;
+    },
+    onSuccess: () => {
+      // 刷新项目列表和工具列表
+      queryClient.invalidateQueries({ queryKey: ['v2', 'projects'] });
+      queryClient.invalidateQueries({ queryKey: toolKeys.lists() });
+    },
+    ...options,
+  });
+}
+
+// ============== Workflow Types ==============
+export function useWorkflowTypes(
+  options?: Omit<UseQueryOptions<import('@/types/api-v2').WorkflowTypeInfo[] | null, Error>, 'queryKey' | 'queryFn'>
+) {
+  return useQuery({
+    queryKey: workflowKeys.types(),
+    queryFn: async () => {
+      const response = await apiV2.listWorkflowTypes();
+      return response.data || null;
+    },
+    staleTime: 60_000,
+    ...options,
+  });
+}

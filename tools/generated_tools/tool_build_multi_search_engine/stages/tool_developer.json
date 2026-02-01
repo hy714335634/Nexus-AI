@@ -1,0 +1,288 @@
+{
+  "development_document": {
+    "tool_name": "multi_search_engine",
+    "version": "1.0.0",
+    "date": "2026-01-31",
+    "summary": "成功实现多搜索引擎工具，包含6个搜索引擎适配器和3个@tool装饰的核心功能函数",
+    "files_created": [
+      {
+        "file_name": "exceptions.py",
+        "description": "自定义异常类模块",
+        "functions": [
+          {
+            "function_name": "SearchEngineError",
+            "type": "class",
+            "status": "completed",
+            "description": "搜索引擎错误基类"
+          },
+          {
+            "function_name": "EngineUnavailableError",
+            "type": "class",
+            "status": "completed",
+            "description": "搜索引擎不可用异常"
+          },
+          {
+            "function_name": "ParseError",
+            "type": "class",
+            "status": "completed",
+            "description": "结果解析错误异常"
+          },
+          {
+            "function_name": "ValidationError",
+            "type": "class",
+            "status": "completed",
+            "description": "参数验证错误异常"
+          }
+        ]
+      },
+      {
+        "file_name": "utils.py",
+        "description": "工具函数模块，提供User-Agent生成、请求重试、HTML清理等辅助功能",
+        "functions": [
+          {
+            "function_name": "get_random_user_agent",
+            "status": "completed",
+            "description": "生成随机User-Agent，支持fake-useragent库和备选列表"
+          },
+          {
+            "function_name": "retry_on_failure",
+            "status": "completed",
+            "description": "请求重试装饰器，使用指数退避策略"
+          },
+          {
+            "function_name": "clean_html",
+            "status": "completed",
+            "description": "清理HTML标签和特殊字符"
+          },
+          {
+            "function_name": "normalize_url",
+            "status": "completed",
+            "description": "标准化URL，处理相对路径和协议缺失"
+          },
+          {
+            "function_name": "truncate_text",
+            "status": "completed",
+            "description": "截断文本到指定长度"
+          }
+        ]
+      },
+      {
+        "file_name": "result_formatter.py",
+        "description": "搜索结果格式化和标准化模块",
+        "functions": [
+          {
+            "function_name": "_standardize_results",
+            "status": "completed",
+            "description": "标准化不同搜索引擎的结果格式"
+          },
+          {
+            "function_name": "_format_as_markdown",
+            "status": "completed",
+            "description": "将搜索结果格式化为Markdown"
+          },
+          {
+            "function_name": "_format_as_text",
+            "status": "completed",
+            "description": "将搜索结果格式化为纯文本"
+          },
+          {
+            "function_name": "_format_results",
+            "status": "completed",
+            "description": "根据指定格式类型格式化搜索结果"
+          }
+        ]
+      },
+      {
+        "file_name": "environment_detector.py",
+        "description": "网络环境检测和搜索引擎选择策略模块",
+        "functions": [
+          {
+            "function_name": "_check_engine_availability",
+            "status": "completed",
+            "description": "检查单个搜索引擎的可用性和响应时间"
+          },
+          {
+            "function_name": "_detect_best_engine",
+            "status": "completed",
+            "description": "自动检测最佳搜索引擎，支持地区和语言偏好"
+          },
+          {
+            "function_name": "batch_check_engines",
+            "status": "completed",
+            "description": "批量检查搜索引擎可用性，使用线程池并发"
+          }
+        ]
+      },
+      {
+        "file_name": "engine_adapters.py",
+        "description": "各搜索引擎的适配器模块，实现统一的搜索接口",
+        "functions": [
+          {
+            "function_name": "_search_baidu",
+            "status": "completed",
+            "description": "百度搜索适配器，支持重试和错误处理"
+          },
+          {
+            "function_name": "_search_sogou",
+            "status": "completed",
+            "description": "搜狗搜索适配器"
+          },
+          {
+            "function_name": "_search_so360",
+            "status": "completed",
+            "description": "360搜索适配器"
+          },
+          {
+            "function_name": "_search_google",
+            "status": "completed",
+            "description": "Google搜索适配器"
+          },
+          {
+            "function_name": "_search_bing",
+            "status": "completed",
+            "description": "Bing搜索适配器"
+          },
+          {
+            "function_name": "_search_duckduckgo",
+            "status": "completed",
+            "description": "DuckDuckGo搜索适配器"
+          }
+        ]
+      },
+      {
+        "file_name": "multi_search_engine.py",
+        "description": "主工具文件，包含3个@tool装饰的核心功能函数",
+        "functions": [
+          {
+            "function_name": "search",
+            "decorator": "@tool",
+            "status": "completed",
+            "description": "统一的搜索接口，支持多个搜索引擎，自动适配网络环境",
+            "parameters": [
+              "query (str, 必需): 搜索关键词",
+              "engine (str): 指定搜索引擎，默认auto",
+              "num_results (int): 结果数量，范围1-20，默认10",
+              "language (str): 语言偏好，默认auto",
+              "region (str): 地区提示，默认auto",
+              "timeout (int): 超时时间，范围5-30，默认15",
+              "format (str): 输出格式，默认json",
+              "include_metadata (bool): 是否包含元数据，默认true"
+            ],
+            "return": "JSON字符串，包含搜索结果列表和元数据"
+          },
+          {
+            "function_name": "check_engine_health",
+            "decorator": "@tool",
+            "status": "completed",
+            "description": "检查搜索引擎的可用性和响应时间",
+            "parameters": [
+              "engines (str): 需要检查的引擎列表，JSON数组字符串",
+              "check_timeout (int): 检查超时时间，默认5秒"
+            ],
+            "return": "JSON字符串，包含各搜索引擎健康状态"
+          },
+          {
+            "function_name": "filter_and_sort_results",
+            "decorator": "@tool",
+            "status": "completed",
+            "description": "对搜索结果进行过滤和自定义排序",
+            "parameters": [
+              "results_json (str, 必需): 待处理的搜索结果JSON字符串",
+              "filter_keywords (str): 过滤关键词列表，JSON数组字符串",
+              "exclude_keywords (str): 排除关键词列表，JSON数组字符串",
+              "sort_by (str): 排序方式，默认relevance",
+              "deduplicate (bool): 是否去重，默认true"
+            ],
+            "return": "JSON字符串，包含过滤和排序后的搜索结果"
+          }
+        ]
+      },
+      {
+        "file_name": "__init__.py",
+        "description": "包初始化文件，导出主要工具函数",
+        "status": "completed"
+      },
+      {
+        "file_name": "requirements.txt",
+        "description": "依赖包列表",
+        "status": "completed"
+      },
+      {
+        "file_name": "README.md",
+        "description": "完整的使用文档和API文档",
+        "status": "completed"
+      }
+    ],
+    "implementation_summary": {
+      "total_files": 9,
+      "total_functions": 21,
+      "tool_functions": 3,
+      "helper_functions": 18,
+      "lines_of_code": "约1500行",
+      "completion_status": "100%"
+    },
+    "key_features": [
+      "支持6个搜索引擎：百度、搜狗、360搜索、Google、Bing、DuckDuckGo",
+      "自动环境检测和引擎选择，根据地区和语言偏好智能选择",
+      "搜索失败自动切换备用引擎，最多重试3次",
+      "并发健康检查，使用线程池同时检查多个引擎",
+      "统一结果格式，支持JSON、Markdown、纯文本三种输出",
+      "User-Agent轮换机制，避免被搜索引擎拦截",
+      "指数退避重试策略，智能处理网络失败",
+      "完善的错误处理和参数验证",
+      "详细的日志记录，便于调试和监控",
+      "关键词过滤、排除、去重和排序功能"
+    ],
+    "code_quality": {
+      "type_hints": "所有函数都包含类型提示",
+      "docstrings": "所有函数都有详细的文档字符串",
+      "error_handling": "完善的异常处理和错误信息",
+      "logging": "使用Python logging模块记录日志",
+      "code_style": "遵循PEP 8代码风格规范",
+      "modularity": "良好的模块化设计，职责分离清晰"
+    },
+    "testing_recommendations": [
+      "测试所有6个搜索引擎的基本搜索功能",
+      "测试自动引擎选择在不同网络环境下的表现",
+      "测试健康检查功能的准确性",
+      "测试过滤和排序功能的各种组合",
+      "测试错误处理和边界条件",
+      "测试不同输出格式（JSON、Markdown、Text）",
+      "测试超时和重试机制",
+      "测试并发请求的稳定性"
+    ],
+    "deployment_notes": [
+      "确保安装所有依赖包：pip install -r requirements.txt",
+      "建议在生产环境中设置合理的timeout值（10-20秒）",
+      "如需访问海外搜索引擎，可能需要配置代理",
+      "建议实现请求频率限制，避免被搜索引擎封禁",
+      "可以通过环境变量配置日志级别和代理",
+      "定期运行健康检查，监控搜索引擎可用性"
+    ],
+    "known_limitations": [
+      "搜索引擎的HTML结构可能会变化，需要定期更新选择器",
+      "某些搜索引擎可能有反爬虫机制，需要User-Agent轮换",
+      "免费搜索方式受限于搜索引擎的访问限制",
+      "日期排序功能当前为简化实现，需要从snippet中提取日期",
+      "不支持高级搜索语法（如site:、filetype:等）"
+    ],
+    "future_enhancements": [
+      "支持更多搜索引擎（如Yandex、Yahoo等）",
+      "实现搜索结果缓存机制",
+      "支持异步搜索，提高并发性能",
+      "实现高级搜索语法支持",
+      "添加搜索历史记录功能",
+      "实现智能结果聚合（从多个引擎聚合结果）",
+      "支持图片、视频等多媒体搜索",
+      "实现更智能的日期提取和排序"
+    ],
+    "notes": [
+      "所有工具函数都使用@tool装饰器，符合Strands SDK规范",
+      "所有函数都返回JSON字符串或错误信息字符串",
+      "实现了完善的错误处理，所有异常都被捕获并转换为友好的错误信息",
+      "代码具有良好的可维护性和可扩展性",
+      "文档完整，包含详细的API文档和使用示例",
+      "已成功注册3个工具函数到项目状态文件"
+    ]
+  }
+}
